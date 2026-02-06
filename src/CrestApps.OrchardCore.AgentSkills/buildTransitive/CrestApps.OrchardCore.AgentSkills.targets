@@ -22,7 +22,7 @@
   </PropertyGroup>
 
   <Target Name="_CrestAppsCopyAgentFiles"
-          BeforeTargets="CollectPackageReferences;ResolvePackageAssets;PrepareForBuild"
+          BeforeTargets="CollectPackageReferences;ResolvePackageAssets"
           Condition="Exists('$(_CrestAppsAgentSource)')">
 
     <ItemGroup>

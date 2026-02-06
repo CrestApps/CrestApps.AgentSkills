@@ -1,6 +1,5 @@
+using CrestApps.OrchardCore.AgentSkills.Mcp.Providers;
 using Microsoft.Extensions.DependencyInjection;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 
 namespace CrestApps.OrchardCore.AgentSkills.Mcp.Extensions;
 
@@ -41,77 +40,15 @@ public static class OrchardCoreSkillMcpExtensions
 
         var skillsPath = options.Path ?? Path.Combine(AppContext.BaseDirectory, DefaultSkillsRelativePath);
 
-        if (!Directory.Exists(skillsPath))
-        {
-            return builder;
-        }
-
-        var prompts = new List<McpServerPrompt>();
-        var resources = new List<McpServerResource>();
-
-        foreach (var skillDir in Directory.EnumerateDirectories(skillsPath))
-        {
-            var skillName = Path.GetFileName(skillDir);
-
-            // Register prompts.md files as MCP prompts
-            var promptsFile = Path.Combine(skillDir, "prompts.md");
-            if (File.Exists(promptsFile))
-            {
-                var content = File.ReadAllText(promptsFile);
-                var prompt = McpServerPrompt.Create(
-                    () => content,
-                    new McpServerPromptCreateOptions
-                    {
-                        Name = skillName,
-                        Description = $"Orchard Core prompt template for {skillName}",
-                    });
-                prompts.Add(prompt);
-            }
-
-            // Register skill.yaml files as MCP resources
-            var skillFile = Path.Combine(skillDir, "skill.yaml");
-            if (File.Exists(skillFile))
-            {
-                var content = File.ReadAllText(skillFile);
-                var resource = McpServerResource.Create(
-                    () => content,
-                    new McpServerResourceCreateOptions
-                    {
-                        Name = $"{skillName}/skill.yaml",
-                        Description = $"Orchard Core skill definition for {skillName}",
-                        UriTemplate = $"skills://{skillName}/skill.yaml",
-                        MimeType = "text/yaml",
-                    });
-                resources.Add(resource);
-            }
-
-            // Register example files as MCP resources
-            var examplesDir = Path.Combine(skillDir, "examples");
-            if (Directory.Exists(examplesDir))
-            {
-                foreach (var exampleFile in Directory.EnumerateFiles(examplesDir))
-                {
-                    var fileName = Path.GetFileName(exampleFile);
-                    var content = File.ReadAllText(exampleFile);
-                    var resource = McpServerResource.Create(
-                        () => content,
-                        new McpServerResourceCreateOptions
-                        {
-                            Name = $"{skillName}/examples/{fileName}",
-                            Description = $"Orchard Core example for {skillName}",
-                            UriTemplate = $"skills://{skillName}/examples/{fileName}",
-                            MimeType = "text/markdown",
-                        });
-                    resources.Add(resource);
-                }
-            }
-        }
-
+        var promptProvider = new FileSystemSkillPromptProvider(skillsPath);
+        var prompts = promptProvider.GetPrompts();
         if (prompts.Count > 0)
         {
             builder.WithPrompts(prompts);
         }
 
+        var resourceProvider = new FileSystemSkillResourceProvider(skillsPath);
+        var resources = resourceProvider.GetResources();
         if (resources.Count > 0)
         {
             builder.WithResources(resources);
