@@ -3,18 +3,20 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeContentInPack>true</IncludeContentInPack>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <PackageId>CrestApps.OrchardCore.AgentSkills</PackageId>
     <Version>1.0.0</Version>
     <Authors>CrestApps</Authors>
-    <Description>Reusable Agent Skills for Orchard Core development. Follows agentskills.io standards. Skills auto-mount into .agents/skills for immediate AI agent discovery.</Description>
+    <Description>Distributes shared AI agent guardrail and instruction files for Orchard Core development. Files are copied into the consuming project's .agents/ folder on install and update — no runtime dependency.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</RepositoryUrl>
-    <PackageTags>orchard-core;agent-skills;ai;agentskills;cms</PackageTags>
+    <PackageTags>orchard-core;agent-skills;ai;agentskills;cms;dev-tools</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <NoWarn>NU5128</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +24,7 @@
              Pack="true"
              PackagePath="contentFiles\any\any\.agents\skills"
              BuildAction="Content"
-             CopyToOutputDirectory="Always" />
+             CopyToOutputDirectory="Never" />
   </ItemGroup>
 
   <ItemGroup>

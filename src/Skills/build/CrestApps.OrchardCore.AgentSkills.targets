@@ -2,34 +2,34 @@
 
   <!--
     CrestApps.OrchardCore.AgentSkills
-    Automatically copies skills from the NuGet package into .agents/skills
-    at the solution (or project) root during build.
+    Copies agent skill / guardrail files from the NuGet package into
+    the consuming project's .agents/ folder on restore and install.
+    Files are always refreshed so that package updates are applied immediately.
+    This target does NOT depend on compilation.
   -->
 
   <PropertyGroup>
-    <!-- Locate the skills source inside the NuGet package -->
-    <_CrestAppsSkillsSource>$(MSBuildThisFileDirectory)..\contentFiles\any\any\.agents\skills\</_CrestAppsSkillsSource>
+    <!-- Source: the skills content shipped inside the NuGet package -->
+    <_CrestAppsAgentSource>$(MSBuildThisFileDirectory)..\contentFiles\any\any\.agents\</_CrestAppsAgentSource>
 
-    <!-- Determine the solution root; fall back to the project directory -->
-    <_CrestAppsSolutionRoot Condition="'$(SolutionDir)' != ''">$(SolutionDir)</_CrestAppsSolutionRoot>
-    <_CrestAppsSolutionRoot Condition="'$(_CrestAppsSolutionRoot)' == ''">$(MSBuildProjectDirectory)\</_CrestAppsSolutionRoot>
-
-    <_CrestAppsSkillsTarget>$(_CrestAppsSolutionRoot).agents\skills\</_CrestAppsSkillsTarget>
+    <!-- Target: the consuming project's .agents/ folder -->
+    <_CrestAppsAgentTarget>$(MSBuildProjectDirectory)\.agents\</_CrestAppsAgentTarget>
   </PropertyGroup>
 
-  <Target Name="_CrestAppsMountSkills"
-          BeforeTargets="Build"
-          Condition="Exists('$(_CrestAppsSkillsSource)')">
+  <Target Name="_CrestAppsCopyAgentFiles"
+          BeforeTargets="Restore;CollectPackageReferences;ResolvePackageAssets;PrepareForBuild;Build"
+          Condition="Exists('$(_CrestAppsAgentSource)')">
 
     <ItemGroup>
-      <_CrestAppsSkillFiles Include="$(_CrestAppsSkillsSource)**\*" />
+      <_CrestAppsAgentFiles Include="$(_CrestAppsAgentSource)**\*" />
     </ItemGroup>
 
-    <MakeDir Directories="$(_CrestAppsSkillsTarget)" Condition="!Exists('$(_CrestAppsSkillsTarget)')" />
+    <MakeDir Directories="$(_CrestAppsAgentTarget)" Condition="!Exists('$(_CrestAppsAgentTarget)')" />
 
-    <Copy SourceFiles="@(_CrestAppsSkillFiles)"
-          DestinationFiles="@(_CrestAppsSkillFiles->'$(_CrestAppsSkillsTarget)%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CrestAppsAgentFiles)"
+          DestinationFiles="@(_CrestAppsAgentFiles->'$(_CrestAppsAgentTarget)%(RecursiveDir)%(Filename)%(Extension)')"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false" />
 
   </Target>
 

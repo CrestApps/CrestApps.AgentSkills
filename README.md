@@ -1,18 +1,15 @@
 # CrestApps.OrchardCore.AgentSkills
 
-Reusable **Agent Skills for Orchard Core development**, distributed via NuGet. These skills follow [agentskills.io](https://agentskills.io/) standards, encapsulate Orchard Core best practices, and improve AI code generation quality.
+A NuGet package that distributes shared **AI agent instruction and guardrail files** for Orchard Core development.
 
-Once installed, skills **automatically mount** into the consumer project's `.agents/skills` folder so AI agents discover and use them immediately—no manual copying required.
-
-> **Targets .NET 10** (`net10.0`).
+When installed, agent files are automatically copied into the consuming project's `.agents/` folder on package install, update, and restore. There is **no runtime dependency** — this package is used purely for development and AI tooling guidance.
 
 ## Overview
 
-- **Purpose**: Provide a centralized, versioned set of Orchard Core skills that AI agents can consume.
-- **Orchard Core Specialization**: Covers content types, modules, recipes, deployments, and AI integrations.
-- **agentskills.io Compliance**: Every skill includes `skill.yaml`, input/output schemas, prompt templates, examples, and follows naming and validation standards.
-- **AI Quality Improvements**: Agents generate higher-quality Orchard Core code by leveraging standardized prompts and examples.
-- **Automatic Mounting**: Skills are copied to `.agents/skills` at the solution root during build via an included MSBuild `.targets` file, and can also be mounted at runtime.
+- **Shared AI agent guardrails**: Provides standardized agent instruction files that guide AI code-generation tools when working with Orchard Core projects.
+- **Standardizes agent behavior**: Every project that installs this package receives the same set of agent skills, ensuring consistent AI-assisted development across teams and repositories.
+- **Installs files into `.agents/`**: On package install or update, skill files are copied into the project's `.agents/` directory where AI tools can discover them.
+- **No runtime footprint**: This package contains no compiled assemblies and adds nothing to your application's deployment. It is a development-only dependency.
 
 ## Installation
 
@@ -20,116 +17,61 @@ Once installed, skills **automatically mount** into the consumer project's `.age
 dotnet add package CrestApps.OrchardCore.AgentSkills
 ```
 
-## Repository Structure
+## How It Works
 
-```
-src/
-└─ Skills/
-   ├─ .agents/skills/           ← skill content (yaml, md, examples)
-   ├─ Extensions/               ← C# extension methods
-   ├─ build/                    ← MSBuild .targets for auto-mounting
-   ├─ IAgentBuilder.cs
-   ├─ skills.manifest.json
-   └─ CrestApps.OrchardCore.AgentSkills.csproj
-```
+1. The NuGet package includes agent skill files under `contentFiles/any/any/.agents/skills/`.
+2. An embedded MSBuild `.targets` file runs automatically on **restore, install, and update** — not just at build time.
+3. The `.targets` file copies all agent files from the NuGet package cache into the consuming project's `.agents/` folder.
+4. AI development tools (e.g., GitHub Copilot, Cursor, Cline) read the guardrail files from `.agents/` and use them to generate higher-quality Orchard Core code.
 
-Skill content lives directly under `src/Skills/.agents/skills/` and is packed into `contentFiles/any/any/.agents/skills/` in the NuGet package, making it available for all target frameworks and languages.
+**Key points:**
 
-## How Mounting Works
+- Files are copied locally on install and update — **no manual copying required**.
+- There is **no runtime dependency** and **no deployment impact**.
+- The package is used purely for **development and AI tooling guidance**.
+- Copying happens via MSBuild targets, independent of compilation.
 
-The package provides **two** complementary mounting strategies so skills are always available:
+## How to Consume
 
-### 1. Build-Time Mounting (MSBuild `.targets`)
+1. Install the NuGet package:
+   ```bash
+   dotnet add package CrestApps.OrchardCore.AgentSkills
+   ```
+2. Restore packages:
+   ```bash
+   dotnet restore
+   ```
+3. The `.agents/` folder appears in your project directory:
+   ```
+   .agents/
+     skills/
+       orchardcore.content-types/
+       orchardcore.modules/
+       orchardcore.recipes/
+       orchardcore.deployments/
+       orchardcore.ai/
+   ```
+4. AI tools automatically read guardrails from these files.
 
-An embedded MSBuild `.targets` file runs automatically before each build. It:
+## File Update Behavior
 
-1. Locates the skills bundled inside the NuGet package (`contentFiles/any/any/.agents/skills/`).
-2. Determines the solution root (via `$(SolutionDir)`, falling back to the project directory).
-3. Creates `.agents/skills` at the solution root if it doesn't already exist.
-4. Copies all skill files into that folder, skipping unchanged files.
+- When the NuGet package is **updated**, all agent files are **refreshed automatically** on the next restore or build.
+- The latest agent standards and guardrails are always applied without manual intervention.
+- Files originating from this package are **overwritten** to ensure they stay in sync with the package version.
 
-No configuration is needed — it happens on every build.
-
-### 2. Runtime Mounting (`MountOrchardCoreSkills`)
-
-For scenarios where build-time mounting isn't sufficient (e.g., containerized deployments, dynamic skill loading), call the runtime mounting extension:
-
-```csharp
-builder.Services.AddAgents(agent =>
-{
-    agent.MountOrchardCoreSkills();
-});
-```
-
-This method:
-
-- Discovers skills from the NuGet package's output directory.
-- Walks up the directory tree to find the solution root (looks for `.sln` files).
-- Creates `.agents/skills` if it doesn't exist.
-- Copies all skills, overwriting existing files to keep the package as the source of truth.
-- Is **idempotent** — safe to call multiple times.
-- Throws a clear `InvalidOperationException` if the embedded skills source directory is missing.
-- Handles filesystem exceptions gracefully for I/O, permission, and security errors.
-
-### Result
-
-After installation and build, your solution root will contain:
-
-```
-.agents/
-  skills/
-    orchardcore.content-types/
-    orchardcore.modules/
-    orchardcore.recipes/
-    orchardcore.deployments/
-    orchardcore.ai/
-```
-
-## Registering Skills
-
-### Mount and register (recommended)
-
-Automatically copies skills to the solution root **and** registers them:
-
-```csharp
-agentBuilder.MountOrchardCoreSkills();
-```
-
-### Register only
-
-If skills are already present (e.g., from the build-time `.targets`), you can register them from the output directory:
-
-```csharp
-agentBuilder.AddOrchardCoreSkills();
-```
-
-### Full usage example
-
-```csharp
-builder.Services.AddAgents(agent =>
-{
-    agent.MountOrchardCoreSkills();
-});
-```
+> **Note:**
+> This project installs shared agent files into your local `.agents/` folder.
+> If needed, it will replace common agent files (such as `Agents.md`) that already exist in your project.
+> Do **not** modify files added by this package inside `.agents/`, as your changes will be lost after a NuGet package update.
 
 ## Keeping Projects Up To Date
 
 ### Floating Version
 
-Always get the latest skills on restore/build with no manual updates:
+Always get the latest agent files on restore:
 
 ```xml
-<PackageReference
-  Include="CrestApps.OrchardCore.AgentSkills"
-  Version="*" />
-```
-
-or pin to a major version:
-
-```xml
-<PackageReference
-  Include="CrestApps.OrchardCore.AgentSkills"
-  Version="1.*" />
+<PackageReference Include="CrestApps.OrchardCore.AgentSkills" Version="1.*" />
 ```
 
 ### Locked Version
@@ -137,9 +79,7 @@ or pin to a major version:
 Pin to a specific version for full control:
 
 ```xml
-<PackageReference
-  Include="CrestApps.OrchardCore.AgentSkills"
-  Version="1.0.0" />
+<PackageReference Include="CrestApps.OrchardCore.AgentSkills" Version="1.0.0" />
 ```
 
 Update manually:
@@ -158,15 +98,15 @@ dotnet add package CrestApps.OrchardCore.AgentSkills --version 1.1.0
 | `orchardcore.deployments` | Deployment plans and import/export configuration |
 | `orchardcore.ai` | AI service integration, MCP enablement, and agent framework setup |
 
-## agentskills.io Compliance
+## Repository Structure
 
-All skills in this package comply with [agentskills.io](https://agentskills.io/) standards:
-
-- Each skill includes a `skill.yaml` with metadata, inputs, and outputs.
-- Prompt templates are provided in `prompts.md`.
-- Examples are included where applicable.
-- Naming follows the `orchardcore.<category>` convention.
-- Input/output schemas are fully defined.
+```
+src/
+└─ Skills/
+   ├─ .agents/skills/       ← agent guardrail content (yaml, md, examples)
+   ├─ build/                ← MSBuild .targets for auto-copy on restore
+   └─ CrestApps.OrchardCore.AgentSkills.csproj
+```
 
 ## License
 
