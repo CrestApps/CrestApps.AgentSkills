@@ -18,11 +18,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="contentFiles\**\*"
+    <Content Include=".agents\skills\**\*"
              Pack="true"
-             PackagePath="contentFiles"
+             PackagePath="contentFiles\any\any\.agents\skills"
              BuildAction="Content"
-             CopyToOutputDirectory="PreserveNewest" />
+             CopyToOutputDirectory="Always" />
   </ItemGroup>
 
   <ItemGroup>

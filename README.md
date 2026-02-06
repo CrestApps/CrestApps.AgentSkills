@@ -20,6 +20,21 @@ Once installed, skills **automatically mount** into the consumer project's `.age
 dotnet add package CrestApps.OrchardCore.AgentSkills
 ```
 
+## Repository Structure
+
+```
+src/
+└─ Skills/
+   ├─ .agents/skills/           ← skill content (yaml, md, examples)
+   ├─ Extensions/               ← C# extension methods
+   ├─ build/                    ← MSBuild .targets for auto-mounting
+   ├─ IAgentBuilder.cs
+   ├─ skills.manifest.json
+   └─ CrestApps.OrchardCore.AgentSkills.csproj
+```
+
+Skill content lives directly under `src/Skills/.agents/skills/` and is packed into `contentFiles/any/any/.agents/skills/` in the NuGet package, making it available for all target frameworks and languages.
+
 ## How Mounting Works
 
 The package provides **two** complementary mounting strategies so skills are always available:
@@ -28,7 +43,7 @@ The package provides **two** complementary mounting strategies so skills are alw
 
 An embedded MSBuild `.targets` file runs automatically before each build. It:
 
-1. Locates the skills bundled inside the NuGet package.
+1. Locates the skills bundled inside the NuGet package (`contentFiles/any/any/.agents/skills/`).
 2. Determines the solution root (via `$(SolutionDir)`, falling back to the project directory).
 3. Creates `.agents/skills` at the solution root if it doesn't already exist.
 4. Copies all skill files into that folder, skipping unchanged files.
@@ -49,11 +64,12 @@ builder.Services.AddAgents(agent =>
 This method:
 
 - Discovers skills from the NuGet package's output directory.
-- Walks up the directory tree to find the solution root (looks for `.sln` files or a `.git` directory).
+- Walks up the directory tree to find the solution root (looks for `.sln` files).
 - Creates `.agents/skills` if it doesn't exist.
 - Copies all skills, overwriting existing files to keep the package as the source of truth.
 - Is **idempotent** — safe to call multiple times.
-- Handles filesystem exceptions gracefully (e.g., read-only environments).
+- Throws a clear `InvalidOperationException` if the embedded skills source directory is missing.
+- Handles filesystem exceptions gracefully for I/O, permission, and security errors.
 
 ### Result
 

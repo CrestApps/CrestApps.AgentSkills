@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <!-- Locate the skills source inside the NuGet package -->
-    <_CrestAppsSkillsSource>$(MSBuildThisFileDirectory)..\contentFiles\any\net10.0\.agents\skills\</_CrestAppsSkillsSource>
+    <_CrestAppsSkillsSource>$(MSBuildThisFileDirectory)..\contentFiles\any\any\.agents\skills\</_CrestAppsSkillsSource>
 
     <!-- Determine the solution root; fall back to the project directory -->
     <_CrestAppsSolutionRoot Condition="'$(SolutionDir)' != ''">$(SolutionDir)</_CrestAppsSolutionRoot>

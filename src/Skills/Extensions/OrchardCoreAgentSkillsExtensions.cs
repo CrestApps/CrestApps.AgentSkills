@@ -29,8 +29,8 @@ public static class OrchardCoreAgentSkillsExtensions
     /// into the <c>.agents/skills</c> folder at the root of the solution or project.
     /// <para>
     /// The solution root is determined dynamically by walking up from the entry
-    /// assembly's location until a <c>.sln</c> file or <c>.git</c> directory is found.
-    /// If neither is found, the entry assembly's directory is used as the fallback.
+    /// assembly's location until a <c>.sln</c> file is found.
+    /// If no <c>.sln</c> is found, the entry assembly's directory is used as the fallback.
     /// </para>
     /// <para>
     /// This method is idempotent — it can be called multiple times safely.
@@ -39,18 +39,25 @@ public static class OrchardCoreAgentSkillsExtensions
     /// </summary>
     /// <param name="builder">The agent builder instance.</param>
     /// <returns>The agent builder for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the embedded skills source directory cannot be found.
+    /// </exception>
     public static IAgentBuilder MountOrchardCoreSkills(this IAgentBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var sourceDir = GetEmbeddedSkillsSourceDirectory();
+
+        if (sourceDir is null || !Directory.Exists(sourceDir))
+        {
+            throw new InvalidOperationException(
+                $"The embedded skills source directory could not be found. " +
+                $"Ensure the CrestApps.OrchardCore.AgentSkills NuGet package is installed " +
+                $"and that skill files are present in the output directory under '{SkillsRelativePath}'.");
+        }
+
         try
         {
-            var sourceDir = GetEmbeddedSkillsSourceDirectory();
-            if (sourceDir is null || !Directory.Exists(sourceDir))
-            {
-                return builder;
-            }
-
             var solutionRoot = FindSolutionRoot();
             var targetDir = Path.Combine(solutionRoot, SkillsRelativePath);
 
@@ -76,37 +83,33 @@ public static class OrchardCoreAgentSkillsExtensions
     {
         var assemblyLocation = typeof(OrchardCoreAgentSkillsExtensions).Assembly.Location;
 
-        if (string.IsNullOrEmpty(assemblyLocation))
+        if (!string.IsNullOrEmpty(assemblyLocation))
         {
-            return null;
-        }
+            var assemblyDir = Path.GetDirectoryName(assemblyLocation);
 
-        var assemblyDir = Path.GetDirectoryName(assemblyLocation);
+            if (assemblyDir is not null)
+            {
+                // When NuGet contentFiles are copied to the output directory they
+                // land under <output>/.agents/skills.
+                var candidate = Path.Combine(assemblyDir, SkillsRelativePath);
 
-        if (assemblyDir is null)
-        {
-            return null;
-        }
-
-        // When NuGet contentFiles are copied to the output directory they
-        // land under <output>/.agents/skills.
-        var candidate = Path.Combine(assemblyDir, SkillsRelativePath);
-
-        if (Directory.Exists(candidate))
-        {
-            return candidate;
+                if (Directory.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
         }
 
         // Also check AppContext.BaseDirectory as a fallback.
-        candidate = Path.Combine(AppContext.BaseDirectory, SkillsRelativePath);
+        var fallback = Path.Combine(AppContext.BaseDirectory, SkillsRelativePath);
 
-        return Directory.Exists(candidate) ? candidate : null;
+        return Directory.Exists(fallback) ? fallback : null;
     }
 
     /// <summary>
     /// Walks up the directory tree from the entry assembly's location to locate
-    /// the solution root. Looks for <c>.sln</c> files or a <c>.git</c> directory
-    /// as indicators of the root. Falls back to the entry assembly directory.
+    /// the solution root. Looks for <c>.sln</c> files as the indicator of the root.
+    /// Falls back to the entry assembly directory.
     /// </summary>
     private static string FindSolutionRoot()
     {
@@ -116,8 +119,7 @@ public static class OrchardCoreAgentSkillsExtensions
 
         while (current is not null)
         {
-            if (current.EnumerateFiles("*.sln").Any()
-                || Directory.Exists(Path.Combine(current.FullName, ".git")))
+            if (current.EnumerateFiles("*.sln").Any())
             {
                 return current.FullName;
             }
