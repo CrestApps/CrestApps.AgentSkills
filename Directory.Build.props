@@ -23,7 +23,7 @@
     <RepositoryUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <CompanyUrl>https://crestapps.com</CompanyUrl>
-    <PackageTags>orchardcore;skills;agents;mcp</PackageTags>
+    <PackageTags>orchardcore skills agents mcp</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
