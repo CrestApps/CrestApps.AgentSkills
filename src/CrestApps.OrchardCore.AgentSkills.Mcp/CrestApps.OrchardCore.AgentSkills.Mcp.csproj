@@ -1,25 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>CrestApps.OrchardCore.AgentSkills.Mcp</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>CrestApps</Authors>
     <Description>Exposes Orchard Core agent skills to MCP servers at runtime. Loads skills from the package output and registers them as MCP prompts and resources. Requires the MCP C# SDK.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</RepositoryUrl>
-    <PackageTags>orchard-core;agent-skills;ai;mcp;model-context-protocol</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>NU5104</NoWarn>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" Version="0.8.0-preview.1" />
-    <PackageReference Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="OrchardCore.FileStorage.FileSystem" />
   </ItemGroup>
 
   <ItemGroup>

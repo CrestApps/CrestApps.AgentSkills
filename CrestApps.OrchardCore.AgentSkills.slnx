@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" />
+    <Project Path="src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" />
+  </Folder>
+</Solution>

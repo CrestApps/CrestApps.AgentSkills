@@ -1,22 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeContentInPack>true</IncludeContentInPack>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <PackageId>CrestApps.OrchardCore.AgentSkills</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>CrestApps</Authors>
     <Description>Distributes shared AI agent guardrail and instruction files for Orchard Core development. Skills are copied into the solution-root .agents/skills folder on install and update. No runtime dependency.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</RepositoryUrl>
-    <PackageTags>orchard-core;agent-skills;ai;agentskills;cms;dev-tools</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DevelopmentDependency>true</DevelopmentDependency>
-    <NoWarn>NU5128</NoWarn>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
