@@ -1,0 +1,42 @@
+name: orchardcore.shapes
+version: 1.0.0
+description: >
+  Skill for working with shapes in Orchard Core's display management system.
+  Covers shape creation, shape templates (Liquid and Razor), shape alternates,
+  shape wrappers, shape metadata, ad-hoc shapes, IShapeFactory usage,
+  IShapeTableProvider, and rendering shapes in Liquid templates.
+author: CrestApps
+tags:
+  - orchard-core
+  - shapes
+  - display-management
+  - liquid-templates
+  - razor-templates
+  - shape-alternates
+inputs:
+  - name: shape_name
+    type: string
+    description: The name of the shape to create or override.
+    required: true
+  - name: template_type
+    type: string
+    description: The template engine to use (Liquid or Razor).
+    required: false
+  - name: content_type
+    type: string
+    description: The content type to scope shape alternates to.
+    required: false
+  - name: display_type
+    type: string
+    description: The display type for the shape (Detail, Summary, SummaryAdmin).
+    required: false
+outputs:
+  - name: shape_template
+    type: string
+    description: The Liquid or Razor template file for the shape.
+  - name: shape_code
+    type: string
+    description: C# code for creating or customizing shapes.
+  - name: shape_table_provider
+    type: string
+    description: C# code for an IShapeTableProvider implementation.
