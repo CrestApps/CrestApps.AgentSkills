@@ -131,7 +131,7 @@ Override shape rendering by creating templates in the `Views/` folder:
 
 - `Content.liquid` - Default content item display.
 - `Content-BlogPost.liquid` - Content display for BlogPost type.
-- `Content__Summary.liquid` - Summary display mode (use double underscore for alternates with dashes in folder/file names, but within Liquid use `.` separators).
+- `Content__Summary.liquid` - Summary display mode. In file names, use double underscore (`__`) to represent the dash (`-`) separator used in shape alternate names (e.g., the `Content-Summary` alternate becomes the file `Content__Summary.liquid`).
 - `Widget.liquid` - Default widget wrapper.
 - `MenuItem.liquid` - Menu item rendering.
 
