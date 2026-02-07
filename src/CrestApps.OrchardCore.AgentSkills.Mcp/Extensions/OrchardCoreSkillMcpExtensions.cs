@@ -1,6 +1,7 @@
 using CrestApps.OrchardCore.AgentSkills.Mcp.Providers;
 using CrestApps.OrchardCore.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CrestApps.OrchardCore.AgentSkills.Mcp.Extensions;
 
@@ -58,8 +59,9 @@ public static class OrchardCoreSkillMcpExtensions
     /// Registers Orchard Core agent skills as MCP prompts and resources.
     /// Skills are loaded at runtime from the NuGet package output directory.
     /// The <see cref="IMcpResourceFileStore"/>, <see cref="FileSystemSkillPromptProvider"/>,
-    /// and <see cref="FileSystemSkillResourceProvider"/> are registered as singletons
-    /// and immediately used to populate the MCP server.
+    /// and <see cref="FileSystemSkillResourceProvider"/> are registered as singletons.
+    /// Prompts and resources are loaded directly during configuration and registered
+    /// with the MCP server builder.
     /// </summary>
     /// <param name="builder">The MCP server builder.</param>
     /// <returns>The builder for chaining.</returns>
@@ -70,9 +72,9 @@ public static class OrchardCoreSkillMcpExtensions
 
     /// <summary>
     /// Registers Orchard Core agent skills as MCP prompts and resources
-    /// with optional configuration. The <see cref="IMcpResourceFileStore"/>,
-    /// <see cref="FileSystemSkillPromptProvider"/>, and <see cref="FileSystemSkillResourceProvider"/>
-    /// are registered as singletons and immediately used to populate the MCP server.
+    /// with optional configuration. Prompts and resources are loaded directly
+    /// during configuration (without building a service provider) and registered
+    /// with the MCP server builder.
     /// </summary>
     /// <param name="builder">The MCP server builder.</param>
     /// <param name="configure">A delegate to configure skill options.</param>
@@ -87,12 +89,19 @@ public static class OrchardCoreSkillMcpExtensions
         // Register the common services (file store, prompt provider, resource provider).
         builder.Services.AddOrchardCoreAgentSkillServices(configure);
 
-        // Resolve the registered providers to eagerly load prompts/resources.
-        using var sp = builder.Services.BuildServiceProvider();
-        var promptProvider = sp.GetRequiredService<FileSystemSkillPromptProvider>();
-        var resourceProvider = sp.GetRequiredService<FileSystemSkillResourceProvider>();
+        // Resolve the skills path directly -- no service provider build needed.
+        var options = new OrchardCoreSkillOptions();
+        configure(options);
+        var skillsPath = options.Path
+            ?? Path.Combine(AppContext.BaseDirectory, DefaultSkillsRelativePath);
 
-        // Eagerly load and register prompts/resources with the MCP server.
+        // Load prompts/resources directly at configuration time.
+        // These are temporary instances for config-time loading only;
+        // the DI-registered singletons (with proper loggers) are used at runtime.
+        var fileStore = new McpSkillFileStore(skillsPath);
+        var promptProvider = new FileSystemSkillPromptProvider(fileStore, NullLogger<FileSystemSkillPromptProvider>.Instance);
+        var resourceProvider = new FileSystemSkillResourceProvider(fileStore, NullLogger<FileSystemSkillResourceProvider>.Instance);
+
         var prompts = promptProvider.GetPromptsAsync().GetAwaiter().GetResult();
         if (prompts.Count > 0)
         {

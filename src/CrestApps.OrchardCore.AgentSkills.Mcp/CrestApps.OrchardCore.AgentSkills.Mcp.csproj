@@ -17,7 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\skills\.agents\skills\**\*" Pack="true" PackagePath="contentFiles\any\any\.agents\skills" BuildAction="Content" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\skills\.agents\skills\**\*" Pack="true" PackagePath="contentFiles\any\any\.agents\skills" BuildAction="Content" CopyToOutputDirectory="PreserveNewest">
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
