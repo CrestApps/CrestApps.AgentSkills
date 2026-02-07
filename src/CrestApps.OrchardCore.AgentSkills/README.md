@@ -2,23 +2,30 @@
 
 A development-only NuGet package that distributes shared **AI agent instruction and guardrail files** for Orchard Core development.
 
-When installed, agent skill files are automatically copied into the **solution-root** `.agents/skills` folder on package install, update, and restore. There is **no runtime dependency** — this package is used purely for development and AI tooling guidance.
+When installed, agent skill files are automatically copied into the **solution-root** `.agents/skills` folder. There is **no runtime dependency** — this package is used purely for development and AI tooling guidance.
 
 ## Install
 
 ```bash
 dotnet add package CrestApps.OrchardCore.AgentSkills
+dotnet build
 ```
 
-## Behavior
+> **Important:** Run `dotnet build` after installing or updating the package.
+> The `.agents/skills` folder is created on the **first build** after install/update.
+> In **Visual Studio**, a design-time build fires automatically after package install, so the folder appears immediately.
+> `dotnet restore` alone does **not** trigger the copy — this is a fundamental NuGet/MSBuild limitation where custom targets from packages cannot execute during restore.
 
-- Skills are **auto-mounted** into `.agents/skills` at the solution root.
-- Used by **GitHub Copilot**, **Cursor**, **Cline**, and other AI agents for code-generation guidance.
-- Files are **refreshed automatically** when the NuGet package is updated.
-- There is **no runtime dependency** and **no deployment impact**.
-- Copying happens via MSBuild `buildTransitive/` targets on the first **build** after install/update. Skills are available before compilation starts (`BeforeTargets="PrepareForBuild"`).
+## How It Works
 
-After install, the solution root will contain:
+1. Skills are packed inside the NuGet package under `skills/`.
+2. A `buildTransitive/` MSBuild `.targets` file runs `BeforeTargets="PrepareForBuild;CompileDesignTime"`.
+3. On the first build after install, skills are copied to the **solution root** `.agents/skills` folder.
+4. `$(SolutionDir)` is used when available (Visual Studio); otherwise falls back to `$(MSBuildProjectDirectory)/..`.
+5. `SkipUnchangedFiles="true"` — subsequent builds skip files that haven't changed.
+6. No compilation dependency — the copy runs before any C# code is compiled.
+
+After the first build, the solution root will contain:
 
 ```
 .agents/
@@ -34,9 +41,10 @@ After install, the solution root will contain:
 
 ```bash
 dotnet add package CrestApps.OrchardCore.AgentSkills --version x.x.x
+dotnet build
 ```
 
-Files in `.agents/skills` are replaced with the latest version from the package.
+Files in `.agents/skills` are replaced with the latest version from the package on the next build.
 
 ## ⚠️ Warning
 

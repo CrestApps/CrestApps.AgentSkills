@@ -13,9 +13,10 @@ Distributes shared **AI agent instruction and guardrail files** for Orchard Core
 
 ```bash
 dotnet add package CrestApps.OrchardCore.AgentSkills
+dotnet build
 ```
 
-After install and restore, the solution root will contain:
+After the first **build** after install, the solution root will contain:
 
 ```
 .agents/
@@ -27,7 +28,9 @@ After install and restore, the solution root will contain:
     orchardcore.ai/
 ```
 
-- Files are copied on the **first build** after install/update, before compilation starts (`BeforeTargets="PrepareForBuild"`).
+- Files are copied on the **first build** after install/update, before compilation starts (`BeforeTargets="PrepareForBuild;CompileDesignTime"`).
+- In **Visual Studio**, a design-time build fires automatically after package install, so the folder appears immediately.
+- `dotnet restore` alone does **not** trigger the copy — this is a fundamental NuGet/MSBuild limitation.
 - **No runtime dependency** — purely for development and AI tooling guidance.
 - Files are refreshed when the package is updated.
 

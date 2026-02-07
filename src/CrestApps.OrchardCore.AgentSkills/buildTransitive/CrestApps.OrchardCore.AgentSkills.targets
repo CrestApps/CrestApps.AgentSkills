@@ -8,28 +8,34 @@
     Uses buildTransitive so this target applies to every project that
     references this package — even transitively.
 
-    Runs BeforeTargets="PrepareForBuild" which fires early during build,
-    immediately after restore completes. AfterTargets="Restore" does NOT
-    work from buildTransitive because NuGet restore runs in a separate
-    MSBuild evaluation where buildTransitive imports are not yet available.
+    Timing:
+      BeforeTargets="PrepareForBuild"   — fires during CLI builds (dotnet build)
+      BeforeTargets="CompileDesignTime" — fires during VS design-time builds (immediately after install in VS)
 
-    Incremental: only re-copies when source files have changed (stamp file).
+    NOTE: dotnet restore alone CANNOT trigger custom MSBuild targets from NuGet packages.
+    This is a fundamental NuGet/MSBuild limitation. The copy happens on the first build
+    after install/update. In Visual Studio, a design-time build fires automatically
+    after package install, so the skills appear immediately.
+
+    Incremental: SkipUnchangedFiles prevents redundant copies on subsequent builds.
     This target does NOT depend on compilation.
   -->
 
   <PropertyGroup>
-    <!-- Resolve the solution root directory reliably (VS + CLI). -->
+    <!-- Resolve the solution root directory reliably (VS + CLI).
+         $(SolutionDir) is set by Visual Studio; for CLI builds it may be empty. -->
     <_AgentSolutionRoot Condition=" '$(SolutionDir)' != '' And '$(SolutionDir)' != '*Undefined*' ">$(SolutionDir)</_AgentSolutionRoot>
     <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$(MSBuildProjectDirectory)$([System.IO.Path]::DirectorySeparatorChar)..$([System.IO.Path]::DirectorySeparatorChar)</_AgentSolutionRoot>
 
-    <!-- Source: the skills/ folder inside the nupkg, sibling of buildTransitive/. -->
+    <!-- Source: the skills/ folder inside the nupkg, sibling to buildTransitive/.
+         In the NuGet cache this resolves to:
+           ~/.nuget/packages/crestapps.orchardcore.agentskills/<version>/skills/
+    -->
     <_AgentSourceDir>$(MSBuildThisFileDirectory)..$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)</_AgentSourceDir>
-
-    <_AgentStampFile>$(BaseIntermediateOutputPath)CrestApps.AgentSkills.stamp</_AgentStampFile>
   </PropertyGroup>
 
   <Target Name="CopyAgentSkillsToSolution"
-          BeforeTargets="PrepareForBuild"
+          BeforeTargets="PrepareForBuild;CompileDesignTime"
           Condition="Exists('$(_AgentSourceDir)')">
 
     <!-- Resolve source files at target execution time (not import time)
@@ -38,15 +44,13 @@
       <_AgentSkillFiles Include="$(_AgentSourceDir)**/*.*" />
     </ItemGroup>
 
-    <MakeDir Directories="$(_AgentSolutionRoot).agents/skills/"
-             Condition="!Exists('$(_AgentSolutionRoot).agents/skills/')" />
+    <MakeDir Directories="$(_AgentSolutionRoot).agents$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)"
+             Condition="!Exists('$(_AgentSolutionRoot).agents')" />
 
     <Copy SourceFiles="@(_AgentSkillFiles)"
-          DestinationFolder="$(_AgentSolutionRoot).agents/skills/%(RecursiveDir)"
+          DestinationFolder="$(_AgentSolutionRoot).agents$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)%(RecursiveDir)"
           SkipUnchangedFiles="true"
           OverwriteReadOnlyFiles="true" />
-
-    <Touch Files="$(_AgentStampFile)" AlwaysCreate="true" />
 
   </Target>
 
