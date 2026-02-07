@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>CrestApps.OrchardCore.AgentSkills.Mcp</PackageId>
-    <Description>Exposes Orchard Core agent skills to MCP servers at runtime. Loads skills from the package output and registers them as MCP prompts and resources. Built on top of CrestApps.AgentSkills.Mcp.</Description>
-    <PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
-  </PropertyGroup>
+	<PropertyGroup>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageId>CrestApps.OrchardCore.AgentSkills.Mcp</PackageId>
+		<Description>Exposes Orchard Core agent skills to MCP servers at runtime. Loads skills from the package output and registers them as MCP prompts and resources. Built on top of CrestApps.AgentSkills.Mcp.</Description>
+		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);NU5104</NoWarn>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\CrestApps.AgentSkills.Mcp\CrestApps.AgentSkills.Mcp.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\CrestApps.AgentSkills.Mcp\CrestApps.AgentSkills.Mcp.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\skills\.agents\skills\**\*" Pack="true" PackagePath="contentFiles\any\any\.agents\skills" BuildAction="Content" CopyToOutputDirectory="PreserveNewest">
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="..\skills\.agents\skills\**\*" Pack="true" PackagePath="contentFiles\any\any\.agents\skills" BuildAction="Content" CopyToOutputDirectory="PreserveNewest" Visible="false">
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+		</Content>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CrestApps.AgentSkills.Mcp/CrestApps.AgentSkills.Mcp.csproj" />
+    <Project Path="src/CrestApps.AgentSkills.Skills/CrestApps.AgentSkills.Skills.csproj" Id="a329b145-575b-43cf-b87a-a689f6e65646" />
     <Project Path="src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" />
     <Project Path="src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" />
   </Folder>

@@ -1,6 +1,6 @@
 using CrestApps.AgentSkills.Mcp.Models;
 
-namespace CrestApps.AgentSkills.Mcp.Services;
+namespace CrestApps.AgentSkills.Mcp.Abstractions;
 
 /// <summary>
 /// Abstraction for accessing skill files and directories.
