@@ -27,3 +27,97 @@ jobs:
     - name: Build
       run: |
         dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true /p:NuGetAudit=false
+
+    - name: Test
+      run: |
+        dotnet test -c Release --no-build --verbosity normal
+
+  validate_skills:
+    runs-on: ubuntu-latest
+    name: Validate Skills
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate SKILL.md files
+      shell: bash
+      run: |
+        SKILLS_DIR="src/skills/.agents/skills"
+        EXIT_CODE=0
+
+        if [ ! -d "$SKILLS_DIR" ]; then
+          echo "::error::Skills directory not found: $SKILLS_DIR"
+          exit 1
+        fi
+
+        for skill_dir in "$SKILLS_DIR"/*/; do
+          skill_name=$(basename "$skill_dir")
+
+          # Check SKILL.md exists.
+          if [ ! -f "$skill_dir/SKILL.md" ]; then
+            echo "::error file=$skill_dir::Skill '$skill_name' is missing SKILL.md"
+            EXIT_CODE=1
+            continue
+          fi
+
+          # Validate front-matter structure.
+          CONTENT=$(cat "$skill_dir/SKILL.md")
+
+          # Must start with ---.
+          if ! echo "$CONTENT" | head -1 | grep -q "^---$"; then
+            echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md must start with '---' front-matter delimiter"
+            EXIT_CODE=1
+            continue
+          fi
+
+          # Must have closing ---.
+          CLOSING_LINE=$(echo "$CONTENT" | tail -n +2 | grep -n "^---$" | head -1 | cut -d: -f1)
+          if [ -z "$CLOSING_LINE" ]; then
+            echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md is missing closing '---' front-matter delimiter"
+            EXIT_CODE=1
+            continue
+          fi
+
+          # Extract front-matter (between the two --- lines).
+          FRONT_MATTER=$(echo "$CONTENT" | sed -n "2,$((CLOSING_LINE))p")
+
+          # Check required 'name' field.
+          if ! echo "$FRONT_MATTER" | grep -q "^name:"; then
+            echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md is missing required 'name' field in front-matter"
+            EXIT_CODE=1
+          fi
+
+          # Check required 'description' field.
+          if ! echo "$FRONT_MATTER" | grep -q "^description:"; then
+            echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md is missing required 'description' field in front-matter"
+            EXIT_CODE=1
+          fi
+
+          # Validate directory name matches skill name.
+          SKILL_NAME_VALUE=$(echo "$FRONT_MATTER" | grep "^name:" | sed 's/^name:[[:space:]]*//')
+          if [ "$SKILL_NAME_VALUE" != "$skill_name" ]; then
+            echo "::error file=${skill_dir}SKILL.md::Skill name '$SKILL_NAME_VALUE' in front-matter does not match directory name '$skill_name'"
+            EXIT_CODE=1
+          fi
+
+          # Check that no old-format files exist.
+          if [ -f "$skill_dir/skill.yaml" ]; then
+            echo "::error file=${skill_dir}skill.yaml::Skill '$skill_name' contains deprecated skill.yaml file. Use SKILL.md with front-matter instead."
+            EXIT_CODE=1
+          fi
+          if [ -f "$skill_dir/prompts.md" ]; then
+            echo "::error file=${skill_dir}prompts.md::Skill '$skill_name' contains deprecated prompts.md file. Merge content into SKILL.md."
+            EXIT_CODE=1
+          fi
+
+          echo "✓ $skill_name"
+        done
+
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo ""
+          echo "::error::One or more skills failed validation. See errors above."
+        else
+          echo ""
+          echo "All skills passed validation."
+        fi
+
+        exit $EXIT_CODE

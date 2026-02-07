@@ -40,6 +40,58 @@ If you have an idea or improvement that's not tracked yet, please open a new iss
 
 ---
 
+## Adding New Skills
+
+Skills must comply with the [agentskills.io specification](https://agentskills.io/specification). Each skill lives in its own directory under `src/skills/.agents/skills/` and must contain a `SKILL.md` file.
+
+### Required File Structure
+
+```
+src/skills/.agents/skills/orchardcore.my-skill/
+├── SKILL.md                    ← Required: skill definition with front-matter
+└── references/                 ← Optional: additional reference/example files
+    └── my-skill-examples.md
+```
+
+### SKILL.md Format
+
+Every `SKILL.md` must start with YAML front-matter containing at least `name` and `description`:
+
+```md
+---
+name: orchardcore.my-skill
+description: A clear description of what this skill does and when to use it.
+---
+
+# Skill Title
+
+Guidelines, code templates, and examples go here.
+```
+
+### Naming Conventions
+
+* **Directory name**: lowercase, hyphenated, prefixed with `orchardcore.` (e.g., `orchardcore.content-types`)
+* **`name` field**: must exactly match the directory name
+* **`SKILL.md`**: must be uppercase (`SKILL.md`, not `skill.md`)
+* **References directory**: `references/` (not `examples/`)
+
+### Documentation Conventions
+
+* All recipe step JSON blocks must be wrapped in the root recipe format: `{ "steps": [...] }`
+* All C# classes in code samples must use the `sealed` modifier
+* Third-party module packages (non `OrchardCore.*`) must be installed in the web/startup project
+
+### Validation
+
+Skills are validated automatically in CI. Before submitting a PR, verify your skill locally:
+
+```bash
+dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true /p:NuGetAudit=false
+dotnet test -c Release --verbosity normal
+```
+
+---
+
 ## Contribution Scope
 
 * **Small Fixes (typos, minor bugs)**: Feel free to submit a pull request directly.
