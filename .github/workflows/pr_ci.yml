@@ -2,6 +2,7 @@ name: PR - CI
 on:
   pull_request:
     branches: [ main, release/** ]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -60,16 +61,16 @@ jobs:
           fi
 
           # Validate front-matter structure.
-          CONTENT=$(cat "$skill_dir/SKILL.md")
-
           # Must start with ---.
-          if ! echo "$CONTENT" | head -1 | grep -q "^---$"; then
+          FIRST_LINE=$(head -1 "$skill_dir/SKILL.md")
+          if [ "$FIRST_LINE" != "---" ]; then
             echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md must start with '---' front-matter delimiter"
             EXIT_CODE=1
             continue
           fi
 
           # Must have closing ---.
+          CONTENT=$(cat "$skill_dir/SKILL.md")
           CLOSING_LINE=$(echo "$CONTENT" | tail -n +2 | grep -n "^---$" | head -1 | cut -d: -f1)
           if [ -z "$CLOSING_LINE" ]; then
             echo "::error file=${skill_dir}SKILL.md::Skill '$skill_name' SKILL.md is missing closing '---' front-matter delimiter"
