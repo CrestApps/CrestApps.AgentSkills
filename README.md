@@ -1,12 +1,12 @@
 # CrestApps.AgentSkills
 
-Shared **AI agent skills** and MCP tooling for Orchard Core and other .NET applications. The repository contains three projects that solve distinct problems:
+Shared **AI agent skills** and MCP tooling for .NET applications and Orchard Core based projects. The repository contains three projects that solve distinct problems:
 
 | Project | README | Problem it solves |
 |---|---|---|
 | `CrestApps.AgentSkills.Mcp` | [`src/CrestApps.AgentSkills.Mcp/README.md`](src/CrestApps.AgentSkills.Mcp/README.md) | Provides a reusable MCP skill engine for any .NET app without building custom parsers/providers. |
-| `CrestApps.OrchardCore.AgentSkills` | [`src/CrestApps.OrchardCore.AgentSkills/README.md`](src/CrestApps.OrchardCore.AgentSkills/README.md) | Copies Orchard Core skills to `.agents/skills` so local AI tools have the guidance files at design time. |
-| `CrestApps.OrchardCore.AgentSkills.Mcp` | [`src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md`](src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md) | Exposes Orchard Core skills via MCP at runtime using OrchardCore's file storage. |
+| `CrestApps.OrchardCore.AgentSkills` | [`src/CrestApps.OrchardCore.AgentSkills/README.md`](src/CrestApps.OrchardCore.AgentSkills/README.md) | Used for Orchard Core local development by copying skills to `.agents/skills`. |
+| `CrestApps.OrchardCore.AgentSkills.Mcp` | [`src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md`](src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md) | Exposes Orchard Core skills as MCP prompts and MCP resources at runtime. |
 
 ## Quick Start
 
