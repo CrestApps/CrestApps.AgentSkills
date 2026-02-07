@@ -1,0 +1,40 @@
+name: orchardcore.search-indexing
+version: 1.0.0
+description: >
+  Skill for configuring search and indexing in Orchard Core.
+  Covers Lucene indexing, Elasticsearch integration, search settings,
+  index definitions, and search queries.
+author: CrestApps
+tags:
+  - orchard-core
+  - search
+  - indexing
+  - lucene
+  - elasticsearch
+inputs:
+  - name: index_name
+    type: string
+    description: The name of the search index to create.
+    required: true
+  - name: search_provider
+    type: string
+    description: The search provider (Lucene or Elasticsearch).
+    required: false
+  - name: content_types
+    type: array
+    description: Content types to include in the index.
+    required: false
+  - name: indexed_fields
+    type: array
+    description: Fields to include in the search index.
+    required: false
+outputs:
+  - name: index_configuration
+    type: string
+    description: Index configuration and settings.
+  - name: search_recipe
+    type: string
+    description: JSON recipe for search index setup.
+  - name: query_code
+    type: string
+    description: C# or Liquid code for executing search queries.

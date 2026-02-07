@@ -1,0 +1,36 @@
+name: orchardcore.navigation
+version: 1.0.0
+description: >
+  Skill for creating and managing navigation menus in Orchard Core.
+  Covers menu creation, navigation providers, admin menus,
+  breadcrumbs, and menu content types.
+author: CrestApps
+tags:
+  - orchard-core
+  - navigation
+  - menus
+  - breadcrumbs
+  - admin-menu
+inputs:
+  - name: menu_name
+    type: string
+    description: The name of the menu to create.
+    required: true
+  - name: menu_items
+    type: array
+    description: List of menu items with URLs, labels, and hierarchy.
+    required: true
+  - name: position
+    type: string
+    description: The position in the admin menu (e.g., "5" for ordering).
+    required: false
+outputs:
+  - name: navigation_provider
+    type: string
+    description: C# code for a custom navigation provider.
+  - name: admin_menu_code
+    type: string
+    description: C# code for admin menu registration.
+  - name: menu_recipe
+    type: string
+    description: JSON recipe for creating menus.

@@ -1,0 +1,33 @@
+name: orchardcore.media
+version: 1.0.0
+description: >
+  Skill for managing media in Orchard Core.
+  Covers media library configuration, media profiles,
+  image processing, media field usage, and storage providers.
+author: CrestApps
+tags:
+  - orchard-core
+  - media
+  - images
+  - file-management
+  - storage
+inputs:
+  - name: media_profile_name
+    type: string
+    description: The name of the media profile for image processing.
+    required: false
+  - name: storage_provider
+    type: string
+    description: The storage provider to configure (e.g., FileSystem, Azure Blob).
+    required: false
+  - name: allowed_extensions
+    type: array
+    description: List of allowed file extensions.
+    required: false
+outputs:
+  - name: configuration_code
+    type: string
+    description: C# or JSON configuration for media settings.
+  - name: media_profile
+    type: string
+    description: Media profile configuration for image processing.

@@ -1,0 +1,33 @@
+name: orchardcore.liquid
+version: 1.0.0
+description: >
+  Skill for using Liquid templates in Orchard Core.
+  Covers Liquid syntax, Orchard Core-specific filters and tags,
+  shape rendering, content access, and Liquid best practices.
+author: CrestApps
+tags:
+  - orchard-core
+  - liquid
+  - templates
+  - filters
+  - tags
+inputs:
+  - name: template_type
+    type: string
+    description: The type of Liquid template (layout, shape, widget, display).
+    required: false
+  - name: content_type
+    type: string
+    description: The content type being rendered.
+    required: false
+  - name: filters_needed
+    type: array
+    description: Liquid filters required for the template.
+    required: false
+outputs:
+  - name: liquid_template
+    type: string
+    description: The Liquid template code.
+  - name: filter_reference
+    type: string
+    description: Reference documentation for used Liquid filters.

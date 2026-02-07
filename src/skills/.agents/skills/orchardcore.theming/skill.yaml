@@ -1,0 +1,44 @@
+name: orchardcore.theming
+version: 1.0.0
+description: >
+  Skill for creating and customizing Orchard Core themes.
+  Covers theme scaffolding, Liquid and Razor templates, zones,
+  shape templates, asset management, and theme settings.
+author: CrestApps
+tags:
+  - orchard-core
+  - theming
+  - liquid
+  - razor
+  - templates
+inputs:
+  - name: theme_name
+    type: string
+    description: The name of the theme (PascalCase, typically prefixed with the organization name).
+    required: true
+  - name: base_theme
+    type: string
+    description: The base theme to inherit from (e.g., TheTheme, TheBlogTheme).
+    required: false
+  - name: description
+    type: string
+    description: Description of the theme.
+    required: false
+  - name: zones
+    type: array
+    description: List of zones the theme defines for content placement.
+    required: false
+  - name: assets
+    type: array
+    description: List of CSS/JS assets to include.
+    required: false
+outputs:
+  - name: manifest_file
+    type: string
+    description: The Manifest.cs file content for the theme.
+  - name: layout_template
+    type: string
+    description: The Layout template (Liquid or Razor).
+  - name: csproj_file
+    type: string
+    description: The .csproj file content for the theme.

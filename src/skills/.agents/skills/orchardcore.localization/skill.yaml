@@ -1,0 +1,36 @@
+name: orchardcore.localization
+version: 1.0.0
+description: >
+  Skill for configuring localization and multi-language support in Orchard Core.
+  Covers culture settings, content localization, PO file translations,
+  and localization configuration.
+author: CrestApps
+tags:
+  - orchard-core
+  - localization
+  - i18n
+  - multi-language
+  - translations
+inputs:
+  - name: supported_cultures
+    type: array
+    description: List of supported culture codes (e.g., "en-US", "fr-FR").
+    required: true
+  - name: default_culture
+    type: string
+    description: The default culture for the site.
+    required: true
+  - name: content_types
+    type: array
+    description: Content types to localize.
+    required: false
+outputs:
+  - name: localization_recipe
+    type: string
+    description: JSON recipe for localization settings.
+  - name: po_file
+    type: string
+    description: PO translation file template.
+  - name: localization_code
+    type: string
+    description: C# code for using localization in modules.

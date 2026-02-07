@@ -1,0 +1,33 @@
+name: orchardcore.taxonomies
+version: 1.0.0
+description: >
+  Skill for creating and managing taxonomies in Orchard Core.
+  Covers taxonomy creation, taxonomy terms, taxonomy fields,
+  and taxonomy-based content organization.
+author: CrestApps
+tags:
+  - orchard-core
+  - taxonomies
+  - categorization
+  - tagging
+  - content-organization
+inputs:
+  - name: taxonomy_name
+    type: string
+    description: The name of the taxonomy (e.g., "Categories", "Tags").
+    required: true
+  - name: terms
+    type: array
+    description: List of taxonomy terms to create.
+    required: false
+  - name: hierarchical
+    type: string
+    description: Whether the taxonomy supports nested terms (true/false).
+    required: false
+outputs:
+  - name: taxonomy_recipe
+    type: string
+    description: JSON recipe to create the taxonomy and its terms.
+  - name: migration_code
+    type: string
+    description: C# migration code for taxonomy field attachment.

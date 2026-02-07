@@ -1,0 +1,37 @@
+name: orchardcore.workflows
+version: 1.0.0
+description: >
+  Skill for creating and managing Orchard Core workflows.
+  Covers workflow type definitions, custom activities, events,
+  workflow expressions, and workflow triggers.
+author: CrestApps
+tags:
+  - orchard-core
+  - workflows
+  - automation
+  - activities
+  - events
+inputs:
+  - name: workflow_name
+    type: string
+    description: The name of the workflow type.
+    required: true
+  - name: activities
+    type: array
+    description: List of activities in the workflow.
+    required: true
+  - name: trigger_event
+    type: string
+    description: The event that triggers the workflow (e.g., ContentCreatedEvent).
+    required: false
+  - name: description
+    type: string
+    description: Description of the workflow purpose.
+    required: false
+outputs:
+  - name: workflow_definition
+    type: string
+    description: The workflow type definition.
+  - name: custom_activity_code
+    type: string
+    description: C# code for custom workflow activities.

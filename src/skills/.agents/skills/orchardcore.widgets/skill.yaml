@@ -1,0 +1,40 @@
+name: orchardcore.widgets
+version: 1.0.0
+description: >
+  Skill for creating and managing widgets in Orchard Core.
+  Covers widget content types, zones, layers, layer rules,
+  and widget placement configuration.
+author: CrestApps
+tags:
+  - orchard-core
+  - widgets
+  - zones
+  - layers
+  - placement
+inputs:
+  - name: widget_name
+    type: string
+    description: The name of the widget content type.
+    required: true
+  - name: zone
+    type: string
+    description: The zone where the widget should be placed.
+    required: false
+  - name: layer_rule
+    type: string
+    description: Layer rule expression for widget visibility.
+    required: false
+  - name: fields
+    type: array
+    description: Fields to include in the widget.
+    required: false
+outputs:
+  - name: widget_migration
+    type: string
+    description: C# migration code for the widget content type.
+  - name: widget_template
+    type: string
+    description: Liquid or Razor template for the widget.
+  - name: layer_recipe
+    type: string
+    description: JSON recipe for layer and widget configuration.

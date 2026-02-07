@@ -1,0 +1,36 @@
+name: orchardcore.users-roles
+version: 1.0.0
+description: >
+  Skill for managing users, roles, and permissions in Orchard Core.
+  Covers user registration, role creation, permission definitions,
+  custom user settings, and authentication configuration.
+author: CrestApps
+tags:
+  - orchard-core
+  - users
+  - roles
+  - permissions
+  - authentication
+inputs:
+  - name: role_name
+    type: string
+    description: The name of the role to create.
+    required: false
+  - name: permissions
+    type: array
+    description: List of permissions to assign to the role.
+    required: false
+  - name: custom_settings
+    type: array
+    description: List of custom user settings fields.
+    required: false
+outputs:
+  - name: permission_code
+    type: string
+    description: C# code for custom permission definitions.
+  - name: role_recipe
+    type: string
+    description: JSON recipe for creating roles with permissions.
+  - name: user_settings_code
+    type: string
+    description: C# code for custom user settings.

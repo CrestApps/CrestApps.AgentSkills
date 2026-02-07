@@ -1,0 +1,33 @@
+name: orchardcore.graphql
+version: 1.0.0
+description: >
+  Skill for configuring and using the GraphQL API in Orchard Core.
+  Covers GraphQL queries, custom types, content type querying,
+  and GraphQL schema customization.
+author: CrestApps
+tags:
+  - orchard-core
+  - graphql
+  - api
+  - queries
+  - schema
+inputs:
+  - name: content_type
+    type: string
+    description: The content type to query via GraphQL.
+    required: false
+  - name: query_fields
+    type: array
+    description: Fields to include in the GraphQL query.
+    required: false
+  - name: custom_type_name
+    type: string
+    description: Name for a custom GraphQL type.
+    required: false
+outputs:
+  - name: graphql_query
+    type: string
+    description: GraphQL query examples for the content type.
+  - name: custom_type_code
+    type: string
+    description: C# code for custom GraphQL types.

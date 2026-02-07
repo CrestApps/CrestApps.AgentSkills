@@ -1,0 +1,33 @@
+name: orchardcore.security
+version: 1.0.0
+description: >
+  Skill for configuring security and authorization in Orchard Core.
+  Covers permission definitions, authorization services, CORS,
+  security headers, content security policies, and OpenID Connect.
+author: CrestApps
+tags:
+  - orchard-core
+  - security
+  - authorization
+  - cors
+  - openid
+inputs:
+  - name: security_feature
+    type: string
+    description: The security feature to configure (e.g., CORS, OpenID, SecurityHeaders).
+    required: true
+  - name: permissions
+    type: array
+    description: Custom permissions to define.
+    required: false
+  - name: cors_origins
+    type: array
+    description: Allowed CORS origins.
+    required: false
+outputs:
+  - name: security_configuration
+    type: string
+    description: Security configuration code or JSON.
+  - name: startup_code
+    type: string
+    description: C# Startup.cs configuration code.
