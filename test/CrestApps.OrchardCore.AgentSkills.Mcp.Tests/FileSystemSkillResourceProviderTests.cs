@@ -24,12 +24,14 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetResourcesAsync_ReturnsSkillYamlResources()
+    public async Task GetResourcesAsync_ReturnsSkillMdResources()
     {
         // Arrange
         var skillDir = Path.Combine(_tempDir, "test-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "skill.yaml"), "name: test-skill\nversion: 1.0");
+        await File.WriteAllTextAsync(
+            Path.Combine(skillDir, "SKILL.md"),
+            "---\nname: test-skill\ndescription: A test skill.\n---\n# Test Skill");
 
         var fileStore = new McpSkillFileStore(_tempDir);
         var provider = new FileSystemSkillResourceProvider(
@@ -43,17 +45,19 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetResourcesAsync_ReturnsExampleMdResources()
+    public async Task GetResourcesAsync_ReturnsReferenceMdResources()
     {
         // Arrange
-        var skillDir = Path.Combine(_tempDir, "example-skill");
+        var skillDir = Path.Combine(_tempDir, "ref-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "skill.yaml"), "name: example-skill");
+        await File.WriteAllTextAsync(
+            Path.Combine(skillDir, "SKILL.md"),
+            "---\nname: ref-skill\ndescription: Ref skill.\n---\n# Ref Skill");
 
-        var examplesDir = Path.Combine(skillDir, "examples");
-        Directory.CreateDirectory(examplesDir);
-        await File.WriteAllTextAsync(Path.Combine(examplesDir, "example1.md"), "# Example 1");
-        await File.WriteAllTextAsync(Path.Combine(examplesDir, "example2.md"), "# Example 2");
+        var refsDir = Path.Combine(skillDir, "references");
+        Directory.CreateDirectory(refsDir);
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example1.md"), "# Example 1");
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example2.md"), "# Example 2");
 
         var fileStore = new McpSkillFileStore(_tempDir);
         var provider = new FileSystemSkillResourceProvider(
@@ -62,22 +66,24 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
         // Act
         var resources = await provider.GetResourcesAsync();
 
-        // Assert: 1 skill.yaml + 2 example .md files
+        // Assert: 1 SKILL.md + 2 reference .md files
         Assert.Equal(3, resources.Count);
     }
 
     [Fact]
-    public async Task GetResourcesAsync_IgnoresNonMdExampleFiles()
+    public async Task GetResourcesAsync_IgnoresNonMdReferenceFiles()
     {
         // Arrange
         var skillDir = Path.Combine(_tempDir, "filter-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "skill.yaml"), "name: filter-skill");
+        await File.WriteAllTextAsync(
+            Path.Combine(skillDir, "SKILL.md"),
+            "---\nname: filter-skill\ndescription: Filter skill.\n---\n# Filter Skill");
 
-        var examplesDir = Path.Combine(skillDir, "examples");
-        Directory.CreateDirectory(examplesDir);
-        await File.WriteAllTextAsync(Path.Combine(examplesDir, "example.md"), "# Valid");
-        await File.WriteAllTextAsync(Path.Combine(examplesDir, "data.json"), "{}");
+        var refsDir = Path.Combine(skillDir, "references");
+        Directory.CreateDirectory(refsDir);
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example.md"), "# Valid");
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "data.json"), "{}");
 
         var fileStore = new McpSkillFileStore(_tempDir);
         var provider = new FileSystemSkillResourceProvider(
@@ -86,8 +92,29 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
         // Act
         var resources = await provider.GetResourcesAsync();
 
-        // Assert: 1 skill.yaml + 1 .md example (json ignored)
+        // Assert: 1 SKILL.md + 1 .md reference (json ignored)
         Assert.Equal(2, resources.Count);
+    }
+
+    [Fact]
+    public async Task GetResourcesAsync_SkipsSkillMdWithInvalidFrontMatter()
+    {
+        // Arrange: SKILL.md without proper front-matter
+        var skillDir = Path.Combine(_tempDir, "invalid-skill");
+        Directory.CreateDirectory(skillDir);
+        await File.WriteAllTextAsync(
+            Path.Combine(skillDir, "SKILL.md"),
+            "# No front-matter\nJust markdown.");
+
+        var fileStore = new McpSkillFileStore(_tempDir);
+        var provider = new FileSystemSkillResourceProvider(
+            fileStore, NullLogger<FileSystemSkillResourceProvider>.Instance);
+
+        // Act
+        var resources = await provider.GetResourcesAsync();
+
+        // Assert
+        Assert.Empty(resources);
     }
 
     [Fact]
@@ -96,7 +123,9 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
         // Arrange
         var skillDir = Path.Combine(_tempDir, "cached-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "skill.yaml"), "name: cached");
+        await File.WriteAllTextAsync(
+            Path.Combine(skillDir, "SKILL.md"),
+            "---\nname: cached-skill\ndescription: Cached.\n---\n# Cached");
 
         var fileStore = new McpSkillFileStore(_tempDir);
         var provider = new FileSystemSkillResourceProvider(
@@ -126,12 +155,12 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetResourcesAsync_SkipsEmptyYamlFiles()
+    public async Task GetResourcesAsync_SkipsEmptySkillMdFiles()
     {
         // Arrange
-        var skillDir = Path.Combine(_tempDir, "empty-yaml-skill");
+        var skillDir = Path.Combine(_tempDir, "empty-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "skill.yaml"), "   ");
+        await File.WriteAllTextAsync(Path.Combine(skillDir, "SKILL.md"), "   ");
 
         var fileStore = new McpSkillFileStore(_tempDir);
         var provider = new FileSystemSkillResourceProvider(
@@ -140,7 +169,7 @@ public sealed class FileSystemSkillResourceProviderTests : IDisposable
         // Act
         var resources = await provider.GetResourcesAsync();
 
-        // Assert: empty yaml should be skipped
+        // Assert: empty file should be skipped
         Assert.Empty(resources);
     }
 }
