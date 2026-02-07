@@ -1,0 +1,36 @@
+name: orchardcore.display-management
+version: 1.0.0
+description: >
+  Skill for using Orchard Core's display management system.
+  Covers display drivers, display managers, shapes, display types,
+  shape table providers, placement, and editor/display mode patterns.
+author: CrestApps
+tags:
+  - orchard-core
+  - display-management
+  - display-drivers
+  - shapes
+  - placement
+inputs:
+  - name: content_part_name
+    type: string
+    description: The name of the content part to create a display driver for.
+    required: true
+  - name: display_types
+    type: array
+    description: Display types to support (e.g., Detail, Summary, SummaryAdmin).
+    required: false
+  - name: editor_groups
+    type: array
+    description: Editor groups for tabbed editing (e.g., Content, Metadata).
+    required: false
+outputs:
+  - name: display_driver_code
+    type: string
+    description: C# code for the content part display driver.
+  - name: view_model_code
+    type: string
+    description: C# code for the view model used by the driver.
+  - name: view_templates
+    type: string
+    description: Razor view templates for display and editor shapes.

@@ -1,0 +1,32 @@
+name: orchardcore.background-tasks
+version: 1.0.0
+description: >
+  Skill for creating background tasks and scheduled jobs in Orchard Core.
+  Covers IBackgroundTask implementation, scheduling configuration,
+  and background service patterns.
+author: CrestApps
+tags:
+  - orchard-core
+  - background-tasks
+  - scheduling
+  - jobs
+inputs:
+  - name: task_name
+    type: string
+    description: The name of the background task class.
+    required: true
+  - name: schedule
+    type: string
+    description: The cron expression or schedule for the task.
+    required: false
+  - name: description
+    type: string
+    description: Description of what the task does.
+    required: false
+outputs:
+  - name: background_task_code
+    type: string
+    description: C# code for the background task implementation.
+  - name: startup_registration
+    type: string
+    description: C# code for registering the background task in Startup.

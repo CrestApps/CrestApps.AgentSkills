@@ -1,0 +1,38 @@
+name: orchardcore.tenants
+version: 1.0.0
+description: >
+  Skill for configuring multi-tenancy in Orchard Core.
+  Covers tenant creation, SaaS setup, tenant configuration,
+  testing with tenants using different recipes (Blog, Agency),
+  and tenant management APIs.
+author: CrestApps
+tags:
+  - orchard-core
+  - tenants
+  - multi-tenancy
+  - saas
+  - testing
+inputs:
+  - name: tenant_name
+    type: string
+    description: The name of the tenant to create.
+    required: true
+  - name: url_prefix
+    type: string
+    description: The URL prefix for the tenant (e.g., "blog", "shop").
+    required: false
+  - name: recipe_name
+    type: string
+    description: The recipe to use for tenant setup (e.g., Blog, Agency, Blank).
+    required: false
+  - name: database_provider
+    type: string
+    description: The database provider for the tenant.
+    required: false
+outputs:
+  - name: tenant_recipe
+    type: string
+    description: JSON recipe for creating tenants.
+  - name: tenant_setup_commands
+    type: string
+    description: CLI commands or API calls for tenant management.

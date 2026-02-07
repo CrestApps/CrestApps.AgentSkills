@@ -1,0 +1,36 @@
+name: orchardcore.content-queries
+version: 1.0.0
+description: >
+  Skill for querying content items in Orchard Core using YesSql.
+  Covers ContentItemIndex queries, custom index creation, ISession usage,
+  IContentManager queries, and query optimization patterns.
+author: CrestApps
+tags:
+  - orchard-core
+  - content-queries
+  - yessql
+  - indexing
+  - content-manager
+inputs:
+  - name: content_type
+    type: string
+    description: The content type to query.
+    required: false
+  - name: index_name
+    type: string
+    description: The name of the custom YesSql index.
+    required: false
+  - name: query_fields
+    type: array
+    description: Fields to include in the custom index.
+    required: false
+outputs:
+  - name: query_code
+    type: string
+    description: C# code for querying content items.
+  - name: custom_index_code
+    type: string
+    description: C# code for custom YesSql index and migration.
+  - name: content_manager_code
+    type: string
+    description: C# code using IContentManager for content queries.

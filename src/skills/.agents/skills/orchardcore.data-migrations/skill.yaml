@@ -1,0 +1,36 @@
+name: orchardcore.data-migrations
+version: 1.0.0
+description: >
+  Skill for creating data migrations in Orchard Core.
+  Covers content type migrations, YesSql index table creation,
+  schema alterations, data seeding, and migration versioning patterns.
+author: CrestApps
+tags:
+  - orchard-core
+  - migrations
+  - data-migration
+  - schema
+  - yessql
+inputs:
+  - name: migration_name
+    type: string
+    description: The name of the migration class.
+    required: true
+  - name: content_types
+    type: array
+    description: Content types to define in the migration.
+    required: false
+  - name: index_tables
+    type: array
+    description: YesSql index tables to create.
+    required: false
+outputs:
+  - name: migration_code
+    type: string
+    description: C# code for the data migration class.
+  - name: index_code
+    type: string
+    description: C# code for YesSql index map definitions.
+  - name: startup_code
+    type: string
+    description: C# code for registering migrations and indexes.

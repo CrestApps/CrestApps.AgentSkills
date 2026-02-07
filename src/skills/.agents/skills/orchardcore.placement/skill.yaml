@@ -1,0 +1,33 @@
+name: orchardcore.placement
+version: 1.0.0
+description: >
+  Skill for configuring shape placement in Orchard Core.
+  Covers placement.json files, IShapePlacementProvider,
+  shape alternates, wrappers, and zone/position configuration.
+author: CrestApps
+tags:
+  - orchard-core
+  - placement
+  - shapes
+  - zones
+  - display
+inputs:
+  - name: shape_type
+    type: string
+    description: The shape type to configure placement for.
+    required: true
+  - name: display_type
+    type: string
+    description: The display type (Detail, Summary, SummaryAdmin).
+    required: false
+  - name: content_type
+    type: string
+    description: The content type to scope placement to.
+    required: false
+outputs:
+  - name: placement_json
+    type: string
+    description: The placement.json configuration.
+  - name: placement_provider_code
+    type: string
+    description: C# code for a custom IShapePlacementProvider.
