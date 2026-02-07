@@ -12,7 +12,7 @@ namespace CrestApps.AgentSkills.Mcp.Providers;
 /// becomes a prompt (using the body content).
 /// Registered as a singleton — results are lazily loaded and cached.
 /// </summary>
-public sealed class SkillPromptProvider : ISkillPromptProvider
+public sealed class SkillPromptProvider : IPromptProvider
 {
     private readonly ISkillFileStore _fileStore;
     private readonly ILogger<SkillPromptProvider> _logger;

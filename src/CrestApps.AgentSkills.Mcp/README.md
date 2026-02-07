@@ -41,7 +41,7 @@ To register the skill services in DI without eagerly loading them:
 builder.Services.AddAgentSkillServices();
 ```
 
-The consumer is then responsible for resolving `ISkillPromptProvider` and `ISkillResourceProvider` and attaching them to the MCP server.
+The consumer is then responsible for resolving `IPromptProvider` and `IResourceProvider` and attaching them to the MCP server.
 
 ### With Custom Path
 
@@ -62,12 +62,12 @@ The file store and providers are registered as singletons and can be injected:
 ```csharp
 public sealed class MyService
 {
-    private readonly ISkillPromptProvider _promptProvider;
-    private readonly ISkillResourceProvider _resourceProvider;
+    private readonly IPromptProvider _promptProvider;
+    private readonly IResourceProvider _resourceProvider;
 
     public MyService(
-        ISkillPromptProvider promptProvider,
-        ISkillResourceProvider resourceProvider)
+        IPromptProvider promptProvider,
+        IResourceProvider resourceProvider)
     {
         _promptProvider = promptProvider;
         _resourceProvider = resourceProvider;
@@ -156,8 +156,8 @@ Each skill directory may include a `references/` subdirectory containing additio
 |---|---|---|
 | `ISkillFileStore` | Singleton | Abstraction for skill file access |
 | `PhysicalSkillFileStore` | Singleton | Concrete implementation using `System.IO` |
-| `ISkillPromptProvider` | Singleton | Reads skill files → cached `McpServerPrompt` instances |
-| `ISkillResourceProvider` | Singleton | Reads skill + reference files → cached `McpServerResource` instances |
+| `IPromptProvider` | Singleton | Reads skill files → cached `McpServerPrompt` instances |
+| `IResourceProvider` | Singleton | Reads skill + reference files → cached `McpServerResource` instances |
 
 ### Parsers
 
@@ -171,7 +171,7 @@ Each skill directory may include a `references/` subdirectory containing additio
 
 1. Place skill directories under `.agents/skills/` (or a custom path).
 2. Each skill directory contains a `SKILL.md`, `SKILL.yaml`, or `SKILL.yml` file.
-3. `AddAgentSkills()` registers `ISkillFileStore`, `ISkillPromptProvider`, and `ISkillResourceProvider` as singletons.
+3. `AddAgentSkills()` registers `ISkillFileStore`, `IPromptProvider`, and `IResourceProvider` as singletons.
 4. At runtime, providers discover skill files, parse metadata, and create MCP prompts/resources.
 5. Results are cached after the first call for optimal performance.
 6. MCP clients can discover and use these prompts and resources via the MCP protocol.
@@ -196,7 +196,7 @@ Place your skill files in a directory and use the test infrastructure:
 
 ```csharp
 var fileStore = new PhysicalSkillFileStore("/path/to/skills");
-ISkillPromptProvider provider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance);
+IPromptProvider provider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance);
 var prompts = await provider.GetPromptsAsync();
 ```
 

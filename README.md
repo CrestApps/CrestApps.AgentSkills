@@ -69,7 +69,7 @@ builder.Services.AddMcpServer(mcp =>
 ```
 
 - Loads skills at runtime via OrchardCore `FileSystemStore`.
-- `IMcpResourceFileStore`, `ISkillPromptProvider`, and `ISkillResourceProvider` registered as **singletons** — no repeated file reads.
+- `IMcpResourceFileStore`, `IPromptProvider`, and `IResourceProvider` registered as **singletons** — no repeated file reads.
 - No file copying to solution.
 
 ### Full Orchard Core Experience

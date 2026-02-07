@@ -12,7 +12,7 @@ namespace CrestApps.AgentSkills.Mcp.Providers;
 /// file becomes a resource.
 /// Registered as a singleton — results are lazily loaded and cached.
 /// </summary>
-public sealed class SkillResourceProvider : ISkillResourceProvider
+public sealed class SkillResourceProvider : IResourceProvider
 {
     private readonly ISkillFileStore _fileStore;
     private readonly ILogger<SkillResourceProvider> _logger;
