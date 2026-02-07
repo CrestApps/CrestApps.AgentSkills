@@ -1,0 +1,40 @@
+name: orchardcore.content-types
+version: 1.0.0
+description: >
+  Skill for creating, managing, and configuring Orchard Core Content Types.
+  Covers content part definitions, content field definitions, stereotypes,
+  and content type indexing.
+author: CrestApps
+tags:
+  - orchard-core
+  - content-types
+  - cms
+  - content-management
+inputs:
+  - name: content_type_name
+    type: string
+    description: The technical name of the content type (PascalCase, no spaces).
+    required: true
+  - name: display_name
+    type: string
+    description: The display name shown in the admin UI.
+    required: true
+  - name: stereotype
+    type: string
+    description: The stereotype for the content type (e.g., Widget, MenuItem).
+    required: false
+  - name: parts
+    type: array
+    description: List of content parts to attach to the content type.
+    required: false
+  - name: fields
+    type: array
+    description: List of content fields to add to the content type.
+    required: false
+outputs:
+  - name: migration_code
+    type: string
+    description: C# migration code to create the content type.
+  - name: recipe_json
+    type: string
+    description: JSON recipe to create the content type via a recipe.

@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MCP Packages -->
+    <PackageVersion Include="ModelContextProtocol" Version="0.8.0-preview.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- OrchardCore Packages -->
+    <PackageVersion Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Logging -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.1.25080.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Testing -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
+  </ItemGroup>
+</Project>

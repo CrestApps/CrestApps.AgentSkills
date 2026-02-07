@@ -1,0 +1,29 @@
+name: orchardcore.recipes
+version: 1.0.0
+description: >
+  Skill for creating Orchard Core recipes.
+  Covers recipe structure, content type definitions, content items,
+  feature enablement, and recipe steps.
+author: CrestApps
+tags:
+  - orchard-core
+  - recipes
+  - configuration
+  - setup
+inputs:
+  - name: recipe_name
+    type: string
+    description: The name of the recipe.
+    required: true
+  - name: steps
+    type: array
+    description: List of recipe steps to include.
+    required: true
+  - name: description
+    type: string
+    description: Description of what the recipe configures.
+    required: false
+outputs:
+  - name: recipe_json
+    type: string
+    description: The complete recipe JSON file content.

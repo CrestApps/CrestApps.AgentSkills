@@ -1,0 +1,29 @@
+name: orchardcore.ai
+version: 1.0.0
+description: >
+  Skill for configuring AI integrations in Orchard Core.
+  Covers AI service registration, MCP enablement,
+  prompt configuration, and agent framework integration.
+author: CrestApps
+tags:
+  - orchard-core
+  - ai
+  - mcp
+  - agents
+  - llm
+inputs:
+  - name: ai_provider
+    type: string
+    description: The AI provider to configure (e.g., OpenAI, Azure OpenAI).
+    required: true
+  - name: features
+    type: array
+    description: List of AI features to enable.
+    required: false
+outputs:
+  - name: configuration_code
+    type: string
+    description: C# configuration code for the AI integration.
+  - name: settings_json
+    type: string
+    description: appsettings.json configuration for the AI provider.

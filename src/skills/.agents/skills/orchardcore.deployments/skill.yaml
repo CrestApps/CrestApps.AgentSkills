@@ -1,0 +1,25 @@
+name: orchardcore.deployments
+version: 1.0.0
+description: >
+  Skill for configuring Orchard Core deployment plans and steps.
+  Covers deployment plan creation, content export/import,
+  and deployment step configuration.
+author: CrestApps
+tags:
+  - orchard-core
+  - deployments
+  - import
+  - export
+inputs:
+  - name: deployment_plan_name
+    type: string
+    description: The name of the deployment plan.
+    required: true
+  - name: steps
+    type: array
+    description: List of deployment steps to include in the plan.
+    required: true
+outputs:
+  - name: deployment_plan
+    type: string
+    description: The deployment plan configuration.

@@ -1,0 +1,39 @@
+name: orchardcore.modules
+version: 1.0.0
+description: >
+  Skill for creating and structuring Orchard Core modules.
+  Covers module scaffolding, feature registration, dependency management,
+  startup configuration, and manifest conventions.
+author: CrestApps
+tags:
+  - orchard-core
+  - modules
+  - extensibility
+  - features
+inputs:
+  - name: module_name
+    type: string
+    description: The name of the module (PascalCase, typically prefixed with the organization name).
+    required: true
+  - name: features
+    type: array
+    description: List of features provided by the module.
+    required: false
+  - name: dependencies
+    type: array
+    description: List of feature dependencies.
+    required: false
+  - name: category
+    type: string
+    description: The category for the module in the admin dashboard.
+    required: false
+outputs:
+  - name: manifest_file
+    type: string
+    description: The Manifest.cs file content for the module.
+  - name: startup_file
+    type: string
+    description: The Startup.cs file content for the module.
+  - name: csproj_file
+    type: string
+    description: The .csproj file content for the module.

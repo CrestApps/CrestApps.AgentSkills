@@ -1,0 +1,57 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    CrestApps.OrchardCore.AgentSkills
+    Copies agent skill / guardrail files from the NuGet package into the
+    solution-root .agents/skills folder.
+
+    Uses buildTransitive so this target applies to every project that
+    references this package — even transitively.
+
+    Timing:
+      BeforeTargets="PrepareForBuild"   — fires during CLI builds (dotnet build)
+      BeforeTargets="CompileDesignTime" — fires during VS design-time builds (immediately after install in VS)
+
+    NOTE: dotnet restore alone CANNOT trigger custom MSBuild targets from NuGet packages.
+    This is a fundamental NuGet/MSBuild limitation. The copy happens on the first build
+    after install/update. In Visual Studio, a design-time build fires automatically
+    after package install, so the skills appear immediately.
+
+    Incremental: SkipUnchangedFiles prevents redundant copies on subsequent builds.
+    This target does NOT depend on compilation.
+  -->
+
+  <PropertyGroup>
+    <!-- Resolve the solution root directory reliably (VS + CLI).
+         $(SolutionDir) is set by Visual Studio; for CLI builds it may be empty. -->
+    <_AgentSolutionRoot Condition=" '$(SolutionDir)' != '' And '$(SolutionDir)' != '*Undefined*' ">$(SolutionDir)</_AgentSolutionRoot>
+    <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$(MSBuildProjectDirectory)$([System.IO.Path]::DirectorySeparatorChar)..$([System.IO.Path]::DirectorySeparatorChar)</_AgentSolutionRoot>
+
+    <!-- Source: the skills/ folder inside the nupkg, sibling to buildTransitive/.
+         In the NuGet cache this resolves to:
+           ~/.nuget/packages/crestapps.orchardcore.agentskills/<version>/skills/
+    -->
+    <_AgentSourceDir>$(MSBuildThisFileDirectory)..$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)</_AgentSourceDir>
+  </PropertyGroup>
+
+  <Target Name="CopyAgentSkillsToSolution"
+          BeforeTargets="PrepareForBuild;CompileDesignTime"
+          Condition="Exists('$(_AgentSourceDir)')">
+
+    <!-- Resolve source files at target execution time (not import time)
+         so the glob is always fresh. -->
+    <ItemGroup>
+      <_AgentSkillFiles Include="$(_AgentSourceDir)**/*.*" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(_AgentSolutionRoot).agents$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)"
+             Condition="!Exists('$(_AgentSolutionRoot).agents')" />
+
+    <Copy SourceFiles="@(_AgentSkillFiles)"
+          DestinationFolder="$(_AgentSolutionRoot).agents$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)%(RecursiveDir)"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="true" />
+
+  </Target>
+
+</Project>
