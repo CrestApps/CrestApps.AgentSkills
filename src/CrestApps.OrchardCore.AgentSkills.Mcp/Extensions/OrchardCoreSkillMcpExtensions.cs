@@ -1,8 +1,6 @@
 using CrestApps.OrchardCore.AgentSkills.Mcp.Providers;
 using CrestApps.OrchardCore.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CrestApps.OrchardCore.AgentSkills.Mcp.Extensions;
 
@@ -86,23 +84,13 @@ public static class OrchardCoreSkillMcpExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var options = new OrchardCoreSkillOptions();
-        configure(options);
+        // Register the common services (file store, prompt provider, resource provider).
+        builder.Services.AddOrchardCoreAgentSkillServices(configure);
 
-        var skillsPath = options.Path
-            ?? Path.Combine(AppContext.BaseDirectory, DefaultSkillsRelativePath);
-
-        // Create singleton instances for eager loading.
-        var fileStore = new McpSkillFileStore(skillsPath);
-        var promptProvider = new FileSystemSkillPromptProvider(
-            fileStore, NullLogger<FileSystemSkillPromptProvider>.Instance);
-        var resourceProvider = new FileSystemSkillResourceProvider(
-            fileStore, NullLogger<FileSystemSkillResourceProvider>.Instance);
-
-        // Register singletons in DI for consumer injection.
-        builder.Services.AddSingleton<IMcpResourceFileStore>(fileStore);
-        builder.Services.AddSingleton(promptProvider);
-        builder.Services.AddSingleton(resourceProvider);
+        // Resolve the registered providers to eagerly load prompts/resources.
+        using var sp = builder.Services.BuildServiceProvider();
+        var promptProvider = sp.GetRequiredService<FileSystemSkillPromptProvider>();
+        var resourceProvider = sp.GetRequiredService<FileSystemSkillResourceProvider>();
 
         // Eagerly load and register prompts/resources with the MCP server.
         var prompts = promptProvider.GetPromptsAsync().GetAwaiter().GetResult();
