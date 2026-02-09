@@ -203,7 +203,7 @@ Important: The `OnGroup()` call ties the editor shape to a specific group identi
 #### Step 4: Create the View Model
 
 ```csharp
-public sealed class {{SettingsPartName}}ViewModel
+public class {{SettingsPartName}}ViewModel
 {
     public string {{PropertyName}} { get; set; }
 
@@ -252,15 +252,13 @@ public sealed class AdminMenu : INavigationProvider
         }
 
         builder
-            .Add(S["Configuration"], configuration => configuration
-                .Add(S["Settings"], settings => settings
-                    .Add(S["{{Settings Display Name}}"], S["{{Settings Display Name}}"].PrefixPosition(), entry => entry
-                        .AddClass("{{iconCssClass}}")
-                        .Id("{{settingsMenuId}}")
-                        .Permission(Permissions.Manage{{SettingsPartName}})
-                        .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "{{settingsGroupId}}" })
-                        .LocalNav()
-                    )
+            .Add(S["Settings"], settings => settings
+                .Add(S["{{Settings Display Name}}"], S["{{Settings Display Name}}"].PrefixPosition(), entry => entry
+                    .AddClass("{{iconCssClass}}")
+                    .Id("{{settingsMenuId}}")
+                    .Permission(Permissions.Manage{{SettingsPartName}})
+                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "{{settingsGroupId}}" })
+                    .LocalNav()
                 )
             );
 
@@ -270,6 +268,8 @@ public sealed class AdminMenu : INavigationProvider
 ```
 
 The `groupId` route value must match the group used in the display driver's `OnGroup()` call. The `OrchardCore.Settings` area provides the built-in admin controller that handles rendering settings groups.
+
+> **Note**: Settings pages are registered directly under the `"Settings"` top-level menu group. The `"Configuration"` menu group is no longer used in Orchard Core.
 
 #### Step 7: Register Services in Startup
 

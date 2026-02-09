@@ -49,7 +49,7 @@ public sealed class SocialMediaMigrations : DataMigration
 ### View Model
 
 ```csharp
-public sealed class SocialMediaSettingsViewModel
+public class SocialMediaSettingsViewModel
 {
     public string FacebookUrl { get; set; }
 
@@ -179,15 +179,13 @@ public sealed class SocialMediaAdminMenu : INavigationProvider
         }
 
         builder
-            .Add(S["Configuration"], configuration => configuration
-                .Add(S["Settings"], settings => settings
-                    .Add(S["Social Media"], S["Social Media"].PrefixPosition(), entry => entry
-                        .AddClass("social-media")
-                        .Id("socialmedia")
-                        .Permission(SocialMediaPermissions.ManageSocialMediaSettings)
-                        .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "social-media" })
-                        .LocalNav()
-                    )
+            .Add(S["Settings"], settings => settings
+                .Add(S["Social Media"], S["Social Media"].PrefixPosition(), entry => entry
+                    .AddClass("social-media")
+                    .Id("socialmedia")
+                    .Permission(SocialMediaPermissions.ManageSocialMediaSettings)
+                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "social-media" })
+                    .LocalNav()
                 )
             );
 
@@ -566,7 +564,7 @@ public sealed class SmtpSettings : ContentPart
     public string FromAddress { get; set; }
 }
 
-public sealed class SmtpSettingsViewModel
+public class SmtpSettingsViewModel
 {
     public string Host { get; set; }
 

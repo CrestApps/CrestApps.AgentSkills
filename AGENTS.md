@@ -14,7 +14,7 @@ This repository contains Orchard Core agent skills under `src/CrestApps.AgentSki
 
 - Front-matter must start and end with `---`.
 - All recipe step JSON blocks must be wrapped in root recipe format: `{ "steps": [...] }`.
-- All C# classes in code samples must use the `sealed` modifier.
+- All C# classes in code samples must use the `sealed` modifier, **except for View Models** which must not be `sealed` because they are used for model binding.
 - Third-party module packages (non `OrchardCore.*`) must be installed in the web/startup project.
 - Keep guidance concise, example-driven, and actionable.
 - Prefer ready-to-use patterns over abstract descriptions.

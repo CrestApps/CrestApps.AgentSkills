@@ -140,7 +140,7 @@ public sealed class FileUploadPart : ContentPart
 ### View Model
 
 ```csharp
-public sealed class FileUploadPartViewModel
+public class FileUploadPartViewModel
 {
     public string Name { get; set; }
     public string Label { get; set; }
@@ -317,7 +317,7 @@ public sealed class ContactFormController : Controller
 ```csharp
 using System.ComponentModel.DataAnnotations;
 
-public sealed class ContactFormViewModel
+public class ContactFormViewModel
 {
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]

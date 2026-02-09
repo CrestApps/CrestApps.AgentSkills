@@ -73,7 +73,7 @@ public sealed class {{PartName}}DisplayDriver : ContentPartDisplayDriver<{{PartN
 ```csharp
 using OrchardCore.ContentManagement;
 
-public sealed class {{PartName}}ViewModel
+public class {{PartName}}ViewModel
 {
     public string {{PropertyName}} { get; set; }
     public ContentItem ContentItem { get; set; }

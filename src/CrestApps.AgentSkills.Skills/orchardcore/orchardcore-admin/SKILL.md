@@ -126,18 +126,24 @@ public sealed class Startup : StartupBase
 
 Menu items are organized hierarchically using nested `Add` calls. Use the `Position` method to control item order within a group. Position values are strings that support numeric sorting (e.g., `"1"`, `"2.5"`, `"10"`).
 
+The Orchard Core admin sidebar uses these top-level groups:
+
+| Group | Purpose |
+|-------|---------|
+| `Content Management` | Content items, taxonomies, media |
+| `Settings` | Site settings and configuration pages |
+| `Tools` | Non-settings admin utilities (cache, import/export) |
+| `Access Control` | Users, Roles, and permissions |
+
 ```csharp
 builder
-    .Add(S["Configuration"], configuration => configuration
-        .Position("10")
+    .Add(S["Settings"], settings => settings
         .Add(S["Email"], email => email
-            .Position("1")
             .Action("Index", "Admin", new { area = "OrchardCore.Email" })
             .Permission(Permissions.ManageEmailSettings)
             .LocalNav()
         )
         .Add(S["Search"], search => search
-            .Position("2")
             .Action("Index", "Admin", new { area = "OrchardCore.Search" })
             .Permission(Permissions.ManageSearchSettings)
             .LocalNav()
@@ -145,13 +151,15 @@ builder
     );
 ```
 
+> **Important**: Orchard Core no longer uses the `"Configuration"` or `"Security"` top-level menu groups. Use `"Settings"` for settings pages, `"Tools"` for non-settings utilities, and `"Access Control"` for user/role management.
+
 ### Permission-Based Menu Visibility
 
 Use the `Permission` method to restrict menu item visibility. Items are automatically hidden from users who lack the specified permission. You can chain multiple `Permission` calls if any one of several permissions should grant visibility.
 
 ```csharp
 builder
-    .Add(S["Security"], security => security
+    .Add(S["Access Control"], accessControl => accessControl
         .Add(S["Users"], users => users
             .Permission(Permissions.ManageUsers)
             .Action("Index", "Admin", new { area = "OrchardCore.Users" })
@@ -379,7 +387,7 @@ public sealed class NotificationSettingsDisplayDriver : SiteDisplayDriver<Notifi
 ### Settings View Model
 
 ```csharp
-public sealed class NotificationSettingsViewModel
+public class NotificationSettingsViewModel
 {
     public bool EnableEmailNotifications { get; set; }
 
@@ -409,13 +417,11 @@ public sealed class AdminMenu : INavigationProvider
         }
 
         builder
-            .Add(S["Configuration"], configuration => configuration
-                .Add(S["Settings"], settings => settings
-                    .Add(S["Notifications"], S["Notifications"].PrefixPosition(), notifications => notifications
-                        .Permission(Permissions.ManageNotificationSettings)
-                        .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = NotificationSettingsDisplayDriver.GroupId })
-                        .LocalNav()
-                    )
+            .Add(S["Settings"], settings => settings
+                .Add(S["Notifications"], S["Notifications"].PrefixPosition(), notifications => notifications
+                    .Permission(Permissions.ManageNotificationSettings)
+                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = NotificationSettingsDisplayDriver.GroupId })
+                    .LocalNav()
                 )
             );
 

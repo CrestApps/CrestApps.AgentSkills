@@ -235,14 +235,12 @@ public sealed class AdminMenu : INavigationProvider
                     .LocalNav()
                 )
             )
-            .Add(S["Configuration"], NavigationConstants.AdminMenuConfigurationPosition, configuration => configuration
-                .Add(S["Settings"], settings => settings
+            .Add(S["Settings"], settings => settings
                     .Add(S["Announcement Defaults"], S["Announcement Defaults"].PrefixPosition(), defaults => defaults
                         .Permission(Permissions.ManageAnnouncementSettings)
                         .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "announcements" })
                         .LocalNav()
                     )
-                )
             );
 
         return ValueTask.CompletedTask;

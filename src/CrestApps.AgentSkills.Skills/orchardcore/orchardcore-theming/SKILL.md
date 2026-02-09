@@ -1,28 +1,65 @@
 ---
 name: orchardcore-theming
-description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, asset management, and theme settings.
+description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "1.0"
+  version: "2.0"
 ---
 
-# Orchard Core Theming - Prompt Templates
+# Orchard Core Theming
 
-## Create a Theme
+Use this skill for Orchard Core theming tasks including theme creation, shape overrides, template discovery, content rendering, placement rules, and asset management.
 
-You are an Orchard Core expert. Generate the scaffolding and templates for an Orchard Core theme.
+## How to Use
 
-### Guidelines
+- **Task match**: Scan the Tasks list below. If the request matches, go directly to the referenced files.
+- **Exploration**: Use the section cues to pick a reference, then choose the relevant detail.
+- Determine Razor vs Liquid early. Check the active theme for `.cshtml` (Razor) or `.liquid` files. If unclear, default to Liquid and confirm with the user.
+- Open only the necessary reference files; prefer examples and ready-to-copy patterns.
+
+## Evidence Rules
+
+- Prefer repo evidence over assumptions: check the active theme, base theme, `placement.json`, and existing templates.
+- Confirm unknown part/field properties in `ContentDefinition.json` or the database.
+- Ask for missing identifiers (content type, part name, field name, display type) instead of inventing them.
+- Do not invent recipe steps or feature IDs; consult the recipes skill for valid steps.
+
+## Guidelines
 
 - Theme names should be PascalCase and may be prefixed with the organization name (e.g., `CrestApps.MyTheme`).
 - Themes must have a `Manifest.cs` declaring the theme and its base theme (if any).
-- Use Liquid templates (`.liquid` files) for layouts and shape templates by default.
-- Razor views (`.cshtml` files) are also supported for more complex scenarios.
-- Zones define named areas in the layout where content and widgets are placed.
+- Prefer shapes over MVC partials for UI composition.
+- `Views/Layout.cshtml` is treated as the site layout automatically; do not set `Layout = null` inside it.
+- Override base theme views in the child theme rather than editing the base theme.
 - Use `{% render_section "SectionName" %}` in Liquid layouts to render named sections.
 - Asset pipelines can be managed through `wwwroot/` and resource manifests.
 - The `TheAdmin` theme is used for the admin panel and can be extended.
+
+## Reference Cues
+
+Use these cues to decide which reference file to open:
+
+- Use `references/theming-examples.md` for end-to-end theme creation examples (manifests, layouts, shape overrides).
+- Use `references/shape-alternates.md` to find shape names, alternates, and naming rules for template overrides.
+- Use `references/placement-rules.md` for `placement.json` patterns, filters, differentiators, and editor grouping.
+- Use `references/shape-workflow.md` for a step-by-step checklist to build or override a shape safely.
+- Use `references/assets-resources.md` for resource manifests, requiring scripts/styles, and built-in Orchard Core resources.
+
+## Tasks
+
+- Create a new theme from scratch.
+- Override a content item shape template.
+- Find shape alternates and placement rules.
+- Add or override placement rules in `placement.json`.
+- Add scripts/styles and include them in the layout.
+- Create or customize the admin theme.
+- Render BagPart/FlowPart/ListPart items in templates.
+- Update a shape after adding fields.
+- Work on theme structure or layout.
+- Determine template language (Razor vs Liquid).
+
+## Create a Theme
 
 ### Manifest Pattern
 
@@ -65,14 +102,27 @@ MyTheme/
 ├── MyTheme.csproj
 ├── Views/
 │   ├── Layout.liquid (or Layout.cshtml)
-│   └── _ViewImports.cshtml
+│   ├── _ViewImports.cshtml
+│   └── Items/
+│       └── Content-BlogPost.liquid
 ├── wwwroot/
 │   ├── css/
 │   │   └── site.css
 │   └── js/
 │       └── site.js
+├── placement.json (optional)
 └── ResourceManifest.cs (optional)
 ```
+
+### _ViewImports for Razor Themes
+
+If a theme uses Razor, `_ViewImports.cshtml` should exist with at least:
+
+```cshtml
+@inherits OrchardCore.DisplayManagement.Razor.RazorPage<TModel>
+```
+
+If it's missing, it can cause build errors.
 
 ### Liquid Layout Template
 
@@ -139,11 +189,13 @@ MyTheme/
 
 Override shape rendering by creating templates in the `Views/` folder:
 
-- `Content.liquid` - Default content item display.
-- `Content-BlogPost.liquid` - Content display for BlogPost type.
-- `Content__Summary.liquid` - Summary display mode. In file names, use double underscore (`__`) to represent the dash (`-`) separator used in shape alternate names (e.g., the `Content-Summary` alternate becomes the file `Content__Summary.liquid`).
-- `Widget.liquid` - Default widget wrapper.
-- `MenuItem.liquid` - Menu item rendering.
+- `Content.liquid` — Default content item display.
+- `Content-BlogPost.liquid` — Content display for BlogPost type.
+- `Content-BlogPost.Summary.liquid` — Summary display mode for BlogPost type.
+- `Widget.liquid` — Default widget wrapper.
+- `MenuItem.liquid` — Menu item rendering.
+
+File naming convention: `__` in shape type maps to `-` in file names; `_DisplayType` maps to `.DisplayType` suffix.
 
 ### Resource Manifest
 
@@ -158,11 +210,11 @@ public sealed class ResourceManifest : IResourceManifestProvider
 
         manifest
             .DefineStyle("{{ThemeName}}")
-            .SetUrl("~/{{ThemeName}}/css/site.css");
+            .SetUrl("~/{{ThemeName}}/css/site.min.css", "~/{{ThemeName}}/css/site.css");
 
         manifest
             .DefineScript("{{ThemeName}}")
-            .SetUrl("~/{{ThemeName}}/js/site.js")
+            .SetUrl("~/{{ThemeName}}/js/site.min.js", "~/{{ThemeName}}/js/site.js")
             .SetPosition(ResourcePosition.Foot);
     }
 }
@@ -172,11 +224,19 @@ public sealed class ResourceManifest : IResourceManifestProvider
 
 Common zones used in Orchard Core themes:
 
-- `Header` - Top of the page, navigation bar area.
-- `Content` - Main content area.
-- `Footer` - Bottom of the page.
-- `BeforeContent` - Before the main content.
-- `AfterContent` - After the main content.
-- `Navigation` - Primary navigation area.
-- `Sidebar` - Sidebar content area.
-- `AsideFirst` / `AsideSecond` - Multi-column sidebars.
+| Zone | Purpose |
+|------|---------|
+| `Header` | Top of the page, navigation bar area |
+| `Content` | Main content area |
+| `Footer` | Bottom of the page |
+| `BeforeContent` | Before the main content |
+| `AfterContent` | After the main content |
+| `Navigation` | Primary navigation area |
+| `Sidebar` | Sidebar content area |
+| `AsideFirst` / `AsideSecond` | Multi-column sidebars |
+
+### Zone Alternates
+
+Zone shapes support alternates for per-zone template overrides:
+
+- `Zone__ZoneName` → file `Zone-Footer.cshtml` (or `.liquid`)

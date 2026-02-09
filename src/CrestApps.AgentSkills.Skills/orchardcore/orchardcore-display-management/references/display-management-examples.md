@@ -14,7 +14,7 @@ public sealed class SubtitlePart : ContentPart
 ```
 
 ```csharp
-public sealed class SubtitlePartViewModel
+public class SubtitlePartViewModel
 {
     public string Subtitle { get; set; }
     public ContentItem ContentItem { get; set; }

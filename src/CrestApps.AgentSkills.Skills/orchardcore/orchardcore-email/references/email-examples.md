@@ -474,7 +474,7 @@ public sealed class ContactController : Controller
     }
 }
 
-public sealed class ContactFormViewModel
+public class ContactFormViewModel
 {
     public string Name { get; set; }
     public string Email { get; set; }
