@@ -56,16 +56,23 @@ jobs:
       shell: bash
       run: |
         SKILLS_BASE_DIR=".agents/skills"
+        SKILLS_SOURCE_DIR="src/CrestApps.AgentSkills.Skills"
         EXIT_CODE=0
 
         if [ ! -d "$SKILLS_BASE_DIR" ]; then
-          mkdir -p "$SKILLS_BASE_DIR"
-          cp -R "src/CrestApps.AgentSkills.Skills/orchardcore" "$SKILLS_BASE_DIR/"
-        fi
-
-        if [ ! -d "$SKILLS_BASE_DIR" ]; then
-          echo "::error::Skills base directory not found: $SKILLS_BASE_DIR"
-          exit 1
+          if [ -d "$SKILLS_SOURCE_DIR" ]; then
+            mkdir -p "$SKILLS_BASE_DIR"
+            while IFS= read -r -d '' skill_file; do
+              source_dir="$(dirname "$skill_file")"
+              relative_dir="${source_dir#$SKILLS_SOURCE_DIR/}"
+              destination_dir="$SKILLS_BASE_DIR/$relative_dir"
+              mkdir -p "$destination_dir"
+              cp -R "$source_dir"/. "$destination_dir"
+            done < <(find "$SKILLS_SOURCE_DIR" -type d \( -name "bin" -o -name "obj" \) -prune -o -type f -name "SKILL.md" -print0)
+          else
+            echo "::error::Skills base directory not found: $SKILLS_BASE_DIR"
+            exit 1
+          fi
         fi
 
         while IFS= read -r -d '' skill_dir; do
@@ -75,7 +82,7 @@ jobs:
           else
             echo "✓ $(basename "$skill_dir")"
           fi
-        done < <(find "$SKILLS_BASE_DIR" -mindepth 2 -maxdepth 2 -type d -print0)
+        done < <(find "$SKILLS_BASE_DIR" -mindepth 2 -maxdepth 2 -type d ! -name "bin" ! -name "obj" -print0)
 
         if [ $EXIT_CODE -ne 0 ]; then
           echo ""
