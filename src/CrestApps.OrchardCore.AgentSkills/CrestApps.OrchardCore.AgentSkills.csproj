@@ -15,8 +15,8 @@
 	<!-- Pack skill files under skills/ in the nupkg (not contentFiles/) to avoid
        NuGet auto-linking. The buildTransitive .targets handles copying. -->
 	<ItemGroup>
-		<None Include="..\CrestApps.AgentSkills.Skills\**\*"
-			  Exclude="..\CrestApps.AgentSkills.Skills\**\bin\**\*;..\CrestApps.AgentSkills.Skills\**\lib\**\*"
+		<None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*"
+			  Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"
 			  Pack="true"
 			  PackagePath="skills"
 			  Visible="false" />

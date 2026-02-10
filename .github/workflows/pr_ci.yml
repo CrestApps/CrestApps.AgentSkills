@@ -107,12 +107,12 @@ jobs:
 
         validate_project \
           "src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" \
-          '..\CrestApps.AgentSkills.Skills\**\*' \
+          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
           'PackagePath="skills"' \
-          'Exclude="..\CrestApps.AgentSkills.Skills\**\bin\**\*;..\CrestApps.AgentSkills.Skills\**\lib\**\*"'
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
 
         validate_project \
           "src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" \
-          '..\CrestApps.AgentSkills.Skills\**\*' \
+          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
           'PackagePath="contentFiles\any\any\.agents\skills"' \
-          'Exclude="..\CrestApps.AgentSkills.Skills\**\bin\**\*;..\CrestApps.AgentSkills.Skills\**\lib\**\*"'
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
