@@ -74,3 +74,45 @@ jobs:
         fi
 
         exit $EXIT_CODE
+
+    - name: Validate skill packaging includes files
+      shell: bash
+      run: |
+        validate_project() {
+          local project="$1"
+          local include_path="$2"
+          local package_path="$3"
+          local exclude_path="$4"
+
+          if [ ! -f "$project" ]; then
+            echo "::error file=$project::Project file not found."
+            exit 1
+          fi
+
+          if ! grep -Fq "$include_path" "$project"; then
+            echo "::error file=$project::Missing skills include path '$include_path'."
+            exit 1
+          fi
+
+          if ! grep -Fq "$package_path" "$project"; then
+            echo "::error file=$project::Missing skills package path '$package_path'."
+            exit 1
+          fi
+
+          if [ -n "$exclude_path" ] && ! grep -Fq "$exclude_path" "$project"; then
+            echo "::error file=$project::Missing skills exclude path '$exclude_path'."
+            exit 1
+          fi
+        }
+
+        validate_project \
+          "src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" \
+          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
+          'PackagePath="skills"' \
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
+
+        validate_project \
+          "src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" \
+          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
+          'PackagePath="contentFiles\any\any\.agents\skills"' \
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'

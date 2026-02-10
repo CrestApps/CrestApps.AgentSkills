@@ -70,7 +70,10 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
             }
             else
             {
-                _logger.LogDebug("No valid skill file found for skill '{SkillName}'.", skillDirName);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("No valid skill file found for skill '{SkillName}'.", skillDirName);
+                }
             }
 
             // Register reference *.md files as resources.
@@ -107,7 +110,11 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
 
                 if (string.IsNullOrWhiteSpace(referenceContent))
                 {
-                    _logger.LogDebug("Reference file '{FileName}' for skill '{SkillName}' is empty, skipping.", fileName, skillDirName);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug("Reference file '{FileName}' for skill '{SkillName}' is empty, skipping.", fileName, skillDirName);
+                    }
+
                     continue;
                 }
 
@@ -124,7 +131,10 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
             }
         }
 
-        _logger.LogInformation("Loaded {Count} MCP resources from agent skills.", resources.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Loaded {Count} MCP resources from agent skills.", resources.Count);
+        }
         _resources = resources;
 
         return _resources;

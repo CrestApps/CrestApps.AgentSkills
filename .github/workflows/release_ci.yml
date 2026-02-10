@@ -102,6 +102,7 @@ jobs:
           local project="$1"
           local include_path="$2"
           local package_path="$3"
+          local exclude_path="$4"
 
           if [ ! -f "$project" ]; then
             echo "::error file=$project::Project file not found."
@@ -117,17 +118,24 @@ jobs:
             echo "::error file=$project::Missing skills package path '$package_path'."
             exit 1
           fi
+
+          if [ -n "$exclude_path" ] && ! grep -Fq "$exclude_path" "$project"; then
+            echo "::error file=$project::Missing skills exclude path '$exclude_path'."
+            exit 1
+          fi
         }
 
         validate_project \
           "src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" \
           '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
-          'PackagePath="skills"'
+          'PackagePath="skills"' \
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
 
         validate_project \
           "src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" \
           '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
-          'PackagePath="contentFiles\any\any\.agents\skills"'
+          'PackagePath="contentFiles\any\any\.agents\skills"' \
+          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
     - name: Deploy release NuGet packages
       if: matrix.os == 'ubuntu-latest'
       run: |

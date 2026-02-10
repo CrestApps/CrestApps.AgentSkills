@@ -54,7 +54,11 @@ public sealed class SkillPromptProvider : IMcpPromptProvider
 
             if (skillFileName is null || content is null)
             {
-                _logger.LogDebug("No skill file found for skill '{SkillName}', skipping.", skillDirName);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("No skill file found for skill '{SkillName}', skipping.", skillDirName);
+                }
+
                 continue;
             }
 
@@ -89,7 +93,10 @@ public sealed class SkillPromptProvider : IMcpPromptProvider
             prompts.Add(prompt);
         }
 
-        _logger.LogInformation("Loaded {Count} MCP prompts from agent skills.", prompts.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Loaded {Count} MCP prompts from agent skills.", prompts.Count);
+        }
         _prompts = prompts;
 
         return _prompts;
