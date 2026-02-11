@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <Content Update=".agents/**/*" Visible="false" />
+    <None Update=".agents/**/*" Visible="false" />
+  </ItemGroup>
+</Project>
