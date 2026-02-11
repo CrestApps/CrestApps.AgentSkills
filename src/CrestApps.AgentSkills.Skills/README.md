@@ -20,11 +20,6 @@ CrestApps.AgentSkills.Skills/
 │  ├─ orchardcore.recipes/
 │  └─ ...
 │
-├─ blah-framework/           ← Temporary framework skills for CI validation
-│  ├─ orchardcore-module-creator/
-│  ├─ orchardcore-theme-creator/
-│  └─ orchardcore-tester/
-│
 └─ [future-framework]/       ← Additional frameworks can be added here
    └─ ...
 ```
@@ -32,7 +27,6 @@ CrestApps.AgentSkills.Skills/
 ### Current Frameworks
 
 - **`orchardcore/`** - Contains all Orchard Core-specific skills (content types, modules, recipes, etc.)
-- **`blah-framework/`** - Temporary framework folder used to validate CI folder checks
 
 Future frameworks can be added as new subdirectories alongside `orchardcore/`.
 
