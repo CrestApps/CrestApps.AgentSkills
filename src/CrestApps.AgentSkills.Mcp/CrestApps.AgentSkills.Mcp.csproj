@@ -19,4 +19,8 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive" />
+  </ItemGroup>
+
 </Project>
