@@ -1,6 +1,13 @@
 <Project>
+
+  <!--
+    Belt-and-suspenders: hide any .agents items that were explicitly included
+    (e.g. via NuGet contentFiles) and survived the DefaultItemExcludes in
+    the companion .props file.
+  -->
   <ItemGroup>
-    <Content Update=".agents/**/*" Visible="false" />
-    <None Update=".agents/**/*" Visible="false" />
+    <Content Update=".agents\**" Visible="false" />
+    <None Update=".agents\**" Visible="false" />
   </ItemGroup>
+
 </Project>
