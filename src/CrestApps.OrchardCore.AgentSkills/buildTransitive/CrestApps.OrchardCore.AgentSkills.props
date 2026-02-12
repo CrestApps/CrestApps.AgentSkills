@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    Prevent the .agents folder (created by CopyAgentSkillsToSolution target)
+    from appearing in Visual Studio Solution Explorer.
+    .props files are imported before SDK default-item globbing, so this
+    exclusion takes effect before any auto-include runs.
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.agents\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+</Project>
