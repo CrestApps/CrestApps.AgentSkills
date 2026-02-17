@@ -25,6 +25,7 @@
     <!-- Resolve the solution root directory reliably (VS + CLI).
          $(SolutionDir) is set by Visual Studio; for CLI builds it may be empty. -->
     <_AgentSolutionRoot Condition=" '$(SolutionDir)' != '' And '$(SolutionDir)' != '*Undefined*' ">$(SolutionDir)</_AgentSolutionRoot>
+    <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' And '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), Directory.Build.props))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), Directory.Build.props))$([System.IO.Path]::DirectorySeparatorChar)</_AgentSolutionRoot>
     <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$(MSBuildProjectDirectory)$([System.IO.Path]::DirectorySeparatorChar)..$([System.IO.Path]::DirectorySeparatorChar)</_AgentSolutionRoot>
 
     <!-- Source: the skills/ folder inside the nupkg, sibling to buildTransitive/.
