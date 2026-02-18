@@ -25,8 +25,8 @@ dotnet build
 1. Skills are packed inside the NuGet package under `skills/`.
 2. A `buildTransitive/` MSBuild `.targets` file runs `BeforeTargets="PrepareForBuild;CompileDesignTime"`.
 3. On the first build after install, skills are copied to the **solution root** `.agents/skills` folder.
-4. `$(SolutionDir)` is used when available (Visual Studio); otherwise falls back to `$(MSBuildProjectDirectory)/..`.
-5. `SkipUnchangedFiles="true"` — subsequent builds skip files that haven't changed.
+4. `$(SolutionDir)` is used when available (Visual Studio); otherwise walks up the directory tree looking for `global.json`, `Directory.Build.props`, or `*.sln`/`*.slnx` files to reliably find the solution root in any project nesting depth.
+5. `SkipUnchangedFiles="false"` — files are always overwritten so local edits never drift from the package version.
 6. No compilation dependency — the copy runs before any C# code is compiled.
 
 After the first build, the solution root will contain:

@@ -17,15 +17,21 @@
     after install/update. In Visual Studio, a design-time build fires automatically
     after package install, so the skills appear immediately.
 
-    Incremental: SkipUnchangedFiles prevents redundant copies on subsequent builds.
+    Files are always overwritten so local edits never drift from the package version.
     This target does NOT depend on compilation.
   -->
 
   <PropertyGroup>
     <!-- Resolve the solution root directory reliably (VS + CLI).
-         $(SolutionDir) is set by Visual Studio; for CLI builds it may be empty. -->
+         $(SolutionDir) is set by Visual Studio; for CLI builds we walk
+         upward from the project directory looking for common root markers. -->
     <_AgentSolutionRoot Condition=" '$(SolutionDir)' != '' And '$(SolutionDir)' != '*Undefined*' ">$(SolutionDir)</_AgentSolutionRoot>
-    <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$(MSBuildProjectDirectory)$([System.IO.Path]::DirectorySeparatorChar)..$([System.IO.Path]::DirectorySeparatorChar)</_AgentSolutionRoot>
+
+    <!-- Walk up to find global.json — the most reliable .NET solution-root marker. -->
+    <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildProjectDirectory)', 'global.json'))</_AgentSolutionRoot>
+
+    <!-- Walk up to find Directory.Build.props — another common solution-root marker. -->
+    <_AgentSolutionRoot Condition=" '$(_AgentSolutionRoot)' == '' ">$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildProjectDirectory)', 'Directory.Build.props'))</_AgentSolutionRoot>
 
     <!-- Source: the skills/ folder inside the nupkg, sibling to buildTransitive/.
          In the NuGet cache this resolves to:
@@ -34,9 +40,52 @@
     <_AgentSourceDir>$(MSBuildThisFileDirectory)..$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)</_AgentSourceDir>
   </PropertyGroup>
 
+  <!-- Inline task: walk up looking for *.sln / *.slnx files (wildcard search
+       that GetDirectoryNameOfFileAbove cannot perform). Used only as a fallback
+       when global.json and Directory.Build.props are not found. -->
+  <UsingTask TaskName="_FindSolutionRootBySln"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <StartDirectory ParameterType="System.String" Required="true" />
+      <RootDirectory  ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        RootDirectory = string.Empty;
+        var dir = new System.IO.DirectoryInfo(StartDirectory);
+        while (dir != null)
+        {
+            if (dir.GetFiles("*.sln").Length > 0 || dir.GetFiles("*.slnx").Length > 0)
+            {
+                RootDirectory = dir.FullName;
+                return true;
+            }
+            dir = dir.Parent;
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="CopyAgentSkillsToSolution"
           BeforeTargets="PrepareForBuild;CompileDesignTime"
           Condition="Exists('$(_AgentSourceDir)')">
+
+    <!-- Fallback: search upward for *.sln / *.slnx when no marker file was found. -->
+    <_FindSolutionRootBySln StartDirectory="$(MSBuildProjectDirectory)"
+                            Condition=" '$(_AgentSolutionRoot)' == '' ">
+      <Output TaskParameter="RootDirectory" PropertyName="_AgentSolutionRoot" />
+    </_FindSolutionRootBySln>
+
+    <!-- Last resort: use the project directory itself. -->
+    <PropertyGroup Condition=" '$(_AgentSolutionRoot)' == '' ">
+      <_AgentSolutionRoot>$(MSBuildProjectDirectory)</_AgentSolutionRoot>
+    </PropertyGroup>
+
+    <!-- Ensure trailing directory separator for path concatenation. -->
+    <PropertyGroup>
+      <_AgentSolutionRoot>$([MSBuild]::EnsureTrailingSlash('$(_AgentSolutionRoot)'))</_AgentSolutionRoot>
+    </PropertyGroup>
 
     <!-- Resolve source files at target execution time (not import time)
          so the glob is always fresh. -->
@@ -49,7 +98,7 @@
 
     <Copy SourceFiles="@(_AgentSkillFiles)"
           DestinationFolder="$(_AgentSolutionRoot).agents$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)%(RecursiveDir)"
-          SkipUnchangedFiles="true"
+          SkipUnchangedFiles="false"
           OverwriteReadOnlyFiles="true" />
 
   </Target>

@@ -24,7 +24,7 @@ public sealed class PhysicalSkillFileStoreTests : IDisposable
     [Fact]
     public async Task GetFileInfoAsync_ExistingFile_ReturnsEntry()
     {
-        await File.WriteAllTextAsync(Path.Combine(_tempDir, "test.txt"), "content");
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "test.txt"), "content", TestContext.Current.CancellationToken);
 
         var store = new DefaultAgentSkillFilesStore(_tempDir);
         var info = await store.GetFileInfoAsync("test.txt");
@@ -69,12 +69,12 @@ public sealed class PhysicalSkillFileStoreTests : IDisposable
     public async Task GetFileStreamAsync_ExistingFile_ReturnsReadableStream()
     {
         var expected = "Hello, World!";
-        await File.WriteAllTextAsync(Path.Combine(_tempDir, "read.txt"), expected);
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "read.txt"), expected, TestContext.Current.CancellationToken);
 
         var store = new DefaultAgentSkillFilesStore(_tempDir);
         await using var stream = await store.GetFileStreamAsync("read.txt");
         using var reader = new StreamReader(stream);
-        var content = await reader.ReadToEndAsync();
+        var content = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, content);
     }
@@ -84,7 +84,7 @@ public sealed class PhysicalSkillFileStoreTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_tempDir, "dir1"));
         Directory.CreateDirectory(Path.Combine(_tempDir, "dir2"));
-        await File.WriteAllTextAsync(Path.Combine(_tempDir, "file1.txt"), "content");
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "file1.txt"), "content", TestContext.Current.CancellationToken);
 
         var store = new DefaultAgentSkillFilesStore(_tempDir);
         var entries = new List<Models.SkillFileEntry>();
