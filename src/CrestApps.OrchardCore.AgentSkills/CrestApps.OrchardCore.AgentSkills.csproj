@@ -7,13 +7,12 @@
 		<Nullable>disable</Nullable>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 		<PackageId>CrestApps.OrchardCore.AgentSkills</PackageId>
 		<Description>Distributes shared AI agent guardrail and instruction files for Orchard Core development. Skills are copied into the solution-root .agents/skills folder on install and update. No runtime dependency.</Description>
 		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<DevelopmentDependency>true</DevelopmentDependency>
-		<NoWarn>$(NoWarn);NU5128;NU5129</NoWarn>
+		<NoWarn>$(NoWarn);NU5129</NoWarn>
 	</PropertyGroup>
 
 	<!-- Pack skill files under skills/ in the nupkg (not contentFiles/) to avoid
@@ -22,8 +21,20 @@
 		<None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*" Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
 	</ItemGroup>
 
+	<!-- Place an empty _._  marker inside lib/<tfm> for each target framework
+	     so NuGet recognizes the package as compatible even though it ships no compiled code. -->
+	<Target Name="_AddFrameworkCompatibilityMarkers" BeforeTargets="_GetPackageFiles">
+		<ItemGroup>
+			<_TargetFrameworkList Include="$(TargetFrameworks)" />
+		</ItemGroup>
+		<ItemGroup>
+			<None Include="_._" Pack="true" PackagePath="lib/%(_TargetFrameworkList.Identity)/" />
+		</ItemGroup>
+	</Target>
+
 	<!-- Remove SDK auto-includes so we can re-add them with Pack metadata. -->
 	<ItemGroup>
+		<None Remove="_._" />
 		<None Remove="README.md" />
 		<None Remove="buildTransitive\**\*" />
 	</ItemGroup>
