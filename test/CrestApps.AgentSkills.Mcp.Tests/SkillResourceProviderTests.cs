@@ -30,7 +30,7 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.md"),
-            "---\nname: test-skill\ndescription: A test skill.\n---\n# Test Skill");
+            "---\nname: test-skill\ndescription: A test skill.\n---\n# Test Skill", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -48,7 +48,7 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.yaml"),
-            "name: yaml-skill\ndescription: A YAML skill.\nbody: Some body");
+            "name: yaml-skill\ndescription: A YAML skill.\nbody: Some body", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -66,7 +66,7 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.yml"),
-            "name: yml-skill\ndescription: A YML skill.\nbody: Some body");
+            "name: yml-skill\ndescription: A YML skill.\nbody: Some body", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -84,12 +84,12 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.md"),
-            "---\nname: ref-skill\ndescription: Ref skill.\n---\n# Ref Skill");
+            "---\nname: ref-skill\ndescription: Ref skill.\n---\n# Ref Skill", TestContext.Current.CancellationToken);
 
         var refsDir = Path.Combine(skillDir, "references");
         Directory.CreateDirectory(refsDir);
-        await File.WriteAllTextAsync(Path.Combine(refsDir, "example1.md"), "# Example 1");
-        await File.WriteAllTextAsync(Path.Combine(refsDir, "example2.md"), "# Example 2");
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example1.md"), "# Example 1", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example2.md"), "# Example 2", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -108,12 +108,12 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.md"),
-            "---\nname: filter-skill\ndescription: Filter skill.\n---\n# Filter Skill");
+            "---\nname: filter-skill\ndescription: Filter skill.\n---\n# Filter Skill", TestContext.Current.CancellationToken);
 
         var refsDir = Path.Combine(skillDir, "references");
         Directory.CreateDirectory(refsDir);
-        await File.WriteAllTextAsync(Path.Combine(refsDir, "example.md"), "# Valid");
-        await File.WriteAllTextAsync(Path.Combine(refsDir, "data.json"), "{}");
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "example.md"), "# Valid", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(refsDir, "data.json"), "{}", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -132,7 +132,7 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.md"),
-            "# No front-matter\nJust markdown.");
+            "# No front-matter\nJust markdown.", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -150,7 +150,7 @@ public sealed class SkillResourceProviderTests : IDisposable
         Directory.CreateDirectory(skillDir);
         await File.WriteAllTextAsync(
             Path.Combine(skillDir, "SKILL.md"),
-            "---\nname: cached-skill\ndescription: Cached.\n---\n# Cached");
+            "---\nname: cached-skill\ndescription: Cached.\n---\n# Cached", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
@@ -179,7 +179,7 @@ public sealed class SkillResourceProviderTests : IDisposable
     {
         var skillDir = Path.Combine(_tempDir, "empty-skill");
         Directory.CreateDirectory(skillDir);
-        await File.WriteAllTextAsync(Path.Combine(skillDir, "SKILL.md"), "   ");
+        await File.WriteAllTextAsync(Path.Combine(skillDir, "SKILL.md"), "   ", TestContext.Current.CancellationToken);
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(

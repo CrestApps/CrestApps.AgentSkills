@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net10.0</TargetFrameworks>
+		<!-- No compiled code — disable features inherited from Directory.Build.props. -->
 		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>disable</Nullable>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
@@ -11,22 +13,25 @@
 		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<DevelopmentDependency>true</DevelopmentDependency>
-		<NoWarn>$(NoWarn);NU5128</NoWarn>
+		<NoWarn>$(NoWarn);NU5128;NU5129</NoWarn>
 	</PropertyGroup>
 
 	<!-- Pack skill files under skills/ in the nupkg (not contentFiles/) to avoid
        NuGet auto-linking. The buildTransitive .targets handles copying. -->
 	<ItemGroup>
-		<None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*"
-			  Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"
-			  Pack="true"
-			  PackagePath="skills"
-			  Visible="false" />
+		<None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*" Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
+	</ItemGroup>
+
+	<!-- Remove SDK auto-includes so we can re-add them with Pack metadata. -->
+	<ItemGroup>
+		<None Remove="README.md" />
+		<None Remove="buildTransitive\**\*" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
-		<None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive" />
+		<None Include="buildTransitive\CrestApps.OrchardCore.AgentSkills.props" Pack="true" PackagePath="buildTransitive\" />
+		<None Include="buildTransitive\CrestApps.OrchardCore.AgentSkills.targets" Pack="true" PackagePath="buildTransitive\" />
 	</ItemGroup>
 
 </Project>
