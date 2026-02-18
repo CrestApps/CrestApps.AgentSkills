@@ -21,14 +21,20 @@
 		<None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*" Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
 	</ItemGroup>
 
-	<!-- Place an empty _._  marker inside lib/net10.0 so NuGet recognizes
-	     this package as compatible with net10.0 even though it ships no compiled code. -->
-	<ItemGroup>
-		<None Include="_._" Pack="true" PackagePath="lib/net10.0/" />
-	</ItemGroup>
+	<!-- Place an empty _._  marker inside lib/<tfm> for each target framework
+	     so NuGet recognizes the package as compatible even though it ships no compiled code. -->
+	<Target Name="_AddFrameworkCompatibilityMarkers" BeforeTargets="_GetPackageFiles">
+		<ItemGroup>
+			<_TargetFrameworkList Include="$(TargetFrameworks)" />
+		</ItemGroup>
+		<ItemGroup>
+			<None Include="_._" Pack="true" PackagePath="lib/%(_TargetFrameworkList.Identity)/" />
+		</ItemGroup>
+	</Target>
 
 	<!-- Remove SDK auto-includes so we can re-add them with Pack metadata. -->
 	<ItemGroup>
+		<None Remove="_._" />
 		<None Remove="README.md" />
 		<None Remove="buildTransitive\**\*" />
 	</ItemGroup>
