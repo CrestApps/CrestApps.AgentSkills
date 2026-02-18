@@ -24,7 +24,6 @@
 
 	<!-- Remove SDK auto-includes so we can re-add them with Pack metadata. -->
 	<ItemGroup>
-		<None Remove="_._" />
 		<None Remove="README.md" />
 		<None Remove="buildTransitive\**\*" />
 	</ItemGroup>
