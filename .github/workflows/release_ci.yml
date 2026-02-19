@@ -20,132 +20,122 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - name: Get the version
-        id: get_version
-        shell: bash
-        run: |
+    - name: Get the version
+      id: get_version
+      run: |
           # Strip leading 'v' if present
           VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+      shell: bash
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          10.0.x
+    - name: Set build number
+      if: matrix.os == 'ubuntu-latest'
+      run: echo "BuildNumber=$(( $GITHUB_RUN_NUMBER ))" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true -p:Version=${{ steps.get_version.outputs.VERSION }}
+    - name: Test
+      run: |
+        dotnet test -c Release --no-build --verbosity normal
+    - uses: actions/setup-python@v5
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        python-version: '3.12'
+    - name: Install skills-ref
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "git+https://github.com/agentskills/agentskills.git@main#subdirectory=skills-ref"
+    - name: Validate SKILL.md files
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+        SKILLS_BASE_DIR=".agents/skills"
+        SKILLS_SOURCE_DIR="src/CrestApps.AgentSkills"
+        EXIT_CODE=0
 
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            10.0.x
-
-      - name: Set build number
-        if: matrix.os == 'ubuntu-latest'
-        run: echo "BuildNumber=$(( $GITHUB_RUN_NUMBER ))" >> $GITHUB_ENV
-
-      - name: Build
-        run: |
-          dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true -p:Version=${{ steps.get_version.outputs.VERSION }}
-
-      - name: Test
-        run: |
-          dotnet test -c Release --no-build --verbosity normal
-
-      - uses: actions/setup-python@v5
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          python-version: '3.12'
-
-      - name: Install skills-ref
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install "git+https://github.com/agentskills/agentskills.git@main#subdirectory=skills-ref"
-
-      - name: Validate SKILL.md files
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          SKILLS_BASE_DIR=".agents/skills"
-          SKILLS_SOURCE_DIR="src/CrestApps.AgentSkills"
-          EXIT_CODE=0
-
-          if [ ! -d "$SKILLS_BASE_DIR" ]; then
-            if [ -d "$SKILLS_SOURCE_DIR" ]; then
-              mkdir -p "$SKILLS_BASE_DIR"
-              while IFS= read -r -d '' skill_file; do
-                source_dir="$(dirname "$skill_file")"
-                relative_dir="${source_dir#$SKILLS_SOURCE_DIR/}"
-                destination_dir="$SKILLS_BASE_DIR/$relative_dir"
-                mkdir -p "$destination_dir"
-                cp -R "$source_dir"/. "$destination_dir"
-              done < <(find "$SKILLS_SOURCE_DIR" -type d \( -name "bin" -o -name "obj" \) -prune -o -type f -name "SKILL.md" -print0)
-            else
-              echo "::error::Skills base directory not found: $SKILLS_BASE_DIR"
-              exit 1
-            fi
-          fi
-
-          while IFS= read -r -d '' skill_dir; do
-            if ! skills-ref validate "$skill_dir"; then
-              echo "::error file=$skill_dir/SKILL.md::skills-ref validation failed for $skill_dir"
-              EXIT_CODE=1
-            else
-              echo "✓ $(basename "$skill_dir")"
-            fi
-          done < <(find "$SKILLS_BASE_DIR" -mindepth 2 -maxdepth 2 -type d ! -name "bin" ! -name "obj" -print0)
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo ""
-            echo "::error::One or more skills failed validation. See errors above."
+        if [ ! -d "$SKILLS_BASE_DIR" ]; then
+          if [ -d "$SKILLS_SOURCE_DIR" ]; then
+            mkdir -p "$SKILLS_BASE_DIR"
+            while IFS= read -r -d '' skill_file; do
+              source_dir="$(dirname "$skill_file")"
+              relative_dir="${source_dir#$SKILLS_SOURCE_DIR/}"
+              destination_dir="$SKILLS_BASE_DIR/$relative_dir"
+              mkdir -p "$destination_dir"
+              cp -R "$source_dir"/. "$destination_dir"
+            done < <(find "$SKILLS_SOURCE_DIR" -type d \( -name "bin" -o -name "obj" \) -prune -o -type f -name "SKILL.md" -print0)
           else
-            echo ""
-            echo "All skills passed validation."
+            echo "::error::Skills base directory not found: $SKILLS_BASE_DIR"
+            exit 1
+          fi
+        fi
+
+        while IFS= read -r -d '' skill_dir; do
+          if ! skills-ref validate "$skill_dir"; then
+            echo "::error file=$skill_dir/SKILL.md::skills-ref validation failed for $skill_dir"
+            EXIT_CODE=1
+          else
+            echo "✓ $(basename "$skill_dir")"
+          fi
+        done < <(find "$SKILLS_BASE_DIR" -mindepth 2 -maxdepth 2 -type d ! -name "bin" ! -name "obj" -print0)
+
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo ""
+          echo "::error::One or more skills failed validation. See errors above."
+        else
+          echo ""
+          echo "All skills passed validation."
+        fi
+
+        exit $EXIT_CODE
+    - name: Validate skill packaging includes files
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+        validate_project() {
+          local project="$1"
+          local include_path="$2"
+          local package_path="$3"
+          local exclude_path="$4"
+
+          if [ ! -f "$project" ]; then
+            echo "::error file=$project::Project file not found."
+            exit 1
           fi
 
-          exit $EXIT_CODE
+          if ! grep -Fq "$include_path" "$project"; then
+            echo "::error file=$project::Missing skills include path '$include_path'."
+            exit 1
+          fi
 
-      - name: Validate skill packaging includes files
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          validate_project() {
-            local project="$1"
-            local include_path="$2"
-            local package_path="$3"
-            local exclude_path="$4"
+          if ! grep -Fq "$package_path" "$project"; then
+            echo "::error file=$project::Missing skills package path '$package_path'."
+            exit 1
+          fi
 
-            if [ ! -f "$project" ]; then
-              echo "::error file=$project::Project file not found."
-              exit 1
-            fi
+          if [ -n "$exclude_path" ] && ! grep -Fq "$exclude_path" "$project"; then
+            echo "::error file=$project::Missing skills exclude path '$exclude_path'."
+            exit 1
+          fi
+        }
 
-            if ! grep -Fq "$include_path" "$project"; then
-              echo "::error file=$project::Missing skills include path '$include_path'."
-              exit 1
-            fi
+        validate_project \
+          "src/CrestApps.AgentSkills.OrchardCore/CrestApps.AgentSkills.OrchardCore.csproj" \
+          '..\CrestApps.AgentSkills\orchardcore\**\*' \
+          'PackagePath="skills"' \
+          'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'
 
-            if ! grep -Fq "$package_path" "$project"; then
-              echo "::error file=$project::Missing skills package path '$package_path'."
-              exit 1
-            fi
-
-            if [ -n "$exclude_path" ] && ! grep -Fq "$exclude_path" "$project"; then
-              echo "::error file=$project::Missing skills exclude path '$exclude_path'."
-              exit 1
-            fi
-          }
-
-          validate_project \
-            "src/CrestApps.AgentSkills.OrchardCore/CrestApps.AgentSkills.OrchardCore.csproj" \
-            '..\CrestApps.AgentSkills\orchardcore\**\*' \
-            'PackagePath="skills"' \
-            'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'
-
-          validate_project \
-            "src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" \
-            '..\CrestApps.AgentSkills\orchardcore\**\*' \
-            'PackagePath="contentFiles\any\any\.agents\skills"' \
-            'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'
-
-      - name: Deploy release NuGet packages
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          dotnet pack -c Release --no-build -p:Version=${{ steps.get_version.outputs.VERSION }} -p:TreatWarningsAsErrors=false
-          dotnet nuget push './src/**/*.nupkg' -t 600 -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+        validate_project \
+          "src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" \
+          '..\CrestApps.AgentSkills\orchardcore\**\*' \
+          'PackagePath="contentFiles\any\any\.agents\skills"' \
+          'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'
+    - name: Deploy release NuGet packages
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        dotnet pack -c Release --no-build -p:Version=${{ steps.get_version.outputs.VERSION }} -p:TreatWarningsAsErrors=false
+        dotnet nuget push './src/**/*.nupkg' -t 600 -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
