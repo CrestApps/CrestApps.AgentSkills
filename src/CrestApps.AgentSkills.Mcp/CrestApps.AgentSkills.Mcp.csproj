@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageId>CrestApps.AgentSkills.Mcp</PackageId>
 		<Description>A generic, reusable MCP engine that discovers and exposes Agent Skills as MCP Prompts and Resources. Supports Markdown (.md) and YAML (.yaml/.yml) skill formats. Framework-agnostic and independent of Orchard Core.</Description>
-		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.AgentSkills</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>

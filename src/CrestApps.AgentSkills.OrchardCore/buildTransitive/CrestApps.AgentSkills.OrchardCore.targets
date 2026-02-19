@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <!--
-    CrestApps.OrchardCore.AgentSkills
+    CrestApps.AgentSkills.OrchardCore
     Copies agent skill / guardrail files from the NuGet package into the
     solution-root .agents/skills folder.
 
@@ -35,7 +35,7 @@
 
     <!-- Source: the skills/ folder inside the nupkg, sibling to buildTransitive/.
          In the NuGet cache this resolves to:
-           ~/.nuget/packages/crestapps.orchardcore.agentskills/<version>/skills/
+           ~/.nuget/packages/CrestApps.AgentSkills.OrchardCore/<version>/skills/
     -->
     <_AgentSourceDir>$(MSBuildThisFileDirectory)..$([System.IO.Path]::DirectorySeparatorChar)skills$([System.IO.Path]::DirectorySeparatorChar)</_AgentSourceDir>
   </PropertyGroup>

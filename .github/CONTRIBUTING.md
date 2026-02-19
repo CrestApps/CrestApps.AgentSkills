@@ -42,12 +42,12 @@ If you have an idea or improvement that's not tracked yet, please open a new iss
 
 ## Adding New Skills
 
-Skills must comply with the [agentskills.io specification](https://agentskills.io/specification). Each skill lives in its own directory under `src/CrestApps.AgentSkills.Skills/orchardcore/` and must contain a `SKILL.md` file.
+Skills must comply with the [agentskills.io specification](https://agentskills.io/specification). Each skill lives in its own directory under `src/CrestApps.AgentSkills/orchardcore/` and must contain a `SKILL.md` file.
 
 ### Required File Structure
 
 ```
-src/CrestApps.AgentSkills.Skills/orchardcore/orchardcore.my-skill/
+src/CrestApps.AgentSkills/orchardcore/orchardcore.my-skill/
 ├── SKILL.md                    ← Required: skill definition with front-matter
 └── references/                 ← Optional: additional reference/example files
     └── my-skill-examples.md
@@ -93,7 +93,7 @@ dotnet test -c Release --verbosity normal
 ### Submitting a New Skill PR
 
 1. Open a **New Skill Request** issue (or confirm one already exists): <https://github.com/CrestApps/CrestApps.AgentSkills/issues/new?template=skill_request.md>.
-2. Create a branch and add the new skill directory under `src/CrestApps.AgentSkills.Skills/orchardcore/`.
+2. Create a branch and add the new skill directory under `src/CrestApps.AgentSkills/orchardcore/`.
 3. Ensure the `SKILL.md` front-matter matches the directory name and include any supporting `references/` files.
 4. Run the validation steps above.
 5. Submit a PR that links the issue (e.g., `Fix #123`) and summarizes the new skill.

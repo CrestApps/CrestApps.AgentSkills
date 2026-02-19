@@ -1,17 +1,17 @@
-# CrestApps.OrchardCore.AgentSkills.Mcp
+# CrestApps.AgentSkills.Mcp.OrchardCore
 
 A runtime NuGet package that exposes Orchard Core agent skills to **MCP (Model Context Protocol) servers** using the [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk).
 
-This package loads skill files at runtime via OrchardCore's `FileSystemStore` and registers them as MCP prompts and resources through dedicated provider classes. It does **not** copy files to the solution — use the companion `CrestApps.OrchardCore.AgentSkills` package for local AI authoring.
+This package loads skill files at runtime via OrchardCore's `FileSystemStore` and registers them as MCP prompts and resources through dedicated provider classes. It does **not** copy files to the solution — use the companion `CrestApps.AgentSkills.OrchardCore` package for local AI authoring.
 
 ## Role in CrestApps.AgentSkills
 
-`CrestApps.OrchardCore.AgentSkills.Mcp` is the Orchard Core runtime project in the CrestApps.AgentSkills repository. It solves the problem of exposing Orchard Core skills via MCP by loading the packaged skills and wiring them into an MCP server at runtime.
+`CrestApps.AgentSkills.Mcp.OrchardCore` is the Orchard Core runtime project in the CrestApps.AgentSkills repository. It solves the problem of exposing Orchard Core skills via MCP by loading the packaged skills and wiring them into an MCP server at runtime.
 
 ## Install
 
 ```bash
-dotnet add package CrestApps.OrchardCore.AgentSkills.Mcp
+dotnet add package CrestApps.AgentSkills.Mcp.OrchardCore
 ```
 
 ## Usage
@@ -142,8 +142,8 @@ The package includes all Orchard Core skills organized under the `orchardcore/` 
 
 | Package | Purpose |
 |---|---|
-| `CrestApps.OrchardCore.AgentSkills` | Dev/design-time — copies skills to solution root for local AI authoring |
-| `CrestApps.OrchardCore.AgentSkills.Mcp` | Runtime — exposes skills via MCP server |
+| `CrestApps.AgentSkills.OrchardCore` | Dev/design-time — copies skills to solution root for local AI authoring |
+| `CrestApps.AgentSkills.Mcp.OrchardCore` | Runtime — exposes skills via MCP server |
 
 Install both for the full experience.
 

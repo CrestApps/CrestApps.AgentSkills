@@ -1,4 +1,4 @@
-# CrestApps.AgentSkills.Skills
+# CrestApps.AgentSkills
 
 This project is a **non-packagable** skill repository that serves as the single source of truth for all agent skills in this solution.
 
@@ -11,7 +11,7 @@ This project exists solely to **host and organize shared skills** by framework. 
 Skills are organized into framework-specific subdirectories:
 
 ```
-CrestApps.AgentSkills.Skills/
+CrestApps.AgentSkills/
 ├─ orchardcore/              ← Orchard Core framework skills
 │  ├─ orchardcore.content-types/
 │  │  ├─ SKILL.md
@@ -36,22 +36,22 @@ Skills from this project are included in NuGet packages by referencing them in t
 
 ### Example: Orchard Core Skills
 
-The `CrestApps.OrchardCore.AgentSkills.csproj` includes:
+The `CrestApps.AgentSkills.OrchardCore.csproj` includes:
 
 ```xml
 <ItemGroup>
-  <None Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*"
+  <None Include="..\CrestApps.AgentSkills\orchardcore\**\*"
         Pack="true"
         PackagePath="skills"
         Visible="false" />
 </ItemGroup>
 ```
 
-Similarly, `CrestApps.OrchardCore.AgentSkills.Mcp.csproj` includes:
+Similarly, `CrestApps.AgentSkills.Mcp.OrchardCore.csproj` includes:
 
 ```xml
 <ItemGroup>
-  <Content Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*"
+  <Content Include="..\CrestApps.AgentSkills\orchardcore\**\*"
            Pack="true"
            PackagePath="contentFiles\any\any\.agents\skills"
            BuildAction="Content"
@@ -72,7 +72,7 @@ This approach ensures:
 
 To add skills for a new framework (e.g., `aspnetcore`):
 
-1. Create a new directory: `CrestApps.AgentSkills.Skills/aspnetcore/`
+1. Create a new directory: `CrestApps.AgentSkills/aspnetcore/`
 2. Add skill directories under it (e.g., `aspnetcore/aspnetcore.minimal-apis/`)
 3. Create corresponding NuGet package projects that reference these skills
 4. Update package `.csproj` files to include the new framework skills
@@ -98,7 +98,7 @@ Validate all skills before committing:
 
 **PowerShell (Windows):**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills.Skills\orchardcore" -Directory | ForEach-Object {
+Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
     $name = $_.Name
     $skillFile = Join-Path $_.FullName "SKILL.md"
     
@@ -117,7 +117,7 @@ Get-ChildItem -Path "src\CrestApps.AgentSkills.Skills\orchardcore" -Directory | 
 
 **Bash (Linux/macOS):**
 ```bash
-for dir in src/CrestApps.AgentSkills.Skills/orchardcore/*/; do
+for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
   name=$(basename "$dir")
   if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; continue; fi
   if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; continue; fi
