@@ -47,7 +47,7 @@ jobs:
     - name: Validate SKILL.md files
       shell: bash
       run: |
-        SKILLS_BASE_DIR="src/CrestApps.AgentSkills.Skills"
+        SKILLS_BASE_DIR="src/CrestApps.AgentSkills"
         EXIT_CODE=0
 
         if [ ! -d "$SKILLS_BASE_DIR" ]; then
@@ -104,13 +104,13 @@ jobs:
         }
 
         validate_project \
-          "src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" \
-          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
+          "src/CrestApps.AgentSkills.OrchardCore/CrestApps.AgentSkills.OrchardCore.csproj" \
+          '..\CrestApps.AgentSkills\orchardcore\**\*' \
           'PackagePath="skills"' \
-          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
+          'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'
 
         validate_project \
-          "src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" \
-          '..\CrestApps.AgentSkills.Skills\orchardcore\**\*' \
+          "src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" \
+          '..\CrestApps.AgentSkills\orchardcore\**\*' \
           'PackagePath="contentFiles\any\any\.agents\skills"' \
-          'Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"'
+          'Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"'

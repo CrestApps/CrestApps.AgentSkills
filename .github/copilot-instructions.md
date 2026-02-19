@@ -9,7 +9,7 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 - **Target Framework**: .NET 10 (net10.0)
 - **SDK Version**: .NET 10.0.100 (see `global.json`)
 - **Package Management**: Central Package Management via `Directory.Packages.props`
-- **Skill source of truth**: `src/CrestApps.AgentSkills.Skills/orchardcore/` (27+ Orchard Core skills)
+- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (27+ Orchard Core skills)
 
 ### Three Distinct Package Architectures
 
@@ -19,18 +19,18 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
    - Services: `IAgentSkillFilesStore`, `IMcpPromptProvider`, `IMcpResourceProvider`
    - No bundled skills — expects consumer to provide skill directory
    
-2. **`CrestApps.OrchardCore.AgentSkills`** - Dev-time skill distributor
+2. **`CrestApps.AgentSkills.OrchardCore`** - Dev-time skill distributor
    - Development dependency only (`IncludeBuildOutput=false`, `DevelopmentDependency=true`)
    - Uses MSBuild `.targets` to copy skills to solution root `.agents/skills/` on first build
    - No runtime code — purely for local AI authoring
    
-3. **`CrestApps.OrchardCore.AgentSkills.Mcp`** - Runtime MCP server
+3. **`CrestApps.AgentSkills.Mcp.OrchardCore`** - Runtime MCP server
    - Extends `CrestApps.AgentSkills.Mcp` with OrchardCore-specific wiring
    - Bundles skills via `contentFiles` (copied to bin output on restore)
    - Uses OrchardCore `FileSystemStore` for file access
    - Services registered as singletons for caching
 
-**Tests**: `test/CrestApps.AgentSkills.Mcp.Tests/`, `test/CrestApps.OrchardCore.AgentSkills.Mcp.Tests/`
+**Tests**: `test/CrestApps.AgentSkills.Mcp.Tests/`, `test/CrestApps.AgentSkills.Mcp.OrchardCore.Tests/`
 
 ## Build & Test
 
@@ -57,7 +57,7 @@ dotnet test -c Release --no-build --filter "FullyQualifiedName~SkillFrontMatterP
 
 ## Skill Validation
 
-Each skill directory under `src/CrestApps.AgentSkills.Skills/orchardcore/` must contain a `SKILL.md` file with YAML front-matter (must include `name` and `description`).
+Each skill directory under `src/CrestApps.AgentSkills/orchardcore/` must contain a `SKILL.md` file with YAML front-matter (must include `name` and `description`).
 
 ### Skill Requirements
 
@@ -77,7 +77,7 @@ Each skill directory under `src/CrestApps.AgentSkills.Skills/orchardcore/` must 
 
 **Bash:**
 ```bash
-for dir in src/CrestApps.AgentSkills.Skills/orchardcore/*/; do
+for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
   name=$(basename "$dir")
   if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; fi
   if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; fi
@@ -87,7 +87,7 @@ done
 
 **PowerShell:**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills.Skills\orchardcore" -Directory | ForEach-Object {
+Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
     $skillFile = Join-Path $_.FullName "SKILL.md"
     if (-not (Test-Path $skillFile)) { Write-Host "FAIL: $($_.Name) missing SKILL.md" -ForegroundColor Red }
     elseif ((Get-Content $skillFile -First 1) -ne "---") { Write-Host "FAIL: $($_.Name) bad front-matter" -ForegroundColor Red }
@@ -133,11 +133,11 @@ Parsers are static utility classes:
 
 ### Working with Skills
 
-**Warning**: The `CrestApps.OrchardCore.AgentSkills` package **always overwrites** files in `.agents/` folder in solution root. Treat generated files as read-only — modifications will be lost on next build.
+**Warning**: The `CrestApps.AgentSkills.OrchardCore` package **always overwrites** files in `.agents/` folder in solution root. Treat generated files as read-only — modifications will be lost on next build.
 
 **Adding a new skill**:
 1. Open/confirm a "New Skill Request" issue first
-2. Create directory under `src/CrestApps.AgentSkills.Skills/orchardcore/<skill-name>/`
+2. Create directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/`
 3. Add `SKILL.md` with front-matter matching directory name
 4. Run validation scripts and full build/test
 5. Submit PR linking the issue (e.g., `Fix #123`)

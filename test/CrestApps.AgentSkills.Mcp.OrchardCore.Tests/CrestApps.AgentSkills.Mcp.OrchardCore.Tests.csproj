@@ -15,7 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\CrestApps.OrchardCore.AgentSkills.Mcp\CrestApps.OrchardCore.AgentSkills.Mcp.csproj" />
+		<ProjectReference Include="..\..\src\CrestApps.AgentSkills.Mcp.OrchardCore\CrestApps.AgentSkills.Mcp.OrchardCore.csproj" />
 	</ItemGroup>
 
 </Project>

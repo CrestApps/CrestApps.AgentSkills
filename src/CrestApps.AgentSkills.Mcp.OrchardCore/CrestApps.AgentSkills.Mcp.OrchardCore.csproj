@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net10.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageId>CrestApps.OrchardCore.AgentSkills.Mcp</PackageId>
+		<PackageId>CrestApps.AgentSkills.Mcp.OrchardCore</PackageId>
 		<Description>Exposes Orchard Core agent skills to MCP servers at runtime. Loads skills from the package output and registers them as MCP prompts and resources. Built on top of CrestApps.AgentSkills.Mcp.</Description>
-		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.OrchardCore.AgentSkills</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/CrestApps/CrestApps.AgentSkills</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Nullable>enable</Nullable>
 		<NoWarn>$(NoWarn);NU5104</NoWarn>
@@ -16,8 +16,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="..\CrestApps.AgentSkills.Skills\orchardcore\**\*"
-				 Exclude="..\CrestApps.AgentSkills.Skills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills.Skills\orchardcore\**\lib\**\*"
+		<Content Include="..\CrestApps.AgentSkills\orchardcore\**\*"
+				 Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*"
 				 Pack="true"
 				 PackagePath="contentFiles\any\any\.agents\skills"
 				 BuildAction="Content"

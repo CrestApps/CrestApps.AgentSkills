@@ -2,7 +2,7 @@
 
 A generic, reusable **MCP (Model Context Protocol)** engine that discovers and exposes **Agent Skills** as MCP Prompts and Resources. Built on the [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk).
 
-For Orchard Core–specific skills, see the companion package [`CrestApps.OrchardCore.AgentSkills.Mcp`](../CrestApps.OrchardCore.AgentSkills.Mcp/README.md), which builds on top of this project and bundles Orchard Core skills.
+For Orchard Core–specific skills, see the companion package [`CrestApps.AgentSkills.Mcp.OrchardCore`](../CrestApps.AgentSkills.Mcp.OrchardCore/README.md), which builds on top of this project and bundles Orchard Core skills.
 
 ## Install
 

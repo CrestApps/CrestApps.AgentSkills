@@ -5,12 +5,12 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/CrestApps.AgentSkills.Mcp/CrestApps.AgentSkills.Mcp.csproj" />
-    <Project Path="src/CrestApps.AgentSkills.Skills/CrestApps.AgentSkills.Skills.csproj" Id="a329b145-575b-43cf-b87a-a689f6e65646" />
-    <Project Path="src/CrestApps.OrchardCore.AgentSkills.Mcp/CrestApps.OrchardCore.AgentSkills.Mcp.csproj" />
-    <Project Path="src/CrestApps.OrchardCore.AgentSkills/CrestApps.OrchardCore.AgentSkills.csproj" />
+    <Project Path="src/CrestApps.AgentSkills/CrestApps.AgentSkills.csproj" Id="a329b145-575b-43cf-b87a-a689f6e65646" />
+    <Project Path="src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" />
+    <Project Path="src/CrestApps.AgentSkills.OrchardCore/CrestApps.AgentSkills.OrchardCore.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/CrestApps.AgentSkills.Mcp.Tests/CrestApps.AgentSkills.Mcp.Tests.csproj" />
-    <Project Path="test/CrestApps.OrchardCore.AgentSkills.Mcp.Tests/CrestApps.OrchardCore.AgentSkills.Mcp.Tests.csproj" />
+    <Project Path="test/CrestApps.AgentSkills.Mcp.OrchardCore.Tests/CrestApps.AgentSkills.Mcp.OrchardCore.Tests.csproj" />
   </Folder>
 </Solution>

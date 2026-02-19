@@ -1,4 +1,4 @@
-# CrestApps.OrchardCore.AgentSkills
+# CrestApps.AgentSkills.OrchardCore
 
 A development-only NuGet package that distributes shared **AI agent instruction and guardrail files** for Orchard Core development.
 
@@ -6,12 +6,12 @@ When installed, agent skill files are automatically copied into the **solution-r
 
 ## Role in CrestApps.AgentSkills
 
-`CrestApps.OrchardCore.AgentSkills` is the Orchard Core design-time project in the CrestApps.AgentSkills repository. It solves the problem of keeping `.agents/skills` in sync by copying the packaged Orchard Core skills into your solution on build.
+`CrestApps.AgentSkills.OrchardCore` is the Orchard Core design-time project in the CrestApps.AgentSkills repository. It solves the problem of keeping `.agents/skills` in sync by copying the packaged Orchard Core skills into your solution on build.
 
 ## Install
 
 ```bash
-dotnet add package CrestApps.OrchardCore.AgentSkills
+dotnet add package CrestApps.AgentSkills.OrchardCore
 dotnet build
 ```
 
@@ -46,7 +46,7 @@ After the first build, the solution root will contain:
 ## Updating
 
 ```bash
-dotnet add package CrestApps.OrchardCore.AgentSkills --version x.x.x
+dotnet add package CrestApps.AgentSkills.OrchardCore --version x.x.x
 dotnet build
 ```
 

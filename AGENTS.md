@@ -1,10 +1,10 @@
 # Agent Instructions
 
-This repository contains Orchard Core agent skills under `src/CrestApps.AgentSkills.Skills/orchardcore/`.
+This repository contains Orchard Core agent skills under `src/CrestApps.AgentSkills/orchardcore/`.
 
 ## Skill Structure
 
-- Each skill lives in its own directory under `src/CrestApps.AgentSkills.Skills/orchardcore/<skill-name>/`.
+- Each skill lives in its own directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/`.
 - Directory names use lowercase, hyphenated format, prefixed with `orchardcore.` (e.g., `orchardcore.content-types`).
 - Every skill directory must contain a `SKILL.md` file with YAML front-matter including `name` and `description`.
 - The `name` field in front-matter must exactly match the directory name.
@@ -41,7 +41,7 @@ Skills are organized by Orchard Core functional area:
 
 ## Adding a New Skill
 
-1. Create a directory under `src/CrestApps.AgentSkills.Skills/orchardcore/orchardcore.<skill-name>/`.
+1. Create a directory under `src/CrestApps.AgentSkills/orchardcore/orchardcore.<skill-name>/`.
 2. Add `SKILL.md` with front-matter (`name`, `description`) and prompt templates with guidelines and examples.
 3. Add `references/<topic>-examples.md` with practical code examples.
 4. Run validation: ensure `SKILL.md` starts with `---` and `name` matches directory name.

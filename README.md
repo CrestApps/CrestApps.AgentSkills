@@ -5,8 +5,8 @@ Shared **AI agent skills** and MCP tooling for .NET applications and Orchard Cor
 | Project | README | Problem it solves |
 |---|---|---|
 | `CrestApps.AgentSkills.Mcp` | [`src/CrestApps.AgentSkills.Mcp/README.md`](src/CrestApps.AgentSkills.Mcp/README.md) | Provides a reusable MCP skill engine for any .NET app without building custom parsers/providers. |
-| `CrestApps.OrchardCore.AgentSkills` | [`src/CrestApps.OrchardCore.AgentSkills/README.md`](src/CrestApps.OrchardCore.AgentSkills/README.md) | Used for Orchard Core local development by copying skills to `.agents/skills`. |
-| `CrestApps.OrchardCore.AgentSkills.Mcp` | [`src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md`](src/CrestApps.OrchardCore.AgentSkills.Mcp/README.md) | Exposes Orchard Core skills as MCP prompts and MCP resources at runtime. |
+| `CrestApps.AgentSkills.OrchardCore` | [`src/CrestApps.AgentSkills.OrchardCore/README.md`](src/CrestApps.AgentSkills.OrchardCore/README.md) | Used for Orchard Core local development by copying skills to `.agents/skills`. |
+| `CrestApps.AgentSkills.Mcp.OrchardCore` | [`src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md`](src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md) | Exposes Orchard Core skills as MCP prompts and MCP resources at runtime. |
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ builder.Services.AddMcpServer(mcp =>
 ### Orchard Core Local AI Authoring
 
 ```bash
-dotnet add package CrestApps.OrchardCore.AgentSkills
+dotnet add package CrestApps.AgentSkills.OrchardCore
 dotnet build
 ```
 
@@ -59,7 +59,7 @@ After the first **build** after install, the solution root will contain:
 ### Orchard Core MCP Server Hosting
 
 ```bash
-dotnet add package CrestApps.OrchardCore.AgentSkills.Mcp
+dotnet add package CrestApps.AgentSkills.Mcp.OrchardCore
 ```
 
 ```csharp
@@ -79,7 +79,7 @@ Install both Orchard Core packages to get local AI authoring **and** MCP server 
 
 ## Skill Format (agentskills.io specification)
 
-Each skill is defined in a single **`SKILL.md`** file inside a skill directory under `src/CrestApps.AgentSkills.Skills/orchardcore/`. The file must contain YAML front-matter with at least `name` and `description` fields:
+Each skill is defined in a single **`SKILL.md`** file inside a skill directory under `src/CrestApps.AgentSkills/orchardcore/`. The file must contain YAML front-matter with at least `name` and `description` fields:
 
 ```md
 ---
@@ -103,7 +103,7 @@ Skill content goes here (guidelines, code templates, examples, etc.)
 
 ```
 src/
-├─ CrestApps.AgentSkills.Skills/                 ← Central skill content (single source of truth)
+├─ CrestApps.AgentSkills/                 ← Central skill content (single source of truth)
 │  └─ orchardcore/                               ← Orchard Core specific skills
 │     ├─ orchardcore.content-types/
 │     │  ├─ SKILL.md                             ← Skill definition (front-matter + body)
@@ -119,20 +119,20 @@ src/
 │  ├─ README.md
 │  └─ CrestApps.AgentSkills.Mcp.csproj
 │
-├─ CrestApps.OrchardCore.AgentSkills/            ← Orchard Core dev package
+├─ CrestApps.AgentSkills.OrchardCore/            ← Orchard Core dev package
 │  ├─ buildTransitive/                           ← MSBuild .targets for solution-root copy
 │  ├─ README.md
-│  └─ CrestApps.OrchardCore.AgentSkills.csproj
+│  └─ CrestApps.AgentSkills.OrchardCore.csproj
 │
-└─ CrestApps.OrchardCore.AgentSkills.Mcp/        ← Orchard Core MCP runtime package
+└─ CrestApps.AgentSkills.Mcp.OrchardCore/        ← Orchard Core MCP runtime package
    ├─ Extensions/                                ← MCP extension methods
    ├─ Providers/                                 ← Prompt & resource providers
    ├─ Services/                                  ← IMcpResourceFileStore, McpSkillFileStore, SkillFrontMatterParser
    ├─ README.md
-   └─ CrestApps.OrchardCore.AgentSkills.Mcp.csproj
+   └─ CrestApps.AgentSkills.Mcp.OrchardCore.csproj
 ```
 
-The Orchard Core packages pack skill files from the central `src/CrestApps.AgentSkills.Skills/orchardcore/` directory — the dev package packs them under `skills/orchardcore/` (MSBuild copy only), while the MCP package packs them under `contentFiles/any/any/.agents/skills/orchardcore/`. The generic `CrestApps.AgentSkills.Mcp` package is skill-source agnostic and expects skills to be provided by your application.
+The Orchard Core packages pack skill files from the central `src/CrestApps.AgentSkills/orchardcore/` directory — the dev package packs them under `skills/orchardcore/` (MSBuild copy only), while the MCP package packs them under `contentFiles/any/any/.agents/skills/orchardcore/`. The generic `CrestApps.AgentSkills.Mcp` package is skill-source agnostic and expects skills to be provided by your application.
 
 ## Build & Test
 
@@ -158,7 +158,7 @@ You can verify all skill files are valid before submitting a PR:
 
 **Bash (Linux/macOS):**
 ```bash
-for dir in src/CrestApps.AgentSkills.Skills/orchardcore/*/; do
+for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
   name=$(basename "$dir")
   if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; continue; fi
   if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; continue; fi
@@ -168,7 +168,7 @@ done
 
 **PowerShell (Windows):**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills.Skills\orchardcore" -Directory | ForEach-Object {
+Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
     $name = $_.Name
     $skillFile = Join-Path $_.FullName "SKILL.md"
     if (-not (Test-Path $skillFile)) {
@@ -191,7 +191,7 @@ Contributions are welcome! Please review [CONTRIBUTING.md](.github/CONTRIBUTING.
 ### Submitting a New Skill PR
 
 1. Open a **New Skill Request** issue (or confirm an existing one) to align on scope: <https://github.com/CrestApps/CrestApps.AgentSkills/issues/new?template=skill_request.md>.
-2. Add a new directory under `src/CrestApps.AgentSkills.Skills/orchardcore/<skill-name>/` with a `SKILL.md` that matches the [agentskills.io specification](https://agentskills.io/specification).
+2. Add a new directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/` with a `SKILL.md` that matches the [agentskills.io specification](https://agentskills.io/specification).
 3. Run the build and tests listed above, plus the local skill validation script.
 4. Open a PR that links the issue (e.g., `Fix #123`), summarizes the skill, and includes any references or screenshots if applicable.
 
