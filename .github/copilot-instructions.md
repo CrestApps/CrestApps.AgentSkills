@@ -9,25 +9,31 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 - **Target Framework**: .NET 10 (net10.0)
 - **SDK Version**: .NET 10.0.100 (see `global.json`)
 - **Package Management**: Central Package Management via `Directory.Packages.props`
-- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (27+ Orchard Core skills)
+- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (46 Orchard Core skills)
 
-### Three Distinct Package Architectures
+### Four Source Projects
 
-1. **`CrestApps.AgentSkills.Mcp`** - Generic MCP engine
+1. **`CrestApps.AgentSkills`** - Skill content container
+   - Contains all Orchard Core skill files under `orchardcore/`
+   - Not packable — purely a source container referenced by the other packages
+
+2. **`CrestApps.AgentSkills.Mcp`** - Generic MCP engine
    - Framework-agnostic skill parser and MCP provider
    - Supports `.md` (front-matter) and `.yaml`/`.yml` skill formats
-   - Services: `IAgentSkillFilesStore`, `IMcpPromptProvider`, `IMcpResourceProvider`
+   - Key interfaces: `IAgentSkillFilesStore`, `IMcpPromptProvider`, `IMcpResourceProvider`
+   - Key implementations: `DefaultAgentSkillFilesStore`, `SkillPromptProvider`, `SkillResourceProvider`
+   - Key parsers: `SkillFrontMatterParser`, `SkillYamlParser`, `SkillFileParser`
    - No bundled skills — expects consumer to provide skill directory
-   
-2. **`CrestApps.AgentSkills.OrchardCore`** - Dev-time skill distributor
+
+3. **`CrestApps.AgentSkills.OrchardCore`** - Dev-time skill distributor
    - Development dependency only (`IncludeBuildOutput=false`, `DevelopmentDependency=true`)
    - Uses MSBuild `.targets` to copy skills to solution root `.agents/skills/` on first build
    - No runtime code — purely for local AI authoring
-   
-3. **`CrestApps.AgentSkills.Mcp.OrchardCore`** - Runtime MCP server
-   - Extends `CrestApps.AgentSkills.Mcp` with OrchardCore-specific wiring
+
+4. **`CrestApps.AgentSkills.Mcp.OrchardCore`** - Runtime MCP server for Orchard Core
+   - Extends `CrestApps.AgentSkills.Mcp` with Orchard Core–specific convenience wrappers
    - Bundles skills via `contentFiles` (copied to bin output on restore)
-   - Uses OrchardCore `FileSystemStore` for file access
+   - Entry point: `OrchardCoreSkillMcpExtensions` (`AddOrchardCoreSkills`, `AddOrchardCoreAgentSkillServices`)
    - Services registered as singletons for caching
 
 **Tests**: `test/CrestApps.AgentSkills.Mcp.Tests/`, `test/CrestApps.AgentSkills.Mcp.OrchardCore.Tests/`
@@ -53,7 +59,7 @@ dotnet test -c Release --no-build --filter "FullyQualifiedName~SkillFrontMatterP
 dotnet test -c Release --no-build --filter "FullyQualifiedName~SkillFrontMatterParserTests.TryParse_ValidFrontMatter_ReturnsTrueAndExtractsFields"
 ```
 
-**Note**: Tests use xUnit. Test classes follow pattern `<Subject>Tests.cs` with `sealed` modifier.
+**Note**: Tests use xUnit v3 (`xunit.v3`). Test classes follow the pattern `<Subject>Tests.cs` with the `sealed` modifier.
 
 ## Skill Validation
 
@@ -62,16 +68,34 @@ Each skill directory under `src/CrestApps.AgentSkills/orchardcore/` must contain
 ### Skill Requirements
 
 - **File name**: `SKILL.md` (uppercase, not `skill.md`)
-- **Directory naming**: lowercase, hyphenated, prefixed with `orchardcore.` (e.g., `orchardcore.content-types`)
-- **`name` field**: Must exactly match directory name
+- **Directory naming**: lowercase, hyphenated, prefixed with `orchardcore-` (e.g., `orchardcore-content-types`)
+- **`name` field**: Must exactly match the directory name (e.g., `orchardcore-content-types`)
 - **Front-matter**: Must start with `---` and contain closing `---`
 - **References**: Optional `references/` subdirectory for additional `.md` files (not `examples/`)
 
 ### Skill Documentation Conventions (from CONTRIBUTING.md)
 
 - All recipe step JSON blocks must be wrapped in root recipe format: `{ "steps": [...] }`
-- All C# classes in code samples must use the `sealed` modifier
+- All C# classes in code samples must use the `sealed` modifier, **except for View Models** which must not be `sealed` because they are used for model binding
 - Third-party module packages (non `OrchardCore.*`) must be installed in the web/startup project
+- Keep guidance concise, example-driven, and actionable
+- Prefer ready-to-use patterns over abstract descriptions
+
+### Skill Categories
+
+Skills are organized by Orchard Core functional area:
+
+- **AI & MCP**: ai, ai-chat, ai-chat-interactions, ai-mcp
+- **Content Model**: content-types, content-parts, content-fields, content-items, content-queries, taxonomies
+- **Templating**: theming, razor, liquid, shapes, placement, display-management
+- **Infrastructure**: modules, features, setup, tenants, data-migrations, background-tasks, caching
+- **Recipes & Deployment**: recipes, deployments, autoroute, site-settings
+- **Security**: security, users-roles, openid
+- **UI & Navigation**: navigation, menus, widgets, forms, admin
+- **Search & Media**: search-indexing, media, graphql
+- **Communication**: email, notifications, workflows
+- **Tooling**: module-creator, theme-creator, tester
+- **Other**: localization, seo, audit-trail
 
 ### Local Validation Scripts
 
@@ -105,9 +129,9 @@ For release builds, override the version (for example via CI) and publish with `
 - All package versions are centrally managed in `Directory.Packages.props`
 - Key dependencies:
   - `ModelContextProtocol` (0.8.0-preview.1) - MCP C# SDK
-  - `OrchardCore.FileStorage.FileSystem` (2.2.1) - File system access
   - `YamlDotNet` (16.3.0) - YAML parsing
-  - `xunit` (2.9.3) - Testing framework
+  - `Microsoft.Extensions.Logging.Abstractions` (10.0.3) - Logging abstractions
+  - `xunit.v3` (3.2.2) - Testing framework
 
 ## Key Conventions
 
@@ -117,28 +141,56 @@ For release builds, override the version (for example via CI) and publish with `
 - All classes must be `sealed` unless explicitly designed for inheritance
 - Use file-scoped namespaces
 - Enable nullable reference types (`<Nullable>enable</Nullable>`)
-- Prefix interface implementations with `I` (e.g., `IAgentSkillFilesStore`)
+- Prefix interfaces with `I` (e.g., `IAgentSkillFilesStore`)
+- After completing work, clean up the code by removing any unused services injected through dependency injection, as well as any unused `using` statements
 
 ### MCP Architecture Pattern
 
 Services are registered as **singletons** with caching for performance:
-- `IAgentSkillFilesStore` / `IMcpResourceFileStore` - File system abstraction
-- `IMcpPromptProvider` - Skill body content → MCP prompts (cached after first call)
-- `IMcpResourceProvider` - Skill files + references → MCP resources (cached after first call)
+
+- `IAgentSkillFilesStore` - File system abstraction (implementation: `DefaultAgentSkillFilesStore`)
+- `IMcpPromptProvider` - Skill body content → MCP prompts, cached after first call (implementation: `SkillPromptProvider`)
+- `IMcpResourceProvider` - Skill files + references → MCP resources, cached after first call (implementation: `SkillResourceProvider`)
 
 Parsers are static utility classes:
+
 - `SkillFrontMatterParser` - Extracts YAML from `.md` front-matter
 - `SkillYamlParser` - Parses `.yaml`/`.yml` files
 - `SkillFileParser` - Unified parser that detects format and delegates
 
+### MCP Registration API
+
+**Generic (any .NET app), from `CrestApps.AgentSkills.Mcp`:**
+
+```csharp
+// Register services only (without attaching to an MCP server)
+services.AddAgentSkillServices();
+services.AddAgentSkillServices(options => options.Path = "/path/to/skills");
+
+// Register services and attach prompts/resources to the MCP server builder
+builder.AddAgentSkills();
+builder.AddAgentSkills(options => options.Path = "/path/to/skills");
+```
+
+**Orchard Core–specific wrappers, from `CrestApps.AgentSkills.Mcp.OrchardCore`:**
+
+```csharp
+// Register services only
+services.AddOrchardCoreAgentSkillServices();
+
+// Register services and attach prompts/resources to the MCP server builder
+builder.AddOrchardCoreSkills();
+```
+
 ### Working with Skills
 
-**Warning**: The `CrestApps.AgentSkills.OrchardCore` package **always overwrites** files in `.agents/` folder in solution root. Treat generated files as read-only — modifications will be lost on next build.
+**Warning**: The `CrestApps.AgentSkills.OrchardCore` package **always overwrites** files in the `.agents/` folder at the solution root. Treat generated files as read-only — modifications will be lost on the next build.
 
 **Adding a new skill**:
+
 1. Open/confirm a "New Skill Request" issue first
-2. Create directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/`
-3. Add `SKILL.md` with front-matter matching directory name
+2. Create directory under `src/CrestApps.AgentSkills/orchardcore/orchardcore-<skill-name>/`
+3. Add `SKILL.md` with front-matter `name` matching the directory name exactly
 4. Run validation scripts and full build/test
 5. Submit PR linking the issue (e.g., `Fix #123`)
 
