@@ -17,6 +17,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
+- Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
+- The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - All chat messages are persisted and sessions can be resumed later.
 - Prompt routing uses intent detection to classify user prompts and route them to specialized processing strategies.
 - Intent detection can use a dedicated lightweight AI model or fall back to keyword-based detection.

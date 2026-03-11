@@ -21,7 +21,10 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 - Use dependency injection to access AI services in modules.
 - Always secure API keys using user secrets or environment variables, never hardcode them.
 - AI profiles define how the AI system interacts with users, including system messages and response behavior.
-- Profile types include `Chat`, `Utility`, and `TemplatePrompt`.
+- Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
+- Agent profiles are reusable agents exposed as AI tools — each agent requires a `Description` field.
+- Agent availability: `OnDemand` (default, included via selection) or `AlwaysAvailable` (auto-included in every request).
+- `ISpeechToTextClient` is available via `IAIClientFactory.CreateSpeechToTextClientAsync()` for providers that support it (OpenAI, Azure OpenAI).
 
 ### Enabling AI Features
 
@@ -63,6 +66,7 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
           "DefaultIntentDeploymentName": "gpt-4o-mini",
           "DefaultEmbeddingDeploymentName": "",
           "DefaultImagesDeploymentName": "",
+          "DefaultSpeechToTextDeploymentName": "",
           "Connections": {
             "default": {
               "DefaultDeploymentName": "gpt-4o",
@@ -84,6 +88,7 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 | `DefaultEmbeddingDeploymentName` | The model for generating embeddings (for RAG/vector search) | No |
 | `DefaultIntentDeploymentName` | A lightweight model for intent classification (e.g., `gpt-4o-mini`) | No |
 | `DefaultImagesDeploymentName` | The model for image generation (e.g., `dall-e-3`) | No |
+| `DefaultSpeechToTextDeploymentName` | The model for speech-to-text (e.g., `whisper-1`) | No |
 
 ### Adding AI Provider Connection via Recipe
 
@@ -112,6 +117,15 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 }
 ```
 
+### AI Profile Types
+
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `Chat` | Interactive conversational profile | WelcomeMessage, SystemMessage, tools, agents |
+| `Utility` | Background processing profile | SystemMessage, tools |
+| `TemplatePrompt` | Template-driven prompt profile | PromptTemplate, PromptSubject |
+| `Agent` | Reusable agent exposed as an AI tool | Description (required), SystemMessage, tools, agents |
+
 ### Creating AI Profiles via Recipe
 
 ```json
@@ -125,7 +139,9 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
           "Name": "{{ProfileName}}",
           "DisplayText": "{{DisplayName}}",
           "WelcomeMessage": "{{WelcomeMessage}}",
+          "Description": "",
           "FunctionNames": [],
+          "AgentNames": [],
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
@@ -148,6 +164,49 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
   ]
 }
 ```
+
+### Creating an Agent Profile via Recipe
+
+Agent profiles are exposed as AI tools that other profiles/interactions can invoke. The `Description` field is required — it's used by the LLM to decide when to invoke the agent.
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "profiles": [
+        {
+          "Source": "OpenAI",
+          "Name": "research-agent",
+          "DisplayText": "Research Agent",
+          "Description": "An agent that can research topics on the internet and provide comprehensive summaries with citations.",
+          "Type": "Agent",
+          "TitleType": "InitialPrompt",
+          "ConnectionName": "",
+          "DeploymentId": "",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
+              "Temperature": 0.3,
+              "MaxTokens": 4096
+            },
+            "AgentMetadata": {
+              "Availability": "OnDemand"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Agent Availability
+
+| Value | Description |
+|-------|-------------|
+| `OnDemand` | Default. Agent is only included when explicitly selected by the user in the Capabilities tab. |
+| `AlwaysAvailable` | Agent is automatically included in every AI request. Warning: increases token usage. Not shown in the agent selection UI. |
 
 ### Defining Chat Profiles Using Code
 
@@ -194,6 +253,60 @@ public sealed class SystemDefinedAIProfileMigrations : DataMigration
     }
 }
 ```
+
+### Creating an Agent Profile in Code
+
+```csharp
+public async Task<int> CreateAsync()
+{
+    var profile = await _profileManager.NewAsync("OpenAI");
+
+    profile.Name = "research-agent";
+    profile.DisplayText = "Research Agent";
+    profile.Description = "Researches topics and provides comprehensive summaries with citations.";
+    profile.Type = AIProfileType.Agent;
+
+    profile.Put(new AIProfileMetadata
+    {
+        SystemMessage = "You are a research assistant...",
+        Temperature = 0.3f,
+        MaxTokens = 4096,
+    });
+
+    profile.Put(new AgentMetadata
+    {
+        Availability = AgentAvailability.OnDemand,
+    });
+
+    await _profileManager.SaveAsync(profile);
+    return 1;
+}
+```
+
+### Using ISpeechToTextClient
+
+```csharp
+public sealed class MySpeechService
+{
+    private readonly IAIClientFactory _clientFactory;
+
+    public MySpeechService(IAIClientFactory clientFactory)
+    {
+        _clientFactory = clientFactory;
+    }
+
+    public async Task<string> TranscribeAsync(Stream audioStream, string providerName, string connectionName)
+    {
+        var client = await _clientFactory.CreateSpeechToTextClientAsync(providerName, connectionName);
+
+        var response = await client.GetTextAsync(audioStream);
+
+        return response.Text;
+    }
+}
+```
+
+> **Note:** `ISpeechToTextClient` is supported by OpenAI and Azure OpenAI providers. Ollama and Azure AI Inference throw `NotSupportedException`.
 
 ### Extending AI Chat with Custom Functions
 

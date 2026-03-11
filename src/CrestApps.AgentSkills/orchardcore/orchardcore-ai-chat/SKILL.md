@@ -20,6 +20,10 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 - Chat-type AI profiles with the "Show On Admin Menu" option appear under the **Artificial Intelligence** section in the admin menu.
 - When the Widgets feature is enabled, an AI Chat widget can be embedded in frontend content.
 - The AI Agent module (`CrestApps.OrchardCore.AI.Agent`) extends AI profiles with capabilities for content management, user management, feature management, and more.
+- Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
+- Agent profiles function as reusable AI agents exposed as tools. They require a `Description` field and can be selected in the Capabilities tab.
+- Agent availability modes: `OnDemand` (default, user selects) or `AlwaysAvailable` (auto-included in every request).
+- The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - Always secure API keys using user secrets or environment variables; never hardcode them.
 - Install CrestApps packages in the web/startup project.
 
@@ -187,7 +191,73 @@ The AI Agent module provides tools that allow AI profiles to perform tasks on th
 }
 ```
 
-Once enabled, navigate to your AI profile and assign capabilities under the **Capabilities** tab.
+Once enabled, navigate to your AI profile and assign capabilities under the **Capabilities** tab. The tab is organized in this order: MCP Connections, Agents, Tools.
+
+### Creating an Agent Profile
+
+Agent profiles are reusable agents that can be invoked as tools by other profiles. When creating an Agent profile:
+
+1. Set `Type` to `Agent`
+2. Provide a `Description` — this is used by the LLM to decide when to invoke the agent
+3. Set `Availability` to `OnDemand` (default) or `AlwaysAvailable`
+4. Configure a system message, tools, and other capabilities
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "profiles": [
+        {
+          "Source": "OpenAI",
+          "Name": "research-agent",
+          "DisplayText": "Research Agent",
+          "Description": "An agent that can research topics and provide comprehensive summaries with citations.",
+          "Type": "Agent",
+          "TitleType": "InitialPrompt",
+          "ConnectionName": "",
+          "DeploymentId": "",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
+              "Temperature": 0.3,
+              "MaxTokens": 4096
+            },
+            "AgentMetadata": {
+              "Availability": "OnDemand"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Creating an Agent Profile in Code
+
+```csharp
+var profile = await _profileManager.NewAsync("OpenAI");
+
+profile.Name = "research-agent";
+profile.DisplayText = "Research Agent";
+profile.Description = "Researches topics and provides comprehensive summaries with citations.";
+profile.Type = AIProfileType.Agent;
+
+profile.Put(new AIProfileMetadata
+{
+    SystemMessage = "You are a research assistant...",
+    Temperature = 0.3f,
+    MaxTokens = 4096,
+});
+
+profile.Put(new AgentMetadata
+{
+    Availability = AgentAvailability.OnDemand,
+});
+
+await _profileManager.SaveAsync(profile);
+```
 
 ### Adding an AI Chat Widget to Frontend Content
 
