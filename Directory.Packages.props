@@ -5,14 +5,14 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- MCP Packages -->
-		<PackageVersion Include="ModelContextProtocol" Version="0.8.0-preview.1" />
+		<PackageVersion Include="ModelContextProtocol" Version="1.0.0" />
 		<PackageVersion Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />
 		<PackageVersion Include="YamlDotNet" Version="16.3.0" />
 		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- Testing -->
-		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
 		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
 		<PackageVersion Include="xunit.v3" Version="3.2.2" />
 	</ItemGroup>
