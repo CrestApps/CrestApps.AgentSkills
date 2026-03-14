@@ -328,3 +328,56 @@ services.AddAITool<LookupOrderFunction>(LookupOrderFunction.TheName, options =>
 - Restrict AI profile access with Orchard Core permissions.
 - Set appropriate token limits to control costs.
 - Lock system messages on production profiles to prevent prompt injection.
+
+### Chat Mode Configuration
+
+Chat profiles support three modes via the `ChatModeProfileSettings`:
+
+| Mode | Description | Requirements |
+|------|-------------|--------------|
+| `TextOnly` | Standard text-only chat (default) | None |
+| `AudioInput` | Adds microphone button for speech-to-text dictation. User types or dictates, then sends manually. | `DefaultSpeechToTextDeploymentId` configured in site settings |
+| `Conversation` | Two-way voice conversation. User speaks → transcript sent automatically → AI responds with text and spoken audio. | Both `DefaultSpeechToTextDeploymentId` and `DefaultTextToSpeechDeploymentId` configured |
+
+Chat mode is set in the AI Profile edit page under the "Chat Mode" dropdown (only visible for Chat-type profiles).
+
+**In code:**
+```csharp
+profile.AlterSettings<ChatModeProfileSettings>(s =>
+{
+    s.ChatMode = ChatMode.Conversation;
+    s.VoiceName = "en-US-JennyNeural"; // Optional TTS voice
+});
+```
+
+> **Important:** Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do NOT use `profile.As<ChatModeProfileSettings>()` — that reads from a different storage location.
+
+### Voice Configuration
+
+When `ChatMode` is `Conversation`, a voice dropdown appears in the AI Profile editor, populated via AJAX from the configured TTS deployment. Voices are grouped by language and sorted alphabetically. If no voice is selected, the provider's default voice is used.
+
+The `SpeechVoice` model includes: `Id`, `Name`, `Language`, `Gender`, and `VoiceSampleUrl`.
+
+### Admin Chat Session UI
+
+Chat profiles are accessible at `/admin/ai-chat/session/{profileId}`. The session view:
+- Supports all three chat modes (TextOnly, AudioInput, Conversation)
+- Shows microphone button when `AudioInput` or `Conversation` mode is enabled
+- Shows conversation (headset) button when `Conversation` mode is enabled
+- Streams audio and text simultaneously during conversation mode
+- Supports document upload when the session documents feature is enabled
+
+### Admin Widget and Frontend Widget
+
+Both the admin widget (`AIChatAdminWidget`) and frontend widget (`Widget-AIChat`) support all chat modes. Chat configuration is passed to JavaScript via `data-config` attributes on hidden elements, not inline `@Html.Raw()`.
+
+### SignalR Hub Methods (AIChatHub)
+
+| Method | Description |
+|--------|-------------|
+| `CreateSession` | Creates a new chat session |
+| `SendMessage` | Sends a text message to the AI |
+| `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
+| `StartConversation` | Starts a full two-way voice conversation |
+| `SynthesizeSpeech` | Converts text to speech audio |
+| `RateMessage` | Rates an assistant message (thumbs up/down) |
