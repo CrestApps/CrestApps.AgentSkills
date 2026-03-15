@@ -26,7 +26,7 @@ You are an Orchard Core expert. Generate code for implementing custom chat respo
 - For AI-function-based transfers, use `AIInvocationScope.Current` to access the active session or interaction.
 - The hub automatically saves the session after AI response completes — do NOT call `SaveAsync` manually in transfer functions.
 - Use `IChatNotificationSender` to send UI feedback (typing indicators, transfer status, session endings) — no JavaScript required.
-- Register notification action handlers with `services.TryAddEnumerable(ServiceDescriptor.Scoped<IChatNotificationActionHandler, YourHandler>())`.
+- Register notification action handlers as keyed services: `services.AddKeyedScoped<IChatNotificationActionHandler, YourHandler>("your-action-name")`.
 - Seal all service classes. Use `internal sealed` for implementations in modules.
 
 ### Handler Types
@@ -302,8 +302,6 @@ using CrestApps.OrchardCore.AI.Models;
 
 public sealed class FeedbackActionHandler : IChatNotificationActionHandler
 {
-    public string ActionName => "feedback-positive";
-
     public async Task HandleAsync(
         ChatNotificationActionContext context,
         CancellationToken cancellationToken = default)

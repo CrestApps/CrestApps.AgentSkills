@@ -49,6 +49,9 @@ public sealed class Startup : StartupBase
 
         // Register the AI transfer function.
         services.AddAITool<TransferToAgentFunction>(TransferToAgentFunction.TheName);
+
+        // Register custom notification action handlers as keyed services.
+        services.AddKeyedScoped<IChatNotificationActionHandler, FeedbackActionHandler>("feedback-positive");
     }
 
     public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
@@ -335,4 +338,69 @@ public sealed class TransferToAgentFunction : AIFunction
         return $"Transferring to '{queueName}' queue. Please wait...";
     }
 }
+```
+
+### FeedbackActionHandler.cs
+
+A custom notification action handler that records feedback when the user clicks a button:
+
+```csharp
+using CrestApps.OrchardCore.AI;
+using CrestApps.OrchardCore.AI.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace MyModule.Genesys.Services;
+
+internal sealed class FeedbackActionHandler : IChatNotificationActionHandler
+{
+    public async Task HandleAsync(
+        ChatNotificationActionContext context,
+        CancellationToken cancellationToken = default)
+    {
+        // Record the feedback.
+        var feedbackService = context.Services.GetRequiredService<IFeedbackService>();
+        await feedbackService.RecordAsync(context.SessionId, positive: true);
+
+        // Remove the feedback notification from the UI.
+        var notifications = context.Services.GetRequiredService<IChatNotificationSender>();
+        await notifications.RemoveAsync(
+            context.SessionId,
+            context.ChatType,
+            context.NotificationId);
+    }
+}
+```
+
+### Sending a Custom Notification with Action Buttons
+
+Send a feedback request notification after the agent response:
+
+```csharp
+// In a webhook or response handler:
+var notifications = services.GetRequiredService<IChatNotificationSender>();
+await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new ChatNotification
+{
+    Id = "feedback-request",
+    Type = "info",
+    Content = "Was this helpful?",
+    Icon = "fa-solid fa-star",
+    Dismissible = true,
+    Actions =
+    [
+        new ChatNotificationAction
+        {
+            Name = "feedback-positive",
+            Label = "Yes!",
+            CssClass = "btn-outline-success",
+            Icon = "fa-solid fa-thumbs-up",
+        },
+        new ChatNotificationAction
+        {
+            Name = "feedback-negative",
+            Label = "No",
+            CssClass = "btn-outline-secondary",
+            Icon = "fa-solid fa-thumbs-down",
+        },
+    ],
+});
 ```
