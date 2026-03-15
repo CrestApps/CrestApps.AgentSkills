@@ -17,6 +17,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
+- Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
+- The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - All chat messages are persisted and sessions can be resumed later.
 - Prompt routing uses intent detection to classify user prompts and route them to specialized processing strategies.
 - Intent detection can use a dedicated lightweight AI model or fall back to keyword-based detection.
@@ -260,3 +262,40 @@ public sealed class Startup : StartupBase
 |----------|--------|-------------|
 | `/ai/chat-interactions/upload-document` | POST | Upload one or more documents |
 | `/ai/chat-interactions/remove-document` | POST | Remove a document |
+
+### Chat Mode in Chat Interactions
+
+Chat interactions support the same `ChatMode` options as AI profiles, but configured at the site level via `ChatInteractionChatModeSettings` (under **Settings → AI Settings → Chat Interactions**):
+
+| Mode | Description | Requirements |
+|------|-------------|--------------|
+| `TextOnly` | Standard text-only chat (default) | None |
+| `AudioInput` | Adds microphone button for speech-to-text dictation | `DefaultSpeechToTextDeploymentId` configured |
+| `Conversation` | Two-way voice conversation | Both `DefaultSpeechToTextDeploymentId` and `DefaultTextToSpeechDeploymentId` configured |
+
+Unlike AI profiles (configured per profile), chat interactions use a **single site-wide setting** that applies to all chat interaction sessions.
+
+### SignalR Hub Methods (ChatInteractionHub)
+
+| Method | Description |
+|--------|-------------|
+| `SendMessage` | Sends a text message |
+| `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
+| `StartConversation` | Starts a full two-way voice conversation |
+| `SynthesizeSpeech` | Converts text to speech audio |
+| `UpdateAgents` | Updates agent selection for a session |
+| `ClearHistory` | Clears chat history for a session |
+
+### Voice Configuration
+
+When conversation mode is enabled, voices are populated from the configured TTS deployment. Voices are grouped by language in dropdown menus and sorted alphabetically. Each `SpeechVoice` includes `Id`, `Name`, `Language`, `Gender`, and `VoiceSampleUrl`.
+
+### Conversation Mode Behavior
+
+In conversation mode:
+1. User clicks the headset button → persistent audio stream opens
+2. Microphone, send button, and textarea are hidden/disabled
+3. User speaks → audio streams to server via SignalR → STT transcribes → text appears as user message
+4. Transcript is automatically sent to AI orchestrator → AI response text streams to message list AND audio streams back
+5. User can interrupt by speaking → cancels current AI response → processes new prompt
+6. User clicks headset again → ends conversation, restores normal UI

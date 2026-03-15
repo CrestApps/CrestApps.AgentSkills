@@ -193,6 +193,60 @@ public sealed class Startup : StartupBase
 }
 ```
 
+### Placement Format Reference
+
+The placement string format is:
+
+```
+Zone:ItemPosition#TabName;TabGroupPosition
+```
+
+**Components:**
+- `Zone` — The zone name (e.g., `Content`, `Sidebar`, `Meta`)
+- `:ItemPosition` — Position of the item WITHIN the tab (lower number = appears first). Uses numeric values (e.g., `:1`, `:5`, `:10`). Special values: `:before`, `:after`
+- `#TabName` — (Optional) The tab name to group items into. Creates a tabbed interface in the editor
+- `;TabGroupPosition` — (Optional) Position of the TAB among other tabs (lower number = tab appears first). Uses a semicolon `;` after the tab name
+
+**CRITICAL: Use `;` (semicolon) before tab position, NOT `:` (colon).** Using `:` after the tab name makes the number part of the tab NAME (e.g., `#MyTab:5` creates a tab literally named "MyTab:5").
+
+#### Examples
+
+| Format | Meaning |
+|--------|---------|
+| `Content:5` | Item at position 5 in the Content zone (no tabs) |
+| `Content:5#General;1` | Item at position 5, in "General" tab, tab at position 1 |
+| `Content:3#Capabilities;8` | Item at position 3, in "Capabilities" tab, tab at position 8 |
+| `Content:10#Data Processing & Metrics;10` | Item at position 10, in "Data Processing & Metrics" tab, tab at position 10 |
+
+#### Placement in Display Drivers (C# Fluent API)
+
+When using `.Location()` in display drivers, use the same string format:
+
+```csharp
+// Item at position 5 within "Capabilities" tab, tab at position 8
+return Initialize<MyViewModel>("MyShape_Edit", model => { ... })
+    .Location("Content:5#Capabilities;8");
+
+// Item at position 1 within "General" tab, tab at position 1
+return Initialize<MyViewModel>("MyShape_Edit", model => { ... })
+    .Location("Content:1#General;1");
+```
+
+#### Tab Ordering Convention (CrestApps AI modules)
+
+| Tab | Position |
+|-----|----------|
+| General | `;1` |
+| Capabilities | `;5` (ChatInteraction) or `;8` (AIProfile/Template) |
+| Data Processing & Metrics | `;10` |
+
+Within the Capabilities tab:
+| Item | Position |
+|------|----------|
+| MCP Connections | `:3` |
+| Agents | `:5` |
+| Tools | `:7` |
+
 ### Placement Zones Reference
 
 Common zones in Orchard Core themes:
