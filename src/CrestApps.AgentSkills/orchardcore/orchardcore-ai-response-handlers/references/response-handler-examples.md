@@ -68,6 +68,7 @@ public sealed class Startup : StartupBase
 using CrestApps.OrchardCore.AI;
 using CrestApps.OrchardCore.AI.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 
 namespace MyModule.Genesys.Services;
 
@@ -92,9 +93,11 @@ internal sealed class GenesysResponseHandler : IChatResponseHandler
 
         // Show typing indicator while agent processes.
         var notifications = context.Services.GetRequiredService<IChatNotificationSender>();
+        var localizer = context.Services.GetRequiredService<IStringLocalizer<GenesysResponseHandler>>();
         await notifications.ShowTypingAsync(
             context.SessionId,
-            context.ChatType);
+            context.ChatType,
+            localizer);
 
         // Deferred: hub completes without an assistant response.
         return ChatResponseHandlerResult.Deferred();
@@ -177,6 +180,7 @@ using CrestApps.OrchardCore.AI;
 using CrestApps.OrchardCore.AI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Localization;
 
 namespace MyModule.Genesys.Endpoints;
 
@@ -187,19 +191,22 @@ internal static class AgentEventEndpoint
         builder.MapPost("api/genesys/typing", OnTyping).AllowAnonymous().DisableAntiforgery();
         builder.MapPost("api/genesys/transfer", OnTransfer).AllowAnonymous().DisableAntiforgery();
         builder.MapPost("api/genesys/transfer-update", OnTransferUpdate).AllowAnonymous().DisableAntiforgery();
+        builder.MapPost("api/genesys/transfer-completed", OnTransferCompleted).AllowAnonymous().DisableAntiforgery();
         builder.MapPost("api/genesys/session-end", OnSessionEnd).AllowAnonymous().DisableAntiforgery();
         return builder;
     }
 
     private static async Task<IResult> OnTyping(
         AgentTypingPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoint> localizer)
     {
         if (payload.IsTyping)
         {
             await notifications.ShowTypingAsync(
                 payload.SessionId,
                 ChatContextType.AIChatSession,
+                localizer,
                 payload.AgentName);
         }
         else
@@ -214,12 +221,13 @@ internal static class AgentEventEndpoint
 
     private static async Task<IResult> OnTransfer(
         TransferPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoint> localizer)
     {
         await notifications.ShowTransferAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            message: $"Transferring you to {payload.QueueName}...",
+            localizer,
             estimatedWaitTime: payload.EstimatedWait,
             cancellable: true);
 
@@ -228,26 +236,46 @@ internal static class AgentEventEndpoint
 
     private static async Task<IResult> OnTransferUpdate(
         TransferPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoint> localizer)
     {
         await notifications.UpdateTransferAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            message: "Still waiting for an available agent...",
+            localizer,
             estimatedWaitTime: payload.EstimatedWait,
             cancellable: true);
 
         return TypedResults.Ok();
     }
 
+    private static async Task<IResult> OnTransferCompleted(
+        TransferPayload payload,
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoint> localizer)
+    {
+        await notifications.HideTransferAsync(
+            payload.SessionId,
+            ChatContextType.AIChatSession);
+
+        await notifications.ShowAgentConnectedAsync(
+            payload.SessionId,
+            ChatContextType.AIChatSession,
+            localizer,
+            payload.AgentName);
+
+        return TypedResults.Ok();
+    }
+
     private static async Task<IResult> OnSessionEnd(
         SessionEndPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoint> localizer)
     {
         await notifications.ShowSessionEndedAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            "The agent has ended this session. Thank you!");
+            localizer);
 
         return TypedResults.Ok();
     }
@@ -262,6 +290,7 @@ using CrestApps.OrchardCore.AI;
 using CrestApps.OrchardCore.AI.Models;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 
 namespace MyModule.Genesys.Tools;
 
@@ -315,9 +344,11 @@ public sealed class TransferToAgentFunction : AIFunction
 
             // Show transfer notification with cancel button.
             var notifications = arguments.Services.GetRequiredService<IChatNotificationSender>();
+            var localizer = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
             await notifications.ShowTransferAsync(
                 chatSession.SessionId,
                 ChatContextType.AIChatSession,
+                localizer,
                 cancellable: true);
         }
         else if (invocationScope?.ToolExecutionContext?.Resource is ChatInteraction interaction)
@@ -325,9 +356,11 @@ public sealed class TransferToAgentFunction : AIFunction
             interaction.ResponseHandlerName = "Genesys";
 
             var notifications = arguments.Services.GetRequiredService<IChatNotificationSender>();
+            var localizer = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
             await notifications.ShowTransferAsync(
                 interaction.ItemId,
                 ChatContextType.ChatInteraction,
+                localizer,
                 cancellable: true);
         }
         else

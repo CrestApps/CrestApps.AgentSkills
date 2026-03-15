@@ -224,11 +224,12 @@ public sealed class Startup : StartupBase
 
 ### Sending UI Notifications from Webhooks
 
-Use `IChatNotificationSender` to send typing indicators, transfer status, and session endings from webhooks:
+Use `IChatNotificationSender` to send typing indicators, transfer status, and session endings from webhooks. All extension methods that produce user-facing text accept an `IStringLocalizer` parameter to ensure messages are localized:
 
 ```csharp
 using CrestApps.OrchardCore.AI;
 using CrestApps.OrchardCore.AI.Models;
+using Microsoft.Extensions.Localization;
 
 internal static class AgentEventEndpoints
 {
@@ -242,13 +243,15 @@ internal static class AgentEventEndpoints
 
     private static async Task<IResult> OnAgentTyping(
         AgentTypingPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoints> localizer)
     {
         if (payload.IsTyping)
         {
             await notifications.ShowTypingAsync(
                 payload.SessionId,
                 ChatContextType.AIChatSession,
+                localizer,
                 payload.AgentName);
         }
         else
@@ -263,12 +266,14 @@ internal static class AgentEventEndpoints
 
     private static async Task<IResult> OnTransferStarted(
         TransferPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoints> localizer)
     {
         await notifications.ShowTransferAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            estimatedWaitTime: "About 2 minutes",
+            localizer,
+            estimatedWaitTime: localizer["About 2 minutes"].Value,
             cancellable: true);
 
         return TypedResults.Ok();
@@ -276,15 +281,17 @@ internal static class AgentEventEndpoints
 
     private static async Task<IResult> OnTransferCompleted(
         TransferPayload payload,
-        IChatNotificationSender notifications)
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoints> localizer)
     {
         await notifications.HideTransferAsync(
             payload.SessionId,
             ChatContextType.AIChatSession);
 
-        await notifications.ShowTypingAsync(
+        await notifications.ShowAgentConnectedAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
+            localizer,
             payload.AgentName);
 
         return TypedResults.Ok();
@@ -361,15 +368,19 @@ await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new Chat
 
 ### Notification Extension Methods
 
+All extension methods that produce user-facing text accept an `IStringLocalizer` parameter to ensure messages are localized.
+
 | Method | Description |
 |--------|-------------|
-| `ShowTypingAsync(sessionId, chatType, agentName?)` | Shows a typing indicator |
+| `ShowTypingAsync(sessionId, chatType, localizer, agentName?)` | Shows a typing indicator |
 | `HideTypingAsync(sessionId, chatType)` | Removes the typing indicator |
-| `ShowTransferAsync(sessionId, chatType, message?, estimatedWaitTime?, cancellable?)` | Shows transfer status |
-| `UpdateTransferAsync(sessionId, chatType, message?, estimatedWaitTime?, cancellable?)` | Updates transfer status |
+| `ShowTransferAsync(sessionId, chatType, localizer, message?, estimatedWaitTime?, cancellable?)` | Shows transfer status |
+| `UpdateTransferAsync(sessionId, chatType, localizer, message?, estimatedWaitTime?, cancellable?)` | Updates transfer status |
 | `HideTransferAsync(sessionId, chatType)` | Removes transfer indicator |
-| `ShowConversationEndedAsync(sessionId, chatType, message?)` | Shows conversation ended bubble |
-| `ShowSessionEndedAsync(sessionId, chatType, message?)` | Shows session ended bubble |
+| `ShowAgentConnectedAsync(sessionId, chatType, localizer, agentName?, message?)` | Shows agent connected bubble |
+| `HideAgentConnectedAsync(sessionId, chatType)` | Removes agent connected notification |
+| `ShowConversationEndedAsync(sessionId, chatType, localizer, message?)` | Shows conversation ended bubble |
+| `ShowSessionEndedAsync(sessionId, chatType, localizer, message?)` | Shows session ended bubble |
 
 ### Built-In Notification Action Handlers
 
