@@ -1,40 +1,53 @@
 ---
 name: orchardcore-ai-response-handlers
-description: Skill for implementing custom Chat Response Handlers in Orchard Core. Covers IChatResponseHandler, deferred and streaming handlers, webhook endpoints, live agent handoff, mid-conversation transfer via AI functions, UI notifications, and handler registration.
+description: Skill for implementing custom Chat Response Handlers in Orchard Core. Covers IChatResponseHandler, deferred and streaming handlers, webhook endpoints, live agent handoff, mid-conversation transfer via AI functions, UI notifications, protocol-agnostic relay infrastructure, and handler registration.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "1.0"
+  version: "2.0"
 ---
 
 # Orchard Core Chat Response Handlers - Prompt Templates
 
 ## Implement Custom Chat Response Handlers
 
-You are an Orchard Core expert. Generate code for implementing custom chat response handlers that route chat prompts to external systems (live agent platforms, custom backends) instead of AI.
+You are an Orchard Core expert. Generate code for implementing custom chat response handlers that route chat prompts to external systems (live agent platforms, custom backends) instead of AI. Support both webhook-based and protocol-agnostic relay approaches.
 
 ### Guidelines
 
-- The `IChatResponseHandler` interface processes chat prompts and returns either a **streaming** result (immediate response) or a **deferred** result (response arrives later via webhook).
+- The `IChatResponseHandler` interface processes chat prompts and returns either a **streaming** result (immediate response) or a **deferred** result (response arrives later via webhook or relay).
 - Handlers are registered in `Startup.cs` using `services.TryAddEnumerable(ServiceDescriptor.Scoped<IChatResponseHandler, YourHandler>())`.
 - When a session's `ResponseHandlerName` is `null` or empty, the built-in AI handler processes prompts.
 - Custom response handlers are NOT supported in Conversation mode (`ChatMode.Conversation`). The resolver always returns the AI handler in Conversation mode.
-- Deferred handlers return `ChatResponseHandlerResult.Deferred()` — the hub saves the user prompt and completes without an assistant message. The external system responds later via webhook.
-- For deferred responses, create a webhook endpoint that writes the response to chat history and sends it to the client via SignalR.
+- Deferred handlers return `ChatResponseHandlerResult.Deferred()` — the hub saves the user prompt and completes without an assistant message. The external system responds later via webhook or relay.
+- For deferred responses, create a webhook endpoint that writes the response to chat history and sends it to the client via SignalR. Or use the protocol-agnostic relay infrastructure for persistent connections.
 - Reference `CrestApps.OrchardCore.AI.Chat.Core` (not the module projects) when resolving `IHubContext<AIChatHub>` or `IHubContext<ChatInteractionHub>`.
 - Use `AIChatHub.GetSessionGroupName(sessionId)` and `ChatInteractionHub.GetInteractionGroupName(itemId)` for SignalR group names.
 - For AI-function-based transfers, use `AIInvocationScope.Current` to access the active session or interaction.
 - The hub automatically saves the session after AI response completes — do NOT call `SaveAsync` manually in transfer functions.
 - Use `IChatNotificationSender` to send UI feedback (typing indicators, transfer status, session endings) — no JavaScript required.
+- Create `ChatNotification` objects directly using constructor: `new ChatNotification("type")`. The `Type` setter is private — type must be passed via constructor.
+- Use `ChatNotificationTypes` for well-known notification types (Typing, Transfer, AgentConnected, etc.).
+- Use `ChatNotificationActionNames` for well-known action names (CancelTransfer, EndSession).
+- **Do NOT use extension methods** — `ChatNotificationSenderExtensions` has been removed. Build notifications directly with `new ChatNotification("type") { ... }` and call `sender.SendAsync`, `sender.UpdateAsync`, or `sender.RemoveAsync`.
 - Register notification action handlers as keyed services: `services.AddKeyedScoped<IChatNotificationActionHandler, YourHandler>("your-action-name")`.
 - Seal all service classes. Use `internal sealed` for implementations in modules.
+- Always name `IStringLocalizer` variables `T` (not `localizer`). This is required for Orchard Core's language extraction tooling.
+- Never concatenate localized strings. Use a single combined phrase for translation.
+
+### Two Approaches: Webhook vs. Protocol-Agnostic Relay
+
+| Approach | When to Use | Key Interfaces |
+|----------|------------|----------------|
+| **Webhook** | External system pushes events via HTTP callbacks | `IChatNotificationSender`, `IHubContext<T>` |
+| **Protocol-Agnostic Relay** | Persistent connections (WebSocket, SSE, gRPC, message queues) | `IExternalChatRelay`, `IExternalChatRelayManager`, `IExternalChatRelayEventHandler` |
 
 ### Handler Types
 
 | Type | When to Use | Result |
 |------|------------|--------|
 | Streaming | External system returns response immediately | `ChatResponseHandlerResult.Stream(asyncEnumerable)` |
-| Deferred | External system responds later via webhook | `ChatResponseHandlerResult.Deferred()` |
+| Deferred | External system responds later via webhook or relay | `ChatResponseHandlerResult.Deferred()` |
 
 ### Creating a Deferred Response Handler
 
@@ -224,7 +237,7 @@ public sealed class Startup : StartupBase
 
 ### Sending UI Notifications from Webhooks
 
-Use `IChatNotificationSender` to send typing indicators, transfer status, and session endings from webhooks. All extension methods that produce user-facing text accept an `IStringLocalizer` parameter to ensure messages are localized:
+Use `IChatNotificationSender` to send typing indicators, transfer status, and session endings from webhooks. Create `ChatNotification` objects directly and use well-known constants from `ChatNotificationTypes` and `ChatNotificationActionNames`:
 
 ```csharp
 using CrestApps.OrchardCore.AI;
@@ -238,27 +251,34 @@ internal static class AgentEventEndpoints
         builder.MapPost("api/agent/typing", OnAgentTyping).AllowAnonymous().DisableAntiforgery();
         builder.MapPost("api/agent/transfer-started", OnTransferStarted).AllowAnonymous().DisableAntiforgery();
         builder.MapPost("api/agent/transfer-completed", OnTransferCompleted).AllowAnonymous().DisableAntiforgery();
+        builder.MapPost("api/agent/session-ended", OnSessionEnded).AllowAnonymous().DisableAntiforgery();
         return builder;
     }
 
     private static async Task<IResult> OnAgentTyping(
         AgentTypingPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoints> localizer)
+        IStringLocalizer<AgentEventEndpoints> T)
     {
         if (payload.IsTyping)
         {
-            await notifications.ShowTypingAsync(
+            await notifications.SendAsync(
                 payload.SessionId,
                 ChatContextType.AIChatSession,
-                localizer,
-                payload.AgentName);
+                new ChatNotification(ChatNotificationTypes.Typing)
+                {
+                    Content = string.IsNullOrEmpty(payload.AgentName)
+                        ? T["Agent is typing"].Value
+                        : T["{0} is typing", payload.AgentName].Value,
+                    Icon = "fa-solid fa-ellipsis",
+                });
         }
         else
         {
-            await notifications.HideTypingAsync(
+            await notifications.RemoveAsync(
                 payload.SessionId,
-                ChatContextType.AIChatSession);
+                ChatContextType.AIChatSession,
+                ChatNotificationTypes.Typing);
         }
 
         return TypedResults.Ok();
@@ -267,14 +287,28 @@ internal static class AgentEventEndpoints
     private static async Task<IResult> OnTransferStarted(
         TransferPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoints> localizer)
+        IStringLocalizer<AgentEventEndpoints> T)
     {
-        await notifications.ShowTransferAsync(
+        await notifications.SendAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer,
-            estimatedWaitTime: localizer["About 2 minutes"].Value,
-            cancellable: true);
+            new ChatNotification(ChatNotificationTypes.Transfer)
+            {
+                Content = !string.IsNullOrEmpty(payload.EstimatedWait)
+                    ? T["Transferring you to a live agent... Estimated wait: {0}.", payload.EstimatedWait].Value
+                    : T["Transferring you to a live agent..."].Value,
+                Icon = "fa-solid fa-headset",
+                Actions =
+                [
+                    new ChatNotificationAction
+                    {
+                        Name = ChatNotificationActionNames.CancelTransfer,
+                        Label = T["Cancel Transfer"].Value,
+                        CssClass = "btn-outline-danger",
+                        Icon = "fa-solid fa-xmark",
+                    },
+                ],
+            });
 
         return TypedResults.Ok();
     }
@@ -282,26 +316,237 @@ internal static class AgentEventEndpoints
     private static async Task<IResult> OnTransferCompleted(
         TransferPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoints> localizer)
+        IStringLocalizer<AgentEventEndpoints> T)
     {
-        await notifications.HideTransferAsync(
-            payload.SessionId,
-            ChatContextType.AIChatSession);
-
-        await notifications.ShowAgentConnectedAsync(
+        await notifications.RemoveAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer,
-            payload.AgentName);
+            ChatNotificationTypes.Transfer);
+
+        await notifications.SendAsync(
+            payload.SessionId,
+            ChatContextType.AIChatSession,
+            new ChatNotification(ChatNotificationTypes.AgentConnected)
+            {
+                Content = string.IsNullOrEmpty(payload.AgentName)
+                    ? T["You are now connected to a live agent."].Value
+                    : T["You are now connected to {0}.", payload.AgentName].Value,
+                Icon = "fa-solid fa-user-check",
+                Dismissible = true,
+            });
+
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> OnSessionEnded(
+        SessionEndPayload payload,
+        IChatNotificationSender notifications,
+        IStringLocalizer<AgentEventEndpoints> T)
+    {
+        await notifications.SendAsync(
+            payload.SessionId,
+            ChatContextType.AIChatSession,
+            new ChatNotification(ChatNotificationTypes.SessionEnded)
+            {
+                Content = T["This chat session has ended."].Value,
+                Icon = "fa-solid fa-circle-check",
+                Dismissible = true,
+            });
 
         return TypedResults.Ok();
     }
 }
 ```
 
+### Protocol-Agnostic Relay Infrastructure
+
+For persistent connections (WebSocket, SSE, gRPC, message queues), implement `IExternalChatRelay` instead of webhooks. The relay infrastructure provides:
+
+- **`IExternalChatRelay`** — protocol-agnostic interface for bidirectional communication. Supports any transport.
+- **`IExternalChatRelayManager`** — singleton that manages relay lifecycle (connect, disconnect, retrieve by session).
+- **`IExternalChatRelayEventHandler`** — routes relay events through keyed `IExternalChatRelayNotificationBuilder` services.
+- **`ExternalChatRelayEventTypes`** — string constants for built-in event types (agent-typing, agent-connected, etc.).
+
+#### Implementing a WebSocket Relay
+
+```csharp
+using CrestApps.OrchardCore.AI;
+using CrestApps.OrchardCore.AI.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+internal sealed class GenesysWebSocketRelay : IExternalChatRelay
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private ClientWebSocket? _webSocket;
+
+    public GenesysWebSocketRelay(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    public string SessionId { get; set; } = string.Empty;
+    public ChatContextType ChatType { get; set; }
+
+    public Task<bool> IsConnectedAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(_webSocket?.State == WebSocketState.Open);
+
+    public async Task ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        _webSocket = new ClientWebSocket();
+        await _webSocket.ConnectAsync(new Uri("wss://genesys.example.com/ws"), cancellationToken);
+
+        // Start background listener that dispatches events.
+        _ = Task.Run(() => ListenForEventsAsync(cancellationToken), cancellationToken);
+    }
+
+    public async Task SendPromptAsync(string prompt, CancellationToken cancellationToken = default)
+    {
+        var bytes = Encoding.UTF8.GetBytes(prompt);
+        await _webSocket!.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+    }
+
+    public Task SendSignalAsync(string signal, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+    {
+        if (_webSocket?.State == WebSocketState.Open)
+        {
+            await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, cancellationToken);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _webSocket?.Dispose();
+    }
+
+    private async Task ListenForEventsAsync(CancellationToken cancellationToken)
+    {
+        var buffer = new byte[4096];
+        while (_webSocket?.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+        {
+            var result = await _webSocket.ReceiveAsync(buffer, cancellationToken);
+            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            var relayEvent = ParseEvent(json);
+
+            // Create a new scope per event for DI.
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var eventHandler = scope.ServiceProvider.GetRequiredService<IExternalChatRelayEventHandler>();
+            var context = new ExternalChatRelayContext
+            {
+                SessionId = SessionId,
+                ChatType = ChatType,
+            };
+            await eventHandler.HandleAsync(context, relayEvent, cancellationToken);
+        }
+    }
+
+    private static ExternalChatRelayEvent ParseEvent(string json)
+    {
+        // Parse JSON from your external platform into ExternalChatRelayEvent.
+        // Map platform event types to ExternalChatRelayEventTypes constants.
+        return new ExternalChatRelayEvent
+        {
+            EventType = ExternalChatRelayEventTypes.AgentTyping,
+        };
+    }
+}
+```
+
+#### Registering a Relay in Startup
+
+```csharp
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        // Register your relay implementation.
+        services.AddScoped<GenesysWebSocketRelay>();
+
+        // Register the response handler.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<IChatResponseHandler, GenesysResponseHandler>());
+    }
+}
+```
+
+#### Using the Relay in a Response Handler
+
+```csharp
+internal sealed class GenesysResponseHandler : IChatResponseHandler
+{
+    public string Name => "Genesys";
+
+    public async Task<ChatResponseHandlerResult> HandleAsync(
+        ChatResponseHandlerContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var relay = context.Services.GetRequiredService<GenesysWebSocketRelay>();
+        relay.SessionId = context.SessionId;
+        relay.ChatType = context.ChatType;
+
+        var relayManager = context.Services.GetRequiredService<IExternalChatRelayManager>();
+        await relayManager.ConnectAsync(relay, cancellationToken);
+
+        // Forward the prompt to the external platform.
+        await relay.SendPromptAsync(context.Prompt, cancellationToken);
+
+        return ChatResponseHandlerResult.Deferred();
+    }
+}
+```
+
+#### Adding Custom Relay Event Types
+
+Register a keyed `IExternalChatRelayNotificationBuilder` for custom event types:
+
+```csharp
+// In Startup.cs:
+services.AddKeyedScoped<IExternalChatRelayNotificationBuilder, SupervisorJoinedBuilder>("supervisor-joined");
+```
+
+Implement the builder:
+
+```csharp
+internal sealed class SupervisorJoinedBuilder : IExternalChatRelayNotificationBuilder
+{
+    // Declares the notification type — used to create ChatNotification("info").
+    public string? NotificationType => "info";
+
+    public void Build(
+        ExternalChatRelayEvent relayEvent,
+        ChatNotification notification,
+        ExternalChatRelayNotificationResult result,
+        IStringLocalizer T)
+    {
+        var name = relayEvent.Data?.TryGetValue("supervisor_name", out var n) == true ? n : null;
+        notification.Content = string.IsNullOrEmpty(name)
+            ? T["A supervisor has joined the conversation."].Value
+            : T["{0} (supervisor) has joined.", name].Value;
+        notification.Icon = "fa-solid fa-user-shield";
+        notification.Dismissible = true;
+    }
+}
+```
+
+Built-in event types with registered builders:
+
+| Event Type | Builder Behavior |
+|------------|-----------------|
+| `ExternalChatRelayEventTypes.AgentTyping` | Sends typing indicator notification |
+| `ExternalChatRelayEventTypes.AgentStoppedTyping` | Removes typing indicator (no notification) |
+| `ExternalChatRelayEventTypes.AgentConnected` | Sends agent-connected info + removes transfer |
+| `ExternalChatRelayEventTypes.AgentDisconnected` | Removes agent-connected notification (no notification) |
+| `ExternalChatRelayEventTypes.AgentReconnecting` | Sends reconnecting warning notification |
+| `ExternalChatRelayEventTypes.ConnectionLost` | Sends connection-lost error notification |
+| `ExternalChatRelayEventTypes.ConnectionRestored` | Removes connection-lost notification (no notification) |
+| `ExternalChatRelayEventTypes.WaitTimeUpdated` | Updates transfer notification (`IsUpdate = true`) |
+| `ExternalChatRelayEventTypes.SessionEnded` | Sends session-ended notification |
+
 ### Custom Notification Action Handler
 
-Handle user-initiated actions on notification bubbles (e.g., feedback buttons):
+Handle user-initiated actions on notification system messages (e.g., feedback buttons):
 
 ```csharp
 using CrestApps.OrchardCore.AI;
@@ -317,7 +562,7 @@ public sealed class FeedbackActionHandler : IChatNotificationActionHandler
         await feedbackService.RecordAsync(context.SessionId, positive: true);
 
         var notifications = context.Services.GetRequiredService<IChatNotificationSender>();
-        await notifications.RemoveAsync(context.SessionId, context.ChatType, context.NotificationId);
+        await notifications.RemoveAsync(context.SessionId, context.ChatType, context.NotificationType);
     }
 }
 ```
@@ -325,10 +570,8 @@ public sealed class FeedbackActionHandler : IChatNotificationActionHandler
 ### Custom Notification with Action Buttons
 
 ```csharp
-await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new ChatNotification
+await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new ChatNotification("feedback-request")
 {
-    Id = "feedback-request",
-    Type = "info",
     Content = "Was this helpful?",
     Icon = "fa-solid fa-star",
     Dismissible = true,
@@ -366,21 +609,26 @@ await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new Chat
 | `ChatSession` | `AIChatSession` | The chat session (for AI Chat Sessions) |
 | `Interaction` | `ChatInteraction` | The interaction (for Chat Interactions) |
 
-### Notification Extension Methods
+### Well-Known Constants
 
-All extension methods that produce user-facing text accept an `IStringLocalizer` parameter to ensure messages are localized.
+**Notification Types** (`ChatNotificationTypes`):
 
-| Method | Description |
-|--------|-------------|
-| `ShowTypingAsync(sessionId, chatType, localizer, agentName?)` | Shows a typing indicator |
-| `HideTypingAsync(sessionId, chatType)` | Removes the typing indicator |
-| `ShowTransferAsync(sessionId, chatType, localizer, message?, estimatedWaitTime?, cancellable?)` | Shows transfer status |
-| `UpdateTransferAsync(sessionId, chatType, localizer, message?, estimatedWaitTime?, cancellable?)` | Updates transfer status |
-| `HideTransferAsync(sessionId, chatType)` | Removes transfer indicator |
-| `ShowAgentConnectedAsync(sessionId, chatType, localizer, agentName?, message?)` | Shows agent connected bubble |
-| `HideAgentConnectedAsync(sessionId, chatType)` | Removes agent connected notification |
-| `ShowConversationEndedAsync(sessionId, chatType, localizer, message?)` | Shows conversation ended bubble |
-| `ShowSessionEndedAsync(sessionId, chatType, localizer, message?)` | Shows session ended bubble |
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `Typing` | `"typing"` | Typing indicator |
+| `Transfer` | `"transfer"` | Transfer status notification |
+| `AgentConnected` | `"agent-connected"` | Agent connected notification |
+| `AgentReconnecting` | `"agent-reconnecting"` | Agent reconnecting warning |
+| `ConnectionLost` | `"connection-lost"` | Connection lost error |
+| `ConversationEnded` | `"conversation-ended"` | Conversation ended notification |
+| `SessionEnded` | `"session-ended"` | Session ended notification |
+
+**Action Names** (`ChatNotificationActionNames`):
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CancelTransfer` | `"cancel-transfer"` | Cancel transfer action |
+| `EndSession` | `"end-session"` | End session action |
 
 ### Built-In Notification Action Handlers
 
