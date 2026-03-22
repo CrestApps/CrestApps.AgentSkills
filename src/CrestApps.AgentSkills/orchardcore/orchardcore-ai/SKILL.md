@@ -62,15 +62,15 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
       "Providers": {
         "OpenAI": {
           "DefaultConnectionName": "default",
-          "DefaultDeploymentName": "gpt-4o",
-          "DefaultIntentDeploymentName": "gpt-4o-mini",
-          "DefaultEmbeddingDeploymentName": "",
-          "DefaultImagesDeploymentName": "",
-          "DefaultSpeechToTextDeploymentName": "",
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultIntentDeploymentName": "gpt-4o-mini"
+              "ApiKey": "<!-- Your API Key -->",
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
+                { "Name": "text-embedding-3-large", "Type": "Embedding", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }
@@ -80,15 +80,41 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 }
 ```
 
-### Deployment Name Settings
+### Non-Connection Deployments via appsettings.json
+
+Contained-connection providers (e.g., Azure Speech) can be defined in appsettings.json using the `CrestApps_AI:Deployments` section. These deployments embed their own connection parameters and do not reference a shared provider connection.
+
+```json
+{
+  "OrchardCore": {
+    "CrestApps_AI": {
+      "Deployments": [
+        {
+          "ProviderName": "AzureSpeech",
+          "Name": "my-speech-to-text",
+          "Type": "SpeechToText",
+          "IsDefault": true,
+          "Endpoint": "https://eastus.api.cognitive.microsoft.com/",
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "your-speech-service-api-key"
+        }
+      ]
+    }
+  }
+}
+```
+
+Deployments defined in configuration are read-only, ephemeral (exist only while in config), and appear alongside database-managed deployments in dropdown menus and API queries.
+
+### Typed AI Deployment Settings
+
+Each deployment in the `Deployments` array has these properties:
 
 | Setting | Description | Required |
 |---------|-------------|----------|
-| `DefaultDeploymentName` | The default model for chat completions | Yes |
-| `DefaultEmbeddingDeploymentName` | The model for generating embeddings (for RAG/vector search) | No |
-| `DefaultIntentDeploymentName` | A lightweight model for intent classification (e.g., `gpt-4o-mini`) | No |
-| `DefaultImagesDeploymentName` | The model for image generation (e.g., `dall-e-3`) | No |
-| `DefaultSpeechToTextDeploymentName` | The model for speech-to-text (e.g., `whisper-1`) | No |
+| `Name` | The model/deployment name (e.g., `gpt-4o`, `text-embedding-3-large`) | Yes |
+| `Type` | The deployment type: `Chat`, `Utility`, `Embedding`, `Image`, `SpeechToText` | Yes |
+| `IsDefault` | Whether this is the default deployment for its type within the connection | No |
 
 ### Adding AI Provider Connection via Recipe
 
@@ -102,8 +128,11 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+            { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -146,7 +175,8 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
           "ConnectionName": "",
-          "DeploymentId": "",
+          "ChatDeploymentId": "",
+          "UtilityDeploymentId": "",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "{{SystemMessage}}",
@@ -183,7 +213,8 @@ Agent profiles are exposed as AI tools that other profiles/interactions can invo
           "Type": "Agent",
           "TitleType": "InitialPrompt",
           "ConnectionName": "",
-          "DeploymentId": "",
+          "ChatDeploymentId": "",
+          "UtilityDeploymentId": "",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",

@@ -67,8 +67,11 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+            { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -100,7 +103,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
           "ConnectionName": "",
-          "DeploymentId": "",
+          "ChatDeploymentId": "",
+          "UtilityDeploymentId": "",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful customer support assistant. Answer questions about our products and services. Be friendly and concise.",
@@ -216,7 +220,8 @@ Agent profiles are reusable agents that can be invoked as tools by other profile
           "Type": "Agent",
           "TitleType": "InitialPrompt",
           "ConnectionName": "",
-          "DeploymentId": "",
+          "ChatDeploymentId": "",
+          "UtilityDeploymentId": "",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",

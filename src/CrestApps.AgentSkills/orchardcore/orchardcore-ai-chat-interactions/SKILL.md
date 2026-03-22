@@ -64,9 +64,9 @@ The AI Chat Interactions module ships with default intents for image and chart g
 
 ### Configuring Image Generation
 
-To enable image generation, set the `DefaultImagesDeploymentName` in your provider connection.
+To enable image generation, add a deployment with `Type: Image` in the `Deployments` array on your provider connection, or create an Image deployment through the admin UI.
 
-**Via Admin UI:** Navigate to **Artificial Intelligence → Provider Connections**, edit your connection, and set the **Images deployment name** (e.g., `dall-e-3`).
+**Via Admin UI:** Navigate to **Artificial Intelligence → Provider Connections**, edit your connection, and add an Image deployment (e.g., `dall-e-3`).
 
 **Via appsettings.json:**
 
@@ -78,8 +78,10 @@ To enable image generation, set the `DefaultImagesDeploymentName` in your provid
         "OpenAI": {
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultImagesDeploymentName": "dall-e-3"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }
@@ -101,9 +103,11 @@ Use a lightweight model for intent classification to optimize costs:
         "OpenAI": {
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultIntentDeploymentName": "gpt-4o-mini",
-              "DefaultImagesDeploymentName": "dall-e-3"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }
@@ -113,7 +117,7 @@ Use a lightweight model for intent classification to optimize costs:
 }
 ```
 
-If `DefaultIntentDeploymentName` is not configured, the system falls back to the `DefaultDeploymentName` (chat model) or keyword-based intent detection.
+If no Utility deployment is configured, the system falls back to the Chat deployment or keyword-based intent detection.
 
 ### Enabling Document Upload and RAG
 
@@ -166,7 +170,7 @@ Or for Elasticsearch:
 
 ### Configuring Embedding Model for Documents
 
-Documents require an embedding model for RAG. Configure `DefaultEmbeddingDeploymentName` in your provider connection:
+Documents require an embedding model for RAG. Add a deployment with `Type: Embedding` in the `Deployments` array on your provider connection, or create an Embedding deployment through the admin UI:
 
 ```json
 {
@@ -176,10 +180,12 @@ Documents require an embedding model for RAG. Configure `DefaultEmbeddingDeploym
         "OpenAI": {
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultEmbeddingDeploymentName": "text-embedding-3-small",
-              "DefaultIntentDeploymentName": "gpt-4o-mini",
-              "DefaultImagesDeploymentName": "dall-e-3"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "text-embedding-3-small", "Type": "Embedding", "IsDefault": true },
+                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }

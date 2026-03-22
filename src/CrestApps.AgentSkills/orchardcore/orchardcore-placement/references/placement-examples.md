@@ -1,100 +1,117 @@
-# Orchard Core Placement Examples
+# Orchard Core placement examples
 
-## Example 1: Blog Post Part Placement
+## Example 1: Card-based editor layout
 
-Complete placement.json for a blog module:
+Use cards when the editor should stay in a single `Content` zone but related fields need to be visually grouped:
 
 ```json
 {
-  "TitlePart": [
+  "AIProfileGeneralFields_Edit": [
     {
-      "displayType": "Detail",
-      "place": "Header:5"
-    },
-    {
-      "displayType": "Summary",
-      "place": "Header:5"
+      "place": "Content:1%General;1"
     }
   ],
-  "HtmlBodyPart": [
+  "AIProfileDeployment_Edit": [
     {
-      "displayType": "Detail",
-      "place": "Content:5"
-    },
-    {
-      "displayType": "Summary",
-      "place": "-"
+      "place": "Content:2%Deployments;1"
     }
   ],
-  "SubtitlePart": [
+  "AIProfileInteractionFields_Edit": [
     {
-      "contentType": ["BlogPost"],
-      "displayType": "Detail",
-      "place": "Header:10"
-    },
-    {
-      "contentType": ["BlogPost"],
-      "displayType": "Summary",
-      "place": "Header:10"
+      "place": "Content:3%Interactions;2"
     }
   ],
-  "SubtitlePart_Edit": [
+  "AIProfileInstructionFields_Edit": [
     {
-      "place": "Content:2"
-    }
-  ],
-  "CommonPart_Edit": [
-    {
-      "place": "Parts:5"
-    }
-  ],
-  "AutoroutePart_Edit": [
-    {
-      "place": "Parts:2"
+      "place": "Content:4%Instructions;3"
     }
   ]
 }
 ```
 
-## Example 2: Hiding Parts for Specific Content Types
+## Example 2: Tabs plus cards
 
 ```json
 {
-  "HtmlBodyPart": [
+  "MySummary_Edit": [
     {
-      "contentType": ["FAQ"],
-      "place": "-"
-    },
-    {
-      "place": "Content:5"
+      "place": "Content:1#General;1%Overview;1"
     }
   ],
-  "AutoroutePart": [
+  "MyToolSettings_Edit": [
     {
-      "contentType": ["Widget"],
-      "place": "-"
+      "place": "Content:5#Capabilities;8%Tools;3"
+    }
+  ],
+  "MyAgentSettings_Edit": [
+    {
+      "place": "Content:6#Capabilities;8%Agents;2"
     }
   ]
 }
 ```
 
-## Example 3: Using Alternates for Content-Type-Specific Views
+## Example 3: Cards with columns
 
 ```json
 {
-  "TitlePart": [
+  "SeoBasic_Edit": [
     {
-      "contentType": ["BlogPost"],
-      "displayType": "Detail",
-      "place": "Header:5",
-      "alternates": ["TitlePart__BlogPost"]
-    },
+      "place": "Content:1%SEO;1|Left;1"
+    }
+  ],
+  "SeoAdvanced_Edit": [
     {
-      "contentType": ["Product"],
-      "displayType": "Detail",
-      "place": "Header:5",
-      "alternates": ["TitlePart__Product"]
+      "place": "Content:1%SEO;1|Right;2"
     }
   ]
+}
+```
+
+## Example 4: Fluent placement in a display driver
+
+```csharp
+public sealed class MySettingsDisplayDriver : SiteDisplayDriver<MySettings>
+{
+    public override IDisplayResult Edit(ISite site, MySettings settings, BuildEditorContext context)
+    {
+        return Initialize<MySettingsViewModel>("MySettings_Edit", model =>
+        {
+            model.Enabled = settings.Enabled;
+        })
+        .Location(c => c
+            .Zone("Content", "4")
+            .Tab("Capabilities", "8")
+            .Card("Tools", "3")
+            .Column("Right", "2"));
+    }
+}
+```
+
+## Example 5: Dynamic placement provider
+
+```csharp
+public sealed class MyPlacementProvider : IShapePlacementProvider
+{
+    public Task<IPlacementInfoResolver> BuildPlacementInfoResolverAsync(IBuildShapeContext context)
+    {
+        return Task.FromResult<IPlacementInfoResolver>(new Resolver());
+    }
+
+    private sealed class Resolver : IPlacementInfoResolver
+    {
+        public PlacementInfo ResolvePlacement(ShapePlacementContext context)
+        {
+            if (context.ShapeType == "MyShape")
+            {
+                return new PlacementInfo
+                {
+                    Location = "Content:2#General;1%Details;1",
+                };
+            }
+
+            return null;
+        }
+    }
 }
 ```
