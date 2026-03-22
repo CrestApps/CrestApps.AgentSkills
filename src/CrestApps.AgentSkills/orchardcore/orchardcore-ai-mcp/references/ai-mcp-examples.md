@@ -23,8 +23,10 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI Default",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",

@@ -24,8 +24,10 @@
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI Default",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -66,7 +68,7 @@ After running this recipe:
 
 ## Configuration: Full Provider Setup for Chat Interactions
 
-Configure all deployment names for chat, embeddings, intent detection, and images:
+Configure all deployment types for chat, embeddings, intent detection, and images:
 
 ```json
 {
@@ -77,10 +79,12 @@ Configure all deployment names for chat, embeddings, intent detection, and image
           "DefaultConnectionName": "default",
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultEmbeddingDeploymentName": "text-embedding-3-small",
-              "DefaultIntentDeploymentName": "gpt-4o-mini",
-              "DefaultImagesDeploymentName": "dall-e-3"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "text-embedding-3-small", "Type": "Embedding", "IsDefault": true },
+                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }
@@ -159,8 +163,10 @@ public sealed class Startup : StartupBase
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -184,8 +190,10 @@ Then configure image generation in `appsettings.json`:
         "OpenAI": {
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o",
-              "DefaultImagesDeploymentName": "dall-e-3"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
+                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
+              ]
             }
           }
         }

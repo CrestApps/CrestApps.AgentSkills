@@ -22,8 +22,10 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Source": "OpenAI",
           "Name": "default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "OpenAI Default",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -46,7 +48,8 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
           "ConnectionName": "",
-          "DeploymentId": "",
+          "ChatDeploymentId": "",
+          "UtilityDeploymentId": "",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful assistant. Provide clear and concise answers.",
@@ -82,8 +85,10 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Source": "AzureOpenAI",
           "Name": "azure-default",
           "IsDefault": true,
-          "DefaultDeploymentName": "gpt-4o",
           "DisplayText": "Azure OpenAI",
+          "Deployments": [
+            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+          ],
           "Properties": {
             "AzureOpenAIConnectionMetadata": {
               "Endpoint": "https://your-resource.openai.azure.com/",
@@ -211,10 +216,11 @@ public sealed class Startup : StartupBase
       "Providers": {
         "OpenAI": {
           "DefaultConnectionName": "default",
-          "DefaultDeploymentName": "gpt-4o",
           "Connections": {
             "default": {
-              "DefaultDeploymentName": "gpt-4o"
+              "Deployments": [
+                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
+              ]
             }
           }
         }

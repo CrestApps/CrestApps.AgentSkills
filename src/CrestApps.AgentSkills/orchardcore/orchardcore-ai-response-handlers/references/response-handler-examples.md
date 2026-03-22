@@ -6,14 +6,16 @@ This example shows a complete module that:
 1. Registers a deferred response handler for Genesys
 2. Creates an AI transfer function
 3. Handles webhooks for agent messages
-4. Sends UI notifications for typing, transfer status, and session endings
+4. Sends UI notifications using direct `ChatNotification` construction (no extension methods)
+5. Optionally uses the protocol-agnostic relay for persistent connections
 
 ### Module Structure
 
 ```
 MyModule.Genesys/
 ├── Services/
-│   └── GenesysResponseHandler.cs
+│   ├── GenesysResponseHandler.cs
+│   └── GenesysWebSocketRelay.cs        (optional: for relay approach)
 ├── Tools/
 │   └── TransferToAgentFunction.cs
 ├── Endpoints/
@@ -52,6 +54,9 @@ public sealed class Startup : StartupBase
 
         // Register custom notification action handlers as keyed services.
         services.AddKeyedScoped<IChatNotificationActionHandler, FeedbackActionHandler>("feedback-positive");
+
+        // Optional: register a custom relay event builder for custom events.
+        // services.AddKeyedScoped<IExternalChatRelayNotificationBuilder, SupervisorJoinedBuilder>("supervisor-joined");
     }
 
     public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
@@ -68,7 +73,6 @@ public sealed class Startup : StartupBase
 using CrestApps.OrchardCore.AI;
 using CrestApps.OrchardCore.AI.Models;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Localization;
 
 namespace MyModule.Genesys.Services;
 
@@ -90,14 +94,6 @@ internal sealed class GenesysResponseHandler : IChatResponseHandler
             ChatType = context.ChatType.ToString(),
             Text = context.Prompt,
         });
-
-        // Show typing indicator while agent processes.
-        var notifications = context.Services.GetRequiredService<IChatNotificationSender>();
-        var localizer = context.Services.GetRequiredService<IStringLocalizer<GenesysResponseHandler>>();
-        await notifications.ShowTypingAsync(
-            context.SessionId,
-            context.ChatType,
-            localizer);
 
         // Deferred: hub completes without an assistant response.
         return ChatResponseHandlerResult.Deferred();
@@ -143,10 +139,11 @@ internal static class GenesysWebhookEndpoint
             return TypedResults.NotFound();
         }
 
-        // Hide typing indicator since agent responded.
-        await notifications.HideTypingAsync(
+        // Remove the typing indicator since agent responded.
+        await notifications.RemoveAsync(
             session.SessionId,
-            ChatContextType.AIChatSession);
+            ChatContextType.AIChatSession,
+            ChatNotificationTypes.Typing);
 
         // Save the agent's response.
         var prompt = new AIChatSessionPrompt
@@ -199,21 +196,27 @@ internal static class AgentEventEndpoint
     private static async Task<IResult> OnTyping(
         AgentTypingPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoint> localizer)
+        IStringLocalizer<AgentEventEndpoint> T)
     {
         if (payload.IsTyping)
         {
-            await notifications.ShowTypingAsync(
+            await notifications.SendAsync(
                 payload.SessionId,
                 ChatContextType.AIChatSession,
-                localizer,
-                payload.AgentName);
+                new ChatNotification(ChatNotificationTypes.Typing)
+                {
+                    Content = string.IsNullOrEmpty(payload.AgentName)
+                        ? T["Agent is typing"].Value
+                        : T["{0} is typing", payload.AgentName].Value,
+                    Icon = "fa-solid fa-ellipsis",
+                });
         }
         else
         {
-            await notifications.HideTypingAsync(
+            await notifications.RemoveAsync(
                 payload.SessionId,
-                ChatContextType.AIChatSession);
+                ChatContextType.AIChatSession,
+                ChatNotificationTypes.Typing);
         }
 
         return TypedResults.Ok();
@@ -222,14 +225,28 @@ internal static class AgentEventEndpoint
     private static async Task<IResult> OnTransfer(
         TransferPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoint> localizer)
+        IStringLocalizer<AgentEventEndpoint> T)
     {
-        await notifications.ShowTransferAsync(
+        await notifications.SendAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer,
-            estimatedWaitTime: payload.EstimatedWait,
-            cancellable: true);
+            new ChatNotification(ChatNotificationTypes.Transfer)
+            {
+                Content = !string.IsNullOrEmpty(payload.EstimatedWait)
+                    ? T["Transferring you to a live agent... Estimated wait: {0}.", payload.EstimatedWait].Value
+                    : T["Transferring you to a live agent..."].Value,
+                Icon = "fa-solid fa-headset",
+                Actions =
+                [
+                    new ChatNotificationAction
+                    {
+                        Name = ChatNotificationActionNames.CancelTransfer,
+                        Label = T["Cancel Transfer"].Value,
+                        CssClass = "btn-outline-danger",
+                        Icon = "fa-solid fa-xmark",
+                    },
+                ],
+            });
 
         return TypedResults.Ok();
     }
@@ -237,14 +254,26 @@ internal static class AgentEventEndpoint
     private static async Task<IResult> OnTransferUpdate(
         TransferPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoint> localizer)
+        IStringLocalizer<AgentEventEndpoint> T)
     {
-        await notifications.UpdateTransferAsync(
+        await notifications.UpdateAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer,
-            estimatedWaitTime: payload.EstimatedWait,
-            cancellable: true);
+            new ChatNotification(ChatNotificationTypes.Transfer)
+            {
+                Content = T["Still waiting for an available agent... Estimated wait: {0}.", payload.EstimatedWait].Value,
+                Icon = "fa-solid fa-headset",
+                Actions =
+                [
+                    new ChatNotificationAction
+                    {
+                        Name = ChatNotificationActionNames.CancelTransfer,
+                        Label = T["Cancel Transfer"].Value,
+                        CssClass = "btn-outline-danger",
+                        Icon = "fa-solid fa-xmark",
+                    },
+                ],
+            });
 
         return TypedResults.Ok();
     }
@@ -252,17 +281,24 @@ internal static class AgentEventEndpoint
     private static async Task<IResult> OnTransferCompleted(
         TransferPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoint> localizer)
+        IStringLocalizer<AgentEventEndpoint> T)
     {
-        await notifications.HideTransferAsync(
-            payload.SessionId,
-            ChatContextType.AIChatSession);
-
-        await notifications.ShowAgentConnectedAsync(
+        await notifications.RemoveAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer,
-            payload.AgentName);
+            ChatNotificationTypes.Transfer);
+
+        await notifications.SendAsync(
+            payload.SessionId,
+            ChatContextType.AIChatSession,
+            new ChatNotification(ChatNotificationTypes.AgentConnected)
+            {
+                Content = string.IsNullOrEmpty(payload.AgentName)
+                    ? T["You are now connected to a live agent."].Value
+                    : T["You are now connected to {0}.", payload.AgentName].Value,
+                Icon = "fa-solid fa-user-check",
+                Dismissible = true,
+            });
 
         return TypedResults.Ok();
     }
@@ -270,12 +306,17 @@ internal static class AgentEventEndpoint
     private static async Task<IResult> OnSessionEnd(
         SessionEndPayload payload,
         IChatNotificationSender notifications,
-        IStringLocalizer<AgentEventEndpoint> localizer)
+        IStringLocalizer<AgentEventEndpoint> T)
     {
-        await notifications.ShowSessionEndedAsync(
+        await notifications.SendAsync(
             payload.SessionId,
             ChatContextType.AIChatSession,
-            localizer);
+            new ChatNotification(ChatNotificationTypes.SessionEnded)
+            {
+                Content = T["This chat session has ended."].Value,
+                Icon = "fa-solid fa-circle-check",
+                Dismissible = true,
+            });
 
         return TypedResults.Ok();
     }
@@ -344,24 +385,50 @@ public sealed class TransferToAgentFunction : AIFunction
 
             // Show transfer notification with cancel button.
             var notifications = arguments.Services.GetRequiredService<IChatNotificationSender>();
-            var localizer = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
-            await notifications.ShowTransferAsync(
+            var T = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
+            await notifications.SendAsync(
                 chatSession.SessionId,
                 ChatContextType.AIChatSession,
-                localizer,
-                cancellable: true);
+                new ChatNotification(ChatNotificationTypes.Transfer)
+                {
+                    Content = T["Transferring you to a live agent..."].Value,
+                    Icon = "fa-solid fa-headset",
+                    Actions =
+                    [
+                        new ChatNotificationAction
+                        {
+                            Name = ChatNotificationActionNames.CancelTransfer,
+                            Label = T["Cancel Transfer"].Value,
+                            CssClass = "btn-outline-danger",
+                            Icon = "fa-solid fa-xmark",
+                        },
+                    ],
+                });
         }
         else if (invocationScope?.ToolExecutionContext?.Resource is ChatInteraction interaction)
         {
             interaction.ResponseHandlerName = "Genesys";
 
             var notifications = arguments.Services.GetRequiredService<IChatNotificationSender>();
-            var localizer = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
-            await notifications.ShowTransferAsync(
+            var T = arguments.Services.GetRequiredService<IStringLocalizer<TransferToAgentFunction>>();
+            await notifications.SendAsync(
                 interaction.ItemId,
                 ChatContextType.ChatInteraction,
-                localizer,
-                cancellable: true);
+                new ChatNotification(ChatNotificationTypes.Transfer)
+                {
+                    Content = T["Transferring you to a live agent..."].Value,
+                    Icon = "fa-solid fa-headset",
+                    Actions =
+                    [
+                        new ChatNotificationAction
+                        {
+                            Name = ChatNotificationActionNames.CancelTransfer,
+                            Label = T["Cancel Transfer"].Value,
+                            CssClass = "btn-outline-danger",
+                            Icon = "fa-solid fa-xmark",
+                        },
+                    ],
+                });
         }
         else
         {
@@ -399,7 +466,7 @@ internal sealed class FeedbackActionHandler : IChatNotificationActionHandler
         await notifications.RemoveAsync(
             context.SessionId,
             context.ChatType,
-            context.NotificationId);
+            context.NotificationType);
     }
 }
 ```
@@ -411,10 +478,9 @@ Send a feedback request notification after the agent response:
 ```csharp
 // In a webhook or response handler:
 var notifications = services.GetRequiredService<IChatNotificationSender>();
-await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new ChatNotification
+await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new ChatNotification("info")
 {
     Id = "feedback-request",
-    Type = "info",
     Content = "Was this helpful?",
     Icon = "fa-solid fa-star",
     Dismissible = true,
@@ -436,4 +502,118 @@ await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new Chat
         },
     ],
 });
+```
+
+### Protocol-Agnostic Relay Example (WebSocket to Genesys)
+
+For persistent connections, implement `IExternalChatRelay` and use `IExternalChatRelayManager`:
+
+```csharp
+using System.Net.WebSockets;
+using System.Text;
+using CrestApps.OrchardCore.AI;
+using CrestApps.OrchardCore.AI.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace MyModule.Genesys.Services;
+
+internal sealed class GenesysWebSocketRelay : IExternalChatRelay
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private ClientWebSocket? _webSocket;
+
+    public GenesysWebSocketRelay(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    public string SessionId { get; set; } = string.Empty;
+    public ChatContextType ChatType { get; set; }
+
+    public Task<bool> IsConnectedAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(_webSocket?.State == WebSocketState.Open);
+
+    public async Task ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        _webSocket = new ClientWebSocket();
+        await _webSocket.ConnectAsync(new Uri("wss://genesys.example.com/ws"), cancellationToken);
+        _ = Task.Run(() => ListenForEventsAsync(cancellationToken), cancellationToken);
+    }
+
+    public async Task SendPromptAsync(string prompt, CancellationToken cancellationToken = default)
+    {
+        var bytes = Encoding.UTF8.GetBytes(prompt);
+        await _webSocket!.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+    }
+
+    public Task SendSignalAsync(string signal, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+    {
+        if (_webSocket?.State == WebSocketState.Open)
+        {
+            await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, cancellationToken);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _webSocket?.Dispose();
+    }
+
+    private async Task ListenForEventsAsync(CancellationToken cancellationToken)
+    {
+        var buffer = new byte[4096];
+        while (_webSocket?.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+        {
+            var result = await _webSocket.ReceiveAsync(buffer, cancellationToken);
+            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            var relayEvent = ParseEvent(json);
+
+            // Create a new scope per event for proper DI lifetime management.
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var eventHandler = scope.ServiceProvider.GetRequiredService<IExternalChatRelayEventHandler>();
+            var context = new ExternalChatRelayContext
+            {
+                SessionId = SessionId,
+                ChatType = ChatType,
+            };
+            await eventHandler.HandleAsync(context, relayEvent, cancellationToken);
+        }
+    }
+
+    private static ExternalChatRelayEvent ParseEvent(string json)
+    {
+        // Map your platform's event types to ExternalChatRelayEventTypes constants.
+        return new ExternalChatRelayEvent
+        {
+            EventType = ExternalChatRelayEventTypes.AgentTyping,
+        };
+    }
+}
+```
+
+#### Using the Relay in a Response Handler
+
+```csharp
+internal sealed class GenesysRelayResponseHandler : IChatResponseHandler
+{
+    public string Name => "GenesysRelay";
+
+    public async Task<ChatResponseHandlerResult> HandleAsync(
+        ChatResponseHandlerContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var relay = context.Services.GetRequiredService<GenesysWebSocketRelay>();
+        relay.SessionId = context.SessionId;
+        relay.ChatType = context.ChatType;
+
+        var relayManager = context.Services.GetRequiredService<IExternalChatRelayManager>();
+        await relayManager.ConnectAsync(relay, cancellationToken);
+        await relay.SendPromptAsync(context.Prompt, cancellationToken);
+
+        return ChatResponseHandlerResult.Deferred();
+    }
+}
 ```
