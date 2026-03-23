@@ -123,10 +123,10 @@ plugins/
 └─ crestapps-orchardcore/
    ├─ plugin.json                              ← Copilot CLI plugin manifest
    ├─ README.md
-   └─ skills/                                  ← Bundled Orchard Core skills for plugin installs
+   └─ skills/                                  ← Generated Orchard Core bundle for plugin publishing
 
 src/
-├─ CrestApps.AgentSkills/                 ← Central skill content (single source of truth)
+├─ CrestApps.AgentSkills/                        ← Central skill content (single source of truth)
 │  └─ orchardcore/                               ← Orchard Core specific skills
 │     ├─ orchardcore.content-types/
 │     │  ├─ SKILL.md                             ← Skill definition (front-matter + body)

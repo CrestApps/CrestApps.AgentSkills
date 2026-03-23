@@ -98,6 +98,12 @@ dotnet test -c Release --verbosity normal
 4. Run the validation steps above.
 5. Submit a PR that links the issue (e.g., `Fix #123`) and summarizes the new skill.
 
+Do **not** manually edit `plugins/crestapps-orchardcore/skills`. That directory is a generated plugin bundle refreshed by the `Publish plugin bundle` GitHub Actions workflow.
+
+Pull requests are validated against the generated plugin bundle. If `plugins/crestapps-orchardcore/skills` changes without matching the output generated from `src/CrestApps.AgentSkills/orchardcore`, CI will fail.
+
+The plugin bundle itself is published by automation: use the `Publish plugin bundle` workflow manually when needed, or let it run automatically after a successful `Release - CI` workflow.
+
 ---
 
 ## Contribution Scope

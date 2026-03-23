@@ -16,9 +16,9 @@
 	</PropertyGroup>
 
 	<!-- Pack skill files under skills/ in the nupkg (not contentFiles/) to avoid
-       NuGet auto-linking. The buildTransitive .targets handles copying. -->
+        NuGet auto-linking. The buildTransitive .targets handles copying. -->
 	<ItemGroup>
-		<None Include="..\CrestApps.AgentSkills\orchardcore\**\*" Exclude="..\CrestApps.AgentSkills\orchardcore\**\bin\**\*;..\CrestApps.AgentSkills\orchardcore\**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
+		<None Include="$(OrchardCoreSkillsDirectory)**\*" Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
 	</ItemGroup>
 
 	<!-- Place an empty _._  marker inside lib/<tfm> for each target framework

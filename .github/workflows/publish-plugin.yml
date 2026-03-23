@@ -1,0 +1,61 @@
+name: Publish plugin bundle
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Release - CI
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-plugin-skills:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.TARGET_BRANCH }}
+
+      - name: Sync Orchard Core skills into plugin bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          src="src/CrestApps.AgentSkills/orchardcore"
+          dst="plugins/crestapps-orchardcore/skills"
+
+          rm -rf "$dst"
+          mkdir -p "$dst"
+          cp -a "$src"/. "$dst"/
+
+      - name: Check for plugin bundle changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- plugins/crestapps-orchardcore/skills; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit refreshed plugin bundle
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/crestapps-orchardcore/skills
+          git commit -m "Refresh crestapps-orchardcore plugin bundle"
+
+      - name: Push refreshed plugin bundle
+        if: steps.changes.outputs.has_changes == 'true'
+        run: git push origin HEAD:${TARGET_BRANCH}

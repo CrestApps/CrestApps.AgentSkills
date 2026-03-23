@@ -26,19 +26,24 @@ In a new Copilot CLI session you can also verify the skills are loaded:
 From the repository root:
 
 ```bash
-.\plugins\crestapps-orchardcore\sync-skills.ps1
 copilot plugin install ./plugins/crestapps-orchardcore
 ```
 
-Run `.\plugins\crestapps-orchardcore\sync-skills.ps1` after changing `src/CrestApps.AgentSkills/orchardcore`, then reinstall the plugin so Copilot CLI refreshes its plugin cache.
+Reinstall the plugin after the plugin bundle is refreshed so Copilot CLI picks up the latest skills.
 
 ## What it provides
 
 - Bundles Orchard Core skills directly under `plugins/crestapps-orchardcore/skills`
-- Mirrors the Orchard Core skill source of truth from `src/CrestApps.AgentSkills/orchardcore`
+- Publishes a generated bundle from the canonical source at `src/CrestApps.AgentSkills/orchardcore`
 - Avoids copying files into your repository's `.agents/skills` folder
 - Works well for users who want shared skills managed through Copilot CLI instead of solution files
 
 ## Repository maintenance
 
-The plugin must keep its bundled `skills/` directory aligned with `src/CrestApps.AgentSkills/orchardcore`. Copilot CLI rejects plugin skill paths that escape the plugin directory, so the plugin manifest intentionally points at the local `skills` folder. Use `.\plugins\crestapps-orchardcore\sync-skills.ps1` when the source skills change.
+Copilot CLI rejects plugin skill paths that escape the plugin directory, so the plugin manifest intentionally points at the local `skills` folder.
+
+Do not edit files in `plugins/crestapps-orchardcore/skills` manually. The source of truth is `src/CrestApps.AgentSkills/orchardcore`, and the `Publish plugin bundle` GitHub Actions workflow refreshes the plugin bundle from that source directory.
+
+Pull requests also run the `Validate plugin bundle` workflow, which regenerates `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore` and fails if the committed plugin bundle does not match the generated output.
+
+`Publish plugin bundle` can still be run manually, and it also runs automatically after `Release - CI` completes successfully so released versions refresh the committed plugin bundle.
