@@ -1,0 +1,234 @@
+{
+  "GeneratedUtc": "2026-03-23T20:23:39.3788209+00:00",
+  "RootSchema": "recipe.schema.json",
+  "Steps": [
+    {
+      "Name": "AdminMenu",
+      "File": "AdminMenu.schema.json"
+    },
+    {
+      "Name": "AdminTemplates",
+      "File": "AdminTemplates.schema.json"
+    },
+    {
+      "Name": "AIDeployment",
+      "File": "AIDeployment.schema.json"
+    },
+    {
+      "Name": "AIProfile",
+      "File": "AIProfile.schema.json"
+    },
+    {
+      "Name": "AIProfileTemplate",
+      "File": "AIProfileTemplate.schema.json"
+    },
+    {
+      "Name": "AIProviderConnections",
+      "File": "AIProviderConnections.schema.json"
+    },
+    {
+      "Name": "AzureADSettings",
+      "File": "AzureADSettings.schema.json"
+    },
+    {
+      "Name": "azureai-index-create",
+      "File": "azureai-index-create.schema.json"
+    },
+    {
+      "Name": "azureai-index-rebuild",
+      "File": "azureai-index-rebuild.schema.json"
+    },
+    {
+      "Name": "azureai-index-reset",
+      "File": "azureai-index-reset.schema.json"
+    },
+    {
+      "Name": "command",
+      "File": "command.schema.json"
+    },
+    {
+      "Name": "content",
+      "File": "content.schema.json"
+    },
+    {
+      "Name": "ContentDefinition",
+      "File": "ContentDefinition.schema.json"
+    },
+    {
+      "Name": "CreateOrUpdateIndexProfile",
+      "File": "CreateOrUpdateIndexProfile.schema.json"
+    },
+    {
+      "Name": "custom-settings",
+      "File": "custom-settings.schema.json"
+    },
+    {
+      "Name": "custom-user-settings",
+      "File": "custom-user-settings.schema.json"
+    },
+    {
+      "Name": "DeleteAIDeployments",
+      "File": "DeleteAIDeployments.schema.json"
+    },
+    {
+      "Name": "DeleteContentDefinition",
+      "File": "DeleteContentDefinition.schema.json"
+    },
+    {
+      "Name": "deployment",
+      "File": "deployment.schema.json"
+    },
+    {
+      "Name": "DynamicDataTranslations",
+      "File": "DynamicDataTranslations.schema.json"
+    },
+    {
+      "Name": "elastic-index-rebuild",
+      "File": "elastic-index-rebuild.schema.json"
+    },
+    {
+      "Name": "elastic-index-reset",
+      "File": "elastic-index-reset.schema.json"
+    },
+    {
+      "Name": "ElasticIndexSettings",
+      "File": "ElasticIndexSettings.schema.json"
+    },
+    {
+      "Name": "FacebookCoreSettings",
+      "File": "FacebookCoreSettings.schema.json"
+    },
+    {
+      "Name": "FacebookLoginSettings",
+      "File": "FacebookLoginSettings.schema.json"
+    },
+    {
+      "Name": "feature",
+      "File": "feature.schema.json"
+    },
+    {
+      "Name": "FeatureProfiles",
+      "File": "FeatureProfiles.schema.json"
+    },
+    {
+      "Name": "GitHubAuthenticationSettings",
+      "File": "GitHubAuthenticationSettings.schema.json"
+    },
+    {
+      "Name": "Layers",
+      "File": "Layers.schema.json"
+    },
+    {
+      "Name": "lucene-index",
+      "File": "lucene-index.schema.json"
+    },
+    {
+      "Name": "lucene-index-rebuild",
+      "File": "lucene-index-rebuild.schema.json"
+    },
+    {
+      "Name": "lucene-index-reset",
+      "File": "lucene-index-reset.schema.json"
+    },
+    {
+      "Name": "media",
+      "File": "media.schema.json"
+    },
+    {
+      "Name": "MediaProfiles",
+      "File": "MediaProfiles.schema.json"
+    },
+    {
+      "Name": "MicrosoftAccountSettings",
+      "File": "MicrosoftAccountSettings.schema.json"
+    },
+    {
+      "Name": "OpenIdApplication",
+      "File": "OpenIdApplication.schema.json"
+    },
+    {
+      "Name": "OpenIdClientSettings",
+      "File": "OpenIdClientSettings.schema.json"
+    },
+    {
+      "Name": "OpenIdScope",
+      "File": "OpenIdScope.schema.json"
+    },
+    {
+      "Name": "OpenIdServerSettings",
+      "File": "OpenIdServerSettings.schema.json"
+    },
+    {
+      "Name": "OpenIdValidationSettings",
+      "File": "OpenIdValidationSettings.schema.json"
+    },
+    {
+      "Name": "Placements",
+      "File": "Placements.schema.json"
+    },
+    {
+      "Name": "Queries",
+      "File": "Queries.schema.json"
+    },
+    {
+      "Name": "RebuildIndex",
+      "File": "RebuildIndex.schema.json"
+    },
+    {
+      "Name": "recipes",
+      "File": "recipes.schema.json"
+    },
+    {
+      "Name": "ReplaceContentDefinition",
+      "File": "ReplaceContentDefinition.schema.json"
+    },
+    {
+      "Name": "ResetIndex",
+      "File": "ResetIndex.schema.json"
+    },
+    {
+      "Name": "Roles",
+      "File": "Roles.schema.json"
+    },
+    {
+      "Name": "Settings",
+      "File": "Settings.schema.json"
+    },
+    {
+      "Name": "ShortcodeTemplates",
+      "File": "ShortcodeTemplates.schema.json"
+    },
+    {
+      "Name": "Sitemaps",
+      "File": "Sitemaps.schema.json"
+    },
+    {
+      "Name": "Templates",
+      "File": "Templates.schema.json"
+    },
+    {
+      "Name": "themes",
+      "File": "themes.schema.json"
+    },
+    {
+      "Name": "Translations",
+      "File": "Translations.schema.json"
+    },
+    {
+      "Name": "TwitterSettings",
+      "File": "TwitterSettings.schema.json"
+    },
+    {
+      "Name": "UrlRewriting",
+      "File": "UrlRewriting.schema.json"
+    },
+    {
+      "Name": "Users",
+      "File": "Users.schema.json"
+    },
+    {
+      "Name": "WorkflowType",
+      "File": "WorkflowType.schema.json"
+    }
+  ]
+}
