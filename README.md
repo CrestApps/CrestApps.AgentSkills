@@ -122,7 +122,8 @@ Skill content goes here (guidelines, code templates, examples, etc.)
 plugins/
 └─ crestapps-orchardcore/
    ├─ plugin.json                              ← Copilot CLI plugin manifest
-   └─ README.md
+   ├─ README.md
+   └─ skills/                                  ← Bundled Orchard Core skills for plugin installs
 
 src/
 ├─ CrestApps.AgentSkills/                 ← Central skill content (single source of truth)
@@ -251,7 +252,7 @@ In an interactive Copilot CLI session you can also run:
 /skills list
 ```
 
-The plugin loads Orchard Core skills from `src/CrestApps.AgentSkills/orchardcore`, so users do **not** need to clone this repository into their own project or copy files into `.agents/skills` just to use the skills.
+The plugin loads Orchard Core skills from its bundled `plugins/crestapps-orchardcore/skills` directory, so users do **not** need to clone this repository into their own project or copy files into `.agents/skills` just to use the skills.
 
 ### How Copilot CLI discovers this plugin
 
@@ -283,7 +284,7 @@ There is no separate approval-based central marketplace submission process descr
 To publish this plugin and marketplace:
 
 1. Commit and push the plugin files, plugin README, and both marketplace manifests to the default branch of the public `CrestApps/CrestApps.AgentSkills` repository.
-2. Verify the marketplace manifests point to `plugins/crestapps-orchardcore` and the plugin entry points its `skills` path at `src/CrestApps.AgentSkills/orchardcore`.
+2. Verify the marketplace manifests point to `plugins/crestapps-orchardcore` and the plugin entry points its `skills` path at `plugins/crestapps-orchardcore/skills` (or `skills` inside the plugin itself).
 3. From a clean machine or user profile, run `copilot plugin marketplace add CrestApps/CrestApps.AgentSkills`.
 4. Optionally confirm discovery with `copilot plugin marketplace browse crestapps-agentskills`.
 5. Install the plugin with `copilot plugin install crestapps-orchardcore@crestapps-agentskills`.

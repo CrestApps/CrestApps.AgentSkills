@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Queries"
+    },
+    "Queries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Source": {
+            "type": "string"
+          },
+          "Schema": {
+            "type": "string"
+          },
+          "Template": {
+            "type": "string"
+          },
+          "ReturnContentItems": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "Name",
+          "Source"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "name",
+    "Queries"
+  ],
+  "additionalProperties": true
+}

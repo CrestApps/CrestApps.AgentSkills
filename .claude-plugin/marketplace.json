@@ -29,7 +29,7 @@
         "agentskills"
       ],
       "skills": [
-        "src/CrestApps.AgentSkills/orchardcore"
+        "plugins/crestapps-orchardcore/skills"
       ]
     }
   ]

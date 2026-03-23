@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TwitterSettings"
+    },
+    "ConsumerKey": {
+      "type": "string"
+    },
+    "ConsumerSecret": {
+      "type": "string"
+    },
+    "AccessToken": {
+      "type": "string"
+    },
+    "AccessTokenSecret": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}
