@@ -1,5 +1,27 @@
 # Orchard Core Data Migrations Examples
 
+## Folder Convention
+
+Place migrations in a `Migrations` folder and keep migration classes `internal sealed`:
+
+```text
+src/Modules/CrestApps.Sports.Teams/
+  Migrations/
+    TeamMigrations.cs
+```
+
+```csharp
+using OrchardCore.Data.Migration;
+
+namespace CrestApps.Sports.Teams.Migrations;
+
+internal sealed class TeamMigrations : DataMigration
+{
+    public Task<int> CreateAsync()
+        => Task.FromResult(1);
+}
+```
+
 ## Example 1: Complete Module Migration
 
 A migration for an Event content type with custom part, fields, and index:

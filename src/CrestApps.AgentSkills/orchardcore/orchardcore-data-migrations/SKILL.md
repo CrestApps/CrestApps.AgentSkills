@@ -16,12 +16,14 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 ### Guidelines
 
 - Data migrations inherit from `DataMigration`.
+- Place migrations in a `Migrations` folder in the feature project.
+- Name migration classes clearly and keep them `internal sealed`.
 - Migrations define content types, parts, fields, and database indexes.
 - Use `CreateAsync()` for initial migration, `UpdateFrom1Async()`, `UpdateFrom2Async()` for incremental updates.
 - Register migrations in `Startup.cs` using `services.AddScoped<IDataMigration, Migrations>()`.
 - `IContentDefinitionManager` is used to define content types and parts.
 - `SchemaBuilder` is used to create and alter YesSql index tables.
-- Always seal classes.
+- Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.
 
 ### Basic Migration with Content Type
 
@@ -64,6 +66,29 @@ public sealed class Migrations : DataMigration
         );
 
         return 1;
+    }
+}
+```
+
+### Folder and Class Conventions
+
+```text
+src/Modules/{{FeatureName}}/
+  Migrations/
+    {{FeatureName}}Migrations.cs
+```
+
+```csharp
+using OrchardCore.Data.Migration;
+
+namespace CrestApps.Sports.Teams.Migrations;
+
+internal sealed class TeamMigrations : DataMigration
+{
+    public Task<int> CreateAsync()
+    {
+        // migration steps
+        return Task.FromResult(1);
     }
 }
 ```
