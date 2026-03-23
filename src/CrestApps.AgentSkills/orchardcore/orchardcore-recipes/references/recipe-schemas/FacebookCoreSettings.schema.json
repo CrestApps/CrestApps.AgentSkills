@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "FacebookCoreSettings"
+    },
+    "AppId": {
+      "type": "string"
+    },
+    "AppSecret": {
+      "type": "string"
+    },
+    "SdkJs": {
+      "type": "string"
+    },
+    "FBInit": {
+      "type": "boolean"
+    },
+    "FBInitParams": {
+      "type": "string"
+    },
+    "Version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}
