@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reject direct plugin skill edits without source changes
+      - name: Reject plugin bundle edits in pull requests
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -27,32 +27,8 @@ jobs:
           set -euo pipefail
 
           plugin_changes=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'plugins/crestapps-orchardcore/skills/**' | wc -l | tr -d ' ')
-          source_changes=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'src/CrestApps.AgentSkills/orchardcore/**' | wc -l | tr -d ' ')
 
-          if [ "$plugin_changes" -gt 0 ] && [ "$source_changes" -eq 0 ]; then
-            echo "::error::Do not edit plugins/crestapps-orchardcore/skills directly. Update src/CrestApps.AgentSkills/orchardcore and regenerate the plugin bundle instead."
-            exit 1
-          fi
-
-      - name: Regenerate plugin bundle from source
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          src="src/CrestApps.AgentSkills/orchardcore"
-          dst="plugins/crestapps-orchardcore/skills"
-
-          rm -rf "$dst"
-          mkdir -p "$dst"
-          cp -a "$src"/. "$dst"/
-
-      - name: Verify committed plugin bundle matches generated output
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! git diff --quiet -- plugins/crestapps-orchardcore/skills; then
-            echo "::error::The plugin bundle is out of sync. Regenerate plugins/crestapps-orchardcore/skills from src/CrestApps.AgentSkills/orchardcore before merging."
-            git --no-pager diff -- plugins/crestapps-orchardcore/skills
+          if [ "$plugin_changes" -gt 0 ]; then
+            echo "::error::Pull requests must not modify plugins/crestapps-orchardcore/skills. Update src/CrestApps.AgentSkills/orchardcore only; the plugin bundle is published separately."
             exit 1
           fi

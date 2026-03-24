@@ -44,6 +44,6 @@ Copilot CLI rejects plugin skill paths that escape the plugin directory, so the 
 
 Do not edit files in `plugins/crestapps-orchardcore/skills` manually. The source of truth is `src/CrestApps.AgentSkills/orchardcore`, and the `Publish plugin bundle` GitHub Actions workflow refreshes the plugin bundle from that source directory.
 
-Pull requests also run the `Validate plugin bundle` workflow, which regenerates `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore` and fails if the committed plugin bundle does not match the generated output.
+Pull requests also run the `Validate plugin bundle` workflow, which fails if a PR modifies `plugins/crestapps-orchardcore/skills`. Contributors should update only `src/CrestApps.AgentSkills/orchardcore`; the plugin bundle is refreshed separately during publishing.
 
 `Publish plugin bundle` can still be run manually, and it also runs automatically after `Release - CI` completes successfully so released versions refresh the committed plugin bundle.
