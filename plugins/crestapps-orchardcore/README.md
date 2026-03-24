@@ -1,6 +1,6 @@
 # crestapps-orchardcore
 
-`crestapps-orchardcore` is a GitHub Copilot CLI plugin that exposes the Orchard Core skills from `src/CrestApps.AgentSkills/orchardcore` without copying them into your project.
+`crestapps-orchardcore` is a GitHub Copilot CLI plugin that bundles Orchard Core skills for GitHub Copilot CLI without copying them into your project.
 
 ## Install from the CrestApps marketplace
 
@@ -29,10 +29,21 @@ From the repository root:
 copilot plugin install ./plugins/crestapps-orchardcore
 ```
 
-Reinstall the plugin after changing the manifest or the shared Orchard Core skill files so Copilot CLI refreshes its plugin cache.
+Reinstall the plugin after the plugin bundle is refreshed so Copilot CLI picks up the latest skills.
 
 ## What it provides
 
-- Reuses the existing Orchard Core skill source of truth in `src/CrestApps.AgentSkills/orchardcore`
+- Bundles Orchard Core skills directly under `plugins/crestapps-orchardcore/skills`
+- Publishes a generated bundle from the canonical source at `src/CrestApps.AgentSkills/orchardcore`
 - Avoids copying files into your repository's `.agents/skills` folder
 - Works well for users who want shared skills managed through Copilot CLI instead of solution files
+
+## Repository maintenance
+
+Copilot CLI rejects plugin skill paths that escape the plugin directory, so the plugin manifest intentionally points at the local `skills` folder.
+
+Do not edit files in `plugins/crestapps-orchardcore/skills` manually. The source of truth is `src/CrestApps.AgentSkills/orchardcore`, and the `Publish plugin bundle` GitHub Actions workflow refreshes the plugin bundle from that source directory.
+
+Pull requests also run the `Validate plugin bundle` workflow, which fails if a PR modifies `plugins/crestapps-orchardcore/skills`. Contributors should update only `src/CrestApps.AgentSkills/orchardcore`; the plugin bundle is refreshed separately during publishing.
+
+`Publish plugin bundle` can still be run manually, and it also runs automatically after `Release - CI` completes successfully so released versions refresh the committed plugin bundle.
