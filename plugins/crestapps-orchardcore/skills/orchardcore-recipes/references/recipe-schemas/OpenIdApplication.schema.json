@@ -1,0 +1,106 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OpenIdApplication"
+    },
+    "ClientId": {
+      "type": "string"
+    },
+    "DisplayName": {
+      "type": "string"
+    },
+    "RedirectUris": {
+      "type": "string"
+    },
+    "PostLogoutRedirectUris": {
+      "type": "string"
+    },
+    "Type": {
+      "type": "string",
+      "enum": [
+        "confidential",
+        "public"
+      ]
+    },
+    "ConsentType": {
+      "type": "string",
+      "enum": [
+        "explicit",
+        "external",
+        "implicit"
+      ]
+    },
+    "ClientSecret": {
+      "type": "string"
+    },
+    "RoleEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "ScopeEntries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "AllowPasswordFlow": {
+      "type": "boolean"
+    },
+    "AllowClientCredentialsFlow": {
+      "type": "boolean"
+    },
+    "AllowAuthorizationCodeFlow": {
+      "type": "boolean"
+    },
+    "AllowRefreshTokenFlow": {
+      "type": "boolean"
+    },
+    "AllowHybridFlow": {
+      "type": "boolean"
+    },
+    "AllowImplicitFlow": {
+      "type": "boolean"
+    },
+    "AllowLogoutEndpoint": {
+      "type": "boolean"
+    },
+    "AllowIntrospectionEndpoint": {
+      "type": "boolean"
+    },
+    "AllowRevocationEndpoint": {
+      "type": "boolean"
+    },
+    "RequireProofKeyForCodeExchange": {
+      "type": "boolean"
+    },
+    "RequirePushedAuthorizationRequests": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

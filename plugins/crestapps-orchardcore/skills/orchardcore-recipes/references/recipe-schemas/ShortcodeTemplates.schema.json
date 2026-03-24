@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ShortcodeTemplates"
+    },
+    "ShortcodeTemplates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Content": {
+            "type": "string"
+          },
+          "Hint": {
+            "type": "string"
+          },
+          "Usage": {
+            "type": "string"
+          },
+          "DefaultValue": {
+            "type": "string"
+          },
+          "Categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "A dictionary keyed by shortcode name."
+    }
+  },
+  "required": [
+    "name",
+    "ShortcodeTemplates"
+  ],
+  "additionalProperties": true
+}

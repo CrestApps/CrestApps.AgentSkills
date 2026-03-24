@@ -1,0 +1,138 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AIProfileTemplate"
+    },
+    "Templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique technical name for the template."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Human-readable display name."
+          },
+          "Description": {
+            "type": "string",
+            "description": "Template description."
+          },
+          "Category": {
+            "type": "string",
+            "description": "Grouping category."
+          },
+          "IsListable": {
+            "type": "boolean",
+            "description": "Whether the template appears in the selection dropdown."
+          },
+          "ProfileType": {
+            "type": "string",
+            "enum": [
+              "Chat",
+              "Utility",
+              "TemplatePrompt",
+              "Agent"
+            ],
+            "description": "The profile type."
+          },
+          "OrchestratorName": {
+            "type": "string",
+            "description": "Orchestrator name."
+          },
+          "SystemMessage": {
+            "type": "string",
+            "description": "System prompt for the AI."
+          },
+          "WelcomeMessage": {
+            "type": "string",
+            "description": "Initial greeting."
+          },
+          "TitleType": {
+            "type": "string",
+            "enum": [
+              "InitialPrompt",
+              "Generated"
+            ],
+            "description": "Session title type."
+          },
+          "PromptTemplate": {
+            "type": "string",
+            "description": "Liquid prompt template."
+          },
+          "PromptSubject": {
+            "type": "string",
+            "description": "Subject for prompt."
+          },
+          "Temperature": {
+            "type": "number",
+            "description": "Controls randomness (0.0 to 2.0)."
+          },
+          "TopP": {
+            "type": "number",
+            "description": "Nucleus sampling threshold."
+          },
+          "FrequencyPenalty": {
+            "type": "number",
+            "description": "Reduces frequent token repetition."
+          },
+          "PresencePenalty": {
+            "type": "number",
+            "description": "Encourages topic diversity."
+          },
+          "MaxOutputTokens": {
+            "type": "integer",
+            "description": "Maximum tokens in response."
+          },
+          "PastMessagesCount": {
+            "type": "integer",
+            "description": "Number of history messages to include."
+          },
+          "ToolNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "AI tool names."
+          },
+          "AgentNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Agent profile names to include."
+          },
+          "ProfileDescription": {
+            "type": "string",
+            "description": "Description of the profile\u0027s capabilities (used for Agent type)."
+          },
+          "Properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extended template properties."
+          }
+        },
+        "required": [
+          "Name",
+          "DisplayText"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The AI profile templates to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Templates"
+  ],
+  "additionalProperties": true
+}
