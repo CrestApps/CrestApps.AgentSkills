@@ -46,4 +46,4 @@ Do not edit files in `plugins/crestapps-orchardcore/skills` manually. The source
 
 Pull requests also run the `Validate plugin bundle` workflow, which fails if a PR modifies `plugins/crestapps-orchardcore/skills`. Contributors should update only `src/CrestApps.AgentSkills/orchardcore`; the plugin bundle is refreshed separately during publishing.
 
-`Publish plugin bundle` can still be run manually, and it also runs automatically after `Release - CI` completes successfully so released versions refresh the committed plugin bundle.
+`Publish plugin bundle` can still be run manually, and it also runs automatically after `Release - CI` completes successfully. When changes are needed, it creates or updates an automation pull request for the generated plugin bundle instead of pushing directly to `main`.

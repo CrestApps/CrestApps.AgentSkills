@@ -102,7 +102,7 @@ Do **not** manually edit `plugins/crestapps-orchardcore/skills`. That directory 
 
 Pull requests must not include changes under `plugins/crestapps-orchardcore/skills`. Update `src/CrestApps.AgentSkills/orchardcore` only; the plugin bundle is published separately by automation.
 
-The plugin bundle itself is published by automation: use the `Publish plugin bundle` workflow manually when needed, or let it run automatically after a successful `Release - CI` workflow.
+The plugin bundle itself is published by automation: use the `Publish plugin bundle` workflow manually when needed, or let it run automatically after a successful `Release - CI` workflow. The workflow creates or updates an automation pull request instead of pushing directly to `main`.
 
 ---
 

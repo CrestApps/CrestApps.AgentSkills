@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   refresh-plugin-skills:
@@ -49,14 +50,21 @@ jobs:
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit refreshed plugin bundle
+      - name: Create or update plugin bundle pull request
         if: steps.changes.outputs.has_changes == 'true'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Refresh crestapps-orchardcore plugin bundle"
-
-      - name: Push refreshed plugin bundle
-        if: steps.changes.outputs.has_changes == 'true'
-        run: git push origin HEAD:${TARGET_BRANCH}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: ${{ env.TARGET_BRANCH }}
+          branch: automation/publish-plugin-bundle
+          delete-branch: true
+          commit-message: |
+            Refresh crestapps-orchardcore plugin bundle
+            
+            Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+          title: Refresh crestapps-orchardcore plugin bundle
+          body: |
+            This pull request was created automatically by the `Publish plugin bundle` workflow.
+            
+            It refreshes `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore`.
+          add-paths: |
+            plugins/crestapps-orchardcore/skills
