@@ -279,7 +279,7 @@ That direct install works because the plugin itself has its own `plugin.json` in
 
 ### Publish the marketplace so others can use it
 
-There is no separate approval-based central marketplace submission process described in the current Copilot CLI docs. A public repository becomes a marketplace when it contains `.github/plugin/marketplace.json` or `.claude-plugin/marketplace.json` and the referenced plugin content.
+A public repository becomes a marketplace when it contains `.github/plugin/marketplace.json` or `.claude-plugin/marketplace.json` and the referenced plugin content.
 
 To publish this plugin and marketplace:
 
@@ -292,6 +292,35 @@ To publish this plugin and marketplace:
 7. Optionally verify the direct install path also works with `copilot plugin install CrestApps/CrestApps.AgentSkills:plugins/crestapps-orchardcore`.
 8. Optionally tag a release in GitHub so users have a clear published milestone to reference.
 9. Share the marketplace add/install commands and the direct install command in release notes, documentation, and examples so users can discover it easily.
+
+### Submit the plugin to `github/awesome-copilot`
+
+The `github/awesome-copilot` repository documents external plugin submissions in `plugins/external.json`. For this repository, the corresponding entry would be:
+
+```json
+{
+  "name": "crestapps-orchardcore",
+  "description": "Orchard Core skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
+  "version": "1.0.0",
+  "author": {
+    "name": "CrestApps",
+    "url": "https://github.com/CrestApps"
+  },
+  "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/crestapps-orchardcore",
+  "keywords": ["orchard-core", "copilot-cli", "skills", "dotnet"],
+  "license": "MIT",
+  "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
+  "source": {
+    "source": "github",
+    "repo": "CrestApps/CrestApps.AgentSkills",
+    "path": "plugins/crestapps-orchardcore"
+  }
+}
+```
+
+If you open a contribution against `github/awesome-copilot`, follow their `Adding External Plugins` instructions and run their `npm run build` step after updating `plugins/external.json`.
+
+At the time of writing, their contribution guide also says external plugin acceptance is subject to repository policy review, so listing there is not guaranteed. Users can already discover and install this plugin directly from the public `CrestApps/CrestApps.AgentSkills` marketplace even if an `awesome-copilot` submission is not accepted.
 
 ### Manual folder download fallback
 
