@@ -1,0 +1,3486 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "A unique name for the recipe."
+    },
+    "displayName": {
+      "type": "string",
+      "description": "A display name for the recipe."
+    },
+    "description": {
+      "type": "string",
+      "description": "A description for the recipe."
+    },
+    "author": {
+      "type": "string",
+      "description": "The author of the recipe."
+    },
+    "website": {
+      "type": "string",
+      "description": "The website URL associated with the recipe."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the recipe."
+    },
+    "isSetupRecipe": {
+      "type": "boolean",
+      "description": "Whether this recipe is a setup recipe."
+    },
+    "exportUtc": {
+      "type": "string",
+      "description": "The UTC date/time when the recipe was exported."
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categories for the recipe."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for the recipe."
+    },
+    "requireNewScope": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the recipe requires a new scope."
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "AdminMenu",
+              "AdminTemplates",
+              "AIDeployment",
+              "AIProfile",
+              "AIProfileTemplate",
+              "AIProviderConnections",
+              "AzureADSettings",
+              "azureai-index-create",
+              "azureai-index-rebuild",
+              "azureai-index-reset",
+              "command",
+              "content",
+              "ContentDefinition",
+              "CreateOrUpdateIndexProfile",
+              "custom-settings",
+              "custom-user-settings",
+              "DeleteAIDeployments",
+              "DeleteContentDefinition",
+              "deployment",
+              "DynamicDataTranslations",
+              "elastic-index-rebuild",
+              "elastic-index-reset",
+              "ElasticIndexSettings",
+              "FacebookCoreSettings",
+              "FacebookLoginSettings",
+              "feature",
+              "FeatureProfiles",
+              "GitHubAuthenticationSettings",
+              "Layers",
+              "lucene-index",
+              "lucene-index-rebuild",
+              "lucene-index-reset",
+              "media",
+              "MediaProfiles",
+              "MicrosoftAccountSettings",
+              "OpenIdApplication",
+              "OpenIdClientSettings",
+              "OpenIdScope",
+              "OpenIdServerSettings",
+              "OpenIdValidationSettings",
+              "Placements",
+              "Queries",
+              "RebuildIndex",
+              "recipes",
+              "ReplaceContentDefinition",
+              "ResetIndex",
+              "Roles",
+              "Settings",
+              "ShortcodeTemplates",
+              "Sitemaps",
+              "Templates",
+              "themes",
+              "Translations",
+              "TwitterSettings",
+              "UrlRewriting",
+              "Users",
+              "WorkflowType"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AdminMenu"
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Id": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Enabled": {
+                      "type": "boolean"
+                    },
+                    "MenuItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ContentItemId": {
+                            "type": "string",
+                            "description": "The unique identifier for the content item."
+                          },
+                          "ContentItemVersionId": {
+                            "type": "string",
+                            "description": "The version identifier for the content item."
+                          },
+                          "ContentType": {
+                            "type": "string",
+                            "description": "The type of content item."
+                          },
+                          "DisplayText": {
+                            "type": "string",
+                            "description": "The display text for the content item."
+                          },
+                          "Latest": {
+                            "type": "boolean",
+                            "description": "Whether this is the latest version."
+                          },
+                          "Published": {
+                            "type": "boolean",
+                            "description": "Whether this content item is published."
+                          },
+                          "ModifiedUtc": {
+                            "type": "string",
+                            "description": "The UTC date/time when the content item was last modified."
+                          },
+                          "PublishedUtc": {
+                            "type": "string",
+                            "description": "The UTC date/time when the content item was published."
+                          },
+                          "CreatedUtc": {
+                            "type": "string",
+                            "description": "The UTC date/time when the content item was created."
+                          },
+                          "Owner": {
+                            "type": "string",
+                            "description": "The owner of the content item."
+                          },
+                          "Author": {
+                            "type": "string",
+                            "description": "The author of the content item."
+                          }
+                        },
+                        "required": [
+                          "ContentItemId",
+                          "ContentType"
+                        ],
+                        "additionalProperties": true
+                      },
+                      "description": "The list of menu item content items."
+                    }
+                  },
+                  "required": [
+                    "Id",
+                    "Name",
+                    "MenuItems"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "data"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AdminTemplates"
+              },
+              "AdminTemplates": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "Content": {
+                      "type": "string"
+                    },
+                    "Description": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "A dictionary keyed by template name. Each value has a Content property with Liquid markup."
+              }
+            },
+            "required": [
+              "name",
+              "AdminTemplates"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AIDeployment"
+              },
+              "Deployments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "Deployment name as specified by the vendor."
+                    },
+                    "ProviderName": {
+                      "type": "string",
+                      "description": "Provider name (e.g., OpenAI, DeepSeek)."
+                    },
+                    "ConnectionName": {
+                      "type": "string",
+                      "description": "Connection name used to configure the provider."
+                    },
+                    "Type": {
+                      "type": "string",
+                      "enum": [
+                        "Chat",
+                        "Utility",
+                        "Embedding",
+                        "Image",
+                        "SpeechToText"
+                      ],
+                      "description": "The deployment type. Defaults to Chat when not specified."
+                    },
+                    "IsDefault": {
+                      "type": "boolean",
+                      "description": "Whether this deployment is the default for its type and connection."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1,
+                "description": "The AI deployments to create or update."
+              }
+            },
+            "required": [
+              "name",
+              "Deployments"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AIProfile"
+              },
+              "Profiles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ItemId": {
+                      "type": "string",
+                      "description": "Optional unique identifier. If provided, used to find existing profile to update."
+                    },
+                    "Source": {
+                      "type": "string",
+                      "description": "The AI provider source name (e.g., OpenAI, Azure, Ollama). Required for new profiles."
+                    },
+                    "Name": {
+                      "type": "string",
+                      "description": "Unique technical name for the profile."
+                    },
+                    "DisplayText": {
+                      "type": "string",
+                      "description": "Human-readable display name."
+                    },
+                    "WelcomeMessage": {
+                      "type": "string",
+                      "description": "Initial greeting shown to users."
+                    },
+                    "Type": {
+                      "type": "string",
+                      "enum": [
+                        "Chat",
+                        "Utility",
+                        "TemplatePrompt"
+                      ],
+                      "description": "The profile type."
+                    },
+                    "TitleType": {
+                      "type": "string",
+                      "enum": [
+                        "InitialPrompt",
+                        "Generated"
+                      ],
+                      "description": "How the session title is generated."
+                    },
+                    "PromptTemplate": {
+                      "type": "string",
+                      "description": "Liquid template for TemplatePrompt profiles."
+                    },
+                    "ChatDeploymentId": {
+                      "type": "string",
+                      "description": "Chat deployment ID for the AI model."
+                    },
+                    "UtilityDeploymentId": {
+                      "type": "string",
+                      "description": "Utility deployment ID for the AI model."
+                    },
+                    "DeploymentId": {
+                      "type": "string",
+                      "description": "Deprecated. Use ChatDeploymentId instead."
+                    },
+                    "Properties": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Extended profile properties including AIProfileMetadata."
+                    },
+                    "Settings": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Profile settings."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1,
+                "description": "The AI profiles to create or update."
+              }
+            },
+            "required": [
+              "name",
+              "Profiles"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AIProfileTemplate"
+              },
+              "Templates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ItemId": {
+                      "type": "string",
+                      "description": "Optional unique identifier."
+                    },
+                    "Name": {
+                      "type": "string",
+                      "description": "Unique technical name for the template."
+                    },
+                    "DisplayText": {
+                      "type": "string",
+                      "description": "Human-readable display name."
+                    },
+                    "Description": {
+                      "type": "string",
+                      "description": "Template description."
+                    },
+                    "Category": {
+                      "type": "string",
+                      "description": "Grouping category."
+                    },
+                    "IsListable": {
+                      "type": "boolean",
+                      "description": "Whether the template appears in the selection dropdown."
+                    },
+                    "ProfileType": {
+                      "type": "string",
+                      "enum": [
+                        "Chat",
+                        "Utility",
+                        "TemplatePrompt",
+                        "Agent"
+                      ],
+                      "description": "The profile type."
+                    },
+                    "OrchestratorName": {
+                      "type": "string",
+                      "description": "Orchestrator name."
+                    },
+                    "SystemMessage": {
+                      "type": "string",
+                      "description": "System prompt for the AI."
+                    },
+                    "WelcomeMessage": {
+                      "type": "string",
+                      "description": "Initial greeting."
+                    },
+                    "TitleType": {
+                      "type": "string",
+                      "enum": [
+                        "InitialPrompt",
+                        "Generated"
+                      ],
+                      "description": "Session title type."
+                    },
+                    "PromptTemplate": {
+                      "type": "string",
+                      "description": "Liquid prompt template."
+                    },
+                    "PromptSubject": {
+                      "type": "string",
+                      "description": "Subject for prompt."
+                    },
+                    "Temperature": {
+                      "type": "number",
+                      "description": "Controls randomness (0.0 to 2.0)."
+                    },
+                    "TopP": {
+                      "type": "number",
+                      "description": "Nucleus sampling threshold."
+                    },
+                    "FrequencyPenalty": {
+                      "type": "number",
+                      "description": "Reduces frequent token repetition."
+                    },
+                    "PresencePenalty": {
+                      "type": "number",
+                      "description": "Encourages topic diversity."
+                    },
+                    "MaxOutputTokens": {
+                      "type": "integer",
+                      "description": "Maximum tokens in response."
+                    },
+                    "PastMessagesCount": {
+                      "type": "integer",
+                      "description": "Number of history messages to include."
+                    },
+                    "ToolNames": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "AI tool names."
+                    },
+                    "AgentNames": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Agent profile names to include."
+                    },
+                    "ProfileDescription": {
+                      "type": "string",
+                      "description": "Description of the profile\u0027s capabilities (used for Agent type)."
+                    },
+                    "Properties": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Extended template properties."
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "DisplayText"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1,
+                "description": "The AI profile templates to create or update."
+              }
+            },
+            "required": [
+              "name",
+              "Templates"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AIProviderConnections"
+              },
+              "Connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ItemId": {
+                      "type": "string",
+                      "description": "Optional unique identifier."
+                    },
+                    "Name": {
+                      "type": "string",
+                      "description": "Unique connection name."
+                    },
+                    "DisplayText": {
+                      "type": "string",
+                      "description": "Display name."
+                    },
+                    "ProviderName": {
+                      "type": "string",
+                      "description": "The AI provider name."
+                    },
+                    "Properties": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Connection properties."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1,
+                "description": "The AI provider connections to create or update."
+              }
+            },
+            "required": [
+              "name",
+              "Connections"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "AzureADSettings"
+              },
+              "DisplayName": {
+                "type": "string"
+              },
+              "AppId": {
+                "type": "string"
+              },
+              "TenantId": {
+                "type": "string"
+              },
+              "CallbackPath": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "azureai-index-create"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Indices"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "azureai-index-rebuild"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "azureai-index-reset"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "command"
+              },
+              "Commands": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "Commands"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "content"
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ContentItemId": {
+                      "type": "string",
+                      "description": "The unique identifier for the content item."
+                    },
+                    "ContentItemVersionId": {
+                      "type": "string",
+                      "description": "The version identifier for the content item."
+                    },
+                    "ContentType": {
+                      "type": "string",
+                      "description": "The type of content item."
+                    },
+                    "DisplayText": {
+                      "type": "string",
+                      "description": "The display text for the content item."
+                    },
+                    "Latest": {
+                      "type": "boolean",
+                      "description": "Whether this is the latest version."
+                    },
+                    "Published": {
+                      "type": "boolean",
+                      "description": "Whether this content item is published."
+                    },
+                    "ModifiedUtc": {
+                      "type": "string",
+                      "description": "The UTC date/time when the content item was last modified."
+                    },
+                    "PublishedUtc": {
+                      "type": "string",
+                      "description": "The UTC date/time when the content item was published."
+                    },
+                    "CreatedUtc": {
+                      "type": "string",
+                      "description": "The UTC date/time when the content item was created."
+                    },
+                    "Owner": {
+                      "type": "string",
+                      "description": "The owner of the content item."
+                    },
+                    "Author": {
+                      "type": "string",
+                      "description": "The author of the content item."
+                    }
+                  },
+                  "required": [
+                    "ContentItemId",
+                    "ContentType"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "data"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "ContentDefinition"
+              },
+              "ContentTypes": {
+                "description": "List of content types. Fields must be attached through a content part whose PartName matches the content type\u0027s Name. Those parts must also appear in the ContentPartFieldDefinitionRecords inside ContentParts. Fields cannot be used directly in PartName.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "DisplayName": {
+                      "type": "string"
+                    },
+                    "Settings": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "ContentTypeSettings": {
+                              "type": "object",
+                              "properties": {
+                                "Creatable": {
+                                  "type": "boolean"
+                                },
+                                "Listable": {
+                                  "type": "boolean"
+                                },
+                                "Draftable": {
+                                  "type": "boolean"
+                                },
+                                "Versionable": {
+                                  "type": "boolean"
+                                },
+                                "Securable": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "Creatable",
+                                "Listable",
+                                "Draftable",
+                                "Versionable",
+                                "Securable"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      ]
+                    },
+                    "ContentTypePartDefinitionRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Settings": {
+                            "type": "object",
+                            "allOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AliasPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Pattern": {
+                                        "type": "string",
+                                        "default": "{{ Model.ContentItem.DisplayText | slugify }}",
+                                        "description": "Pattern for generating the alias. Must be valid Liquid syntax."
+                                      },
+                                      "Options": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Editable",
+                                          "GeneratedDisabled"
+                                        ],
+                                        "default": "Editable",
+                                        "description": "Whether the alias is editable or auto-generated."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AuditTrailPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ShowCommentInput": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Show the comment input field."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AutoroutePartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "AllowCustomPath": {
+                                        "type": "boolean"
+                                      },
+                                      "Pattern": {
+                                        "type": "string",
+                                        "default": "{{ ContentItem.DisplayText | slugify }}",
+                                        "description": "The pattern used to build the Path. Must be valid Liquid syntax."
+                                      },
+                                      "ShowHomepageOption": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowUpdatePath": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowDisabled": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowRouteContainedItems": {
+                                        "type": "boolean"
+                                      },
+                                      "ManageContainedItemRoutes": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowAbsolutePath": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "BagPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "ContainedStereotypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "DisplayType": {
+                                        "type": "string"
+                                      },
+                                      "CollapseContainedItems": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "CommonPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "DisplayDateEditor": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayOwnerEditor": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "FlowPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "CollapseContainedItems": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "HtmlBodyPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "SanitizeHtml": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Sanitize HTML input. Liquid is disabled when true."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "ListPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "PageSize": {
+                                        "type": "integer",
+                                        "default": 10
+                                      },
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "EnableOrdering": {
+                                        "type": "boolean"
+                                      },
+                                      "ShowHeader": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "MarkdownBodyPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "SanitizeHtml": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Sanitize rendered HTML output."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "PreviewPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Pattern": {
+                                        "type": "string",
+                                        "description": "Pattern for building the preview path or display content."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "SeoMetaPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "DisplayKeywords": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayCustomMetaTags": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayOpenGraph": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayTwitter": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayGoogleSchema": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "TitlePartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "RenderTitle": {
+                                        "type": "boolean"
+                                      },
+                                      "Options": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Editable",
+                                          "GeneratedDisabled",
+                                          "GeneratedHidden",
+                                          "EditableRequired"
+                                        ],
+                                        "default": "Editable"
+                                      },
+                                      "Pattern": {
+                                        "type": "string",
+                                        "description": "This string must be a valid Liquid syntax"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "WidgetsListPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Zones": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "PartName",
+                          "Name",
+                          "Settings"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "DisplayName",
+                    "Settings",
+                    "ContentTypePartDefinitionRecords"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "ContentParts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Settings": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "ContentPartFieldDefinitionRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "FieldName": {
+                            "type": "string",
+                            "enum": [
+                              "BooleanField",
+                              "ContentPickerField",
+                              "DateField",
+                              "DateTimeField",
+                              "HtmlField",
+                              "LinkField",
+                              "LocalizationSetContentPickerField",
+                              "MediaField",
+                              "MultiTextField",
+                              "NumericField",
+                              "TaxonomyField",
+                              "TextField",
+                              "TimeField",
+                              "UserPickerField",
+                              "YoutubeField"
+                            ]
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "Settings": {
+                            "type": "object",
+                            "properties": {
+                              "ContentPartFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "DisplayName": {
+                                    "type": "string"
+                                  },
+                                  "Description": {
+                                    "type": "string"
+                                  },
+                                  "Position": {
+                                    "type": "string"
+                                  },
+                                  "DisplayMode": {
+                                    "type": "string"
+                                  },
+                                  "Editor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "FieldName",
+                          "Name",
+                          "Settings"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Settings",
+                    "ContentPartFieldDefinitionRecords"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "ContentTypes"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "CreateOrUpdateIndexProfile"
+              },
+              "Indexes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Id": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "ProviderName": {
+                      "type": "string"
+                    },
+                    "Type": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Indexes"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "custom-settings"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "minProperties": 2,
+            "additionalProperties": true,
+            "description": "Each additional property is a custom settings content type name with its content item data."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "custom-user-settings"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "minProperties": 2,
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "user-custom-user-settings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ContentType": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "ContentType"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "userId",
+                  "user-custom-user-settings"
+                ],
+                "additionalProperties": true
+              },
+              "minItems": 1
+            },
+            "description": "Each additional property can use any collection name and must contain an array of user custom settings entries."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "DeleteAIDeployments"
+              },
+              "IncludeAll": {
+                "type": "boolean",
+                "description": "When true, all deployments will be removed."
+              },
+              "DeploymentNames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Specific deployment names to delete. Ignored when IncludeAll is true."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "DeleteContentDefinition"
+              },
+              "ContentTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ContentParts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "deployment"
+              },
+              "Plans": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Type": {
+                            "type": "string"
+                          },
+                          "Step": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "Type",
+                          "Step"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "DynamicDataTranslations"
+              },
+              "Translations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Translation": {
+                      "type": "object",
+                      "properties": {
+                        "Context": {
+                          "type": "string"
+                        },
+                        "Key": {
+                          "type": "string"
+                        },
+                        "Value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "Key"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Translation"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "Translations"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "elastic-index-rebuild"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "elastic-index-reset"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "ElasticIndexSettings"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Indices"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "FacebookCoreSettings"
+              },
+              "AppId": {
+                "type": "string"
+              },
+              "AppSecret": {
+                "type": "string"
+              },
+              "SdkJs": {
+                "type": "string"
+              },
+              "FBInit": {
+                "type": "boolean"
+              },
+              "FBInitParams": {
+                "type": "string"
+              },
+              "Version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "FacebookLoginSettings"
+              },
+              "CallbackPath": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "feature"
+              },
+              "enable": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "OrchardCore.Contents",
+                    "OrchardCore.Media",
+                    "OrchardCore.Workflows",
+                    "OrchardCore.Users",
+                    "OrchardCore.Users.CustomUserSettings",
+                    "OrchardCore.Microsoft.Authentication.AzureAD",
+                    "OrchardCore.Microsoft.Authentication.MicrosoftAccount",
+                    "OrchardCore.Facebook",
+                    "OrchardCore.Facebook.Login",
+                    "OrchardCore.GitHub.Authentication",
+                    "OrchardCore.Twitter.Signin",
+                    "OrchardCore.OpenId.Client",
+                    "OrchardCore.OpenId.Management",
+                    "OrchardCore.OpenId.Server",
+                    "OrchardCore.OpenId.Validation",
+                    "OrchardCore.DataLocalization",
+                    "CrestApps.OrchardCore.AI"
+                  ]
+                },
+                "description": "Feature IDs to enable."
+              },
+              "disable": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "OrchardCore.Contents",
+                    "OrchardCore.Media",
+                    "OrchardCore.Workflows",
+                    "OrchardCore.Users",
+                    "OrchardCore.Users.CustomUserSettings",
+                    "OrchardCore.Microsoft.Authentication.AzureAD",
+                    "OrchardCore.Microsoft.Authentication.MicrosoftAccount",
+                    "OrchardCore.Facebook",
+                    "OrchardCore.Facebook.Login",
+                    "OrchardCore.GitHub.Authentication",
+                    "OrchardCore.Twitter.Signin",
+                    "OrchardCore.OpenId.Client",
+                    "OrchardCore.OpenId.Management",
+                    "OrchardCore.OpenId.Server",
+                    "OrchardCore.OpenId.Validation",
+                    "OrchardCore.DataLocalization",
+                    "CrestApps.OrchardCore.AI"
+                  ]
+                },
+                "description": "Feature IDs to disable."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "FeatureProfiles"
+              },
+              "FeatureProfiles": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "Id": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "FeatureRules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Rule": {
+                            "type": "string"
+                          },
+                          "Expression": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "Rule",
+                          "Expression"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "FeatureProfiles"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "GitHubAuthenticationSettings"
+              },
+              "ConsumerKey": {
+                "type": "string"
+              },
+              "ConsumerSecret": {
+                "type": "string"
+              },
+              "CallbackPath": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Layers"
+              },
+              "Layers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Description": {
+                      "type": "string"
+                    },
+                    "Rule": {
+                      "type": "string",
+                      "description": "A JavaScript rule expression, e.g. isHomepage()."
+                    },
+                    "LayerRule": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string"
+                        },
+                        "ConditionId": {
+                          "type": "string"
+                        },
+                        "Conditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Structured layer rule object."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Layers"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "lucene-index"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Indices"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "lucene-index-rebuild"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "lucene-index-reset"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "Indices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "media"
+              },
+              "Files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "TargetPath": {
+                      "type": "string"
+                    },
+                    "Path": {
+                      "type": "string",
+                      "description": "Alias for TargetPath. Path where the content will be written."
+                    },
+                    "SourcePath": {
+                      "type": "string",
+                      "description": "Relative path from the recipe file to the source media."
+                    },
+                    "SourceUrl": {
+                      "type": "string",
+                      "description": "Absolute URL to download the media from."
+                    },
+                    "Base64": {
+                      "type": "string",
+                      "description": "Base64-encoded content of the file."
+                    }
+                  },
+                  "required": [
+                    "TargetPath"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Files"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "MediaProfiles"
+              },
+              "MediaProfiles": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "Hint": {
+                      "type": "string"
+                    },
+                    "Width": {
+                      "type": "integer"
+                    },
+                    "Height": {
+                      "type": "integer"
+                    },
+                    "Mode": {
+                      "type": "string",
+                      "enum": [
+                        "Undefined",
+                        "Max",
+                        "Crop",
+                        "Pad",
+                        "BoxPad",
+                        "Min",
+                        "Stretch"
+                      ],
+                      "description": "The image resize mode."
+                    },
+                    "Format": {
+                      "type": "string",
+                      "enum": [
+                        "Undefined",
+                        "Bmp",
+                        "Gif",
+                        "Jpg",
+                        "Png",
+                        "Tga",
+                        "WebP"
+                      ],
+                      "description": "The output image format."
+                    },
+                    "Quality": {
+                      "type": "integer"
+                    },
+                    "BackgroundColor": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "A dictionary keyed by profile name. Each value is a media profile object."
+              }
+            },
+            "required": [
+              "name",
+              "MediaProfiles"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "MicrosoftAccountSettings"
+              },
+              "AppId": {
+                "type": "string"
+              },
+              "AppSecret": {
+                "type": "string"
+              },
+              "CallbackPath": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "OpenIdApplication"
+              },
+              "ClientId": {
+                "type": "string"
+              },
+              "DisplayName": {
+                "type": "string"
+              },
+              "RedirectUris": {
+                "type": "string"
+              },
+              "PostLogoutRedirectUris": {
+                "type": "string"
+              },
+              "Type": {
+                "type": "string",
+                "enum": [
+                  "confidential",
+                  "public"
+                ]
+              },
+              "ConsentType": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "external",
+                  "implicit"
+                ]
+              },
+              "ClientSecret": {
+                "type": "string"
+              },
+              "RoleEntries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "ScopeEntries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "AllowPasswordFlow": {
+                "type": "boolean"
+              },
+              "AllowClientCredentialsFlow": {
+                "type": "boolean"
+              },
+              "AllowAuthorizationCodeFlow": {
+                "type": "boolean"
+              },
+              "AllowRefreshTokenFlow": {
+                "type": "boolean"
+              },
+              "AllowHybridFlow": {
+                "type": "boolean"
+              },
+              "AllowImplicitFlow": {
+                "type": "boolean"
+              },
+              "AllowLogoutEndpoint": {
+                "type": "boolean"
+              },
+              "AllowIntrospectionEndpoint": {
+                "type": "boolean"
+              },
+              "AllowRevocationEndpoint": {
+                "type": "boolean"
+              },
+              "RequireProofKeyForCodeExchange": {
+                "type": "boolean"
+              },
+              "RequirePushedAuthorizationRequests": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "OpenIdClientSettings"
+              },
+              "DisplayName": {
+                "type": "string"
+              },
+              "Authority": {
+                "type": "string"
+              },
+              "ClientId": {
+                "type": "string"
+              },
+              "ClientSecret": {
+                "type": "string"
+              },
+              "CallbackPath": {
+                "type": "string"
+              },
+              "SignedOutRedirectUri": {
+                "type": "string"
+              },
+              "SignedOutCallbackPath": {
+                "type": "string"
+              },
+              "Scopes": {
+                "type": "string"
+              },
+              "ResponseType": {
+                "type": "string",
+                "enum": [
+                  "code",
+                  "code id_token",
+                  "code id_token token",
+                  "code token",
+                  "id_token",
+                  "id_token token"
+                ]
+              },
+              "ResponseMode": {
+                "type": "string",
+                "enum": [
+                  "form_post",
+                  "fragment",
+                  "query"
+                ]
+              },
+              "StoreExternalTokens": {
+                "type": "boolean"
+              },
+              "Parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Value"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "OpenIdScope"
+              },
+              "Description": {
+                "type": "string"
+              },
+              "DisplayName": {
+                "type": "string"
+              },
+              "ScopeName": {
+                "type": "string"
+              },
+              "Resources": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "OpenIdServerSettings"
+              },
+              "AccessTokenFormat": {
+                "type": "string",
+                "enum": [
+                  "DataProtection",
+                  "JsonWebToken"
+                ]
+              },
+              "Authority": {
+                "type": "string"
+              },
+              "DisableAccessTokenEncryption": {
+                "type": "boolean"
+              },
+              "EncryptionCertificateStoreLocation": {
+                "type": "string",
+                "enum": [
+                  "CurrentUser",
+                  "LocalMachine"
+                ]
+              },
+              "EncryptionCertificateStoreName": {
+                "type": "string",
+                "enum": [
+                  "AddressBook",
+                  "AuthRoot",
+                  "CertificateAuthority",
+                  "Disallowed",
+                  "My",
+                  "Root",
+                  "TrustedPeople",
+                  "TrustedPublisher"
+                ]
+              },
+              "EncryptionCertificateThumbprint": {
+                "type": "string"
+              },
+              "SigningCertificateStoreLocation": {
+                "type": "string",
+                "enum": [
+                  "CurrentUser",
+                  "LocalMachine"
+                ]
+              },
+              "SigningCertificateStoreName": {
+                "type": "string",
+                "enum": [
+                  "AddressBook",
+                  "AuthRoot",
+                  "CertificateAuthority",
+                  "Disallowed",
+                  "My",
+                  "Root",
+                  "TrustedPeople",
+                  "TrustedPublisher"
+                ]
+              },
+              "SigningCertificateThumbprint": {
+                "type": "string"
+              },
+              "EnableTokenEndpoint": {
+                "type": "boolean"
+              },
+              "EnableAuthorizationEndpoint": {
+                "type": "boolean"
+              },
+              "EnableLogoutEndpoint": {
+                "type": "boolean"
+              },
+              "EnableUserInfoEndpoint": {
+                "type": "boolean"
+              },
+              "EnableIntrospectionEndpoint": {
+                "type": "boolean"
+              },
+              "EnablePushedAuthorizationEndpoint": {
+                "type": "boolean"
+              },
+              "EnableRevocationEndpoint": {
+                "type": "boolean"
+              },
+              "AllowPasswordFlow": {
+                "type": "boolean"
+              },
+              "AllowClientCredentialsFlow": {
+                "type": "boolean"
+              },
+              "AllowAuthorizationCodeFlow": {
+                "type": "boolean"
+              },
+              "AllowRefreshTokenFlow": {
+                "type": "boolean"
+              },
+              "AllowHybridFlow": {
+                "type": "boolean"
+              },
+              "AllowImplicitFlow": {
+                "type": "boolean"
+              },
+              "DisableRollingRefreshTokens": {
+                "type": "boolean"
+              },
+              "RequireProofKeyForCodeExchange": {
+                "type": "boolean"
+              },
+              "RequirePushedAuthorizationRequests": {
+                "type": "boolean"
+              },
+              "UseReferenceAccessTokens": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "OpenIdValidationSettings"
+              },
+              "MetadataAddress": {
+                "type": "string"
+              },
+              "Audience": {
+                "type": "string"
+              },
+              "Authority": {
+                "type": "string"
+              },
+              "DisableTokenTypeValidation": {
+                "type": "boolean"
+              },
+              "Tenant": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Placements"
+              },
+              "Placements": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "A dictionary keyed by shape type. Each value is an array of placement objects with \u0027place\u0027 and optional filters."
+              }
+            },
+            "required": [
+              "name",
+              "Placements"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Queries"
+              },
+              "Queries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Source": {
+                      "type": "string"
+                    },
+                    "Schema": {
+                      "type": "string"
+                    },
+                    "Template": {
+                      "type": "string"
+                    },
+                    "ReturnContentItems": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Source"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "Queries"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "RebuildIndex"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "IndexNames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "recipes"
+              },
+              "Values": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "executionid": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "enum": []
+                    }
+                  },
+                  "required": [
+                    "executionid",
+                    "name"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "Values"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "ReplaceContentDefinition"
+              },
+              "ContentTypes": {
+                "description": "List of content types. Fields must be attached through a content part whose PartName matches the content type\u0027s Name. Those parts must also appear in the ContentPartFieldDefinitionRecords inside ContentParts. Fields cannot be used directly in PartName.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "DisplayName": {
+                      "type": "string"
+                    },
+                    "Settings": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "ContentTypeSettings": {
+                              "type": "object",
+                              "properties": {
+                                "Creatable": {
+                                  "type": "boolean"
+                                },
+                                "Listable": {
+                                  "type": "boolean"
+                                },
+                                "Draftable": {
+                                  "type": "boolean"
+                                },
+                                "Versionable": {
+                                  "type": "boolean"
+                                },
+                                "Securable": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "Creatable",
+                                "Listable",
+                                "Draftable",
+                                "Versionable",
+                                "Securable"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      ]
+                    },
+                    "ContentTypePartDefinitionRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Settings": {
+                            "type": "object",
+                            "allOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AliasPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Pattern": {
+                                        "type": "string",
+                                        "default": "{{ Model.ContentItem.DisplayText | slugify }}",
+                                        "description": "Pattern for generating the alias. Must be valid Liquid syntax."
+                                      },
+                                      "Options": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Editable",
+                                          "GeneratedDisabled"
+                                        ],
+                                        "default": "Editable",
+                                        "description": "Whether the alias is editable or auto-generated."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AuditTrailPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ShowCommentInput": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Show the comment input field."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "AutoroutePartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "AllowCustomPath": {
+                                        "type": "boolean"
+                                      },
+                                      "Pattern": {
+                                        "type": "string",
+                                        "default": "{{ ContentItem.DisplayText | slugify }}",
+                                        "description": "The pattern used to build the Path. Must be valid Liquid syntax."
+                                      },
+                                      "ShowHomepageOption": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowUpdatePath": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowDisabled": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowRouteContainedItems": {
+                                        "type": "boolean"
+                                      },
+                                      "ManageContainedItemRoutes": {
+                                        "type": "boolean"
+                                      },
+                                      "AllowAbsolutePath": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "BagPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "ContainedStereotypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "DisplayType": {
+                                        "type": "string"
+                                      },
+                                      "CollapseContainedItems": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "CommonPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "DisplayDateEditor": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayOwnerEditor": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "FlowPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "CollapseContainedItems": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "HtmlBodyPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "SanitizeHtml": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Sanitize HTML input. Liquid is disabled when true."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "ListPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "PageSize": {
+                                        "type": "integer",
+                                        "default": 10
+                                      },
+                                      "ContainedContentTypes": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "EnableOrdering": {
+                                        "type": "boolean"
+                                      },
+                                      "ShowHeader": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "MarkdownBodyPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "SanitizeHtml": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Sanitize rendered HTML output."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "PreviewPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Pattern": {
+                                        "type": "string",
+                                        "description": "Pattern for building the preview path or display content."
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "SeoMetaPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "DisplayKeywords": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayCustomMetaTags": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayOpenGraph": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayTwitter": {
+                                        "type": "boolean"
+                                      },
+                                      "DisplayGoogleSchema": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "TitlePartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "RenderTitle": {
+                                        "type": "boolean"
+                                      },
+                                      "Options": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Editable",
+                                          "GeneratedDisabled",
+                                          "GeneratedHidden",
+                                          "EditableRequired"
+                                        ],
+                                        "default": "Editable"
+                                      },
+                                      "Pattern": {
+                                        "type": "string",
+                                        "description": "This string must be a valid Liquid syntax"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "WidgetsListPartSettings": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Zones": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "PartName",
+                          "Name",
+                          "Settings"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "DisplayName",
+                    "Settings",
+                    "ContentTypePartDefinitionRecords"
+                  ],
+                  "additionalProperties": true
+                }
+              },
+              "ContentParts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Settings": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "ContentPartFieldDefinitionRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "FieldName": {
+                            "type": "string",
+                            "enum": [
+                              "BooleanField",
+                              "ContentPickerField",
+                              "DateField",
+                              "DateTimeField",
+                              "HtmlField",
+                              "LinkField",
+                              "LocalizationSetContentPickerField",
+                              "MediaField",
+                              "MultiTextField",
+                              "NumericField",
+                              "TaxonomyField",
+                              "TextField",
+                              "TimeField",
+                              "UserPickerField",
+                              "YoutubeField"
+                            ]
+                          },
+                          "Name": {
+                            "type": "string"
+                          },
+                          "Settings": {
+                            "type": "object",
+                            "properties": {
+                              "ContentPartFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "DisplayName": {
+                                    "type": "string"
+                                  },
+                                  "Description": {
+                                    "type": "string"
+                                  },
+                                  "Position": {
+                                    "type": "string"
+                                  },
+                                  "DisplayMode": {
+                                    "type": "string"
+                                  },
+                                  "Editor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "FieldName",
+                          "Name",
+                          "Settings"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Settings",
+                    "ContentPartFieldDefinitionRecords"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "ResetIndex"
+              },
+              "IncludeAll": {
+                "type": "boolean"
+              },
+              "IndexNames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Roles"
+              },
+              "Roles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Description": {
+                      "type": "string"
+                    },
+                    "Permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "enum": [
+                        "PermissionA",
+                        "PermissionB"
+                      ]
+                    },
+                    "PermissionBehavior": {
+                      "type": "string",
+                      "enum": [
+                        "Add",
+                        "Replace",
+                        "Remove"
+                      ],
+                      "description": "How permissions are merged: Add (default), Replace, or Remove."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "Roles"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "settings"
+              },
+              "BaseUrl": {
+                "type": "string"
+              },
+              "Calendar": {
+                "type": "string"
+              },
+              "MaxPagedCount": {
+                "type": "integer"
+              },
+              "MaxPageSize": {
+                "type": "integer"
+              },
+              "PageSize": {
+                "type": "integer"
+              },
+              "ResourceDebugMode": {
+                "type": "string"
+              },
+              "SiteName": {
+                "type": "string"
+              },
+              "PageTitleFormat": {
+                "type": "string"
+              },
+              "SiteSalt": {
+                "type": "string"
+              },
+              "SuperUser": {
+                "type": "string"
+              },
+              "TimeZoneId": {
+                "type": "string"
+              },
+              "UseCdn": {
+                "type": "boolean"
+              },
+              "CdnBaseUrl": {
+                "type": "string"
+              },
+              "AppendVersion": {
+                "type": "boolean"
+              },
+              "HomeRoute": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "CacheMode": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "ShortcodeTemplates"
+              },
+              "ShortcodeTemplates": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "Content": {
+                      "type": "string"
+                    },
+                    "Hint": {
+                      "type": "string"
+                    },
+                    "Usage": {
+                      "type": "string"
+                    },
+                    "DefaultValue": {
+                      "type": "string"
+                    },
+                    "Categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "A dictionary keyed by shortcode name."
+              }
+            },
+            "required": [
+              "name",
+              "ShortcodeTemplates"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Sitemaps"
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Templates"
+              },
+              "Templates": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "Content": {
+                      "type": "string"
+                    },
+                    "Description": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "A dictionary keyed by template name. Each value has a Content property with Liquid markup."
+              }
+            },
+            "required": [
+              "name",
+              "Templates"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "themes"
+              },
+              "site": {
+                "type": "string",
+                "enum": [
+                  "TheAdmin",
+                  "TheTheme",
+                  "SafeMode"
+                ],
+                "description": "The theme ID to use for the front-end site."
+              },
+              "admin": {
+                "type": "string",
+                "enum": [
+                  "TheAdmin",
+                  "TheTheme",
+                  "SafeMode"
+                ],
+                "description": "The theme ID to use for the admin dashboard."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Translations"
+              },
+              "translations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "culture": {
+                      "type": "string"
+                    },
+                    "context": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "culture",
+                    "key"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "translations"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "TwitterSettings"
+              },
+              "ConsumerKey": {
+                "type": "string"
+              },
+              "ConsumerSecret": {
+                "type": "string"
+              },
+              "AccessToken": {
+                "type": "string"
+              },
+              "AccessTokenSecret": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "UrlRewriting"
+              },
+              "Rules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "Users"
+              },
+              "Users": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Id": {
+                      "type": "integer"
+                    },
+                    "UserId": {
+                      "type": "string"
+                    },
+                    "UserName": {
+                      "type": "string"
+                    },
+                    "Email": {
+                      "type": "string"
+                    },
+                    "PasswordHash": {
+                      "type": "string"
+                    },
+                    "EmailConfirmed": {
+                      "type": "boolean"
+                    },
+                    "IsEnabled": {
+                      "type": "boolean"
+                    },
+                    "NormalizedEmail": {
+                      "type": "string"
+                    },
+                    "NormalizedUserName": {
+                      "type": "string"
+                    },
+                    "SecurityStamp": {
+                      "type": "string"
+                    },
+                    "ResetToken": {
+                      "type": "string"
+                    },
+                    "PhoneNumber": {
+                      "type": "string"
+                    },
+                    "PhoneNumberConfirmed": {
+                      "type": "boolean"
+                    },
+                    "TwoFactorEnabled": {
+                      "type": "boolean"
+                    },
+                    "IsLockoutEnabled": {
+                      "type": "boolean"
+                    },
+                    "AccessFailedCount": {
+                      "type": "integer"
+                    },
+                    "RoleNames": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "name",
+              "Users"
+            ],
+            "additionalProperties": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "const": "WorkflowType"
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Activities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Name": {
+                            "type": "string"
+                          },
+                          "IsStart": {
+                            "type": "boolean"
+                          },
+                          "X": {
+                            "type": "number",
+                            "description": "Horizontal pixel position of the activity node in the designer."
+                          },
+                          "Y": {
+                            "type": "number",
+                            "description": "Vertical pixel position of the activity node in the designer."
+                          },
+                          "Properties": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "Name",
+                          "Properties"
+                        ],
+                        "additionalProperties": true,
+                        "if": {
+                          "properties": {
+                            "IsStart": {
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "IsStart"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "Name": {
+                              "enum": [
+                                "HttpRequestEvent"
+                              ]
+                            }
+                          }
+                        },
+                        "else": {
+                          "properties": {
+                            "Name": {
+                              "enum": [
+                                "NotifyTask"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "Transitions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Activities",
+                    "Transitions"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "name",
+              "data"
+            ],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "minItems": 1,
+      "description": "The collection of recipe steps."
+    }
+  },
+  "required": [
+    "steps"
+  ]
+}
