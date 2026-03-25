@@ -17,6 +17,8 @@ You are an Orchard Core expert. Generate template overrides and explain template
 - Template names use `__` (double underscore) as a separator for specificity levels.
 - In file-based themes, `__` in template names maps to `-` in filenames, and `_` before display type maps to `.` (e.g., `Content_Summary__BlogPost` → `Content-BlogPost.Summary.cshtml`).
 - Display types include `Detail` (default for full page), `Summary` (lists), `SummaryAdmin` (admin lists), etc.
+- For custom model display drivers, Orchard also resolves root shapes like `CampaignAction_Edit` and `CampaignAction_SummaryAdmin`, which map to `CampaignAction.Edit.cshtml` and `CampaignAction.SummaryAdmin.cshtml`.
+- If child shapes are placed into zones such as `Content`, `Actions`, `Meta`, or `Description`, the root template must render those zones explicitly.
 - Use `ConsoleLog` (Razor) or `console_log` (Liquid) to inspect available alternates for any shape.
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
@@ -128,6 +130,22 @@ Named part scoped to a content type (for reusable named parts like BagPart).
 | Template Name           | Filename                      |
 |-------------------------|-------------------------------|
 | `LandingPage__Services` | `LandingPage-Services.cshtml` |
+
+### Custom Model Shape Templates
+
+Display drivers for non-content-item models follow the same shape naming rules, but they often need both a root wrapper template and child-zone templates.
+
+Example shape names and filenames:
+
+| Shape Name | Filename |
+|---|---|
+| `CampaignAction_Edit` | `CampaignAction.Edit.cshtml` |
+| `CampaignAction_SummaryAdmin` | `CampaignAction.SummaryAdmin.cshtml` |
+| `CampaignActionFields_Edit` | `CampaignActionFields.Edit.cshtml` |
+| `CampaignAction_Fields_SummaryAdmin` | `CampaignAction.Fields.SummaryAdmin.cshtml` |
+| `CampaignAction_Buttons_SummaryAdmin` | `CampaignAction.Buttons.SummaryAdmin.cshtml` |
+
+When a driver uses placement such as `.Location("SummaryAdmin", "Content:1")` and `.Location("SummaryAdmin", "Actions:5")`, `CampaignAction.SummaryAdmin.cshtml` must render `Model.Content` and `Model.Actions` for those child shapes to appear.
 
 ### Content Field Templates
 
