@@ -22,6 +22,8 @@ You are an Orchard Core expert. Generate admin menus, custom admin node types, a
 - Register custom admin node services with `services.AddAdminNode<TNode, TBuilder, TDriver>()`.
 - Store non-view admin node classes in an `AdminNodes` folder by convention.
 - Store admin node views in `Views/Items/` (required convention).
+- For admin sidebar items registered with `INavigationProvider`, prefer assigning an item id and overriding `NavigationItemText-[id].cshtml` when you need a custom icon or text wrapper.
+- Do not use `AddClass(...)` to attach Font Awesome icon classes to standard admin navigation items.
 - Always seal classes.
 
 ### Enabling Admin Menu Features
@@ -251,3 +253,40 @@ public sealed class Startup : StartupBase
 3. The coordinator loads all admin menus from the database and calls `BuildTreeAsync` on each.
 4. Each admin node recursively adds menu items to the navigation builder.
 5. The resulting menu items are merged into the standard admin navigation.
+
+### Customizing Standard Admin Navigation Item Icons
+
+When you are customizing the standard admin sidebar through `INavigationProvider` rather than `OrchardCore.AdminMenu` content items, use an item id plus a `NavigationItemText-[id].cshtml` template.
+
+Example:
+
+```csharp
+public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+{
+    if (!NavigationHelper.IsAdminMenu(name))
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    builder.Add(S["Sports"], sports => sports
+        .Id("sports")
+        .Add(S["Calendar"], calendar => calendar
+            .Action("Index", "Admin", new { area = "MyModule" })
+            .LocalNav()
+        )
+    );
+
+    return ValueTask.CompletedTask;
+}
+```
+
+Then create `Views/NavigationItemText-sports.Id.cshtml`:
+
+```cshtml
+<span class="icon">
+    <i class="fa-regular fa-futbol"></i>
+</span>
+<span class="title">@Model.Text</span>
+```
+
+This is the preferred way to add icons to standard TheAdmin navigation items supplied by code.

@@ -122,6 +122,38 @@ public sealed class Startup : StartupBase
 }
 ```
 
+### Adding an Icon to an Admin Menu Item
+
+For `INavigationProvider` menu items, do **not** put Font Awesome classes on the item with `AddClass(...)`. Instead:
+
+1. Assign a stable id with `.Id("sports")`.
+2. Add a Razor view named `NavigationItemText-sports.Id.cshtml`.
+3. Render the icon and title from that view.
+
+Example navigation provider:
+
+```csharp
+builder.Add(S["Sports"], sports => sports
+    .AddClass("sports")
+    .Id("sports")
+    .Add(S["Calendar"], calendar => calendar
+        .Action("Index", "Admin", new { area = "MyModule" })
+        .LocalNav()
+    )
+);
+```
+
+Example view file `Views/NavigationItemText-sports.Id.cshtml`:
+
+```cshtml
+<span class="icon">
+    <i class="fa-regular fa-futbol"></i>
+</span>
+<span class="title">@Model.Text</span>
+```
+
+Use this pattern when you need a custom icon for an admin navigation item rendered by TheAdmin theme.
+
 ### Menu Grouping and Ordering
 
 Menu items are organized hierarchically using nested `Add` calls. Use the `Position` method to control item order within a group. Position values are strings that support numeric sorting (e.g., `"1"`, `"2.5"`, `"10"`).
