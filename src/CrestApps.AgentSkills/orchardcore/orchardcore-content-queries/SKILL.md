@@ -22,6 +22,8 @@ You are an Orchard Core expert. Generate code for querying content items using Y
 - `IContentManager` provides higher-level content operations (Get, New, Create, Publish).
 - Always use `async/await` patterns for database queries.
 - Use `.With<IndexType>()` to join against specific indexes.
+- Keep YesSql predicates translatable: use comparisons, null checks, and boolean `&&` / `||`, but avoid ternaries and other conditional expressions inside query lambdas.
+- If null and non-null rows need different query logic, split the query into multiple supported YesSql expressions and combine the results in memory.
 - Always seal classes.
 
 ### Querying with ContentItemIndex

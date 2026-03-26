@@ -72,28 +72,24 @@ var url = Url.RouteUrl("MyModule.Settings", new { action = "Index" });
 
 ## Admin Menu Registration
 
-Admin menu items are registered by implementing the `INavigationProvider` interface. Each provider contributes entries to the admin sidebar navigation.
+Admin menu items should prefer inheriting from `NamedNavigationProvider` for the admin menu, rather than implementing `INavigationProvider` directly. Each provider contributes entries to the admin sidebar navigation.
 
 ```csharp
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-public sealed class AdminMenu : INavigationProvider
+internal sealed class AdminMenu : NamedNavigationProvider
 {
     private readonly IStringLocalizer S;
 
     public AdminMenu(IStringLocalizer<AdminMenu> localizer)
+        : base(NavigationConstants.AdminId)
     {
         S = localizer;
     }
 
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
-        if (!NavigationHelper.IsAdminMenu(name))
-        {
-            return ValueTask.CompletedTask;
-        }
-
         builder
             .Add(S["Content Management"], content => content
                 .AddClass("content-management")
@@ -110,6 +106,8 @@ public sealed class AdminMenu : INavigationProvider
 }
 ```
 
+Use `INavigationProvider` directly only as a secondary option when you genuinely need to handle multiple menu names or custom routing logic that does not fit the named-provider pattern.
+
 Register the provider in `Startup.cs`:
 
 ```csharp
@@ -124,7 +122,7 @@ public sealed class Startup : StartupBase
 
 ### Adding an Icon to an Admin Menu Item
 
-For `INavigationProvider` menu items, do **not** put Font Awesome classes on the item with `AddClass(...)`. Instead:
+For `NamedNavigationProvider` or `INavigationProvider` menu items, do **not** put Font Awesome classes on the item with `AddClass(...)`. Instead:
 
 1. Assign a stable id with `.Id("sports")`.
 2. Add a Razor view named `NavigationItemText-sports.Id.cshtml`.
@@ -134,7 +132,6 @@ Example navigation provider:
 
 ```csharp
 builder.Add(S["Sports"], sports => sports
-    .AddClass("sports")
     .Id("sports")
     .Add(S["Calendar"], calendar => calendar
         .Action("Index", "Admin", new { area = "MyModule" })

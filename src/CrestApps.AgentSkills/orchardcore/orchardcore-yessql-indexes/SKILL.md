@@ -25,6 +25,9 @@ You are an Orchard Core expert. Generate code for custom YesSql indexes that fol
 - Query indexes with ISession.QueryIndex<TIndex>() when you only need projected values, rather than hydrating full ContentItem documents.
 - For one-to-many relationships, return multiple rows from .Map(...) by projecting with Select(...).
 - Keep migrations in a Migrations folder and keep migration classes internal sealed.
+- Keep YesSql query predicates limited to expressions the provider can translate: comparisons, null checks, boolean `&&` / `||`, ordering, paging, and simple projections.
+- Do **not** use conditional operators (`?:`), `if`-style branching inside expression lambdas, or other unsupported runtime logic in `ISession.Query(...)` / `QueryIndex(...)` predicates.
+- When a query has different branches for null and non-null values, express them as separate supported predicates (or separate queries) and combine the results in memory.
 
 ### Recommended Placement
 
@@ -213,3 +216,4 @@ public sealed class SportsContentService
 - Normalize values in the index when queries should be case-insensitive.
 - Return multiple MapIndex rows for picker collections instead of storing delimited strings when you need exact matching.
 - Keep lookup logic in shared services small and index-driven.
+- If a range query needs different handling for `null` and non-null columns, prefer two YesSql queries with supported predicates over a single predicate that uses a ternary.

@@ -22,7 +22,9 @@ You are an Orchard Core expert. Generate admin menus, custom admin node types, a
 - Register custom admin node services with `services.AddAdminNode<TNode, TBuilder, TDriver>()`.
 - Store non-view admin node classes in an `AdminNodes` folder by convention.
 - Store admin node views in `Views/Items/` (required convention).
-- For admin sidebar items registered with `INavigationProvider`, prefer assigning an item id and overriding `NavigationItemText-[id].cshtml` when you need a custom icon or text wrapper.
+- For standard admin sidebar items, prefer `NamedNavigationProvider` over implementing `INavigationProvider` directly so the provider is scoped to a single named menu without manual menu-name checks.
+- Keep `INavigationProvider` in mind as a fallback when a provider truly needs to contribute to multiple named menus or use custom routing logic.
+- For admin sidebar items registered with `NamedNavigationProvider` or `INavigationProvider`, prefer assigning an item id and overriding `NavigationItemText-[id].cshtml` when you need a custom icon or text wrapper.
 - Do not use `AddClass(...)` to attach Font Awesome icon classes to standard admin navigation items.
 - Always seal classes.
 
