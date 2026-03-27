@@ -142,7 +142,7 @@ When users run `copilot plugin marketplace add CrestApps/CrestApps.AgentSkills`,
 copilot plugin install CrestApps/CrestApps.AgentSkills:plugins/crestapps-orchardcore
 ```
 
-That direct install works because the plugin itself has its own `plugin.json` in `plugins/crestapps-orchardcore`.
+That direct install works because the marketplace manifest in `.github/plugin/marketplace.json` includes the `crestapps-orchardcore` plugin entry and points it at `plugins/crestapps-orchardcore`.
 
 ### Publish the marketplace so others can use it
 
@@ -217,8 +217,7 @@ Skill content goes here (guidelines, code templates, examples, etc.)
 │
 plugins/
 └─ crestapps-orchardcore/
-   ├─ plugin.json                              ← Copilot CLI plugin manifest
-   └─ README.md
+   └─ skills/                                 ← Published Orchard Core skill bundle
 
 src/
 ├─ CrestApps.AgentSkills/                 ← Central skill content (single source of truth)
