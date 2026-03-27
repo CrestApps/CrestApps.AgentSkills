@@ -10,6 +10,7 @@
   "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
   "license": "MIT",
   "keywords": [
+    "crestapps",
     "orchard-core",
     "copilot-cli",
     "skills",
@@ -17,11 +18,12 @@
   ],
   "category": "framework",
   "tags": [
+    "crestapps",
     "orchardcore",
     "cms",
     "agentskills"
   ],
   "skills": [
-    "../../src/CrestApps.AgentSkills/orchardcore"
+    "skills"
   ]
 }

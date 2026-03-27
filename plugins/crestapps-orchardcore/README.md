@@ -1,6 +1,6 @@
 # crestapps-orchardcore
 
-`crestapps-orchardcore` is a GitHub Copilot CLI plugin that exposes the Orchard Core skills from `src/CrestApps.AgentSkills/orchardcore` without copying them into your project.
+`crestapps-orchardcore` is a GitHub Copilot CLI plugin that exposes the Orchard Core skills bundled under `plugins/crestapps-orchardcore/skills`.
 
 ## Install from the CrestApps marketplace
 
@@ -33,6 +33,6 @@ Reinstall the plugin after changing the manifest or the shared Orchard Core skil
 
 ## What it provides
 
-- Reuses the existing Orchard Core skill source of truth in `src/CrestApps.AgentSkills/orchardcore`
+- Bundles the Orchard Core skills under `plugins/crestapps-orchardcore/skills`
 - Avoids copying files into your repository's `.agents/skills` folder
 - Works well for users who want shared skills managed through Copilot CLI instead of solution files
