@@ -32,7 +32,7 @@ Future frameworks can be added as new subdirectories alongside `orchardcore/`.
 
 ## How Skills Are Packaged
 
-Skills from this project are included in NuGet packages by referencing them in the corresponding project's `.csproj` file:
+The Orchard Core skill files live under `src/CrestApps.AgentSkills/orchardcore`. The corresponding package projects reference the shared `$(OrchardCoreSkillsDirectory)` MSBuild property:
 
 ### Example: Orchard Core Skills
 
@@ -40,7 +40,7 @@ The `CrestApps.AgentSkills.OrchardCore.csproj` includes:
 
 ```xml
 <ItemGroup>
-  <None Include="..\CrestApps.AgentSkills\orchardcore\**\*"
+  <None Include="$(OrchardCoreSkillsDirectory)**\*"
         Pack="true"
         PackagePath="skills"
         Visible="false" />
@@ -51,7 +51,7 @@ Similarly, `CrestApps.AgentSkills.Mcp.OrchardCore.csproj` includes:
 
 ```xml
 <ItemGroup>
-  <Content Include="..\CrestApps.AgentSkills\orchardcore\**\*"
+  <Content Include="$(OrchardCoreSkillsDirectory)**\*"
            Pack="true"
            PackagePath="contentFiles\any\any\.agents\skills"
            BuildAction="Content"

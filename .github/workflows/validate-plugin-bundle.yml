@@ -1,0 +1,34 @@
+name: Validate plugin bundle
+
+on:
+  pull_request:
+    paths:
+      - 'src/CrestApps.AgentSkills/orchardcore/**'
+      - 'plugins/crestapps-orchardcore/skills/**'
+      - '.github/workflows/publish-plugin.yml'
+      - '.github/workflows/validate-plugin-bundle.yml'
+
+jobs:
+  validate-plugin-skills:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject plugin bundle edits in pull requests
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          plugin_changes=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'plugins/crestapps-orchardcore/skills/**' | wc -l | tr -d ' ')
+
+          if [ "$plugin_changes" -gt 0 ]; then
+            echo "::error::Pull requests must not modify plugins/crestapps-orchardcore/skills. Update src/CrestApps.AgentSkills/orchardcore only; the plugin bundle is published separately."
+            exit 1
+          fi

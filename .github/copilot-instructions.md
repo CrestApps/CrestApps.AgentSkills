@@ -9,7 +9,7 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 - **Target Framework**: .NET 10 (net10.0)
 - **SDK Version**: .NET 10.0.100 (see `global.json`)
 - **Package Management**: Central Package Management via `Directory.Packages.props`
-- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (46 Orchard Core skills)
+- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (106 Orchard Core skills)
 
 ### Four Source Projects
 

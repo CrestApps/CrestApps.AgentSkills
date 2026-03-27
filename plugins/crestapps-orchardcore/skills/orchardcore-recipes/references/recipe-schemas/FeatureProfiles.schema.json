@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "FeatureProfiles"
+    },
+    "FeatureProfiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "FeatureRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Rule": {
+                  "type": "string"
+                },
+                "Expression": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "Rule",
+                "Expression"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "FeatureProfiles"
+  ],
+  "additionalProperties": true
+}

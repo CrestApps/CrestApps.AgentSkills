@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Sitemaps"
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}
