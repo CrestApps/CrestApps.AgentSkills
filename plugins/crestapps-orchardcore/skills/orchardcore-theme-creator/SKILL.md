@@ -1,6 +1,6 @@
 ---
 name: orchardcore-theme-creator
-description: Creates new Orchard Core themes with proper structure, manifest, layouts, and assets. Use when the user needs to create a new theme, customize layouts, or set up frontend assets.
+description: Creates new Orchard Core themes with proper structure, manifest, layouts, and assets. Use when the user needs to create a new theme, customize layouts, or set up frontend assets. Use this skill when requests mention Orchard Core Theme Creator, Prerequisites, Theme Creation Workflow, Step 1 Create Theme Directory, Step 2 Create Required Files, Step 3 Create Manifest.cs, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Themes, OrchardCore.DisplayManagement.Manifest, OrchardCore.Modules.Manifest, OrchardCore.Theme.Targets, OrchardCore.Theme.Targets.csproj, OrchardCore.Cms.Web, TheBlogTheme, TheAdmin, TheAgencyTheme, YourThemeName, site.css, site.js. It also helps with assets, theme structure, Step 2 Create Required Files, Step 3 Create Manifest.cs, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

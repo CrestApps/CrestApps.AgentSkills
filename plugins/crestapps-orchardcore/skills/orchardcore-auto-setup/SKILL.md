@@ -1,6 +1,6 @@
 ---
 name: orchardcore-auto-setup
-description: Skill for configuring automatic setup in Orchard Core. Covers AutoSetup configuration for unattended installations, multi-tenant auto-provisioning, JSON configuration parameters, environment variable overrides, distributed locking with Redis, feature profiles, and headless deployment automation.
+description: Skill for configuring automatic setup in Orchard Core. Covers AutoSetup configuration for unattended installations, multi-tenant auto-provisioning, JSON configuration parameters, environment variable overrides, distributed locking with Redis, feature profiles, and headless deployment automation. Use this skill when requests mention Orchard Core Auto Setup, Configure Automatic Setup for Orchard Core, Enabling Auto Setup, Configuration Parameters, Single-Tenant Auto Setup, Multi-Tenant Auto Setup, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AutoSetup, OrchardCore.Redis.Lock, CreateBuilder, IANA, DatabaseProvider, FeatureProfile, ShellName, AutoSetupPath, Program.cs, SiteName, SiteTimeZone. It also helps with Single-Tenant Auto Setup, Multi-Tenant Auto Setup, Environment Variable Configuration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Auto Setup - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-spatial
-description: Skill for working with geographic and spatial data in Orchard Core. Covers GeoPointField for location storage, geo-bounding-box queries, geo-distance queries with the Haversine formula, combined spatial queries, and geographic content filtering patterns.
+description: Skill for working with geographic and spatial data in Orchard Core. Covers GeoPointField for location storage, geo-bounding-box queries, geo-distance queries with the Haversine formula, combined spatial queries, and geographic content filtering patterns. Use this skill when requests mention Orchard Core Spatial, Work with Geographic and Spatial Data, Enabling the Spatial Feature, Adding a GeoPointField to a Content Type, Geo Bounding Box Query, Geo Distance Query, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Spatial, GeoPointField, ContentDefinition, ContentTypeSettings, TextField, ContentPartFieldSettings, geo_bounding_box, geo_distance, BlogPost.Location. It also helps with Geo Bounding Box Query, Geo Distance Query, Distance Units, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Spatial - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-custom-indexing-elasticsearch
-description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Elasticsearch, based on CrestApps AI Memory and OrchardCore.Indexing patterns.
+description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Elasticsearch, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Elasticsearch, Create a custom Elasticsearch index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing.Core, OrchardCore.Search.Elasticsearch, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-audit-trail
-description: Skill for configuring audit trail in Orchard Core. Covers audit event recording, AuditTrailPart for content tracking, event filtering and sorting, audit settings configuration, custom audit event providers, and audit trail feature setup.
+description: Skill for configuring audit trail in Orchard Core. Covers audit event recording, AuditTrailPart for content tracking, event filtering and sorting, audit settings configuration, custom audit event providers, and audit trail feature setup. Use this skill when requests mention Orchard Core Audit Trail, Configure Audit Trail and Event Tracking, Enabling Audit Trail, Audit Trail Event Categories, Audit Trail Event List Features, Attaching AuditTrailPart via Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AuditTrail, OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, OrchardCore.AuditTrail.Services, OrchardCore.AuditTrail.Services.Models. It also helps with Audit Trail Event List Features, Attaching AuditTrailPart via Migration, Attaching AuditTrailPart via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Audit Trail - Prompt Templates

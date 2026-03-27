@@ -1,6 +1,6 @@
 ---
 name: orchardcore-google
-description: Skill for configuring Google integrations in Orchard Core. Covers Google Analytics with tracking IDs, Google Tag Manager with container IDs, Google Authentication with OAuth, credentials configuration, and recipe-based setup for each Google feature.
+description: Skill for configuring Google integrations in Orchard Core. Covers Google Analytics with tracking IDs, Google Tag Manager with container IDs, Google Authentication with OAuth, credentials configuration, and recipe-based setup for each Google feature. Use this skill when requests mention Orchard Core Google Integration, Google Analytics, Google Analytics Settings, Google Tag Manager, Google Tag Manager Settings, Google Authentication, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Google, OrchardCore.Google.Analytics, OrchardCore.Google.TagManager, OrchardCore.Google.Authentication, OrchardCore.Users.Registration, TagManager, ConfigureGoogleSettings, OrchardCoreBuilder, ClientID, ClientSecret. It also helps with Google Tag Manager Settings, Google Authentication, Google Authentication Settings, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Google Integration - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-notifications
-description: Skill for managing Orchard Core notifications. Covers INotificationService, notification providers, notification events, push notifications, notification workflow activities, and custom notification handlers.
+description: Skill for managing Orchard Core notifications. Covers INotificationService, notification providers, notification events, push notifications, notification workflow activities, and custom notification handlers. Use this skill when requests mention Orchard Core Notifications, Create and Manage Notifications, Enabling Notifications, Notification Model, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Notifications, OrchardCore.Notifications.Email, OrchardCore.Users.Services, OrchardCore.Modules, OrchardCore.Security.Permissions. It also helps with notifications examples, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, Implementing a Custom Notification Provider, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

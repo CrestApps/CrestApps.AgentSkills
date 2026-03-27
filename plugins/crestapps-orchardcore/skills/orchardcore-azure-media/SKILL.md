@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-media
-description: Skill for configuring Azure Blob Storage for media in Orchard Core. Covers Azure Blob connection setup, container configuration, Liquid templating for per-tenant containers, Media Cache integration, ImageSharp configuration, and CDN considerations.
+description: Skill for configuring Azure Blob Storage for media in Orchard Core. Covers Azure Blob connection setup, container configuration, Liquid templating for per-tenant containers, Media Cache integration, ImageSharp configuration, and CDN considerations. Use this skill when requests mention Orchard Core Azure Media Storage, Azure Media Storage Configuration, Configuration Properties, Basic Configuration, Liquid Templating for Multi-Tenant Configuration, Container per Tenant, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media.Azure, OrchardCore.Media.Azure.Storage, ShellSettings, App_Data, AssetUrl, CreateContainer, ContainerName, BasePath, PhysicalFileSystemCache. It also helps with Liquid Templating for Multi-Tenant Configuration, Container per Tenant, Single Container with Base Folder per Tenant, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Azure Media Storage - Prompt Templates

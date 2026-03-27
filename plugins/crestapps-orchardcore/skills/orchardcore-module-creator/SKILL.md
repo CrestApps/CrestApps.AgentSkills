@@ -1,6 +1,6 @@
 ---
 name: orchardcore-module-creator
-description: Creates new Orchard Core modules with proper structure, manifest, startup, and patterns. Use when the user needs to create a new module, add content parts, fields, drivers, handlers, or admin functionality.
+description: Creates new Orchard Core modules with proper structure, manifest, startup, and patterns. Use when the user needs to create a new module, add content parts, fields, drivers, handlers, or admin functionality. Use this skill when requests mention Orchard Core Module Creator, Prerequisites, Module Creation Workflow, Step 1 Determine Module Type, Step 2 Create Module Directory, Step 3 Create Required Files, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Modules, OrchardCore.YourModule, OrchardCore.YourModule.csproj, OrchardCore.Cms.Web, OrchardCore.ModuleName, OrchardCore.Rating, OrchardCore.Module.Targets, OrchardCore.Module.Targets.csproj, OrchardCore.ContentManagement, OrchardCore.ContentManagement.csproj. It also helps with examples, module structure, patterns, Step 2 Create Module Directory, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,7 +28,7 @@ This skill guides you through creating new Orchard Core modules following projec
 | **Content Field** | Custom field type | Field, Driver, Views |
 | **Settings** | Site-wide configuration | SiteSettings, Driver |
 | **Admin Feature** | Admin pages/tools | Controller, Views, Menu |
-| **API** | REST endpoints | ApiController |
+| **API** | REST endpoints | Minimal API endpoint class + Startup route registration |
 | **Background Task** | Scheduled jobs | IBackgroundTask |
 
 ### Step 2: Create Module Directory
@@ -98,6 +98,38 @@ public override void ConfigureServices(IServiceCollection services)
     services.AddNavigationProvider<AdminMenu>();
 }
 ```
+
+### JSON API Endpoints
+
+When a module exposes an endpoint that primarily returns JSON, prefer Orchard Core Minimal APIs over MVC `ApiController` classes.
+
+Recommended pattern:
+
+```csharp
+public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
+{
+    routes.AddGetWeatherEndpoint();
+}
+```
+
+```csharp
+internal static class GetWeatherEndpoint
+{
+    public static IEndpointRouteBuilder AddGetWeatherEndpoint(this IEndpointRouteBuilder builder)
+    {
+        _ = builder.MapGet("api/weather", HandleAsync)
+            .RequireAuthorization()
+            .DisableAntiforgery();
+
+        return builder;
+    }
+
+    private static Task<IResult> HandleAsync()
+        => Task.FromResult<IResult>(TypedResults.Ok(new { ok = true }));
+}
+```
+
+Use MVC controllers for HTML/admin pages; use Minimal APIs for lightweight JSON endpoints.
 
 ### Step 6: Build and Test
 

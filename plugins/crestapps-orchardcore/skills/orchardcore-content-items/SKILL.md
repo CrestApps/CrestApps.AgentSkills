@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-items
-description: Skill for working with Orchard Core content items. Covers the content item lifecycle, IContentManager API, content item JSON structure, querying with YesSql, content handlers, recipe import/export, and accessing parts and fields programmatically.
+description: Skill for working with Orchard Core content items. Covers the content item lifecycle, IContentManager API, content item JSON structure, querying with YesSql, content handlers, recipe import/export, and accessing parts and fields programmatically. Use this skill when requests mention Orchard Core Content Items, Working with Content Items, Content Item Lifecycle, Content Item JSON Structure, IContentManager API, Accessing Parts and Fields, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, IContentManager, ISession, IContentHandler, TitlePart, AutoroutePart, ContentPart, TextField, IEnumerable, ContentItemIndex, ILogger, PublishContentContext. It also helps with content items examples, IContentManager API, Accessing Parts and Fields, Querying Content Items with YesSql, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

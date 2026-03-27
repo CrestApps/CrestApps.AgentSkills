@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp-client
-description: Skill for configuring CrestApps MCP client connections in Orchard Core. Covers SSE and Stdio transports, authentication, recipes, and assigning MCP connections to AI experiences.
+description: Skill for configuring CrestApps MCP client connections in Orchard Core. Covers SSE and Stdio transports, authentication, recipes, and assigning MCP connections to AI experiences. Use this skill when requests mention Orchard Core MCP Client, Configure MCP Clients, Feature Overview, Enable the SSE MCP Client, Add a Remote MCP Connection via Admin UI, SSE Authentication Types, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp, CrestApps.OrchardCore.AI.Mcp.Stdio, CrestApps.OrchardCore.AI, ApiKey, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2MutualTls, CustomHeaders. It also helps with Add a Remote MCP Connection via Admin UI, SSE Authentication Types, SSE Recipe Example, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

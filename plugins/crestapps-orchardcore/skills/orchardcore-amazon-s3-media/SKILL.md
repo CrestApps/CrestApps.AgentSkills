@@ -1,6 +1,6 @@
 ---
 name: orchardcore-amazon-s3-media
-description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers S3 bucket configuration, AWS credentials management and loading order, S3 security policies, multi-tenant bucket templating, local S3 emulator setup with Docker, ImageSharp cache integration, and CDN caching strategy.
+description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers S3 bucket configuration, AWS credentials management and loading order, S3 security policies, multi-tenant bucket templating, local S3 emulator setup with Docker, ImageSharp cache integration, and CDN caching strategy. Use this skill when requests mention Orchard Core Amazon S3 Media Storage, Amazon S3 Media Storage Configuration, Configuration Properties, Basic Configuration (Hosted in AWS), Configuration with Explicit Credentials (Hosted Outside, Configuration with AWS Profile, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media.AmazonS3, ShellSettings, App_Data, BucketName, appsettings.json. It also helps with Configuration with Explicit Credentials (Hosted Outside, Configuration with AWS Profile, AWS Credentials Loading Order, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Amazon S3 Media Storage - Prompt Templates

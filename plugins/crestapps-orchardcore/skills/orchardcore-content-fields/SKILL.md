@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-fields
-description: Skill for adding and configuring content fields in Orchard Core. Covers every built-in field type with all available settings, editor options, display modes, and migration code patterns.
+description: Skill for adding and configuring content fields in Orchard Core. Covers every built-in field type with all available settings, editor options, display modes, and migration code patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, CrestApps.OrchardCore.AI, FieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

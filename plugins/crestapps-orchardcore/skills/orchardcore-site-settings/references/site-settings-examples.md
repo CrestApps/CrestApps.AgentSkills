@@ -64,20 +64,26 @@ public class SocialMediaSettingsViewModel
 ### Display Driver
 
 ```csharp
-public sealed class SocialMediaSettingsDisplayDriver : DisplayDriver<ISite>
+public sealed class SocialMediaSettingsDisplayDriver : SiteDisplayDriver<SocialMediaSettings>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IShellReleaseManager _shellReleaseManager;
+
+    protected override string SettingsGroupId
+        => "social-media";
 
     public SocialMediaSettingsDisplayDriver(
         IHttpContextAccessor httpContextAccessor,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IShellReleaseManager shellReleaseManager)
     {
         _httpContextAccessor = httpContextAccessor;
         _authorizationService = authorizationService;
+        _shellReleaseManager = shellReleaseManager;
     }
 
-    public override async Task<IDisplayResult> EditAsync(ISite model, BuildEditorContext context)
+    public override async Task<IDisplayResult> EditAsync(ISite site, SocialMediaSettings settings, BuildEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -86,19 +92,19 @@ public sealed class SocialMediaSettingsDisplayDriver : DisplayDriver<ISite>
             return null;
         }
 
+        context.AddTenantReloadWarningWrapper();
+
         return Initialize<SocialMediaSettingsViewModel>("SocialMediaSettings_Edit", viewModel =>
         {
-            var settings = model.As<SocialMediaSettings>();
-
             viewModel.FacebookUrl = settings.FacebookUrl;
             viewModel.TwitterHandle = settings.TwitterHandle;
             viewModel.LinkedInUrl = settings.LinkedInUrl;
             viewModel.ShowSocialLinks = settings.ShowSocialLinks;
         }).Location("Content:5")
-        .OnGroup("social-media");
+        .OnGroup(SettingsGroupId);
     }
 
-    public override async Task<IDisplayResult> UpdateAsync(ISite model, UpdateEditorContext context)
+    public override async Task<IDisplayResult> UpdateAsync(ISite site, SocialMediaSettings settings, UpdateEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -107,22 +113,24 @@ public sealed class SocialMediaSettingsDisplayDriver : DisplayDriver<ISite>
             return null;
         }
 
-        if (context.GroupId == "social-media")
+        var viewModel = new SocialMediaSettingsViewModel();
+
+        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
+
+        if (settings.FacebookUrl != viewModel.FacebookUrl ||
+            settings.TwitterHandle != viewModel.TwitterHandle ||
+            settings.LinkedInUrl != viewModel.LinkedInUrl ||
+            settings.ShowSocialLinks != viewModel.ShowSocialLinks)
         {
-            var viewModel = new SocialMediaSettingsViewModel();
-
-            await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
-
-            model.Put(new SocialMediaSettings
-            {
-                FacebookUrl = viewModel.FacebookUrl,
-                TwitterHandle = viewModel.TwitterHandle,
-                LinkedInUrl = viewModel.LinkedInUrl,
-                ShowSocialLinks = viewModel.ShowSocialLinks,
-            });
+            _shellReleaseManager.RequestRelease();
         }
 
-        return await EditAsync(model, context);
+        settings.FacebookUrl = viewModel.FacebookUrl;
+        settings.TwitterHandle = viewModel.TwitterHandle;
+        settings.LinkedInUrl = viewModel.LinkedInUrl;
+        settings.ShowSocialLinks = viewModel.ShowSocialLinks;
+
+        return await EditAsync(site, settings, context);
     }
 }
 ```
@@ -325,7 +333,7 @@ public sealed class AnalyticsMigrations : DataMigration
 }
 ```
 
-When using content fields in a custom settings type, the fields are rendered automatically by their own display drivers. You do not need to create a custom `DisplayDriver<ISite>` for the field editors.
+When using content fields in a custom settings type, the fields are rendered automatically by their own display drivers. You do not need to create a custom `SiteDisplayDriver<TSettings>` just to render the field editors.
 
 ---
 
@@ -469,20 +477,26 @@ public sealed class SecurityHeaderSettings : ContentPart
 A display driver that validates user input before saving settings.
 
 ```csharp
-public sealed class SmtpSettingsDisplayDriver : DisplayDriver<ISite>
+public sealed class SmtpSettingsDisplayDriver : SiteDisplayDriver<SmtpSettings>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IShellReleaseManager _shellReleaseManager;
+
+    protected override string SettingsGroupId
+        => "smtp";
 
     public SmtpSettingsDisplayDriver(
         IHttpContextAccessor httpContextAccessor,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IShellReleaseManager shellReleaseManager)
     {
         _httpContextAccessor = httpContextAccessor;
         _authorizationService = authorizationService;
+        _shellReleaseManager = shellReleaseManager;
     }
 
-    public override async Task<IDisplayResult> EditAsync(ISite model, BuildEditorContext context)
+    public override async Task<IDisplayResult> EditAsync(ISite site, SmtpSettings settings, BuildEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -491,19 +505,19 @@ public sealed class SmtpSettingsDisplayDriver : DisplayDriver<ISite>
             return null;
         }
 
+        context.AddTenantReloadWarningWrapper();
+
         return Initialize<SmtpSettingsViewModel>("SmtpSettings_Edit", viewModel =>
         {
-            var settings = model.As<SmtpSettings>();
-
             viewModel.Host = settings.Host;
             viewModel.Port = settings.Port;
             viewModel.EnableSsl = settings.EnableSsl;
             viewModel.FromAddress = settings.FromAddress;
         }).Location("Content:5")
-        .OnGroup("smtp");
+        .OnGroup(SettingsGroupId);
     }
 
-    public override async Task<IDisplayResult> UpdateAsync(ISite model, UpdateEditorContext context)
+    public override async Task<IDisplayResult> UpdateAsync(ISite site, SmtpSettings settings, UpdateEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -512,40 +526,42 @@ public sealed class SmtpSettingsDisplayDriver : DisplayDriver<ISite>
             return null;
         }
 
-        if (context.GroupId == "smtp")
+        var viewModel = new SmtpSettingsViewModel();
+
+        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
+
+        if (string.IsNullOrWhiteSpace(viewModel.Host))
         {
-            var viewModel = new SmtpSettingsViewModel();
-
-            await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
-
-            if (string.IsNullOrWhiteSpace(viewModel.Host))
-            {
-                context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Host), "SMTP host is required.");
-            }
-
-            if (viewModel.Port <= 0 || viewModel.Port > 65535)
-            {
-                context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Port), "Port must be between 1 and 65535.");
-            }
-
-            if (string.IsNullOrWhiteSpace(viewModel.FromAddress) || !viewModel.FromAddress.Contains('@'))
-            {
-                context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.FromAddress), "A valid from address is required.");
-            }
-
-            if (context.Updater.ModelState.IsValid)
-            {
-                model.Put(new SmtpSettings
-                {
-                    Host = viewModel.Host,
-                    Port = viewModel.Port,
-                    EnableSsl = viewModel.EnableSsl,
-                    FromAddress = viewModel.FromAddress,
-                });
-            }
+            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Host), "SMTP host is required.");
         }
 
-        return await EditAsync(model, context);
+        if (viewModel.Port <= 0 || viewModel.Port > 65535)
+        {
+            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Port), "Port must be between 1 and 65535.");
+        }
+
+        if (string.IsNullOrWhiteSpace(viewModel.FromAddress) || !viewModel.FromAddress.Contains('@'))
+        {
+            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.FromAddress), "A valid from address is required.");
+        }
+
+        if (context.Updater.ModelState.IsValid)
+        {
+            if (settings.Host != viewModel.Host ||
+                settings.Port != viewModel.Port ||
+                settings.EnableSsl != viewModel.EnableSsl ||
+                settings.FromAddress != viewModel.FromAddress)
+            {
+                _shellReleaseManager.RequestRelease();
+            }
+
+            settings.Host = viewModel.Host;
+            settings.Port = viewModel.Port;
+            settings.EnableSsl = viewModel.EnableSsl;
+            settings.FromAddress = viewModel.FromAddress;
+        }
+
+        return await EditAsync(site, settings, context);
     }
 }
 ```

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-microsoft-auth
-description: Skill for configuring Microsoft authentication in Orchard Core. Covers Microsoft Account login, Microsoft Entra ID (Azure AD) integration, Azure app registration, multi-tenant support, recipe-based configuration, configuration overrides, and callback URL setup.
+description: Skill for configuring Microsoft authentication in Orchard Core. Covers Microsoft Account login, Microsoft Entra ID (Azure AD) integration, Azure app registration, multi-tenant support, recipe-based configuration, configuration overrides, and callback URL setup. Use this skill when requests mention Orchard Core Microsoft Authentication, Microsoft Account Authentication, Microsoft Account Settings, Microsoft Account Configuration Override, Microsoft Entra ID (Azure Active Directory) Authentication, Entra ID Settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Microsoft.Authentication, OrchardCore.Users.Registration, ConfigureMicrosoftAccountSettings, OrchardCoreBuilder. It also helps with Microsoft Entra ID (Azure Active Directory) Authentication, Entra ID Settings, Multi-Tenant App Registrations, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Microsoft Authentication - Prompt Templates

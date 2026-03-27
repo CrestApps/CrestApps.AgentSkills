@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-relationships
-description: Skill for modeling content relationships in Orchard Core. Covers five relationship strategies including BagPart for embedded items, ContentPickerField for many-to-many, FlowPart for layout widgets, ListPart for hierarchical collections, and Taxonomies for categorization and tagging.
+description: Skill for modeling content relationships in Orchard Core. Covers five relationship strategies including BagPart for embedded items, ContentPickerField for many-to-many, FlowPart for layout widgets, ListPart for hierarchical collections, and Taxonomies for categorization and tagging. Use this skill when requests mention Orchard Core Content Relationships, Model Content Relationships, Relationship Strategy Decision Matrix, BagPart — Embedded Items within a Parent, ContentPickerField — Many-to-Many References, FlowPart — Structured Layout with Widgets, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with BagPart, ContentPickerField, FlowPart, ListPart, DataMigration. It also helps with ContentPickerField — Many-to-Many References, FlowPart — Structured Layout with Widgets, ListPart — Hierarchical One-to-Many Collections, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Content Relationships - Prompt Templates

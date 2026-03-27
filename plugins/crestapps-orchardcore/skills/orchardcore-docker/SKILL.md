@@ -1,6 +1,6 @@
 ---
 name: orchardcore-docker
-description: Skill for containerizing Orchard Core with Docker. Covers Dockerfile creation with multi-stage builds, dockerignore configuration, docker-compose setup for multiple database providers, HTTPS deployment in containers, environment-specific targeting, image optimization, and CI/CD considerations.
+description: Skill for containerizing Orchard Core with Docker. Covers Dockerfile creation with multi-stage builds, dockerignore configuration, docker-compose setup for multiple database providers, HTTPS deployment in containers, environment-specific targeting, image optimization, and CI/CD considerations. Use this skill when requests mention Orchard Core Docker, Containerize Orchard Core with Docker, Multi-Stage Dockerfile, Custom Application Dockerfile, Dockerignore File, Building and Running with Docker, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cms.Web, OrchardCore.Cms.Web.dll, docker-compose.yml. It also helps with Dockerignore File, Building and Running with Docker, Docker Compose with Multiple Databases, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Docker - Prompt Templates

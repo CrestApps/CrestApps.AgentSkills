@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-indexing
-description: Skill for configuring search and indexing in Orchard Core. Covers Lucene indexing, Elasticsearch integration, search settings, index definitions, and search queries.
+description: Skill for configuring search and indexing in Orchard Core. Covers Lucene indexing, Elasticsearch integration, search settings, index definitions, and search queries. Use this skill when requests mention Orchard Core Search & Indexing, Configure Search and Indexing, Enabling Search Features, Lucene Index Configuration via Recipe, Elasticsearch Configuration, Elasticsearch Index via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.Lucene, OrchardCore.Search.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, SearchService, LuceneQueryService, LuceneIndexManager, IEnumerable, LuceneQueryContext, MyPartIndexHandler, ContentPartIndexHandler, MyPart. It also helps with search indexing examples, Elasticsearch Configuration, Elasticsearch Index via Recipe, Lucene Queries via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

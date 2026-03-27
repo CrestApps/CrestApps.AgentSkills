@@ -1,6 +1,6 @@
 ---
 name: orchardcore-theming
-description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings.
+description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings. Use this skill when requests mention Orchard Core Theming, How to Use, Evidence Rules, Reference Cues, Tasks, Create a Theme, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyTheme, OrchardCore.DisplayManagement.Manifest, OrchardCore.DisplayManagement, OrchardCore.Theme.Targets, OrchardCore.IOrchardHelper, OrchardCore.ResourceManagement, ContentDefinition, BagPart, FlowPart, ListPart, IOrchardHelper, IResourceManifestProvider. It also helps with assets resources, placement rules, shape alternates, shape workflow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat
-description: Skill for configuring AI Chat in Orchard Core using the CrestApps AI Chat module. Covers chat profiles, admin chat UI, frontend chat widgets, provider connections, and the AI Agent module for task automation.
+description: Skill for configuring AI Chat in Orchard Core using the CrestApps AI Chat module. Covers chat profiles, admin chat UI, frontend chat widgets, provider connections, and the AI Agent module for task automation. Use this skill when requests mention Orchard Core AI Chat, Configure AI Chat, Available AI Completion Providers, Enabling AI Chat Features, Setting Up a Provider Connection via Recipe, Creating a Chat Profile via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat, CrestApps.OrchardCore.AI.Agent, CrestApps.OrchardCore.OpenAI, CrestApps.OrchardCore.AzureAIInference, CrestApps.OrchardCore.Ollama. It also helps with ai chat examples, Setting Up a Provider Connection via Recipe, Creating a Chat Profile via Recipe, Making a Chat Profile Visible on the Admin Menu, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -68,16 +68,44 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
           "Name": "default",
           "IsDefault": true,
           "DisplayText": "OpenAI",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-            { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true }
-          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
               "ApiKey": "{{YourApiKey}}"
             }
           }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Managing Deployments via Recipe
+
+Use typed deployments to bind chat profiles to specific models:
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "openai-chat",
+          "Name": "gpt-4o",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Chat",
+          "IsDefault": true
+        },
+        {
+          "ItemId": "openai-utility",
+          "Name": "gpt-4o-mini",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Utility",
+          "IsDefault": true
         }
       ]
     }
@@ -94,7 +122,6 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "customer-support-chat",
           "DisplayText": "Customer Support Chat",
           "WelcomeMessage": "Hello! How can I help you today?",
@@ -102,9 +129,9 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "",
-          "ChatDeploymentId": "",
-          "UtilityDeploymentId": "",
+          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
+          "ChatDeploymentId": "openai-chat",
+          "UtilityDeploymentId": "openai-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful customer support assistant. Answer questions about our products and services. Be friendly and concise.",
@@ -122,6 +149,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
   ]
 }
 ```
+
+The `AIProfile` recipe format omits `Source`. Profiles are source-agnostic and resolve their active client from the selected deployment IDs, or from the optional `ConnectionName` fallback when deployment IDs are not set.
 
 ### Making a Chat Profile Visible on the Admin Menu
 
@@ -141,7 +170,7 @@ public sealed class AIChatProfileMigrations : DataMigration
 
     public async Task<int> CreateAsync()
     {
-        var profile = await _profileManager.NewAsync("OpenAI");
+        var profile = await _profileManager.NewAsync();
 
         profile.Name = "site-assistant";
         profile.DisplayText = "Site Assistant";
@@ -213,15 +242,14 @@ Agent profiles are reusable agents that can be invoked as tools by other profile
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "research-agent",
           "DisplayText": "Research Agent",
           "Description": "An agent that can research topics and provide comprehensive summaries with citations.",
           "Type": "Agent",
           "TitleType": "InitialPrompt",
-          "ConnectionName": "",
-          "ChatDeploymentId": "",
-          "UtilityDeploymentId": "",
+          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
+          "ChatDeploymentId": "openai-chat",
+          "UtilityDeploymentId": "openai-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
@@ -242,7 +270,7 @@ Agent profiles are reusable agents that can be invoked as tools by other profile
 ### Creating an Agent Profile in Code
 
 ```csharp
-var profile = await _profileManager.NewAsync("OpenAI");
+var profile = await _profileManager.NewAsync();
 
 profile.Name = "research-agent";
 profile.DisplayText = "Research Agent";

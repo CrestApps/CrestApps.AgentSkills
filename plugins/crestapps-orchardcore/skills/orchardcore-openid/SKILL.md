@@ -1,6 +1,6 @@
 ---
 name: orchardcore-openid
-description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers server setup, client application registration, authorization flows, token validation, external authentication providers, JWT bearer authentication for APIs, and recipe-based configuration.
+description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers server setup, client application registration, authorization flows, token validation, external authentication providers, JWT bearer authentication for APIs, and recipe-based configuration. Use this skill when requests mention Orchard Core OpenID Connect, OpenID Connect Server Configuration, Server Settings via Migration, Client Application Registration, Client Registration via Migration, Authorization Flows, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Client, OrchardCore.OpenId.Validation, DataMigration, IOpenIdServerService, IOpenIdApplicationManager. It also helps with openid examples, Client Registration via Migration, Authorization Flows, Authorization Code Flow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

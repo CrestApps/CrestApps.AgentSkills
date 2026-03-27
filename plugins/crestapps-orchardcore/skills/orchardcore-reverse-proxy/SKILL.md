@@ -1,6 +1,6 @@
 ---
 name: orchardcore-reverse-proxy
-description: Skill for configuring reverse proxy support in Orchard Core. Covers forwarded headers middleware (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host), configuration sources (admin UI vs file-based), security considerations for trusted proxies, and multi-tenancy forwarding.
+description: Skill for configuring reverse proxy support in Orchard Core. Covers forwarded headers middleware (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host), configuration sources (admin UI vs file-based), security considerations for trusted proxies, and multi-tenancy forwarding. Use this skill when requests mention Orchard Core Reverse Proxy, Configure Reverse Proxy Support, Enabling the Reverse Proxy Feature, Configuration Options, Admin UI Configuration (Scenario 1), File-Based Configuration (Scenario 2), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ReverseProxy, ConfigureReverseProxySettings, OrchardCoreBuilder, CreateBuilder, appsettings.json. It also helps with Admin UI Configuration (Scenario 1), File-Based Configuration (Scenario 2), Partial Override Configuration (Scenario 3), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Reverse Proxy - Prompt Templates
