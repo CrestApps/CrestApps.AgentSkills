@@ -1,6 +1,6 @@
 ---
 name: orchardcore-startup-code
-description: Skill for running initialization code on tenant startup in Orchard Core. Covers IModularTenantEvents interface, ActivatingAsync and ActivatedAsync lifecycle hooks, tenant lazy-loading behavior, service registration patterns, and module initialization best practices.
+description: Skill for running initialization code on tenant startup in Orchard Core. Covers IModularTenantEvents interface, ActivatingAsync and ActivatedAsync lifecycle hooks, tenant lazy-loading behavior, service registration patterns, and module initialization best practices. Use this skill when requests mention Orchard Core Startup Code, Run Code on Tenant Startup, Basic Startup Task, Registering the Startup Task, Using Both ActivatingAsync and ActivatedAsync, Seeding Default Data on Tenant Start, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Modules, OrchardCore.ContentManagement, IModularTenantEvents, MyStartupTaskService, ILogger, IServiceCollection. It also helps with Using Both ActivatingAsync and ActivatedAsync, Seeding Default Data on Tenant Start, Initializing External Service Connections, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Startup Code - Prompt Templates

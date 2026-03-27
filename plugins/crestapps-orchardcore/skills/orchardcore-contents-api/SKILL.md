@@ -1,6 +1,6 @@
 ---
 name: orchardcore-contents-api
-description: Skill for using Orchard Core content APIs. Covers the Contents REST API (GET, POST, DELETE), GraphQL content queries and filtering, Liquid content loading helpers, Razor content helper methods, content item lifecycle states, and admin list customization.
+description: Skill for using Orchard Core content APIs. Covers the Contents REST API (GET, POST, DELETE), GraphQL content queries and filtering, Liquid content loading helpers, Razor content helper methods, content item lifecycle states, and admin list customization. Use this skill when requests mention Orchard Core Contents API, Using Orchard Core Content APIs, Content Item Lifecycle States, CommonPart Properties, REST API Endpoints, Authentication for REST API, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Contents, OrchardCore.Apis.GraphQL, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, IContentManager, CommonPart, TitlePart, HtmlBodyPart, IOrchardHelper, IEnumerable, IContentsAdminListFilterProvider. It also helps with REST API Endpoints, Authentication for REST API, GraphQL Queries, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Contents API - Prompt Templates

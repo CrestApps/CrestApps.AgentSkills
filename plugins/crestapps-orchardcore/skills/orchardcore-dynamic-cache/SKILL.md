@@ -1,6 +1,6 @@
 ---
 name: orchardcore-dynamic-cache
-description: Skill for configuring dynamic caching in Orchard Core. Covers shape-level caching, cache tag helpers, Liquid cache blocks, cache context dependencies, cache variations (query, cookie, user, role), cache invalidation with ISignal, and performance optimization patterns.
+description: Skill for configuring dynamic caching in Orchard Core. Covers shape-level caching, cache tag helpers, Liquid cache blocks, cache context dependencies, cache variations (query, cookie, user, role), cache invalidation with ISignal, and performance optimization patterns. Use this skill when requests mention Orchard Core Dynamic Cache, Configure Dynamic Caching, Enabling Dynamic Cache, Well-Known Cache Dependencies, Available Cache Contexts (Vary-By), Shape Tag Helper Attributes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DynamicCache, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Environment.Cache, ISignal, IDynamicCache, IDistributedCache. It also helps with Available Cache Contexts (Vary-By), Shape Tag Helper Attributes, Caching Shapes via Tag Helpers, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Dynamic Cache - Prompt Templates

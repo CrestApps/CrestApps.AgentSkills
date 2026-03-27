@@ -1,6 +1,6 @@
 ---
 name: orchardcore-yessql-indexes
-description: Skill for creating custom YesSql indexes in Orchard Core. Covers MapIndex models, IndexProvider patterns, multi-row mappings for one-to-many relationships, migration table creation, and querying with ISession.QueryIndex().
+description: Skill for creating custom YesSql indexes in Orchard Core. Covers MapIndex models, IndexProvider patterns, multi-row mappings for one-to-many relationships, migration table creation, and querying with ISession.QueryIndex(). Use this skill when requests mention Orchard Core YesSql Indexes, Create a Custom YesSql Index, Recommended Placement, Simple Lookup Index, One-to-Many Index with Multiple Rows Per Content Item, Migration Example, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, CrestApps.Sports.Core.Indexes, CrestApps.Sports.Calendar.Indexes, OrchardCore.Data.Migration, CrestApps.Sports.Calendar.Migrations, OrchardCore.Modules. It also helps with yessql index examples, One-to-Many Index with Multiple Rows Per Content Item, Migration Example, Startup Registration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -22,9 +22,14 @@ You are an Orchard Core expert. Generate code for custom YesSql indexes that fol
 - Register index providers in Startup.cs with services.AddIndexProvider<TProvider>().
 - Create index tables in migrations with SchemaBuilder.CreateMapIndexTableAsync<TIndex>().
 - Add explicit SQL indexes for the lookup fields you query most often.
+- Orchard Core ids such as `ContentItemId` and `ItemId` are typically 26 characters long; define indexed string id columns with `.WithLength(26)`.
+- When new Orchard ids are needed, prefer `IdGenerator.GenerateId()` instead of GUID strings or custom random values.
 - Query indexes with ISession.QueryIndex<TIndex>() when you only need projected values, rather than hydrating full ContentItem documents.
 - For one-to-many relationships, return multiple rows from .Map(...) by projecting with Select(...).
 - Keep migrations in a Migrations folder and keep migration classes internal sealed.
+- Keep YesSql query predicates limited to expressions the provider can translate: comparisons, null checks, boolean `&&` / `||`, ordering, paging, and simple projections.
+- Do **not** use conditional operators (`?:`), `if`-style branching inside expression lambdas, or other unsupported runtime logic in `ISession.Query(...)` / `QueryIndex(...)` predicates.
+- When a query has different branches for null and non-null values, express them as separate supported predicates (or separate queries) and combine the results in memory.
 
 ### Recommended Placement
 
@@ -137,26 +142,34 @@ public sealed class DrillsIndexProvider : IndexProvider<ContentItem>
 ### Migration Example
 
 `csharp
-using CrestApps.Sports.Core.Indexes;
+using CrestApps.Sports.Calendar.Indexes;
 using OrchardCore.Data.Migration;
 
-namespace CrestApps.Sports.Drills.Migrations;
+namespace CrestApps.Sports.Calendar.Migrations;
 
-internal sealed class DrillMigrations : DataMigration
+internal sealed class SportEventMigrations : DataMigration
 {
-    public async Task<int> UpdateFrom3Async()
+    public async Task<int> UpdateFrom1Async()
     {
-        await SchemaBuilder.CreateMapIndexTableAsync<DrillsIndex>(table => table
-            .Column<string>(nameof(DrillsIndex.DrillContentItemId), column => column.WithLength(26))
-            .Column<string>(nameof(DrillsIndex.SkillContentItemId), column => column.WithLength(26))
-            .Column<bool>(nameof(DrillsIndex.Published))
+        await SchemaBuilder.CreateMapIndexTableAsync<SportEventPartIndex>(table => table
+            .Column<string>(nameof(SportEventPartIndex.ContentItemId), column => column.WithLength(26))
+            .Column<bool>(nameof(SportEventPartIndex.Published))
+            .Column<DateTime>(nameof(SportEventPartIndex.EventDateUtc))
+            .Column<DateTime?>(nameof(SportEventPartIndex.EndDateUtc))
         );
 
-        await SchemaBuilder.AlterIndexTableAsync<DrillsIndex>(table => table
-            .CreateIndex("IDX_DrillsIndex_SkillContentItemId", nameof(DrillsIndex.SkillContentItemId), nameof(DrillsIndex.Published))
+        await SchemaBuilder.AlterIndexTableAsync<SportEventPartIndex>(table => table
+            .CreateIndex(
+                "IDX_SportEventPartIndex_EventDateUtc",
+                nameof(SportEventPartIndex.Published),
+                nameof(SportEventPartIndex.EventDateUtc))
+            .CreateIndex(
+                "IDX_SportEventPartIndex_EndDateUtc",
+                nameof(SportEventPartIndex.Published),
+                nameof(SportEventPartIndex.EndDateUtc))
         );
 
-        return 4;
+        return 2;
     }
 }
 `
@@ -213,3 +226,5 @@ public sealed class SportsContentService
 - Normalize values in the index when queries should be case-insensitive.
 - Return multiple MapIndex rows for picker collections instead of storing delimited strings when you need exact matching.
 - Keep lookup logic in shared services small and index-driven.
+- If a range query needs different handling for `null` and non-null columns, prefer two YesSql queries with supported predicates over a single predicate that uses a ternary.
+- Keep Orchard id columns at length 26 and reuse Orchard-style ids generated by `IdGenerator.GenerateId()` when new identifiers are required.

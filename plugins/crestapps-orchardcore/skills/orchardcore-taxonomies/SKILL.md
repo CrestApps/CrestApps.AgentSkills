@@ -1,6 +1,6 @@
 ---
 name: orchardcore-taxonomies
-description: Skill for creating and managing taxonomies in Orchard Core. Covers taxonomy creation, taxonomy terms, taxonomy fields, and taxonomy-based content organization.
+description: Skill for creating and managing taxonomies in Orchard Core. Covers taxonomy creation, taxonomy terms, taxonomy fields, and taxonomy-based content organization. Use this skill when requests mention Orchard Core Taxonomies, Create and Manage Taxonomies, Enabling Taxonomy Features, Creating a Taxonomy via Recipe, Hierarchical Terms (Nested), Attaching TaxonomyField to a Content Type, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, TaxonomyField, TermPart, TitlePart, AliasPart, TaxonomyPart, AlterPartDefinition, WithField, WithSettings, TaxonomyFieldSettings, AlterTypeDefinition, WithPart. It also helps with taxonomy examples, Hierarchical Terms (Nested), Attaching TaxonomyField to a Content Type, Querying by Taxonomy Terms in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

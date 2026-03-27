@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-queries
-description: Skill for querying content items in Orchard Core using YesSql. Covers ContentItemIndex queries, custom index creation, ISession usage, IContentManager queries, and query optimization patterns.
+description: Skill for querying content items in Orchard Core using YesSql. Covers ContentItemIndex queries, custom index creation, ISession usage, IContentManager queries, and query optimization patterns. Use this skill when requests mention Orchard Core Content Queries, Query Content Items, Querying with ContentItemIndex, ContentItemIndex Fields Reference, Creating a Custom YesSql Index, Registering Custom Index and Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, OrchardCore.ContentManagement.Records, OrchardCore.Data.Migration, ContentItemIndex, ISession, IContentManager, ContentQueryService, IEnumerable, TitlePart, MapIndex. It also helps with content queries examples, Creating a Custom YesSql Index, Registering Custom Index and Migration, Registering Index Provider in Startup, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -22,6 +22,8 @@ You are an Orchard Core expert. Generate code for querying content items using Y
 - `IContentManager` provides higher-level content operations (Get, New, Create, Publish).
 - Always use `async/await` patterns for database queries.
 - Use `.With<IndexType>()` to join against specific indexes.
+- Keep YesSql predicates translatable: use comparisons, null checks, and boolean `&&` / `||`, but avoid ternaries and other conditional expressions inside query lambdas.
+- If null and non-null rows need different query logic, split the query into multiple supported YesSql expressions and combine the results in memory.
 - Always seal classes.
 
 ### Querying with ContentItemIndex

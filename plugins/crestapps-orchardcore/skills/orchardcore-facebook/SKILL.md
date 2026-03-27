@@ -1,6 +1,6 @@
 ---
 name: orchardcore-facebook
-description: Skill for configuring Facebook/Meta integrations in Orchard Core. Covers Meta App core components, Meta Login authentication, Social Plugins widgets (Like, Share, Comments, etc.), Meta Pixel tracking, and settings configuration.
+description: Skill for configuring Facebook/Meta integrations in Orchard Core. Covers Meta App core components, Meta Login authentication, Social Plugins widgets (Like, Share, Comments, etc.), Meta Pixel tracking, and settings configuration. Use this skill when requests mention Orchard Core Facebook/Meta Integration, Meta Core Components, Meta App Settings, Meta Login Authentication, Meta Login Settings, Meta Social Plugins Widgets, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Facebook, OrchardCore.Facebook.Login, OrchardCore.Facebook.Widgets, OrchardCore.Facebook.Pixel, OrchardCore.Users.Registration, ResourceManager, ConfigureFacebookSettings, OrchardCoreBuilder, AppId, AppSecret, v3.2, sdk.js. It also helps with Meta Login Settings, Meta Social Plugins Widgets, Available Widget Types, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Facebook/Meta Integration - Prompt Templates

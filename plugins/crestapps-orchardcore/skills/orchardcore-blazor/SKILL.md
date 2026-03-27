@@ -1,6 +1,6 @@
 ---
 name: orchardcore-blazor
-description: Skill for building Blazor CMS applications with Orchard Core. Covers Blazor SSR and Server Interactive rendering, Razor class library structure, Blazor component architecture (App, Layout, NavMenu, Router), content integration with IContentHandleManager, dependency injection in Blazor pages, loading CMS content in Blazor components, SEO and alias handling, and multi-tenant support.
+description: Skill for building Blazor CMS applications with Orchard Core. Covers Blazor SSR and Server Interactive rendering, Razor class library structure, Blazor component architecture (App, Layout, NavMenu, Router), content integration with IContentHandleManager, dependency injection in Blazor pages, loading CMS content in Blazor components, SEO and alias handling, and multi-tenant support. Use this skill when requests mention Orchard Core Blazor CMS, Building Blazor Applications with Orchard Core, Solution Structure, Create the Solution from CLI, Razor Class Library Project File, Program.cs — Orchard Core with Blazor Pipeline, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. It also helps with Razor Class Library Project File, Program.cs — Orchard Core with Blazor Pipeline, App.razor — Root Component, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Blazor CMS - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-html
-description: Skill for using HtmlBodyPart in Orchard Core. Covers HTML content editing, shape templates for Liquid and Razor, custom editor configurations, HTML sanitization, Trumbowyg and Monaco editors, and display/editor shape types.
+description: Skill for using HtmlBodyPart in Orchard Core. Covers HTML content editing, shape templates for Liquid and Razor, custom editor configurations, HTML sanitization, Trumbowyg and Monaco editors, and display/editor shape types. Use this skill when requests mention Orchard Core HTML Body, Use HtmlBodyPart for Rich Content Editing, Enabling HTML Body, Attaching HtmlBodyPart to a Content Type, Shapes, HtmlBodyPartViewModel Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Html, OrchardCore.Html.ViewModels, HtmlBodyPart, DataMigration, IContentDefinitionManager, WithPart, TitlePart, TypePartSettings, HtmlBodyPartSettings, ContentDefinition, ContentTypeSettings, ContentTypePartSettings. It also helps with Shapes, HtmlBodyPartViewModel Properties, HtmlBodyPart Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core HTML Body - Prompt Templates

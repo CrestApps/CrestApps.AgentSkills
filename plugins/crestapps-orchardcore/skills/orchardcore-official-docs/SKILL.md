@@ -1,6 +1,6 @@
 ---
 name: orchardcore-official-docs
-description: Search the official Orchard Core documentation site (docs.orchardcore.net) for up-to-date information about Orchard Core CMS framework features, modules, configuration, theming, and development practices.
+description: Search the official Orchard Core documentation site (docs.orchardcore.net) for up-to-date information about Orchard Core CMS framework features, modules, configuration, theming, and development practices. Use this skill when requests mention Orchard Core Official Documentation Lookup, Real-Time Documentation Search, How to Search — Dynamic Discovery via Search Index, Common URL Patterns, Example Workflow, Fallback, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with web_fetch, start_index, max_length. It also helps with Example Workflow, Fallback, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

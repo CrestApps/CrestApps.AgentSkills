@@ -1,6 +1,6 @@
 ---
 name: orchardcore-scripting
-description: Skill for using the Orchard Core scripting engine. Covers JavaScript evaluation, built-in global methods for content management, HTTP requests, workflow signals, recipe execution, environment variables, layer rules, and custom scripting providers.
+description: Skill for using the Orchard Core scripting engine. Covers JavaScript evaluation, built-in global methods for content management, HTTP requests, workflow signals, recipe execution, environment variables, layer rules, and custom scripting providers. Use this skill when requests mention Orchard Core Scripting, Use the Orchard Core Scripting Engine, Enabling Scripting Features, Evaluating JavaScript from Code, Built-In Global Methods, File Scripting Engine, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Scripting, OrchardCore.Scripting.JavaScript, OrchardCore.Contents, OrchardCore.Layers, OrchardCore.Queries, OrchardCore.Workflows.Http, OrchardCore.Recipes, OrchardCore.Workflows, IScriptingManager. It also helps with Built-In Global Methods, File Scripting Engine, Using Scripts in Recipes, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Scripting - Prompt Templates

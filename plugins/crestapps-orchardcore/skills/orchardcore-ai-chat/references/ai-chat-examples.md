@@ -23,9 +23,6 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "default",
           "IsDefault": true,
           "DisplayText": "OpenAI Default",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
-          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -36,10 +33,30 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
       ]
     },
     {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "openai-chat",
+          "Name": "gpt-4o",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Chat",
+          "IsDefault": true
+        },
+        {
+          "ItemId": "openai-utility",
+          "Name": "gpt-4o-mini",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Utility",
+          "IsDefault": true
+        }
+      ]
+    },
+    {
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "general-assistant",
           "DisplayText": "General Assistant",
           "WelcomeMessage": "Hi! I'm your AI assistant. How can I help?",
@@ -47,9 +64,9 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "",
-          "ChatDeploymentId": "",
-          "UtilityDeploymentId": "",
+          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
+          "ChatDeploymentId": "openai-chat",
+          "UtilityDeploymentId": "openai-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful assistant. Provide clear and concise answers.",
@@ -86,15 +103,25 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "azure-default",
           "IsDefault": true,
           "DisplayText": "Azure OpenAI",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
-          ],
           "Properties": {
             "AzureOpenAIConnectionMetadata": {
               "Endpoint": "https://your-resource.openai.azure.com/",
               "ApiKey": "{{YourAzureApiKey}}"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "azure-chat",
+          "Name": "gpt-4o",
+          "ClientName": "AzureOpenAI",
+          "ConnectionName": "azure-default",
+          "Type": "Chat",
+          "IsDefault": true
         }
       ]
     }
@@ -138,7 +165,7 @@ public sealed class SupportChatMigrations : DataMigration
 
     public async Task<int> CreateAsync()
     {
-        var profile = await _profileManager.NewAsync("OpenAI");
+        var profile = await _profileManager.NewAsync();
 
         profile.Name = "support-chat";
         profile.DisplayText = "Support Chat";

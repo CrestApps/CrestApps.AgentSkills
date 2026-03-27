@@ -1,6 +1,6 @@
 ---
 name: orchardcore-url-rewriting
-description: Skill for configuring URL rewriting in Orchard Core. Covers redirect vs rewrite rules, regex pattern matching, rule source implementation, display drivers for custom rule types, recipe-based rule configuration, and URL rewriting best practices.
+description: Skill for configuring URL rewriting in Orchard Core. Covers redirect vs rewrite rules, regex pattern matching, rule source implementation, display drivers for custom rule types, recipe-based rule configuration, and URL rewriting best practices. Use this skill when requests mention Orchard Core URL Rewriting, Configure URL Rewriting and Redirects, Enabling URL Rewriting, Available Rule Types, Redirect Rule Properties, Rewrite Rule Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.UrlRewriting, OrchardCore.UrlRewriting.Models, OrchardCore.UrlRewriting.Services, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Modules, IUrlRewriteRuleSource, CustomRule. It also helps with Redirect Rule Properties, Rewrite Rule Properties, Redirect Type Reference, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core URL Rewriting - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-shells
-description: Skill for configuring Orchard Core shell providers. Covers Azure Blob shell configuration for cloud deployments, database shell configuration for multi-instance scenarios, migration from file-based to cloud/database providers, and environment-specific shell settings.
+description: Skill for configuring Orchard Core shell providers. Covers Azure Blob shell configuration for cloud deployments, database shell configuration for multi-instance scenarios, migration from file-based to cloud/database providers, and environment-specific shell settings. Use this skill when requests mention Orchard Core Shells Configuration, Configure Shell Providers for Multi-Tenant Environments, Azure Blob Shell Configuration, Database Shell Configuration, Migration from File-Based Configuration, Environment-Specific Provider Registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Shells.Azure, CreateBuilder, DatabaseProvider, tenants.json, appsettings.json. It also helps with Migration from File-Based Configuration, Environment-Specific Provider Registration, Environment-Specific with Azure Blob, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Shells Configuration - Prompt Templates

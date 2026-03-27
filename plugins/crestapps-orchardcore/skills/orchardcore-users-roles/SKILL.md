@@ -1,6 +1,6 @@
 ---
 name: orchardcore-users-roles
-description: Skill for managing users, roles, and permissions in Orchard Core. Covers user registration, role creation, permission definitions, custom user settings, and authentication configuration.
+description: Skill for managing users, roles, and permissions in Orchard Core. Covers user registration, role creation, permission definitions, custom user settings, and authentication configuration. Use this skill when requests mention Orchard Core Users & Roles, Manage Users, Roles, and Permissions, Enabling User and Role Features, Defining Custom Permissions, Registering Permission Provider, Checking Permissions in Code, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Users, OrchardCore.Roles, OrchardCore.Users.Registration, OrchardCore.Users.ResetPassword, OrchardCore.Users.CustomUserSettings, OrchardCore.Security.Permissions, IPermissionProvider, IAuthorizationService. It also helps with users roles examples, Registering Permission Provider, Checking Permissions in Code, Checking Permissions in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

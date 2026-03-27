@@ -1,6 +1,6 @@
 ---
 name: orchardcore-configuration
-description: Skill for configuring Orchard Core applications. Covers IShellConfiguration, configuration sources hierarchy, tenant pre-configuration and post-configuration, environment variable overrides, appsettings.json structure, IOptions patterns, and deployment configuration.
+description: Skill for configuring Orchard Core applications. Covers IShellConfiguration, configuration sources hierarchy, tenant pre-configuration and post-configuration, environment variable overrides, appsettings.json structure, IOptions patterns, and deployment configuration. Use this skill when requests mention Orchard Core Configuration, Configure Orchard Core Applications, Configuration Sources Hierarchy, Basic Module Configuration in appsettings.json, Tenant Pre-Configuration, Tenant Post-Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with IShellConfiguration, IOptions, IConfiguration, DatabaseProvider, CreateBuilder, GetRequiredService, OrchardCore, appsettings.json, OrchardCore_ModuleName. It also helps with Tenant Pre-Configuration, Tenant Post-Configuration, Global Tenant Database Configuration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Configuration - Prompt Templates

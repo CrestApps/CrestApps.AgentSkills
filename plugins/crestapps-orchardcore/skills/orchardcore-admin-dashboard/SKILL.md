@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin-dashboard
-description: Skill for creating admin dashboard widgets in Orchard Core. Covers the DashboardWidget stereotype, widget position and sizing, custom dashboard widget content types, widget template customization, and dashboard layout configuration.
+description: Skill for creating admin dashboard widgets in Orchard Core. Covers the DashboardWidget stereotype, widget position and sizing, custom dashboard widget content types, widget template customization, and dashboard layout configuration. Use this skill when requests mention Orchard Core Admin Dashboard, Create and Configure Dashboard Widgets, Enabling Admin Dashboard, Widget Configuration Properties, Creating a Dashboard Widget Content Type via Recipe, Creating a Dashboard Widget Content Type via Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AdminDashboard, OrchardCore.ContentManagement.Metadata. It also helps with Creating a Dashboard Widget Content Type via Recipe, Creating a Dashboard Widget Content Type via Migration, Creating a Dashboard Widget Content Item via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Admin Dashboard - Prompt Templates

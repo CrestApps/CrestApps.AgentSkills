@@ -1,6 +1,6 @@
 ---
 name: orchardcore-sitemaps
-description: Skill for configuring sitemaps in Orchard Core. Covers sitemap creation, content type sources, SitemapPart for per-item control, localized sitemaps, sitemap index generation, caching, robots.txt integration, and sitemap configuration for decoupled Razor Pages.
+description: Skill for configuring sitemaps in Orchard Core. Covers sitemap creation, content type sources, SitemapPart for per-item control, localized sitemaps, sitemap index generation, caching, robots.txt integration, and sitemap configuration for decoupled Razor Pages. Use this skill when requests mention Orchard Core Sitemaps, Configure Sitemaps and Sitemap Indexes, Enabling Sitemap Features, Enabling Localized Sitemaps, Creating a Sitemap via Recipe, Creating a Sitemap Index via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Sitemaps, OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, OrchardCore.Seo, SitemapPart, AutoroutePart, IRouteableContentTypeProvider. It also helps with Creating a Sitemap via Recipe, Creating a Sitemap Index via Recipe, Sitemap Change Frequency Values, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Sitemaps - Prompt Templates

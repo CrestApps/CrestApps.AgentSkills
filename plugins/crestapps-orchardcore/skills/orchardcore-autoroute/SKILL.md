@@ -1,6 +1,6 @@
 ---
 name: orchardcore-autoroute
-description: Skill for configuring AutoroutePart in Orchard Core. Covers URL pattern syntax using Liquid expressions, AutoroutePartSettings, SEO-friendly slugs, hierarchical container routing, home page routing, route conflict resolution, and programmatic route management.
+description: Skill for configuring AutoroutePart in Orchard Core. Covers URL pattern syntax using Liquid expressions, AutoroutePartSettings, SEO-friendly slugs, hierarchical container routing, home page routing, route conflict resolution, and programmatic route management. Use this skill when requests mention Orchard Core AutoroutePart, Configure AutoroutePart, AutoroutePartSettings Properties, Migration Pattern, Enabling AutoroutePart via Recipe, Content Type Definition with AutoroutePart via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Autoroute, OrchardCore.Contents, OrchardCore.Autoroute.Services, AutoroutePart, AutoroutePartSettings, TitlePart. It also helps with autoroute examples, Enabling AutoroutePart via Recipe, Content Type Definition with AutoroutePart via Recipe, Common Liquid URL Patterns, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

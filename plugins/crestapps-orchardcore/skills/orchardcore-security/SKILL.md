@@ -1,6 +1,6 @@
 ---
 name: orchardcore-security
-description: Skill for configuring security and authorization in Orchard Core. Covers permission definitions, authorization services, CORS, security headers, content security policies, and OpenID Connect.
+description: Skill for configuring security and authorization in Orchard Core. Covers permission definitions, authorization services, CORS, security headers, content security policies, and OpenID Connect. Use this skill when requests mention Orchard Core Security, Configure Security and Authorization, Enabling Security Features, Security Headers Configuration, CORS Configuration via Recipe, OpenID Connect Server Setup, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Security, OrchardCore.Cors, OrchardCore.ReverseProxy, OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, OrchardCore.Security.Permissions, OrchardCore.ContentManagement, OrchardCore.Contents.Security. It also helps with security examples, CORS Configuration via Recipe, OpenID Connect Server Setup, OpenID Server Settings, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

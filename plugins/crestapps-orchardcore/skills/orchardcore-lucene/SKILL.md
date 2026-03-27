@@ -1,6 +1,6 @@
 ---
 name: orchardcore-lucene
-description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene.
+description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.Lucene, OrchardCore.Search.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Lucene Search - Prompt Templates
