@@ -1,6 +1,6 @@
 ---
 name: orchardcore-forms
-description: Skill for building and managing forms in Orchard Core using the OrchardCore.Forms module. Covers form widget content types, form validation, form submissions with workflows, anti-forgery tokens, and custom form elements.
+description: Skill for building and managing forms in Orchard Core using the OrchardCore.Forms module. Covers form widget content types, form validation, form submissions with workflows, anti-forgery tokens, and custom form elements. Use this skill when requests mention Orchard Core Forms, Create and Configure Forms, Enabling the Forms Feature, Form Widget Content Types, Form Content Type Settings, Input Element Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Forms, OrchardCore.Workflows, OrchardCore.Flows, OrchardCore.Widgets, OrchardCore.Workflows.Http, OrchardCore.ContentManagement, OrchardCore.DisplayManagement.Views, OrchardCore.Modules, OrchardCore.ContentManagement.Metadata. It also helps with forms examples, Form Content Type Settings, Input Element Configuration, Input Element Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

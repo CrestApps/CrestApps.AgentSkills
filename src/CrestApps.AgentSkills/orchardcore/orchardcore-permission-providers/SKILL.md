@@ -1,6 +1,6 @@
 ---
 name: orchardcore-permission-providers
-description: Skill for implementing Orchard Core permission providers. Covers the PermissionProvider pattern, default stereotypes, OrchardCoreConstants role names, and where to place reusable static permission instances and reusable content-part models.
+description: Skill for implementing Orchard Core permission providers. Covers the PermissionProvider pattern, default stereotypes, OrchardCoreConstants role names, and where to place reusable static permission instances and reusable content-part models. Use this skill when requests mention Orchard Core Permission Providers, Create a Permission Provider, Recommended Project Placement, Static Permission Definitions in a Core Project, PermissionProvider Class, Registering the Provider, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.Sports.Teams.Core, OrchardCore.Security.Permissions, CrestApps.Sports.Teams.Core.Permissions, CrestApps.Sports.Teams, OrchardCore.Modules. It also helps with permission provider examples, PermissionProvider Class, Registering the Provider, Content Part Placement Guidance, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-types
-description: Skill for creating, managing, and configuring Orchard Core Content Types. Covers content part definitions, content field definitions, stereotypes, and content type indexing.
+description: Skill for creating, managing, and configuring Orchard Core Content Types. Covers content part definitions, content field definitions, stereotypes, and content type indexing. Use this skill when requests mention Orchard Core Content Types, Create a Content Type, Migration Pattern, Content Field Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with TitlePart, AutoroutePart, CommonPart, ListPart, DataMigration, IContentDefinitionManager, WithPart, WithSettings, AutoroutePartSettings, WithField, TextField, HtmlField. It also helps with content type examples, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

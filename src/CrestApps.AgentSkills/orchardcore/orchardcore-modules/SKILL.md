@@ -1,6 +1,6 @@
 ---
 name: orchardcore-modules
-description: Skill for creating and structuring Orchard Core modules. Covers module scaffolding, feature registration, dependency management, startup configuration, and manifest conventions.
+description: Skill for creating and structuring Orchard Core modules. Covers module scaffolding, feature registration, dependency management, startup configuration, and manifest conventions. Use this skill when requests mention Orchard Core Modules, Create a Module, Installing Third-Party Modules, Manifest Pattern, Startup Pattern, Project File Pattern, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyModule, OrchardCore.Application.Cms.Targets, CrestApps.OrchardCore.AI, OrchardCore.Modules.Manifest, OrchardCore.ContentManagement, OrchardCore.Modules, OrchardCore.Module.Targets, IServiceCollection, Manifest.cs, [RequireFeatures]. It also helps with module examples, Startup Pattern, Project File Pattern, Module Folder Structure, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

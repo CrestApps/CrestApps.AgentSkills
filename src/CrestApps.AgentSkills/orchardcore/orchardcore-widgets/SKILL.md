@@ -1,6 +1,6 @@
 ---
 name: orchardcore-widgets
-description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, and widget placement configuration.
+description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, and widget placement configuration. Use this skill when requests mention Orchard Core Widgets, Create and Manage Widgets, Enabling Widget Features, Creating a Widget Content Type, Layer Configuration via Recipe, Layer Rule Expressions, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.Flows, FlowPart, DataMigration, IContentDefinitionManager, WithPart, WithField, LayerRule, HtmlWidget, LiquidWidget, MenuWidget. It also helps with widget examples, Layer Configuration via Recipe, Layer Rule Expressions, Placing Widgets in Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Widgets - Prompt Templates

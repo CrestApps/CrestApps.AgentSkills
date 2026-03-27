@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-docs
-description: Search the CrestApps OrchardCore documentation site (orchardcore.crestapps.com) for up-to-date information about CrestApps modules, AI integrations, chat, MCP, A2A, omnichannel, and other CrestApps-specific Orchard Core extensions.
+description: Search the CrestApps OrchardCore documentation site (orchardcore.crestapps.com) for up-to-date information about CrestApps modules, AI integrations, chat, MCP, A2A, omnichannel, and other CrestApps-specific Orchard Core extensions. Use this skill when requests mention CrestApps OrchardCore Documentation Lookup, Real-Time Documentation Search, How to Search — Dynamic Discovery via Search Index, Example Workflow, Fallback, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with web_fetch, start_index. It also helps with Fallback, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

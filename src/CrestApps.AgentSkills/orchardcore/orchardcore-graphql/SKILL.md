@@ -1,6 +1,6 @@
 ---
 name: orchardcore-graphql
-description: Skill for configuring and using the GraphQL API in Orchard Core. Covers GraphQL queries, custom types, content type querying, and GraphQL schema customization.
+description: Skill for configuring and using the GraphQL API in Orchard Core. Covers GraphQL queries, custom types, content type querying, and GraphQL schema customization. Use this skill when requests mention Orchard Core GraphQL, Configure and Use GraphQL API, Enabling GraphQL Features, Basic Content Query, Query with Filtering, Query with Pagination, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Apis.GraphQL, OrchardCore.ContentManagement, OrchardCore.Apis, MyPart, MyField, MyPartIndexAliasProvider, IIndexAliasProvider, MyPartIndex, IEnumerable, IServiceCollection, WhereInput. It also helps with graphql examples, Query with Filtering, Query with Pagination, Query Specific Content Item, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

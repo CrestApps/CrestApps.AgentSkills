@@ -1,6 +1,6 @@
 ---
 name: orchardcore-layers
-description: Skill for configuring layers in Orchard Core. Covers layer creation, layer rules and conditions, zone-based widget visibility, JavaScript and URL rule expressions, and conditional content display.
+description: Skill for configuring layers in Orchard Core. Covers layer creation, layer rules and conditions, zone-based widget visibility, JavaScript and URL rule expressions, and conditional content display. Use this skill when requests mention Orchard Core Layers, Configuring Layers for Conditional Widget Display, Enabling Layer Features, Available Conditions, Common Layer Patterns, Declaring Zones in Themes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Layers, OrchardCore.Widgets, OrchardCore.Rules, OrchardCore.Scripting, LayerRule, HtmlWidget, HtmlBodyPart, BeforeContent, AfterContent, Widget. It also helps with Common Layer Patterns, Declaring Zones in Themes, Configuring Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Layers - Prompt Templates

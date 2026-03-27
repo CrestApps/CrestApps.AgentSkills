@@ -25,15 +25,25 @@
           "Name": "default",
           "IsDefault": true,
           "DisplayText": "OpenAI Default",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
-          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
               "ApiKey": "{{YourApiKey}}"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "openai-chat",
+          "Name": "gpt-4o",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Chat",
+          "IsDefault": true
         }
       ]
     }
@@ -43,8 +53,8 @@
 
 After running this recipe:
 1. Navigate to **Search → Indexing** and create a new index (e.g., "ChatDocuments") using Azure AI Search as the provider.
-2. Navigate to **Settings → Chat Interaction** and select the new index as the default document index.
-3. Navigate to **Artificial Intelligence → Chat Interactions** and start a new chat session.
+2. Navigate to **Settings → Artificial Intelligence → Chat Interactions** and select the new index as the default document index.
+3. Navigate to **Artificial Intelligence → Chat Interactions** and start a new chat session, selecting your chat and utility deployments or relying on the configured defaults.
 
 ## Recipe: Chat Interactions with Elasticsearch
 
@@ -66,9 +76,9 @@ After running this recipe:
 }
 ```
 
-## Configuration: Full Provider Setup for Chat Interactions
+## Configuration: Full Deployment Setup for Chat Interactions
 
-Configure all deployment types for chat, embeddings, intent detection, and images:
+Configure the provider connection and define typed deployments for chat, embeddings, utility/intent detection, and images:
 
 ```json
 {
@@ -78,17 +88,40 @@ Configure all deployment types for chat, embeddings, intent detection, and image
         "OpenAI": {
           "DefaultConnectionName": "default",
           "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "text-embedding-3-small", "Type": "Embedding", "IsDefault": true },
-                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
+            "default": {}
           }
         }
-      }
+      },
+      "Deployments": [
+        {
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Name": "gpt-4o",
+          "Type": "Chat",
+          "IsDefault": true
+        },
+        {
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Name": "text-embedding-3-small",
+          "Type": "Embedding",
+          "IsDefault": true
+        },
+        {
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Name": "gpt-4o-mini",
+          "Type": "Utility",
+          "IsDefault": true
+        },
+        {
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Name": "dall-e-3",
+          "Type": "Image",
+          "IsDefault": true
+        }
+      ]
     }
   }
 }
@@ -164,15 +197,33 @@ public sealed class Startup : StartupBase
           "Name": "default",
           "IsDefault": true,
           "DisplayText": "OpenAI",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
-          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
               "ApiKey": "{{YourApiKey}}"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "openai-chat",
+          "Name": "gpt-4o",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Chat",
+          "IsDefault": true
+        },
+        {
+          "ItemId": "openai-image",
+          "Name": "dall-e-3",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Image",
+          "IsDefault": true
         }
       ]
     }

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-navigation
-description: Skill for creating and managing navigation menus in Orchard Core. Covers menu creation, navigation providers, admin menus, breadcrumbs, and menu content types.
+description: Skill for creating and managing navigation menus in Orchard Core. Covers menu creation, navigation providers, admin menus, breadcrumbs, and menu content types. Use this skill when requests mention Orchard Core Navigation, Create Navigation and Menus, Enabling Navigation Features, Custom Admin Navigation Provider, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Menu, OrchardCore.Navigation, OrchardCore.AdminMenu, INavigationProvider, IStringLocalizer, NavigationBuilder, IServiceCollection, MenuPart, MenuItemsListPart, LinkMenuItemPart, ContentMenuItemPart, LinkMenuItem. It also helps with navigation examples, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), Rendering Menu in Liquid Template, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

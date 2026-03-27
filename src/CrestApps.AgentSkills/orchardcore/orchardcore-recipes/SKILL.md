@@ -1,6 +1,6 @@
 ---
 name: orchardcore-recipes
-description: Skill for creating Orchard Core recipes. Covers recipe structure, content type definitions, content items, feature enablement, and recipe steps.
+description: Skill for creating Orchard Core recipes. Covers recipe structure, content type definitions, content items, feature enablement, and recipe steps. Use this skill when requests mention Orchard Core Recipes, Create a Recipe, Required Reference Workflow, Recipe Schema References, Recipe Structure, Common Recipe Steps, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, OrchardCore.ContentTypes, OrchardCore.Title, OrchardCore.Autoroute, ContentDefinition, ContentTypeSettings, TitlePart, <step>.schema.json, schema.json. It also helps with Recipe Structure, Common Recipe Steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

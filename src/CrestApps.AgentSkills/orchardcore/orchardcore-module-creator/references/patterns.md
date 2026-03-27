@@ -192,11 +192,12 @@ using OrchardCore.Navigation;
 
 namespace OrchardCore.YourModule;
 
-public sealed class AdminMenu : AdminNavigationProvider
+public sealed class AdminMenu : NamedNavigationProvider
 {
     private readonly IStringLocalizer S;
 
     public AdminMenu(IStringLocalizer<AdminMenu> localizer)
+        : base(NavigationConstants.AdminId)
     {
         S = localizer;
     }
@@ -205,7 +206,6 @@ public sealed class AdminMenu : AdminNavigationProvider
     {
         builder
             .Add(S["Your Menu"], NavigationConstants.AdminMenuYourModulePriority, menu => menu
-                .AddClass("your-module")
                 .Id("yourmodule")
                 .Add(S["Your Item"], S["Your Item"].PrefixPosition(), item => item
                     .Action("Index", "Admin", "OrchardCore.YourModule")
@@ -218,6 +218,8 @@ public sealed class AdminMenu : AdminNavigationProvider
     }
 }
 ```
+
+Prefer `NamedNavigationProvider` for admin menu providers. Fall back to implementing `INavigationProvider` only when one provider must intentionally handle more than one named menu.
 
 ## Content Handler
 

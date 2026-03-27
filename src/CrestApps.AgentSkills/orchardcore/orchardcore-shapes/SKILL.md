@@ -1,6 +1,6 @@
 ---
 name: orchardcore-shapes
-description: Skill for working with shapes in Orchard Core's display management system. Covers shape creation, shape templates (Liquid and Razor), shape alternates, shape wrappers, shape metadata, ad-hoc shapes, IShapeFactory usage, IShapeTableProvider, and rendering shapes in Liquid templates.
+description: Skill for working with shapes in Orchard Core's display management system. Covers shape creation, shape templates (Liquid and Razor), shape alternates, shape wrappers, shape metadata, ad-hoc shapes, IShapeFactory usage, IShapeTableProvider, and rendering shapes in Liquid templates. Use this skill when requests mention Orchard Core Shapes, Working with Shapes, How Shapes Work, Shape Metadata, Creating Shape Templates, Liquid Shape Template (Views/Content.liquid), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement, IShapeFactory, IShapeTableProvider, TextField, IDisplayManager, IDisplayResult, ContainerWidget, TitlePart, HtmlBodyPart. It also helps with shapes examples, Creating Shape Templates, Liquid Shape Template (Views/Content.liquid), Razor Shape Template (Views/Content.cshtml), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

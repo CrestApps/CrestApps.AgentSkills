@@ -1,6 +1,6 @@
 ---
 name: orchardcore-lists
-description: Skill for working with ListPart in Orchard Core. Covers list content types, ListPart shapes, list item rendering, paging, Liquid tags, Razor templates, and blog/collection patterns.
+description: Skill for working with ListPart in Orchard Core. Covers list content types, ListPart shapes, list item rendering, paging, Liquid tags, Razor templates, and blog/collection patterns. Use this skill when requests mention Orchard Core Lists, Working with ListPart, Enabling List Features, Creating a Blog with ListPart, ListPartViewModel Properties, ListPartSettings Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lists, ListPart, ContainedPart, BagPart, ListPartSettings, DataMigration, IContentDefinitionManager, WithPart, TitlePart, AutoroutePart, WithSettings, AutoroutePartSettings. It also helps with ListPartViewModel Properties, ListPartSettings Properties, Liquid Tags for Lists, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Lists - Prompt Templates

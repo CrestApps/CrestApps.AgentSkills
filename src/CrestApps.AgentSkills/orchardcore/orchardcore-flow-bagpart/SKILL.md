@@ -1,6 +1,6 @@
 ---
 name: orchardcore-flow-bagpart
-description: Skill for building page layouts with FlowPart and BagPart in Orchard Core. Covers flow widgets, BagPart for named containers, Blocks Editor configuration, content type setup, Liquid and Razor templating, shape alternates, and layout building patterns.
+description: Skill for building page layouts with FlowPart and BagPart in Orchard Core. Covers flow widgets, BagPart for named containers, Blocks Editor configuration, content type setup, Liquid and Razor templating, shape alternates, and layout building patterns. Use this skill when requests mention Orchard Core Flow & BagPart, Building Layouts with FlowPart and BagPart, Enabling Flow Features, Creating a Content Type with FlowPart, Creating a Content Type with Named BagParts, Enabling the Blocks Editor, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Flows, OrchardCore.Widgets, OrchardCore.Flows.ViewModels, FlowPart, BagPart, DataMigration, IContentDefinitionManager, WithPart, TitlePart. It also helps with Creating a Content Type with Named BagParts, Enabling the Blocks Editor, Blocks Editor Settings (BagPart), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Flow & BagPart - Prompt Templates

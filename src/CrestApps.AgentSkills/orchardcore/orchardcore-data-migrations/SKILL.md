@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data-migrations
-description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, schema alterations, data seeding, and migration versioning patterns.
+description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, schema alterations, data seeding, and migration versioning patterns. Use this skill when requests mention Orchard Core Data Migrations, Create Data Migrations, Basic Migration with Content Type, Folder and Class Conventions, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, CrestApps.Sports.Teams.Migrations, DataMigration, IDataMigration, IContentDefinitionManager, SchemaBuilder, WithPart. It also helps with data migrations examples, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, Incremental Migration (UpdateFrom), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,8 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - Name migration classes clearly and keep them `internal sealed`.
 - Migrations define content types, parts, fields, and database indexes.
 - Use `CreateAsync()` for initial migration, `UpdateFrom1Async()`, `UpdateFrom2Async()` for incremental updates.
+- `Create`, `CreateAsync`, `UpdateFromX`, `UpdateFromXAsync`, `Uninstall`, and `UninstallAsync` can be marked `static` when they do not use injected services, inherited instance members, or other instance state.
+- Keep migration methods instance methods when they rely on constructor-injected services like `IContentDefinitionManager` or inherited members like `SchemaBuilder`.
 - Register migrations in `Startup.cs` using `services.AddScoped<IDataMigration, Migrations>()`.
 - `IContentDefinitionManager` is used to define content types and parts.
 - `SchemaBuilder` is used to create and alter YesSql index tables.
@@ -85,13 +87,15 @@ namespace CrestApps.Sports.Teams.Migrations;
 
 internal sealed class TeamMigrations : DataMigration
 {
-    public Task<int> CreateAsync()
+    public static Task<int> CreateAsync()
     {
         // migration steps
         return Task.FromResult(1);
     }
 }
 ```
+
+Use `static` for migration methods only when the body does not touch injected services, `SchemaBuilder`, or any other instance members.
 
 ### Migration with Custom Content Part and Fields
 

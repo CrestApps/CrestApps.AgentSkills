@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin
-description: Guidance for working with the Orchard Core admin panel, including admin controllers, menu registration, dashboard widgets, admin theme customization, settings pages, and admin-specific shapes and zones.
+description: Guidance for working with the Orchard Core admin panel, including admin controllers, menu registration, dashboard widgets, admin theme customization, settings pages, and admin-specific shapes and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Route URL Generation, Admin Menu Registration, Adding an Icon to an Admin Menu Item, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Admin, OrchardCore.DisplayManagement.Notify, OrchardCore.Navigation, OrchardCore.Email, OrchardCore.Search, OrchardCore.Users, OrchardCore.Roles, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views. It also helps with admin examples, Admin Menu Registration, Adding an Icon to an Admin Menu Item, Menu Grouping and Ordering, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -72,28 +72,24 @@ var url = Url.RouteUrl("MyModule.Settings", new { action = "Index" });
 
 ## Admin Menu Registration
 
-Admin menu items are registered by implementing the `INavigationProvider` interface. Each provider contributes entries to the admin sidebar navigation.
+Admin menu items should prefer inheriting from `NamedNavigationProvider` for the admin menu, rather than implementing `INavigationProvider` directly. Each provider contributes entries to the admin sidebar navigation.
 
 ```csharp
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-public sealed class AdminMenu : INavigationProvider
+internal sealed class AdminMenu : NamedNavigationProvider
 {
     private readonly IStringLocalizer S;
 
     public AdminMenu(IStringLocalizer<AdminMenu> localizer)
+        : base(NavigationConstants.AdminId)
     {
         S = localizer;
     }
 
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
-        if (!NavigationHelper.IsAdminMenu(name))
-        {
-            return ValueTask.CompletedTask;
-        }
-
         builder
             .Add(S["Content Management"], content => content
                 .AddClass("content-management")
@@ -110,6 +106,8 @@ public sealed class AdminMenu : INavigationProvider
 }
 ```
 
+Use `INavigationProvider` directly only as a secondary option when you genuinely need to handle multiple menu names or custom routing logic that does not fit the named-provider pattern.
+
 Register the provider in `Startup.cs`:
 
 ```csharp
@@ -121,6 +119,37 @@ public sealed class Startup : StartupBase
     }
 }
 ```
+
+### Adding an Icon to an Admin Menu Item
+
+For `NamedNavigationProvider` or `INavigationProvider` menu items, do **not** put Font Awesome classes on the item with `AddClass(...)`. Instead:
+
+1. Assign a stable id with `.Id("sports")`.
+2. Add a Razor view named `NavigationItemText-sports.Id.cshtml`.
+3. Render the icon and title from that view.
+
+Example navigation provider:
+
+```csharp
+builder.Add(S["Sports"], sports => sports
+    .Id("sports")
+    .Add(S["Calendar"], calendar => calendar
+        .Action("Index", "Admin", new { area = "MyModule" })
+        .LocalNav()
+    )
+);
+```
+
+Example view file `Views/NavigationItemText-sports.Id.cshtml`:
+
+```cshtml
+<span class="icon">
+    <i class="fa-regular fa-futbol"></i>
+</span>
+<span class="title">@Model.Text</span>
+```
+
+Use this pattern when you need a custom icon for an admin navigation item rendered by TheAdmin theme.
 
 ### Menu Grouping and Ordering
 

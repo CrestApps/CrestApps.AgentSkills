@@ -1,6 +1,6 @@
 ---
 name: orchardcore-localization
-description: Skill for configuring localization and multi-language support in Orchard Core. Covers culture settings, content localization, PO file translations, and localization configuration.
+description: Skill for configuring localization and multi-language support in Orchard Core. Covers culture settings, content localization, PO file translations, and localization configuration. Use this skill when requests mention Orchard Core Localization, Configure Localization and Multi-Language Support, Enabling Localization Features, Localization Settings via Recipe, PO File Format, PO File Location Convention, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Localization, OrchardCore.ContentLocalization, IStringLocalizer, LocalizationSettings, IActionResult, IViewLocalizer, LocalizationPart, AlterTypeDefinition, WithPart, IStringLocalizer<T>. It also helps with localization examples, PO File Format, PO File Location Convention, Using Localization in C# Code, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

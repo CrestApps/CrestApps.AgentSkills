@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-data-protection
-description: Skill for configuring Azure Data Protection in Orchard Core. Covers distributed data protection key storage using Azure Blob Storage, connection string configuration, per-tenant container templating, and persistence considerations for multi-instance deployments.
+description: Skill for configuring Azure Data Protection in Orchard Core. Covers distributed data protection key storage using Azure Blob Storage, connection string configuration, per-tenant container templating, and persistence considerations for multi-instance deployments. Use this skill when requests mention Orchard Core Azure Data Protection, Configuration, Configuration Properties, Basic Configuration, Default Key Storage Path, Multi-Tenant Configuration with Liquid Templating, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DataProtection.Azure, ShellSettings, CreateContainer, appsettings.json, ContainerName, BlobName. It also helps with Default Key Storage Path, Multi-Tenant Configuration with Liquid Templating, Container per Tenant, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Azure Data Protection - Prompt Templates

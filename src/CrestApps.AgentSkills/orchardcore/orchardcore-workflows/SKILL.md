@@ -1,6 +1,6 @@
 ---
 name: orchardcore-workflows
-description: Skill for creating and managing Orchard Core workflows. Covers workflow type definitions, custom activities, events, workflow expressions, and workflow triggers.
+description: Skill for creating and managing Orchard Core workflows. Covers workflow type definitions, custom activities, events, workflow expressions, and workflow triggers. Use this skill when requests mention Orchard Core Workflows, Create a Workflow, Enabling Workflows, Built-in Event Activities, Built-in Task Activities, Creating a Custom Activity, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Workflows, OrchardCore.Workflows.Http, OrchardCore.Workflows.Timers, OrchardCore.Workflows.Activities, OrchardCore.Workflows.Models, TaskActivity, IStringLocalizer, IEnumerable, WorkflowExecutionContext, ActivityContext, EventActivity, IServiceCollection. It also helps with workflow examples, Built-in Task Activities, Creating a Custom Activity, Creating a Custom Event, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

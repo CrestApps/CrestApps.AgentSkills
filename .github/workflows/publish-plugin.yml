@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref_name }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,13 +37,43 @@ jobs:
           mkdir -p "$dst"
           cp -a "$src"/. "$dst"/
 
+      - name: Increment plugin patch version in marketplace manifest
+        shell: python
+        run: |
+          import json
+          import re
+          from pathlib import Path
+
+          marketplace_path = Path(".github/plugin/marketplace.json")
+          marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+
+          plugin = next(
+              (entry for entry in marketplace.get("plugins", []) if entry.get("name") == "crestapps-orchardcore"),
+              None,
+          )
+          if plugin is None:
+              raise SystemExit("Plugin 'crestapps-orchardcore' not found in .github/plugin/marketplace.json")
+
+          version = plugin.get("version", "")
+          match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)?", version)
+          if match is None:
+              raise SystemExit(f"Unsupported plugin version format: {version}")
+
+          major, minor, patch, suffix = match.groups()
+          plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
+
+          marketplace_path.write_text(
+              json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+
       - name: Check for plugin bundle changes
         id: changes
         shell: bash
         run: |
-          git add -A plugins/crestapps-orchardcore/skills
+          git add -A .github/plugin/marketplace.json plugins/crestapps-orchardcore/skills
 
-          if git diff --cached --quiet -- plugins/crestapps-orchardcore/skills; then
+          if git diff --cached --quiet -- .github/plugin/marketplace.json plugins/crestapps-orchardcore/skills; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
@@ -59,12 +88,14 @@ jobs:
           delete-branch: true
           commit-message: |
             Refresh crestapps-orchardcore plugin bundle
-            
+
             Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
           title: Refresh crestapps-orchardcore plugin bundle
           body: |
             This pull request was created automatically by the `Publish plugin bundle` workflow.
-            
-            It refreshes `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore`.
+
+            It refreshes `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore`
+            and increments the patch version for `crestapps-orchardcore` in `.github/plugin/marketplace.json`.
           add-paths: |
+            .github/plugin/marketplace.json
             plugins/crestapps-orchardcore/skills

@@ -1,18 +1,19 @@
 {
   "name": "crestapps-agentskills",
-  "owner": {
-    "name": "CrestApps"
-  },
   "metadata": {
     "description": "CrestApps GitHub Copilot CLI plugins and Orchard Core skills",
     "version": "1.0.0"
   },
+  "owner": {
+    "name": "CrestApps",
+    "email": "mike@crestapps.com"
+  },
   "plugins": [
     {
       "name": "crestapps-orchardcore",
+      "source": "./plugins/crestapps-orchardcore",
       "description": "Orchard Core skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
       "version": "1.0.0",
-      "source": "plugins/crestapps-orchardcore",
       "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/crestapps-orchardcore",
       "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
       "license": "MIT",
@@ -31,7 +32,7 @@
         "agentskills"
       ],
       "skills": [
-        "plugins/crestapps-orchardcore/skills"
+        "./skills/crestapps-orchardcore"
       ]
     }
   ]

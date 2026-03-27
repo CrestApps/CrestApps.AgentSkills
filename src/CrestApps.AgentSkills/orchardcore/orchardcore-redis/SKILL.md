@@ -1,6 +1,6 @@
 ---
 name: orchardcore-redis
-description: Skill for configuring Redis in Orchard Core. Covers Redis cache, message bus, distributed locking, data protection, health checks, configuration options, key storage structure, and multi-instance deployment considerations.
+description: Skill for configuring Redis in Orchard Core. Covers Redis cache, message bus, distributed locking, data protection, health checks, configuration options, key storage structure, and multi-instance deployment considerations. Use this skill when requests mention Orchard Core Redis, Configure Redis Integration, Enabling Redis Features, Redis Features Summary, Redis Configuration, Production Configuration Example, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Redis, OrchardCore.Redis.Cache, OrchardCore.Redis.Bus, OrchardCore.Redis.Lock, OrchardCore.Redis.DataProtection, OrchardCore.Environment.Cache, OrchardCore.Locking.Distributed, OrchardCore.HealthChecks, IDistributedCache, ISignal, CachedProductService. It also helps with Redis Configuration, Production Configuration Example, Key Storage Structure, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Redis - Prompt Templates

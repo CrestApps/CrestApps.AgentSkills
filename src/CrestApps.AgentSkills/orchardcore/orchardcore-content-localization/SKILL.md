@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-localization
-description: Skill for configuring content localization in Orchard Core. Covers LocalizationPart for multi-language content, ContentCulturePicker for culture selection, culture cookie configuration, Liquid localization filters (switch_culture_url, localization_set), and localization set management.
+description: Skill for configuring content localization in Orchard Core. Covers LocalizationPart for multi-language content, ContentCulturePicker for culture selection, culture cookie configuration, Liquid localization filters (switch_culture_url, localization_set), and localization set management. Use this skill when requests mention Orchard Core Content Localization, Configure Content Localization, Enabling Content Localization Features, Attaching LocalizationPart to a Content Type, Attaching LocalizationPart via Recipe, ContentCulturePicker Cookie Settings via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentLocalization, OrchardCore.ContentManagement.Metadata. It also helps with Attaching LocalizationPart via Recipe, ContentCulturePicker Cookie Settings via Recipe, Cookie Lifetime Configuration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Content Localization - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-templates
-description: Skill for creating and managing AI Templates in Orchard Core. Covers template creation via admin UI, markdown files, recipes, deployment steps, template sources (SystemMessage, Profile), and applying templates when creating AI Profiles.
+description: Skill for creating and managing AI Templates in Orchard Core. Covers template creation via admin UI, markdown files, recipes, deployment steps, template sources (SystemMessage, Profile), and applying templates when creating AI Profiles. Use this skill when requests mention Orchard Core AI Templates, Template Sources, Enabling AI Templates, Creating Templates via Markdown Files, Profile Templates, SystemMessage Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, OrchardCore.Entities, INamedCatalogManager, GetSettings, AlterSettings, AIProfilePostSessionSettings, AIProfileDataExtractionSettings, DisplayDriver, MyCustomTemplateDriver, IDisplayResult, BuildEditorContext. It also helps with Profile Templates, SystemMessage Templates, Markdown Template Format (Profile Source), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

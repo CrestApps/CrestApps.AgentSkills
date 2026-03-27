@@ -72,6 +72,20 @@ Each skill directory under `src/CrestApps.AgentSkills/orchardcore/` must contain
 - **`name` field**: Must exactly match the directory name (e.g., `orchardcore-content-types`)
 - **Front-matter**: Must start with `---` and contain closing `---`
 - **References**: Optional `references/` subdirectory for additional `.md` files (not `examples/`)
+- **Description length**: Keep `description` under the `1024` character limit
+
+### Front-Matter Safety Rules
+
+- The `description` field is intentionally kept as a plain single-line YAML scalar in this repository unless quoting is absolutely necessary.
+- **Do not introduce raw `: ` inside an unquoted `description` value.** Phrases like `Step 1: Build`, `Example: Foo`, `Client: SSE`, or `Workflow: Publish` can break `skills-ref` YAML parsing.
+- Rewrite those phrases instead, for example:
+  - `Step 1 Build`
+  - `Example Foo`
+  - `MCP Client Connecting to External MCP Servers`
+  - `Two Approaches Webhook vs. Protocol-Agnostic Relay`
+- Watch for namespaced configuration keys in descriptions as well. If mentioned in front matter, prefer forms that avoid YAML-like `key: value` text.
+- After editing any skill front matter, run a quick repository-wide search for unsafe descriptions, for example searching `^description: .*: .*` across `src/CrestApps.AgentSkills/orchardcore/**/SKILL.md`.
+- If a description truly requires YAML quoting to stay correct, keep it valid YAML first, but prefer rewording over quoting when possible to stay consistent with the existing corpus and user preference.
 
 ### Skill Documentation Conventions (from CONTRIBUTING.md)
 
@@ -119,10 +133,26 @@ Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach
 }
 ```
 
+**Useful validation habit after front-matter edits:**
+```bash
+rg '^description: .*: .*' src/CrestApps.AgentSkills/orchardcore -g '*/SKILL.md'
+```
+
 ## Packaging Notes
 
 The solution is configured for preview packages by default (`VersionSuffix=preview` in `Directory.Build.props`).
 For release builds, override the version (for example via CI) and publish with `dotnet pack`.
+
+### Plugin Bundle Publishing
+
+- The plugin bundle is published from the canonical skill source at `src/CrestApps.AgentSkills/orchardcore/`.
+- The workflow that refreshes the published plugin bundle and opens the automation PR is `.github/workflows/publish-plugin.yml`.
+- That workflow:
+  - deletes and recreates `plugins/crestapps-orchardcore/skills`
+  - copies the latest Orchard Core skills into that folder
+  - increments the `crestapps-orchardcore` plugin version in `.github/plugin/marketplace.json`
+- The plugin version source of truth is **not** `plugins/crestapps-orchardcore/plugin.json`; it is the `crestapps-orchardcore` entry in `.github/plugin/marketplace.json`.
+- Keep `.claude-plugin/marketplace.json` aligned with `.github/plugin/marketplace.json` according to the current repo convention.
 
 ### Central Package Management
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-site-settings
-description: Skill for accessing and extending Orchard Core site-level configuration. Covers ISiteService, custom settings sections with the CustomSettings stereotype, SiteSettingsDisplayDriver pattern, admin navigation registration, and recipe-based configuration.
+description: Skill for accessing and extending Orchard Core site-level configuration. Covers ISiteService, custom settings sections with the CustomSettings stereotype, SiteSettingsDisplayDriver pattern, admin navigation registration, and recipe-based configuration. Use this skill when requests mention Orchard Core Site Settings, Access and Extend Site Settings, Core Services, Built-In Site Properties, Reading Site Settings, Updating Site Settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Settings, ISiteService, CustomSettings, SiteSettingsDisplayDriver, ISite, SiteDisplayDriver, ContentPartDisplayDriver, INavigationProvider, IShellReleaseManager, IContentDefinitionManager, IANA. It also helps with site settings examples, Reading Site Settings, Updating Site Settings, Creating a Custom Settings Section, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,10 +20,12 @@ You are an Orchard Core expert. Generate code and configuration for working with
 - Built-in site properties include `SiteName`, `BaseUrl`, `TimeZoneId`, `Culture`, `PageSize`, and `UseCdn`.
 - Custom settings sections are content types with the `CustomSettings` stereotype.
 - Each custom settings section is stored as a named JSON property inside the site document.
-- Use `ISite.As<TSettings>()` to read a custom settings section and `ISite.Properties[typeName]` for raw access.
-- Render custom settings in admin using `DisplayDriver<ISite>` (not `ContentPartDisplayDriver`).
+- Use `ISite.TryGet<TSettings>(out var settings)` for optional reads and `ISite.As<TSettings>()` when you intentionally need a materialized instance.
+- Render custom settings in admin using `SiteDisplayDriver<TSettings>` when possible (not `ContentPartDisplayDriver`).
 - Register an `INavigationProvider` to add settings entries to the admin navigation menu.
 - Define a dedicated permission to control who can manage each settings section.
+- If saving a settings editor should reload the tenant, call `context.AddTenantReloadWarningWrapper()` in `Edit`/`EditAsync` and inject `IShellReleaseManager` to call `RequestRelease()` when values change.
+- Do not gate `RequestRelease()` on `ModelState.IsValid`; the Orchard Core site settings controller only releases the shell after validation succeeds.
 - All C# classes must use the `sealed` modifier.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 
@@ -32,10 +34,11 @@ You are an Orchard Core expert. Generate code and configuration for working with
 | Service | Purpose |
 |---------|---------|
 | `ISiteService` | Read and write the site settings document. Returns `ISite`. |
-| `ISite` | Read-only site settings object. Use `.As<T>()` to access custom sections. |
+| `ISite` | Read-only site settings object. Use `.TryGet<T>(out ...)` for optional reads and `.As<T>()` when you need a materialized section. |
 | `IContentDefinitionManager` | Define custom settings content types with the `CustomSettings` stereotype. |
-| `DisplayDriver<ISite>` | Base class for rendering site settings sections in admin. |
+| `SiteDisplayDriver<TSettings>` | Preferred base class for rendering site settings sections in admin. |
 | `INavigationProvider` | Register admin menu entries for settings pages. |
+| `IShellReleaseManager` | Requests a tenant reload after runtime-affecting settings changes. |
 
 ### Built-In Site Properties
 
@@ -136,23 +139,29 @@ The `CustomSettings` stereotype tells Orchard Core this content type represents 
 
 #### Step 3: Create the Display Driver
 
-The display driver inherits from `DisplayDriver<ISite>`, not from `ContentPartDisplayDriver<T>`.
+The display driver should usually inherit from `SiteDisplayDriver<TSettings>`, not from `ContentPartDisplayDriver<T>`.
 
 ```csharp
-public sealed class {{SettingsPartName}}DisplayDriver : DisplayDriver<ISite>
+public sealed class {{SettingsPartName}}DisplayDriver : SiteDisplayDriver<{{SettingsPartName}}>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IShellReleaseManager _shellReleaseManager;
+
+    protected override string SettingsGroupId
+        => "{{settingsGroupId}}";
 
     public {{SettingsPartName}}DisplayDriver(
         IHttpContextAccessor httpContextAccessor,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        IShellReleaseManager shellReleaseManager)
     {
         _httpContextAccessor = httpContextAccessor;
         _authorizationService = authorizationService;
+        _shellReleaseManager = shellReleaseManager;
     }
 
-    public override IDisplayResult Edit(ISite model, BuildEditorContext context)
+    public override async Task<IDisplayResult> EditAsync(ISite site, {{SettingsPartName}} settings, BuildEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -160,18 +169,18 @@ public sealed class {{SettingsPartName}}DisplayDriver : DisplayDriver<ISite>
         {
             return null;
         }
+
+        context.AddTenantReloadWarningWrapper();
 
         return Initialize<{{SettingsPartName}}ViewModel>("{{SettingsPartName}}_Edit", viewModel =>
         {
-            var settings = model.As<{{SettingsPartName}}>();
-
             viewModel.{{PropertyName}} = settings.{{PropertyName}};
             viewModel.{{BoolPropertyName}} = settings.{{BoolPropertyName}};
         }).Location("Content:5")
-        .OnGroup("{{settingsGroupId}}");
+        .OnGroup(SettingsGroupId);
     }
 
-    public override async Task<IDisplayResult> UpdateAsync(ISite model, UpdateEditorContext context)
+    public override async Task<IDisplayResult> UpdateAsync(ISite site, {{SettingsPartName}} settings, UpdateEditorContext context)
     {
         var user = _httpContextAccessor.HttpContext?.User;
 
@@ -180,25 +189,25 @@ public sealed class {{SettingsPartName}}DisplayDriver : DisplayDriver<ISite>
             return null;
         }
 
-        if (context.GroupId == "{{settingsGroupId}}")
+        var viewModel = new {{SettingsPartName}}ViewModel();
+
+        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
+
+        if (settings.{{PropertyName}} != viewModel.{{PropertyName}} ||
+            settings.{{BoolPropertyName}} != viewModel.{{BoolPropertyName}})
         {
-            var viewModel = new {{SettingsPartName}}ViewModel();
-
-            await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
-
-            model.Put(new {{SettingsPartName}}
-            {
-                {{PropertyName}} = viewModel.{{PropertyName}},
-                {{BoolPropertyName}} = viewModel.{{BoolPropertyName}},
-            });
+            _shellReleaseManager.RequestRelease();
         }
 
-        return await EditAsync(model, context);
+        settings.{{PropertyName}} = viewModel.{{PropertyName}};
+        settings.{{BoolPropertyName}} = viewModel.{{BoolPropertyName}};
+
+        return await EditAsync(site, settings, context);
     }
 }
 ```
 
-Important: The `OnGroup()` call ties the editor shape to a specific group identifier. This must match the group used in the admin controller and navigation entry.
+Important: The `OnGroup()` call ties the editor shape to a specific group identifier. This must match the group used in the admin controller and navigation entry. Use `context.AddTenantReloadWarningWrapper()` together with `IShellReleaseManager.RequestRelease()` for runtime-affecting settings.
 
 #### Step 4: Create the View Model
 
