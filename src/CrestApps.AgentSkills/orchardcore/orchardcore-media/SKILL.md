@@ -1,6 +1,6 @@
 ---
 name: orchardcore-media
-description: Skill for managing media in Orchard Core. Covers media library configuration, media profiles, image processing, media field usage, and storage providers.
+description: Skill for managing media in Orchard Core. Covers media library configuration, media profiles, image processing, media field usage, and storage providers. Use this skill when requests mention Orchard Core Media, Configure Media Management, Enabling Media Features, Media Settings Configuration, Azure Blob Storage Configuration, Media Profiles via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media, OrchardCore.Media.Indexing, OrchardCore.Media.Cache, OrchardCore.Media.Processing, MediaField, MyPart, CustomMediaResizingFilter, IMediaEventHandler, MediaCreatingContext, AlterPartDefinition, ArticlePart, WithField. It also helps with media examples, Azure Blob Storage Configuration, Media Profiles via Recipe, Using Media in Liquid Templates, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-resources
-description: Skill for managing CSS and JavaScript resources in Orchard Core. Covers resource manifest registration, named resources, CDN configuration, script and style tag helpers, resource dependencies, inline scripts, resource versioning, and module asset conventions.
+description: Skill for managing CSS and JavaScript resources in Orchard Core. Covers resource manifest registration, named resources, CDN configuration, script and style tag helpers, resource dependencies, inline scripts, resource versioning, and module asset conventions. Use this skill when requests mention Orchard Core Resources, Managing CSS and JavaScript Resources, Resource Settings (Admin Configuration), Built-in Named Resources, Registering a Resource Manifest, Using Tag Helpers (Razor), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Resources, OrchardCore.ResourceManagement, IConfigureOptions, IServiceCollection, IResourceManager, MyShapeTableProvider, IShapeTableProvider, ShapeTableBuilder. It also helps with Registering a Resource Manifest, Using Tag Helpers (Razor), Using Liquid Tags, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Resources - Prompt Templates

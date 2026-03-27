@@ -1,6 +1,6 @@
 ---
 name: orchardcore-setup
-description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, testing with the Blog recipe, and configuring tenants for multi-site testing.
+description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, testing with the Blog recipe, and configuring tenants for multi-site testing. Use this skill when requests mention Orchard Core Setup, Create and Set Up an Orchard Core Application, Creating a New Orchard Core Web Application, Manual Project Setup (Without Templates), Program.cs Configuration, Program.cs with Additional CMS Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ProjectTemplates, OrchardCore.Application.Cms.Targets, OrchardCore.AutoSetup, CrestApps.OrchardCore.AI. It also helps with setup examples, Program.cs Configuration, Program.cs with Additional CMS Configuration, Adding CMS Modules to the Project, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

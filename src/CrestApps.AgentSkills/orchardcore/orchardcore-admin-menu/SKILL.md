@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin-menu
-description: Skill for creating admin menus in Orchard Core. Covers admin menu content types, link, content type list, and placeholder admin node types, admin menu deployment, permissions, custom admin node development with TreeNode base class, and admin menu rendering.
+description: Skill for creating admin menus in Orchard Core. Covers admin menu content types, link, content type list, and placeholder admin node types, admin menu deployment, permissions, custom admin node development with TreeNode base class, and admin menu rendering. Use this skill when requests mention Orchard Core Admin Menu, Create and Manage Admin Menus, Enabling Admin Menu Features, Admin Menu Deployment Recipe Step, Built-In Admin Node Types, Custom Admin Node Class, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AdminMenu, OrchardCore.Contents, OrchardCore.Lists, OrchardCore.AdminMenu.Models, OrchardCore.AdminMenu.Services, OrchardCore.Navigation, OrchardCore.DisplayManagement.Handlers. It also helps with Built-In Admin Node Types, Custom Admin Node Class, Custom Admin Node Navigation Builder, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Admin Menu - Prompt Templates

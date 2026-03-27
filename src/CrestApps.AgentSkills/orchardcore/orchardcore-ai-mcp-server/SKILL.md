@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp-server
-description: Skill for configuring the CrestApps MCP Server feature in Orchard Core. Covers server authentication, exposing tools, adding MCP prompts and resources through the UI, and custom MCP resource types.
+description: Skill for configuring the CrestApps MCP Server feature in Orchard Core. Covers server authentication, exposing tools, adding MCP prompts and resources through the UI, and custom MCP resource types. Use this skill when requests mention Orchard Core MCP Server, Configure an MCP Server, Feature Overview, Enable the MCP Server Feature, Supported MCP Capabilities, Authentication Modes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp.Server, CrestApps.OrchardCore.AI, DatabaseResourceTypeHandler, IReadOnlyDictionary, ListPrompts, GetPrompt, ListResources, ReadResource, ListResourceTemplates, OpenId, ApiKey, RequireAccessPermission. It also helps with Supported MCP Capabilities, Authentication Modes, OpenId Configuration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

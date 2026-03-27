@@ -1,6 +1,6 @@
 ---
 name: orchardcore-display-management
-description: Skill for using Orchard Core's display management system. Covers display drivers, display managers, shapes, display types, shape table providers, placement, and editor/display mode patterns.
+description: Skill for using Orchard Core's display management system. Covers display drivers, display managers, shapes, display types, shape table providers, placement, and editor/display mode patterns. Use this skill when requests mention Orchard Core Display Management, Create Display Drivers and Shapes, Content Part Display Driver Pattern, View Model Pattern, Display Shape View (Views/{{PartName}}.cshtml), Editor Shape View (Views/{{PartName}}_Edit.cshtml), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement.Views, OrchardCore.ContentManagement, OrchardCore.ContentManagement.Handlers, DisplayDriver. It also helps with display management examples, Display Shape View (Views/{{PartName}}.cshtml), Editor Shape View (Views/{{PartName}}_Edit.cshtml), Registering a Display Driver, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

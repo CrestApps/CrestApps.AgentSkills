@@ -1,6 +1,6 @@
 ---
 name: orchardcore-indexing
-description: Skill for understanding the Orchard Core indexing infrastructure. Covers the indexing abstraction layer, content item indexing pipeline, custom indexing sources, recipe steps for index management, index reset and rebuild operations, and indexing UI configuration.
+description: Skill for understanding the Orchard Core indexing infrastructure. Covers the indexing abstraction layer, content item indexing pipeline, custom indexing sources, recipe steps for index management, index reset and rebuild operations, and indexing UI configuration. Use this skill when requests mention Orchard Core Indexing Infrastructure, Configure Indexing Infrastructure, Enabling the Indexing Module, Index Profile Architecture, Creating an Index Profile via Recipe, Content Index Metadata Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, ResetIndex, RebuildIndex, ArticlesIndex, BlogPostsIndex, IIndexManager. It also helps with Creating an Index Profile via Recipe, Content Index Metadata Properties, Reset Index Step, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Indexing Infrastructure - Prompt Templates

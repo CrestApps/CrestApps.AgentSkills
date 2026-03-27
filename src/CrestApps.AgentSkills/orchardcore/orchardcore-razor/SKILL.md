@@ -1,6 +1,6 @@
 ---
 name: orchardcore-razor
-description: Skill for building Razor views in Orchard Core themes and modules. Covers tag helpers, shape rendering, resource management, IOrchardHelper extensions, layout patterns, and _ViewImports.cshtml setup.
+description: Skill for building Razor views in Orchard Core themes and modules. Covers tag helpers, shape rendering, resource management, IOrchardHelper extensions, layout patterns, and _ViewImports.cshtml setup. Use this skill when requests mention Orchard Core Razor Views, _ViewImports.cshtml Setup, Minimum Required Directives, _ViewStart.cshtml Conventions, Layout Rendering Patterns, Minimal Layout Template, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement, OrchardCore.ResourceManagement, OrchardCore.Menu, OrchardCore.Contents, OrchardCore.Media, OrchardCore.DisplayManagement.Shapes, OrchardCore.ContentManagement, OrchardCore.DisplayManagement.Razor, IOrchardHelper. It also helps with razor examples, Layout Rendering Patterns, Minimal Layout Template, Shape Tag Helpers, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

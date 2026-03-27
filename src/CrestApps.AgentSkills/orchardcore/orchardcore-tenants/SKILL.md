@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tenants
-description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation, SaaS setup, tenant configuration, testing with tenants using different recipes (Blog, Agency), and tenant management APIs.
+description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation, SaaS setup, tenant configuration, testing with tenants using different recipes (Blog, Agency), and tenant management APIs. Use this skill when requests mention Orchard Core Tenants, Configure Multi-Tenancy, Enabling Multi-Tenancy, Setting Up with the SaaS Recipe, Creating a Tenant via Admin UI, Creating a Tenant via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Tenants, OrchardCore.Environment.Shell, OrchardCore.Environment.Shell.Scope, DatabaseProvider, TenantInfoService, ShellSettings, TenantOperationService, IShellHost, blog.example.com. It also helps with tenants examples, Creating a Tenant via Admin UI, Creating a Tenant via Recipe, Creating a Tenant via Tenants API, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

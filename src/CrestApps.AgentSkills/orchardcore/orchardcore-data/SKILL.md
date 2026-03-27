@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data
-description: Skill for configuring the Orchard Core data layer. Covers database provider selection, YesSql configuration options, connection string setup, DbConnection access, SQL dialect abstraction, table prefix conventions, Dapper integration, and data access patterns.
+description: Skill for configuring the Orchard Core data layer. Covers database provider selection, YesSql configuration options, connection string setup, DbConnection access, SQL dialect abstraction, table prefix conventions, Dapper integration, and data access patterns. Use this skill when requests mention Orchard Core Data, Configure and Use the Orchard Core Data Layer, Sqlite Connection Pooling Configuration, YesSql Configuration Options, Database Table Options, Creating a DbConnection, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Data, OrchardCore.Environment.Shell, IDbConnectionAccessor, IStore, ISqlDialect, ShellSettings, IServiceCollection, MyDataService, IEnumerable, OrderService, INSERT, INTO. It also helps with Database Table Options, Creating a DbConnection, SQL Dialect Abstraction, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Data - Prompt Templates

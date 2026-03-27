@@ -1,6 +1,6 @@
 ---
 name: orchardcore-decoupled-cms
-description: Skill for building decoupled CMS applications with Orchard Core. Covers headless CMS architecture, content API consumption, custom Razor Pages for content rendering, loading content by ID, alias, and handle, auto-generating aliases with Liquid patterns, preview feature integration, and content property access patterns.
+description: Skill for building decoupled CMS applications with Orchard Core. Covers headless CMS architecture, content API consumption, custom Razor Pages for content rendering, loading content by ID, alias, and handle, auto-generating aliases with Liquid patterns, preview feature integration, and content property access patterns. Use this skill when requests mention Orchard Core Decoupled CMS, Building a Decoupled CMS with Orchard Core, Project Setup, Content Item Properties, Loading Content by ID, Loading Content by Alias (SEO-Friendly Slug), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Application.Cms.Core.Targets, OrchardCore.IOrchardHelper, IOrchardHelper, MarkdownBodyPart. It also helps with Loading Content by ID, Loading Content by Alias (SEO-Friendly Slug), Accessing Dynamic Content Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Decoupled CMS - Prompt Templates

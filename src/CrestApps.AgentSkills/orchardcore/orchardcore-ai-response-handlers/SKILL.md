@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-response-handlers
-description: Skill for implementing custom Chat Response Handlers in Orchard Core. Covers IChatResponseHandler, deferred and streaming handlers, webhook endpoints, live agent handoff, mid-conversation transfer via AI functions, UI notifications, protocol-agnostic relay infrastructure, and handler registration.
+description: Skill for implementing custom Chat Response Handlers in Orchard Core. Covers IChatResponseHandler, deferred and streaming handlers, webhook endpoints, live agent handoff, mid-conversation transfer via AI functions, UI notifications, protocol-agnostic relay infrastructure, and handler registration. Use this skill when requests mention Orchard Core Chat Response Handlers, Implement Custom Chat Response Handlers, Two Approaches: Webhook vs. Protocol-Agnostic Relay, Handler Types, Creating a Deferred Response Handler, Registering a Handler, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat.Core, CrestApps.OrchardCore.AI. It also helps with response handler examples, Creating a Deferred Response Handler, Registering a Handler, Webhook for Deferred Responses (AI Chat Session), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

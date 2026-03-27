@@ -1,6 +1,6 @@
 ---
 name: orchardcore-source-generators
-description: Skill for using Orchard Core source generators. Covers the GenerateArguments attribute for compile-time named argument types, anonymous type interceptors for .NET 9+, PropertyBasedNamedEnumerable architecture, Pager and NavigationBuilder examples, migration from anonymous to named types, and performance optimization.
+description: Skill for using Orchard Core source generators. Covers the GenerateArguments attribute for compile-time named argument types, anonymous type interceptors for .NET 9+, PropertyBasedNamedEnumerable architecture, Pager and NavigationBuilder examples, migration from anonymous to named types, and performance optimization. Use this skill when requests mention Orchard Core Source Generators, Use Source Generators for Performance Optimization, Quick Start with [GenerateArguments], What Gets Generated, Benefits of [GenerateArguments], Real-World Examples, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement, NavigationBuilder, INamedEnumerable, MyShape, IReadOnlyList, [GenerateArguments]. It also helps with Benefits of [GenerateArguments], Real-World Examples, Anonymous Type Interceptors (.NET 9+), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Source Generators - Prompt Templates

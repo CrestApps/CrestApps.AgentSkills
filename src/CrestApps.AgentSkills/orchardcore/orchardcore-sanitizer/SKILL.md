@@ -1,6 +1,6 @@
 ---
 name: orchardcore-sanitizer
-description: Skill for configuring HTML sanitization in Orchard Core. Covers the HtmlSanitizer service for XSS prevention, Razor sanitize helpers, configuring allowed tags and attributes, scheme allowlists, and custom sanitization configuration.
+description: Skill for configuring HTML sanitization in Orchard Core. Covers the HtmlSanitizer service for XSS prevention, Razor sanitize helpers, configuring allowed tags and attributes, scheme allowlists, and custom sanitization configuration. Use this skill when requests mention Orchard Core Sanitizer, Configure HTML Sanitization, Parts and Fields Using the Sanitizer, Orchard Core Default Sanitizer Customizations, Sanitizing HTML in Razor Views, Configuring the Sanitizer in Program.cs, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with HtmlBodyPart, HtmlField, HtmlMenuItemPart, MarkdownBodyPart, MarkdownField, @Orchard.SanitizeHtml(), ConfigureHtmlSanitizer, AllowedTags.Add('iframe'), AllowedSchemes.Add('ftp'). It also helps with Sanitizing HTML in Razor Views, Configuring the Sanitizer in Program.cs, Allowing Additional Tags, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Sanitizer - Prompt Templates

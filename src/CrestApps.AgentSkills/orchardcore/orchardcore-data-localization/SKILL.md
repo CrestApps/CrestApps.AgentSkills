@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data-localization
-description: Skill for managing translation data in Orchard Core. Covers the translation editor UI, translation statistics dashboard, permissions hierarchy, built-in translation providers, custom translation provider implementation, recipe steps for translations, API reference, and Liquid translation filters.
+description: Skill for managing translation data in Orchard Core. Covers the translation editor UI, translation statistics dashboard, permissions hierarchy, built-in translation providers, custom translation provider implementation, recipe steps for translations, API reference, and Liquid translation filters. Use this skill when requests mention Orchard Core Data Localization, Configure and Manage Data Localization, Enabling Data Localization, Permissions, Built-in Data Providers, Creating a Custom Localization Data Provider, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DataLocalization, OrchardCore.Localization, OrchardCore.ContentLocalization, OrchardCore.Localization.Data. It also helps with Built-in Data Providers, Creating a Custom Localization Data Provider, Localization Key Best Practices, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Data Localization - Prompt Templates

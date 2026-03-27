@@ -1,6 +1,6 @@
 ---
 name: orchardcore-custom-settings
-description: Skill for creating custom site settings in Orchard Core using the CustomSettings stereotype. Covers creating settings content types, defining permissions, accessing settings via ISiteService, Liquid property access, and recipe-based configuration of custom settings.
+description: Skill for creating custom site settings in Orchard Core using the CustomSettings stereotype. Covers creating settings content types, defining permissions, accessing settings via ISiteService, Liquid property access, and recipe-based configuration of custom settings. Use this skill when requests mention Orchard Core Custom Settings, Create Custom Site Settings, Enabling Custom Settings, Creating a Custom Settings Type via Code, Accessing Custom Settings in Code, Accessing Custom Settings in Controllers, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.CustomSettings, CustomSettings, ISiteService, ContentPart, DataMigration, IContentDefinitionManager, WithPart. It also helps with Accessing Custom Settings in Code, Accessing Custom Settings in Controllers, Accessing Custom Settings in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Custom Settings - Prompt Templates

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai
-description: Skill for configuring AI integrations in Orchard Core. Covers AI service registration, MCP enablement, prompt configuration, and agent framework integration.
+description: Skill for configuring AI integrations in Orchard Core. Covers AI service registration, MCP enablement, prompt configuration, and agent framework integration. Use this skill when requests mention Orchard Core AI, Configure AI Integration, Enabling AI Features, AI Configuration in appsettings.json, Non-Connection Deployments via appsettings.json, Typed AI Deployment Settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, ISpeechToTextClient, IAIClientFactory, AIProfile, DataMigration, IAIProfileManager, WithSettings, AIProfileSettings, AIChatProfileSettings, MySpeechService, ITextToSpeechClient, MyTtsService. It also helps with Non-Connection Deployments via appsettings.json, Typed AI Deployment Settings, Adding AI Provider Connection via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -90,7 +90,7 @@ Contained-connection providers (e.g., Azure Speech) can be defined in appsetting
     "CrestApps_AI": {
       "Deployments": [
         {
-          "ProviderName": "AzureSpeech",
+          "ClientName": "AzureSpeech",
           "Name": "my-speech-to-text",
           "Type": "SpeechToText",
           "IsDefault": true,
@@ -112,9 +112,13 @@ Each deployment in the `Deployments` array has these properties:
 
 | Setting | Description | Required |
 |---------|-------------|----------|
+| `ClientName` | The deployment client/provider identifier (for example `OpenAI`, `AzureOpenAI`, `AzureSpeech`) | Yes for recipe-created deployments and non-connection deployments |
+| `ConnectionName` | Optional shared provider connection name. Omit for contained/non-connection deployments. | No |
 | `Name` | The model/deployment name (e.g., `gpt-4o`, `text-embedding-3-large`) | Yes |
 | `Type` | The deployment type: `Chat`, `Utility`, `Embedding`, `Image`, `SpeechToText` | Yes |
 | `IsDefault` | Whether this is the default deployment for its type within the connection | No |
+
+Use `ClientName` for deployments in recipes and configuration.
 
 ### Adding AI Provider Connection via Recipe
 
@@ -129,10 +133,6 @@ Each deployment in the `Deployments` array has these properties:
           "Name": "default",
           "IsDefault": true,
           "DisplayText": "OpenAI",
-          "Deployments": [
-            { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-            { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true }
-          ],
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -145,6 +145,38 @@ Each deployment in the `Deployments` array has these properties:
   ]
 }
 ```
+
+### Managing AI Deployments via Recipe
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIDeployment",
+      "deployments": [
+        {
+          "ItemId": "openai-chat",
+          "Name": "gpt-4o",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Chat",
+          "IsDefault": true
+        },
+        {
+          "ItemId": "openai-utility",
+          "Name": "gpt-4o-mini",
+          "ClientName": "OpenAI",
+          "ConnectionName": "default",
+          "Type": "Utility",
+          "IsDefault": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+For new recipes, prefer a dedicated `AIDeployment` step over embedding deployment definitions inside `AIProviderConnections`.
 
 ### AI Profile Types
 
@@ -164,7 +196,6 @@ Each deployment in the `Deployments` array has these properties:
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "{{ProfileName}}",
           "DisplayText": "{{DisplayName}}",
           "WelcomeMessage": "{{WelcomeMessage}}",
@@ -174,9 +205,9 @@ Each deployment in the `Deployments` array has these properties:
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "",
-          "ChatDeploymentId": "",
-          "UtilityDeploymentId": "",
+          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
+          "ChatDeploymentId": "openai-chat",
+          "UtilityDeploymentId": "openai-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "{{SystemMessage}}",
@@ -195,6 +226,8 @@ Each deployment in the `Deployments` array has these properties:
 }
 ```
 
+The `AIProfile` recipe step is source-agnostic. Omit `Source` and let the selected deployment IDs — or, if those are absent, the optional `ConnectionName` fallback — determine the active client.
+
 ### Creating an Agent Profile via Recipe
 
 Agent profiles are exposed as AI tools that other profiles/interactions can invoke. The `Description` field is required — it's used by the LLM to decide when to invoke the agent.
@@ -206,15 +239,14 @@ Agent profiles are exposed as AI tools that other profiles/interactions can invo
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "research-agent",
           "DisplayText": "Research Agent",
           "Description": "An agent that can research topics on the internet and provide comprehensive summaries with citations.",
           "Type": "Agent",
           "TitleType": "InitialPrompt",
-          "ConnectionName": "",
-          "ChatDeploymentId": "",
-          "UtilityDeploymentId": "",
+          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
+          "ChatDeploymentId": "openai-chat",
+          "UtilityDeploymentId": "openai-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
@@ -253,7 +285,7 @@ public sealed class SystemDefinedAIProfileMigrations : DataMigration
 
     public async Task<int> CreateAsync()
     {
-        var profile = await _profileManager.NewAsync("OpenAI");
+        var profile = await _profileManager.NewAsync();
 
         profile.Name = "UniqueTechnicalName";
         profile.DisplayText = "A Display name for the profile";
@@ -290,7 +322,7 @@ public sealed class SystemDefinedAIProfileMigrations : DataMigration
 ```csharp
 public async Task<int> CreateAsync()
 {
-    var profile = await _profileManager.NewAsync("OpenAI");
+    var profile = await _profileManager.NewAsync();
 
     profile.Name = "research-agent";
     profile.DisplayText = "Research Agent";

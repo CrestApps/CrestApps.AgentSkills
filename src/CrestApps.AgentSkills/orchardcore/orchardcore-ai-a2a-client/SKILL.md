@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-a2a-client
-description: Skill for configuring the CrestApps A2A Client feature in Orchard Core. Covers adding remote A2A hosts, authentication, assigning agent connections, and how remote agents become tools.
+description: Skill for configuring the CrestApps A2A Client feature in Orchard Core. Covers adding remote A2A hosts, authentication, assigning agent connections, and how remote agents become tools. Use this skill when requests mention Orchard Core A2A Client, Configure an A2A Client, Feature Overview, Enable the A2A Client Feature, Add a Connection via Admin UI, Supported Authentication Types, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.A2A, CrestApps.OrchardCore.AI, ApiKey, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2MutualTls, CustomHeaders, Profile, A2AAgentProxyTool, listAvailableAgents, findAgentForTask, findToolsForTask. It also helps with Add a Connection via Admin UI, Supported Authentication Types, Assign Agent Connections to AI Profiles, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-seo
-description: Skill for configuring SEO in Orchard Core. Covers SeoMetaPart for meta tags and social sharing, sitemap generation and indexing, canonical URLs, robots.txt, structured data with JSON-LD, and SEO-friendly URL patterns.
+description: Skill for configuring SEO in Orchard Core. Covers SeoMetaPart for meta tags and social sharing, sitemap generation and indexing, canonical URLs, robots.txt, structured data with JSON-LD, and SEO-friendly URL patterns. Use this skill when requests mention Orchard Core SEO, Configure SEO Features, Enabling SEO and Sitemap Features, SeoMetaPart Configuration, Attaching SeoMetaPart to a Content Type via Migration, Attaching SeoMetaPart via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Seo, OrchardCore.Sitemaps, OrchardCore.Autoroute, OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, OrchardCore.Seo.Models, OrchardCore.Autoroute.Models. It also helps with seo examples, Attaching SeoMetaPart to a Content Type via Migration, Attaching SeoMetaPart via Recipe, SeoMetaPart Fields, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

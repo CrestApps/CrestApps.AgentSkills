@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin
-description: Guidance for working with the Orchard Core admin panel, including admin controllers, menu registration, dashboard widgets, admin theme customization, settings pages, and admin-specific shapes and zones.
+description: Guidance for working with the Orchard Core admin panel, including admin controllers, menu registration, dashboard widgets, admin theme customization, settings pages, and admin-specific shapes and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Route URL Generation, Admin Menu Registration, Adding an Icon to an Admin Menu Item, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Admin, OrchardCore.DisplayManagement.Notify, OrchardCore.Navigation, OrchardCore.Email, OrchardCore.Search, OrchardCore.Users, OrchardCore.Roles, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views. It also helps with admin examples, Admin Menu Registration, Adding an Icon to an Admin Menu Item, Menu Grouping and Ordering, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

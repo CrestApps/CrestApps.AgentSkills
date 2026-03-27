@@ -1,6 +1,6 @@
 ---
 name: orchardcore-features
-description: Explains OrchardCore feature management including enabling and disabling features, programmatic control with IShellFeaturesManager, feature dependencies, conditional service registration, feature event handlers, recipe-based activation, and a catalog of commonly used features organized by category.
+description: Explains OrchardCore feature management including enabling and disabling features, programmatic control with IShellFeaturesManager, feature dependencies, conditional service registration, feature event handlers, recipe-based activation, and a catalog of commonly used features organized by category. Use this skill when requests mention OrchardCore Features, Enabling the Features Module, Feature Management from the Admin Dashboard, Programmatic Feature Control with IShellFeaturesManager, Querying Feature States, Enabling and Disabling Features, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Features, OrchardCore.Contents, OrchardCore.Queries, OrchardCore.Search.Lucene. It also helps with features examples, Querying Feature States, Enabling and Disabling Features, Retrieving Available Features, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-interactions
-description: Skill for configuring AI Chat Interactions in Orchard Core using the CrestApps module. Covers ad-hoc chat sessions, prompt routing with intent detection, document upload with RAG support, image and chart generation, and custom processing strategies.
+description: Skill for configuring AI Chat Interactions in Orchard Core using the CrestApps module. Covers ad-hoc chat sessions, prompt routing with intent detection, document upload with RAG support, image and chart generation, and custom processing strategies. Use this skill when requests mention Orchard Core AI Chat Interactions, Configure AI Chat Interactions, Enabling AI Chat Interactions, Getting Started, Built-in Intents, Configuring Image Generation, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, CrestApps.OrchardCore.OpenAI, OrchardCore.Search.AzureAI, OrchardCore.Search.Elasticsearch, IServiceCollection, ChatInteractionChatModeSettings, GenerateImage. It also helps with ai chat interactions examples, Built-in Intents, Configuring Image Generation, Configuring Intent Detection Model, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -17,6 +17,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
+- The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on connection/global defaults when explicit deployments are not set.
 - Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
 - The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - All chat messages are persisted and sessions can be resumed later.
@@ -49,8 +50,10 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 1. Enable the `AI Chat Interactions` feature in the Orchard Core admin under **Configuration → Features**.
 2. Navigate to **Artificial Intelligence → Chat Interactions**.
-3. Click **+ New Chat** and select an AI provider connection.
-4. Configure chat settings (model, temperature, tools) and start chatting.
+3. Click **+ New Chat** and select the chat and utility deployments you want to use, or rely on the configured fallback defaults.
+4. Configure chat settings (temperature, tools, orchestrator, documents) and start chatting.
+
+Chat interactions are authored as ad-hoc sessions rather than predefined AI profiles. In current guidance, the interaction chooses deployments directly and does not require a profile `Source` in authoring recipes or prompts.
 
 ### Built-in Intents
 
@@ -64,9 +67,9 @@ The AI Chat Interactions module ships with default intents for image and chart g
 
 ### Configuring Image Generation
 
-To enable image generation, add a deployment with `Type: Image` in the `Deployments` array on your provider connection, or create an Image deployment through the admin UI.
+To enable image generation, create a typed deployment with `Type: Image`, or define an Image deployment in `appsettings.json`.
 
-**Via Admin UI:** Navigate to **Artificial Intelligence → Provider Connections**, edit your connection, and add an Image deployment (e.g., `dall-e-3`).
+**Via Admin UI:** Navigate to **Artificial Intelligence → Deployments** and create an Image deployment (e.g., `dall-e-3`), then optionally set it as a default Image deployment.
 
 **Via appsettings.json:**
 
@@ -117,7 +120,7 @@ Use a lightweight model for intent classification to optimize costs:
 }
 ```
 
-If no Utility deployment is configured, the system falls back to the Chat deployment or keyword-based intent detection.
+If no Utility deployment is configured, the system retries deployment resolution using the Chat type as a last resort before falling back to keyword-based intent detection.
 
 ### Enabling Document Upload and RAG
 
@@ -165,12 +168,12 @@ Or for Elasticsearch:
 
 1. Enable a search provider feature (Elasticsearch or Azure AI Search).
 2. Navigate to **Search → Indexing** and create a new index (e.g., "ChatDocuments").
-3. Navigate to **Settings → Chat Interaction** and select the new index as the default document index.
+3. Navigate to **Settings → Artificial Intelligence → Chat Interactions** and select the new index as the default document index.
 4. Enable the `AI Chat Interactions - Documents` feature.
 
 ### Configuring Embedding Model for Documents
 
-Documents require an embedding model for RAG. Add a deployment with `Type: Embedding` in the `Deployments` array on your provider connection, or create an Embedding deployment through the admin UI:
+Documents require an embedding model for RAG. Create a typed deployment with `Type: Embedding`, or define one in `appsettings.json`:
 
 ```json
 {
@@ -271,7 +274,7 @@ public sealed class Startup : StartupBase
 
 ### Chat Mode in Chat Interactions
 
-Chat interactions support the same `ChatMode` options as AI profiles, but configured at the site level via `ChatInteractionChatModeSettings` (under **Settings → AI Settings → Chat Interactions**):
+Chat interactions support the same `ChatMode` options as AI profiles, but configured at the site level via `ChatInteractionChatModeSettings` (under **Settings → Artificial Intelligence → Chat Interactions**):
 
 | Mode | Description | Requirements |
 |------|-------------|--------------|

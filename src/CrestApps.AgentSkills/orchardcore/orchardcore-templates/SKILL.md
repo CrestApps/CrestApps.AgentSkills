@@ -1,6 +1,6 @@
 ---
 name: orchardcore-templates
-description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, and template precedence rules.
+description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, and template precedence rules. Use this skill when requests mention Orchard Core Templates, Customizing Templates in Orchard Core, Content Type Templates, Widget Templates, Content Part Templates, Custom Model Shape Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Templates, OrchardCore.Users, AliasPart, AutoroutePart, HtmlBodyPart, BagPart, TextField, ListPart, TitlePart, (e.g, SummaryAdmin, CampaignAction_Edit. It also helps with Content Part Templates, Custom Model Shape Templates, Content Field Templates, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Templates - Prompt Templates

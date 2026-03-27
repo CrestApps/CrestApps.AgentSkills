@@ -1,6 +1,6 @@
 ---
 name: orchardcore-logging-serilog
-description: Skill for configuring Serilog logging in Orchard Core. Covers Serilog integration setup, appsettings.json logging configuration with Console and File sinks, Program.cs Serilog initialization, tenant-aware logging with TenantName enrichment, and output template customization.
+description: Skill for configuring Serilog logging in Orchard Core. Covers Serilog integration setup, appsettings.json logging configuration with Console and File sinks, Program.cs Serilog initialization, tenant-aware logging with TenantName enrichment, and output template customization. Use this skill when requests mention Orchard Core Serilog Logging, Configure Serilog Structured Logging, Enabling the Feature, Serilog Configuration in appsettings.json, Output Template Tokens, Minimum Level Overrides, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Logging.Serilog, FromLogContext, SourceContext, CreateBuilder, ProductService, appsettings.json, Program.cs, UseSerilog(), ReadFrom.Configuration(). It also helps with Output Template Tokens, Minimum Level Overrides, Program.cs Serilog Initialization, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Serilog Logging - Prompt Templates

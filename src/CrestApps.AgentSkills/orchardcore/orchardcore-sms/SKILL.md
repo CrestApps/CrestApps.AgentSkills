@@ -1,6 +1,6 @@
 ---
 name: orchardcore-sms
-description: Skill for configuring SMS messaging in Orchard Core. Covers SMS provider setup (Log, Twilio, Azure Communication Services), ISmsService for programmatic sending, custom SMS provider implementation, workflow SMS activities, notification integration, and provider configuration.
+description: Skill for configuring SMS messaging in Orchard Core. Covers SMS provider setup (Log, Twilio, Azure Communication Services), ISmsService for programmatic sending, custom SMS provider implementation, workflow SMS activities, notification integration, and provider configuration. Use this skill when requests mention Orchard Core SMS, Configure and Send SMS Messages, Available SMS Providers, Enabling SMS Features, Configuring Twilio, Configuring Azure Communication Services via Admin UI, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Sms, OrchardCore.Sms.Azure, OrchardCore.Notifications.Sms, OrchardCore.Settings, OrchardCore.Workflows. It also helps with Configuring Twilio, Configuring Azure Communication Services via Admin UI, Configuring Default Azure Communication Services via, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core SMS - Prompt Templates

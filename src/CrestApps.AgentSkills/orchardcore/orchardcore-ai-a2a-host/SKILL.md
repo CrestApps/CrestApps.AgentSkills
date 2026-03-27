@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-a2a-host
-description: Skill for configuring the CrestApps A2A Host feature in Orchard Core. Covers exposing Agent AI Profiles as A2A agents, host authentication, agent cards, endpoints, and host settings.
+description: Skill for configuring the CrestApps A2A Host feature in Orchard Core. Covers exposing Agent AI Profiles as A2A agents, host authentication, agent cards, endpoints, and host settings. Use this skill when requests mention Orchard Core A2A Host, Configure an A2A Host, Feature Overview, Enable the Host Feature, Prerequisite: Create Agent Profiles, Host Settings in Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.A2A.Host, CrestApps.OrchardCore.AI, AIProfile, ExposeAgentsAsSkill, agentName, AuthenticationType, OrchardCore:CrestApps_AI:A2AHost, ApiKey. It also helps with Prerequisite: Create Agent Profiles, Host Settings in Configuration, Agent Exposure Modes, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -51,6 +51,8 @@ You are an Orchard Core expert. Generate configuration and guidance for exposing
 
 Only AI Profiles of type `Agent` are exposed by the host.
 
+The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the agent to deployments by ID.
+
 ```json
 {
   "steps": [
@@ -58,7 +60,6 @@ Only AI Profiles of type `Agent` are exposed by the host.
       "name": "AIProfile",
       "profiles": [
         {
-          "Source": "OpenAI",
           "Name": "research-agent",
           "DisplayText": "Research Agent",
           "Description": "Researches topics and returns sourced summaries.",

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-placement
-description: Skill for configuring Orchard Core placement, including placement.json, tabs, cards, columns, alternates, wrappers, dynamic placement providers, and fluent location syntax in display drivers.
+description: Skill for configuring Orchard Core placement, including placement.json, tabs, cards, columns, alternates, wrappers, dynamic placement providers, and fluent location syntax in display drivers. Use this skill when requests mention Orchard Core Placement, Configure Orchard Core placement, Placement string format, Segment meanings, Important ordering rules, Valid examples, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with PlacementLocationBuilder, IShapePlacementProvider, MyPart, TextField, MyShape, SecretShape, MyPlacementProvider, IPlacementInfoResolver, IBuildShapeContext, ShapePlacementContext, IServiceCollection, placement.json. It also helps with placement examples, Important ordering rules, Valid examples, placement.json examples, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

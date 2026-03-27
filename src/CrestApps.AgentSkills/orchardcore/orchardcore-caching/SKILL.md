@@ -1,6 +1,6 @@
 ---
 name: orchardcore-caching
-description: Skill for configuring and managing caching in Orchard Core. Covers response compression, dynamic cache, shape caching, cache tag helpers, ISignal-based invalidation, distributed cache with Redis, cache profiles, and CacheContext dependencies.
+description: Skill for configuring and managing caching in Orchard Core. Covers response compression, dynamic cache, shape caching, cache tag helpers, ISignal-based invalidation, distributed cache with Redis, cache profiles, and CacheContext dependencies. Use this skill when requests mention Orchard Core Caching, Configure and Manage Caching, Enabling Caching Features, Response Compression, Dynamic Cache (Shape-Level Caching), Shape Cache Tag Helper (Razor), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ResponseCompression, OrchardCore.DynamicCache, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Environment.Cache, OrchardCore.ContentManagement. It also helps with caching examples, Dynamic Cache (Shape-Level Caching), Shape Cache Tag Helper (Razor), Liquid Cache Block, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

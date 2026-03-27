@@ -1,6 +1,6 @@
 ---
 name: orchardcore-markdown
-description: Skill for using MarkdownBodyPart in Orchard Core. Covers Markdown content editing, shape templates for Liquid and Razor, custom editor configurations, Markdown sanitization, Markdig extension pipeline, and available editor options.
+description: Skill for using MarkdownBodyPart in Orchard Core. Covers Markdown content editing, shape templates for Liquid and Razor, custom editor configurations, Markdown sanitization, Markdig extension pipeline, and available editor options. Use this skill when requests mention Orchard Core Markdown, Use MarkdownBodyPart for Content Editing, Enabling Markdown, Attaching MarkdownBodyPart to a Content Type, Shapes, MarkdownBodyPartViewModel Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Markdown, OrchardCore.Markdown.ViewModels, MarkdownBodyPart, MarkdownField, DataMigration, IContentDefinitionManager, WithPart, TitlePart, TypePartSettings, MarkdownBodyPartSettings, ContentPart, PartFieldDefinition. It also helps with Shapes, MarkdownBodyPartViewModel Properties, MarkdownBodyPart Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Markdown - Prompt Templates

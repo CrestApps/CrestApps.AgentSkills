@@ -1,6 +1,6 @@
 ---
 name: orchardcore-deployments
-description: Skill for configuring Orchard Core deployment plans and steps. Covers deployment plan creation, content export/import, and deployment step configuration.
+description: Skill for configuring Orchard Core deployment plans and steps. Covers deployment plan creation, content export/import, and deployment step configuration. Use this skill when requests mention Orchard Core Deployments, Create a Deployment Plan, Deployment Step Types, Configuring Remote Deployment, Deployment Plan Recipe Export, Creating Deployment Steps in Code, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Deployment.Remote, OrchardCore.Deployment, AllContentDeploymentStep, ContentTypeDeploymentStep, ContentDeploymentStep, SiteSettingsDeploymentStep, AllFeaturesDeploymentStep, RecipeFileDeploymentStep, CustomFileDeploymentStep, ContentDefinition, MyCustomDeploymentStep, DeploymentStep. It also helps with Deployment Plan Recipe Export, Creating Deployment Steps in Code, Registering Deployment Steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

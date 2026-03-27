@@ -1,6 +1,6 @@
 ---
 name: orchardcore-menus
-description: Skill for creating and managing menus in Orchard Core. Covers menu content types, menu item types, menu widgets, navigation rendering, pager shapes, breadcrumbs, and menu customization via shapes and alternates.
+description: Skill for creating and managing menus in Orchard Core. Covers menu content types, menu item types, menu widgets, navigation rendering, pager shapes, breadcrumbs, and menu customization via shapes and alternates. Use this skill when requests mention Orchard Core Menus, Create and Manage Navigation Menus, Enabling Menu Features, Menu Item Types, Creating a Menu via Recipe, Multi-Level Navigation Menu, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Menu, OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.ContentManagement, OrchardCore.Navigation, OrchardCore.Navigation.MenuItem, OrchardCore.Modules, MenuItemsListPart, MenuWidget, LinkMenuItemPart, MenuPart, TitlePart. It also helps with menus examples, Creating a Menu via Recipe, Multi-Level Navigation Menu, Placing a Menu Widget in a Zone, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

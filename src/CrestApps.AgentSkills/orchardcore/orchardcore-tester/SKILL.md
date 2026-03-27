@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tester
-description: Tests Orchard Core CMS features through browser automation. Use when the user needs to build, run, setup, or test Orchard Core functionality including admin features, content management, media library, and module testing.
+description: Tests Orchard Core CMS features through browser automation. Use when the user needs to build, run, setup, or test Orchard Core functionality including admin features, content management, media library, and module testing. Use this skill when requests mention Orchard Core Feature Testing, Prerequisites, Core Workflow, Step 1: Build, Step 2: Run Application (Background), Get or Create Session Port, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cms.Web, OrchardCore.Cms.Web.csproj, AGENTS.md. It also helps with admin navigation, common features, debugging, setup wizard, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

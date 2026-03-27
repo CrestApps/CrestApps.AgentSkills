@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-parts
-description: Skill for adding and configuring built-in content parts in Orchard Core. Covers every built-in content part with all available settings, migration code patterns, and recipe configuration.
+description: Skill for adding and configuring built-in content parts in Orchard Core. Covers every built-in content part with all available settings, migration code patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, OrchardCore.Markdown, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

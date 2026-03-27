@@ -17,10 +17,12 @@ namespace CrestApps.Sports.Teams.Migrations;
 
 internal sealed class TeamMigrations : DataMigration
 {
-    public Task<int> CreateAsync()
+    public static Task<int> CreateAsync()
         => Task.FromResult(1);
 }
 ```
+
+Mark migration methods `static` only when they do not use injected services, inherited members such as `SchemaBuilder`, or any instance state from the migration class.
 
 ## Example 1: Complete Module Migration
 

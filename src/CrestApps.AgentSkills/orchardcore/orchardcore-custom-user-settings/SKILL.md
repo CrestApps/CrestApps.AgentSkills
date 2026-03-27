@@ -1,6 +1,6 @@
 ---
 name: orchardcore-custom-user-settings
-description: Skill for creating custom user settings sections in Orchard Core. Covers CustomUserSettings stereotype, tab-based organization for user editor, Liquid access patterns for user properties, placement customization, and SectionDisplayDriver extension.
+description: Skill for creating custom user settings sections in Orchard Core. Covers CustomUserSettings stereotype, tab-based organization for user editor, Liquid access patterns for user properties, placement customization, and SectionDisplayDriver extension. Use this skill when requests mention Orchard Core Custom User Settings, Create Custom User Settings, Enabling Custom User Settings, Creating a Custom User Settings Type, Creating via Recipe, Accessing Custom User Settings in Liquid, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Users.CustomUserSettings, OrchardCore.Users, CustomUserSettings, SectionDisplayDriver, DataMigration, IContentDefinitionManager, UserProfile, WithPart. It also helps with Creating via Recipe, Accessing Custom User Settings in Liquid, Accessing Custom User Settings in Code, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Custom User Settings - Prompt Templates

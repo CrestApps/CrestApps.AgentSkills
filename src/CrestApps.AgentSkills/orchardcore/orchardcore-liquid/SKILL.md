@@ -1,6 +1,6 @@
 ---
 name: orchardcore-liquid
-description: Skill for using Liquid templates in Orchard Core. Covers Liquid syntax, Orchard Core-specific filters and tags, shape rendering, content access, and Liquid best practices.
+description: Skill for using Liquid templates in Orchard Core. Covers Liquid syntax, Orchard Core-specific filters and tags, shape rendering, content access, and Liquid best practices. Use this skill when requests mention Orchard Core Liquid, Write Liquid Templates, Global Objects, Content Item Access, Accessing Content Parts and Fields, Orchard Core Liquid Tags, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with TitlePart, AutoroutePart, HtmlBodyPart, BodyPart, LiquidPart, MyPart, MyField, MyLiquidFilter, ILiquidFilter, LiquidTemplateContext, IServiceCollection, AddLiquidFilter. It also helps with liquid examples, Accessing Content Parts and Fields, Orchard Core Liquid Tags, Orchard Core Liquid Filters, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team

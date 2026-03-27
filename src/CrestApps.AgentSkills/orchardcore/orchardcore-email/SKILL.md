@@ -1,6 +1,6 @@
 ---
 name: orchardcore-email
-description: Guidance for configuring and sending emails in Orchard Core using the OrchardCore.Email module, including SMTP setup, programmatic sending via ISmtpService, Liquid-based email templates, recipe-driven configuration, workflow email activities, and the Azure Communication Services email provider.
+description: Guidance for configuring and sending emails in Orchard Core using the OrchardCore.Email module, including SMTP setup, programmatic sending via ISmtpService, Liquid-based email templates, recipe-driven configuration, workflow email activities, and the Azure Communication Services email provider. Use this skill when requests mention OrchardCore.Email Module, Email Providers, Configuring SMTP Settings, Via Admin UI, Via Recipe, Via Configuration Provider, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Email, OrchardCore.Email.Azure, OrchardCore.Email.Smtp, OrchardCore.Modules, OrchardCore.Liquid, OrchardCore.Workflows, OrchardCore.Email.Events, ISmtpService, MailKitSmtpService. It also helps with email examples, Via Recipe, Via Configuration Provider, Configuring Azure Communication Services Email, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
