@@ -138,7 +138,10 @@ public sealed class CustomerInsightElasticsearchIndexProfileHandler : IndexProfi
             return Task.CompletedTask;
         }
 
-        var metadata = indexProfile.As<ElasticsearchIndexMetadata>();
+        if (!indexProfile.TryGet<ElasticsearchIndexMetadata>(out var metadata))
+        {
+            metadata = new ElasticsearchIndexMetadata();
+        }
 
         metadata.IndexMappings ??= new ElasticsearchIndexMap();
         metadata.IndexMappings.Mapping ??= new TypeMapping();
@@ -160,7 +163,11 @@ public sealed class CustomerInsightElasticsearchIndexProfileHandler : IndexProfi
 
         indexProfile.Put(metadata);
 
-        var queryMetadata = indexProfile.As<ElasticsearchDefaultQueryMetadata>();
+        if (!indexProfile.TryGet<ElasticsearchDefaultQueryMetadata>(out var queryMetadata))
+        {
+            queryMetadata = new ElasticsearchDefaultQueryMetadata();
+        }
+
         queryMetadata.DefaultSearchFields = ["Title", "Summary", "Content"];
         indexProfile.Put(queryMetadata);
 

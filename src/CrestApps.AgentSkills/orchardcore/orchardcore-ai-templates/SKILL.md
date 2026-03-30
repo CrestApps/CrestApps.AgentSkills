@@ -29,7 +29,7 @@ Templates can be defined in two ways:
 - AI Templates extend `CatalogItem` and use the `INamedCatalogManager<AIProfileTemplate>` pattern.
 - Templates are source-independent — the same template works with any AI provider.
 - Database templates take precedence over file-based templates with the same name.
-- Template properties are stored using `Entity.As<T>()/Put<T>()` (not `GetSettings/AlterSettings`).
+- Template properties are read with `Entity.TryGet<T>(out var value)` and written with `Put<T>()` (not `GetSettings/AlterSettings`).
 - Profile-type templates: when applied, `Properties` are copied to both `profile.Properties` and `profile.Settings`.
 - SystemMessage templates: rendered at runtime using `render_ai_template` Liquid tag.
 - Profile types supported: `Chat`, `Utility`, `TemplatePrompt`, `Agent`.
@@ -348,8 +348,12 @@ public sealed class MyCustomTemplateDriver : DisplayDriver<AIProfileTemplate>
     {
         return Initialize<MyViewModel>("MyShape_Edit", model =>
         {
-            var metadata = template.As<MyMetadata>();
-            model.SomeSetting = metadata?.SomeSetting;
+            if (!template.TryGet<MyMetadata>(out var metadata))
+            {
+                metadata = new MyMetadata();
+            }
+
+            model.SomeSetting = metadata.SomeSetting;
         }).Location("Content:10#MyTab;8");
     }
 
@@ -395,7 +399,7 @@ Examples:
 
 ### Important Notes
 
-- Template drivers use `template.As<T>()/Put<T>()` from `OrchardCore.Entities` (not `GetSettings/AlterSettings`).
+- Template drivers use `template.TryGet<T>(out var value)` for reads and `Put<T>()` for writes from `OrchardCore.Entities` (not `GetSettings/AlterSettings`).
 - Template drivers can reuse the same ViewModels and shape names as AI Profile drivers.
 - When applying a template, `Properties` are copied to both `profile.Properties` and `profile.Settings`.
 - Templates support document uploads — documents are cloned when applying a template to a new profile.
@@ -405,11 +409,11 @@ Examples:
 
 | Settings Type | On AIProfileTemplate | On AIProfile |
 |---|---|---|
-| `AIProfilePostSessionSettings` | `template.Properties` via `As<T>()/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
-| `AIProfileDataExtractionSettings` | `template.Properties` via `As<T>()/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
-| `AnalyticsMetadata` | `template.Properties` via `As<T>()/Put<T>()` | `profile.Properties` via `As<T>()/Put<T>()` |
-| `AIProfileMetadata` | `template.Properties` via `As<T>()/Put<T>()` | `profile.Properties` via `As<T>()/Put<T>()` |
-| `AgentMetadata` | `template.Properties` via `As<T>()/Put<T>()` | `profile.Properties` via `As<T>()/Put<T>()` |
+| `AIProfilePostSessionSettings` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
+| `AIProfileDataExtractionSettings` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
+| `AnalyticsMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
+| `AIProfileMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
+| `AgentMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
 
 ## Security
 

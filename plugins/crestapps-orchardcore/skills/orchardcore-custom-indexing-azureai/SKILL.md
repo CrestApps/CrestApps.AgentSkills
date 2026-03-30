@@ -127,8 +127,12 @@ public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfi
             return Task.CompletedTask;
         }
 
-        var metadata = indexProfile.As<AzureAISearchIndexMetadata>();
+        if (!indexProfile.TryGet<AzureAISearchIndexMetadata>(out var metadata))
+        {
+            metadata = new AzureAISearchIndexMetadata();
+        }
 
+        metadata.IndexMappings ??= [];
         metadata.IndexMappings.Add(new AzureAISearchIndexMap
         {
             AzureFieldKey = "RecordId",

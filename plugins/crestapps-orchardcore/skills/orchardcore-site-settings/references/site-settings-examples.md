@@ -266,9 +266,8 @@ public sealed class SocialLinksViewComponent : ViewComponent
     public async Task<IViewComponentResult> InvokeAsync()
     {
         var site = await _siteService.GetSiteSettingsAsync();
-        var settings = site.As<SocialMediaSettings>();
 
-        if (!settings.ShowSocialLinks)
+        if (!site.TryGet<SocialMediaSettings>(out var settings) || !settings.ShowSocialLinks)
         {
             return Content(string.Empty);
         }
@@ -442,16 +441,18 @@ public sealed class SecurityHeadersMiddleware
     {
         var siteService = context.RequestServices.GetRequiredService<ISiteService>();
         var site = await siteService.GetSiteSettingsAsync();
-        var settings = site.As<SecurityHeaderSettings>();
 
-        if (!string.IsNullOrEmpty(settings.ContentSecurityPolicy))
+        if (site.TryGet<SecurityHeaderSettings>(out var settings))
         {
-            context.Response.Headers["Content-Security-Policy"] = settings.ContentSecurityPolicy;
-        }
+            if (!string.IsNullOrEmpty(settings.ContentSecurityPolicy))
+            {
+                context.Response.Headers["Content-Security-Policy"] = settings.ContentSecurityPolicy;
+            }
 
-        if (settings.EnableStrictTransportSecurity)
-        {
-            context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+            if (settings.EnableStrictTransportSecurity)
+            {
+                context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+            }
         }
 
         await _next(context);
@@ -604,13 +605,13 @@ public class SmtpSettingsViewModel
 
 @{
     var site = await SiteService.GetSiteSettingsAsync();
-    var socialSettings = site.As<SocialMediaSettings>();
+    var hasSocialSettings = site.TryGet<SocialMediaSettings>(out var socialSettings);
 }
 
 <footer>
     <p>&copy; @DateTime.Now.Year @site.SiteName</p>
 
-    @if (socialSettings.ShowSocialLinks)
+    @if (hasSocialSettings && socialSettings.ShowSocialLinks)
     {
         <nav aria-label="Social media links">
             <ul class="list-inline">

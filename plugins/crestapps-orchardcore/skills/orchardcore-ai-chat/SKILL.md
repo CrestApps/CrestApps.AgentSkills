@@ -383,7 +383,7 @@ profile.AlterSettings<ChatModeProfileSettings>(s =>
 });
 ```
 
-> **Important:** Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do NOT use `profile.As<ChatModeProfileSettings>()` — that reads from a different storage location.
+> **Important:** Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do not read this data from `Entity.Properties`; chat mode settings live in `AIProfile.Settings`.
 
 ### Voice Configuration
 

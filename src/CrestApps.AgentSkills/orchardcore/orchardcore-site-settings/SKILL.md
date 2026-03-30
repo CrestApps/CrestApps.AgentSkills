@@ -16,11 +16,11 @@ You are an Orchard Core expert. Generate code and configuration for working with
 ### Guidelines
 
 - Use `ISiteService` to read and write site-level configuration at runtime.
-- `ISite` is the read-only representation of the site document; obtain it via `ISiteService.GetSiteSettingsAsync()`.
+- `ISiteService.GetSiteSettingsAsync()` returns the cached site document for read-only access. When you intend to modify site settings and persist them with `UpdateSiteSettingsAsync()`, call `LoadSiteSettingsAsync()` instead.
 - Built-in site properties include `SiteName`, `BaseUrl`, `TimeZoneId`, `Culture`, `PageSize`, and `UseCdn`.
 - Custom settings sections are content types with the `CustomSettings` stereotype.
 - Each custom settings section is stored as a named JSON property inside the site document.
-- Use `ISite.TryGet<TSettings>(out var settings)` for optional reads and `ISite.As<TSettings>()` when you intentionally need a materialized instance.
+- Use `ISite.TryGet<TSettings>(out var settings)` to read custom settings sections.
 - Render custom settings in admin using `SiteDisplayDriver<TSettings>` when possible (not `ContentPartDisplayDriver`).
 - Register an `INavigationProvider` to add settings entries to the admin navigation menu.
 - Define a dedicated permission to control who can manage each settings section.
@@ -34,7 +34,7 @@ You are an Orchard Core expert. Generate code and configuration for working with
 | Service | Purpose |
 |---------|---------|
 | `ISiteService` | Read and write the site settings document. Returns `ISite`. |
-| `ISite` | Read-only site settings object. Use `.TryGet<T>(out ...)` for optional reads and `.As<T>()` when you need a materialized section. |
+| `ISite` | Read-only site settings object. Use `.TryGet<T>(out ...)` to read custom settings sections. |
 | `IContentDefinitionManager` | Define custom settings content types with the `CustomSettings` stereotype. |
 | `SiteDisplayDriver<TSettings>` | Preferred base class for rendering site settings sections in admin. |
 | `INavigationProvider` | Register admin menu entries for settings pages. |
@@ -93,7 +93,7 @@ public sealed class MyService
 }
 ```
 
-Use `LoadSiteSettingsAsync()` when you intend to modify the site document. Use `GetSiteSettingsAsync()` for read-only access; it returns a cached instance.
+Use `LoadSiteSettingsAsync()` when you intend to modify the site document and save it back with `UpdateSiteSettingsAsync()`. Use `GetSiteSettingsAsync()` only for read-only access because it returns a cached instance.
 
 ### Creating a Custom Settings Section
 
@@ -304,10 +304,12 @@ Use the `ISite` object available through `ISiteService` or the `Orchard` helper 
 
 @{
     var site = await SiteService.GetSiteSettingsAsync();
-    var settings = site.As<{{SettingsPartName}}>();
 }
 
-<p>@settings.{{PropertyName}}</p>
+@if (site.TryGet<{{SettingsPartName}}>(out var settings))
+{
+    <p>@settings.{{PropertyName}}</p>
+}
 ```
 
 ### Reading Custom Settings in Services
@@ -322,11 +324,13 @@ public sealed class MyService
         _siteService = siteService;
     }
 
-    public async Task<{{SettingsPartName}}> GetSettingsAsync()
+    public async Task<{{SettingsPartName}}?> GetSettingsAsync()
     {
         var site = await _siteService.GetSiteSettingsAsync();
 
-        return site.As<{{SettingsPartName}}>();
+        return site.TryGet<{{SettingsPartName}}>(out var settings)
+            ? settings
+            : null;
     }
 }
 ```

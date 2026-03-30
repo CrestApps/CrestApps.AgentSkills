@@ -451,7 +451,7 @@ profile.AlterSettings<ChatModeProfileSettings>(s =>
 });
 ```
 
-> **Important:** `ChatModeProfileSettings` is stored on `AIProfile.Settings` (not `Entity.Properties`). Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do NOT use `profile.As<ChatModeProfileSettings>()` — that reads from `Entity.Properties` which is a different storage location.
+> **Important:** `ChatModeProfileSettings` is stored on `AIProfile.Settings` (not `Entity.Properties`). Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do not read this data from `Entity.Properties` because that is a different storage location.
 
 ### Contained Connections
 
