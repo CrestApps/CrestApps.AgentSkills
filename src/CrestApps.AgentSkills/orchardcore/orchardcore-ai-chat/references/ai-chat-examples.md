@@ -21,7 +21,6 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI Default",
           "Properties": {
             "OpenAIConnectionMetadata": {
@@ -100,7 +99,6 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
         {
           "Source": "AzureOpenAI",
           "Name": "azure-default",
-          "IsDefault": true,
           "DisplayText": "Azure OpenAI",
           "Properties": {
             "AzureOpenAIConnectionMetadata": {
@@ -241,7 +239,6 @@ public sealed class Startup : StartupBase
       },
       "Providers": {
         "OpenAI": {
-          "DefaultConnectionName": "default",
           "Connections": {
             "default": {
               "Deployments": [

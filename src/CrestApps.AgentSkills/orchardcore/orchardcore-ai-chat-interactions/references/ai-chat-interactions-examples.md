@@ -23,7 +23,6 @@
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI Default",
           "Properties": {
             "OpenAIConnectionMetadata": {
@@ -86,7 +85,6 @@ Configure the provider connection and define typed deployments for chat, embeddi
     "CrestApps_AI": {
       "Providers": {
         "OpenAI": {
-          "DefaultConnectionName": "default",
           "Connections": {
             "default": {}
           }
@@ -195,7 +193,6 @@ public sealed class Startup : StartupBase
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI",
           "Properties": {
             "OpenAIConnectionMetadata": {

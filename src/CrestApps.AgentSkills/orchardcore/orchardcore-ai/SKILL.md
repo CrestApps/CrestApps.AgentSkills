@@ -20,6 +20,7 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 - Configure AI services through `appsettings.json` or the admin UI.
 - Use dependency injection to access AI services in modules.
 - Always secure API keys using user secrets or environment variables, never hardcode them.
+- Provider configuration no longer uses a provider-wide default connection property. When multiple shared connections exist, assign the intended `ConnectionName` on each deployment and select deployments by name in profiles, workflows, and interactions.
 - AI profiles define how the AI system interacts with users, including system messages and response behavior.
 - Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
 - Agent profiles are reusable agents exposed as AI tools — each agent requires a `Description` field.
@@ -61,7 +62,6 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
       },
       "Providers": {
         "OpenAI": {
-          "DefaultConnectionName": "default",
           "Connections": {
             "default": {
               "ApiKey": "<!-- Your API Key -->",
@@ -131,7 +131,6 @@ Use `ClientName` for deployments in recipes and configuration.
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI",
           "Properties": {
             "OpenAIConnectionMetadata": {
@@ -177,6 +176,46 @@ Use `ClientName` for deployments in recipes and configuration.
 ```
 
 For new recipes, prefer a dedicated `AIDeployment` step over embedding deployment definitions inside `AIProviderConnections`.
+
+### AI Completion using Direct Config Workflow Task
+
+The `AICompletionWithConfigTask` workflow activity is now deployment-driven. Its editor (`AICompletionWithConfigTaskDisplayDriver`) should only ask the user to select a chat deployment plus the prompt and output settings.
+
+- Do **not** ask for `ProviderName` or `ConnectionName`.
+- Populate the deployment dropdown from `IAIDeploymentManager.GetByTypeAsync(AIDeploymentType.Chat)`.
+- Persist the selected deployment using `DeploymentName`.
+- At execution time, resolve the deployment with `ResolveOrDefaultAsync(AIDeploymentType.Chat, deploymentName: DeploymentName)`.
+
+```csharp
+public sealed class AICompletionWithConfigTaskDisplayDriver
+    : ActivityDisplayDriver<AICompletionWithConfigTask, AICompletionWithConfigTaskViewModel>
+{
+    private readonly IAIDeploymentManager _deploymentManager;
+
+    public override IDisplayResult Edit(AICompletionWithConfigTask activity, BuildEditorContext context)
+    {
+        return Initialize<AICompletionWithConfigTaskViewModel>("AICompletionWithConfigTask_Fields_Edit", async model =>
+        {
+            model.DeploymentName = activity.DeploymentName;
+            model.DeploymentNames = (await _deploymentManager.GetByTypeAsync(AIDeploymentType.Chat))
+                .OrderBy(x => x.ConnectionNameAlias ?? x.ConnectionName)
+                .ThenBy(x => x.Name)
+                .Select(x => new SelectListItem(x.Name, x.Name));
+        }).Location("Content");
+    }
+}
+```
+
+```cshtml
+<div class="mb-3" asp-validation-class-for="DeploymentName">
+    <label asp-for="DeploymentName" class="form-label">@T["Deployment"]</label>
+    <select asp-for="DeploymentName" class="form-select" asp-items="Model.DeploymentNames">
+        <option value="">@T["Select a deployment"]</option>
+    </select>
+</div>
+```
+
+Use this workflow activity when a workflow should target a specific deployment directly instead of going through an AI profile.
 
 ### AI Profile Types
 

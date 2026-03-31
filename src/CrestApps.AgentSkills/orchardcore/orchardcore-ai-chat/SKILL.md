@@ -66,7 +66,6 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI",
           "Properties": {
             "OpenAIConnectionMetadata": {

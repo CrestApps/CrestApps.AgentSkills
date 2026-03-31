@@ -22,7 +22,6 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
         {
           "Source": "OpenAI",
           "Name": "default",
-          "IsDefault": true,
           "DisplayText": "OpenAI Default",
           "Properties": {
             "OpenAIConnectionMetadata": {

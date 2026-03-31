@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
-- The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on connection/global defaults when explicit deployments are not set.
+- The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on the configured site-level default deployments when explicit deployments are not set.
 - Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
 - The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - All chat messages are persisted and sessions can be resumed later.
@@ -50,7 +50,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 1. Enable the `AI Chat Interactions` feature in the Orchard Core admin under **Configuration → Features**.
 2. Navigate to **Artificial Intelligence → Chat Interactions**.
-3. Click **+ New Chat** and select the chat and utility deployments you want to use, or rely on the configured fallback defaults.
+3. Click **+ New Chat** and select the chat and utility deployments you want to use, or rely on the site-level default deployments.
 4. Configure chat settings (temperature, tools, orchestrator, documents) and start chatting.
 
 Chat interactions are authored as ad-hoc sessions rather than predefined AI profiles. In current guidance, the interaction chooses deployments directly and does not require a profile `Source` in authoring recipes or prompts.
