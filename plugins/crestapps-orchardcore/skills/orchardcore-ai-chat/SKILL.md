@@ -129,9 +129,8 @@ Use typed deployments to bind chat profiles to specific models:
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
-          "ChatDeploymentId": "openai-chat",
-          "UtilityDeploymentId": "openai-utility",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful customer support assistant. Answer questions about our products and services. Be friendly and concise.",
@@ -150,7 +149,7 @@ Use typed deployments to bind chat profiles to specific models:
 }
 ```
 
-The `AIProfile` recipe format omits `Source`. Profiles are source-agnostic and resolve their active client from the selected deployment IDs, or from the optional `ConnectionName` fallback when deployment IDs are not set.
+The `AIProfile` recipe format omits `Source`. Profiles are source-agnostic and resolve their active client from `ChatDeploymentName` and `UtilityDeploymentName`.
 
 ### Making a Chat Profile Visible on the Admin Menu
 
@@ -247,9 +246,8 @@ Agent profiles are reusable agents that can be invoked as tools by other profile
           "Description": "An agent that can research topics and provide comprehensive summaries with citations.",
           "Type": "Agent",
           "TitleType": "InitialPrompt",
-          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
-          "ChatDeploymentId": "openai-chat",
-          "UtilityDeploymentId": "openai-utility",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
@@ -369,8 +367,8 @@ Chat profiles support three modes via the `ChatModeProfileSettings`:
 | Mode | Description | Requirements |
 |------|-------------|--------------|
 | `TextOnly` | Standard text-only chat (default) | None |
-| `AudioInput` | Adds microphone button for speech-to-text dictation. User types or dictates, then sends manually. | `DefaultSpeechToTextDeploymentId` configured in site settings |
-| `Conversation` | Two-way voice conversation. User speaks → transcript sent automatically → AI responds with text and spoken audio. | Both `DefaultSpeechToTextDeploymentId` and `DefaultTextToSpeechDeploymentId` configured |
+| `AudioInput` | Adds microphone button for speech-to-text dictation. User types or dictates, then sends manually. | `DefaultSpeechToTextDeploymentName` configured in site settings |
+| `Conversation` | Two-way voice conversation. User speaks → transcript sent automatically → AI responds with text and spoken audio. | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
 
 Chat mode is set in the AI Profile edit page under the "Chat Mode" dropdown (only visible for Chat-type profiles).
 

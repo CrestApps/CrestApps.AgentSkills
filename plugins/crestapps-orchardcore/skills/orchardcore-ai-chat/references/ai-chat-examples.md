@@ -64,9 +64,8 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
-          "ChatDeploymentId": "openai-chat",
-          "UtilityDeploymentId": "openai-utility",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a helpful assistant. Provide clear and concise answers.",

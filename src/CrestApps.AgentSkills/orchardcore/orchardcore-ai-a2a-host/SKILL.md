@@ -51,7 +51,7 @@ You are an Orchard Core expert. Generate configuration and guidance for exposing
 
 Only AI Profiles of type `Agent` are exposed by the host.
 
-The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the agent to deployments by ID.
+The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the agent to deployments by technical name.
 
 ```json
 {
@@ -64,8 +64,8 @@ The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the age
           "DisplayText": "Research Agent",
           "Description": "Researches topics and returns sourced summaries.",
           "Type": "Agent",
-          "ChatDeploymentId": "research-chat-deployment",
-          "UtilityDeploymentId": "research-utility-deployment",
+          "ChatDeploymentName": "research-chat",
+          "UtilityDeploymentName": "research-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant.",

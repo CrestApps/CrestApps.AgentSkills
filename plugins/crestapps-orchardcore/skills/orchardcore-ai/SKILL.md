@@ -205,9 +205,8 @@ For new recipes, prefer a dedicated `AIDeployment` step over embedding deploymen
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
-          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
-          "ChatDeploymentId": "openai-chat",
-          "UtilityDeploymentId": "openai-utility",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "{{SystemMessage}}",
@@ -226,7 +225,7 @@ For new recipes, prefer a dedicated `AIDeployment` step over embedding deploymen
 }
 ```
 
-The `AIProfile` recipe step is source-agnostic. Omit `Source` and let the selected deployment IDs — or, if those are absent, the optional `ConnectionName` fallback — determine the active client.
+The `AIProfile` recipe step is source-agnostic. Omit `Source` and use `ChatDeploymentName` and `UtilityDeploymentName` to select the deployments by their technical names.
 
 ### Creating an Agent Profile via Recipe
 
@@ -244,9 +243,8 @@ Agent profiles are exposed as AI tools that other profiles/interactions can invo
           "Description": "An agent that can research topics on the internet and provide comprehensive summaries with citations.",
           "Type": "Agent",
           "TitleType": "InitialPrompt",
-          "ConnectionName": "<!-- Optional fallback when deployment IDs are omitted. -->",
-          "ChatDeploymentId": "openai-chat",
-          "UtilityDeploymentId": "openai-utility",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
@@ -424,11 +422,12 @@ The site-level `DefaultAIDeploymentSettings` configures default deployments for 
 
 | Setting | Description |
 |---------|-------------|
-| `DefaultUtilityDeploymentId` | Lightweight model for intent detection and planning |
-| `DefaultEmbeddingDeploymentId` | Model for embedding generation in document indexing |
-| `DefaultImageDeploymentId` | Model for image generation (e.g., DALL-E 3) |
-| `DefaultSpeechToTextDeploymentId` | Model for speech-to-text (e.g., Whisper) |
-| `DefaultTextToSpeechDeploymentId` | Model for text-to-speech synthesis |
+| `DefaultChatDeploymentName` | Primary chat model used when a profile or interaction does not specify a chat deployment |
+| `DefaultUtilityDeploymentName` | Lightweight model for intent detection and planning |
+| `DefaultEmbeddingDeploymentName` | Model for embedding generation in document indexing |
+| `DefaultImageDeploymentName` | Model for image generation (e.g., DALL-E 3) |
+| `DefaultSpeechToTextDeploymentName` | Model for speech-to-text (e.g., Whisper) |
+| `DefaultTextToSpeechDeploymentName` | Model for text-to-speech synthesis |
 | `DefaultTextToSpeechVoiceId` | Default voice ID for TTS synthesis |
 
 ### Chat Mode
@@ -438,8 +437,8 @@ AI profiles of type `Chat` support a `ChatMode` setting that controls voice feat
 | Mode | Description |
 |------|-------------|
 | `TextOnly` | Default. Standard text-only chat. No voice features. |
-| `AudioInput` | Adds a microphone button for speech-to-text dictation. User must still send the transcribed message manually. Requires `DefaultSpeechToTextDeploymentId`. |
-| `Conversation` | Full two-way voice conversation. User speaks, transcript is sent automatically, AI responds with text and audio simultaneously. Requires both `DefaultSpeechToTextDeploymentId` and `DefaultTextToSpeechDeploymentId`. |
+| `AudioInput` | Adds a microphone button for speech-to-text dictation. User must still send the transcribed message manually. Requires `DefaultSpeechToTextDeploymentName`. |
+| `Conversation` | Full two-way voice conversation. User speaks, transcript is sent automatically, AI responds with text and audio simultaneously. Requires both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName`. |
 
 ChatMode is configured per profile via `ChatModeProfileSettings`:
 

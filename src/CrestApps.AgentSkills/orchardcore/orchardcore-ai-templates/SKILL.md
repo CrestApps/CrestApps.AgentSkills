@@ -71,7 +71,8 @@ Description: Template for customer support chatbots
 Category: Customer Service
 IsListable: true
 ProfileType: Chat
-ConnectionName: openai-main
+ChatDeploymentName: gpt-4o
+UtilityDeploymentName: gpt-4o-mini
 OrchestratorName: default
 WelcomeMessage: Hello! How can I help you today?
 TitleType: Generated
@@ -119,7 +120,8 @@ The following agents are available to assist you:
 | `Category` | string | Grouping category for the dropdown |
 | `IsListable` | bool | Whether the template appears in the selection dropdown |
 | `ProfileType` | string | `Chat`, `Utility`, `TemplatePrompt`, or `Agent` |
-| `ConnectionName` | string | AI provider connection name (optional) |
+| `ChatDeploymentName` | string | Chat deployment technical name to pre-select for generated profiles |
+| `UtilityDeploymentName` | string | Utility deployment technical name to pre-select for generated profiles |
 | `OrchestratorName` | string | Orchestrator name (default: `default`) |
 | `WelcomeMessage` | string | Initial greeting shown to users (Chat profiles only) |
 | `TitleType` | string | `InitialPrompt` or `Generated` |
@@ -213,7 +215,8 @@ Agent templates help users quickly create agent profiles:
           "Category": "Customer Service",
           "IsListable": true,
           "ProfileType": "Chat",
-          "ConnectionName": "",
+          "ChatDeploymentName": "gpt-4o",
+          "UtilityDeploymentName": "gpt-4o-mini",
           "OrchestratorName": "default",
           "SystemMessage": "You are a professional customer support agent.",
           "WelcomeMessage": "Hello! How can I help you today?",

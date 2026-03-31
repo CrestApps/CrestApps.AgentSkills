@@ -279,8 +279,8 @@ Chat interactions support the same `ChatMode` options as AI profiles, but config
 | Mode | Description | Requirements |
 |------|-------------|--------------|
 | `TextOnly` | Standard text-only chat (default) | None |
-| `AudioInput` | Adds microphone button for speech-to-text dictation | `DefaultSpeechToTextDeploymentId` configured |
-| `Conversation` | Two-way voice conversation | Both `DefaultSpeechToTextDeploymentId` and `DefaultTextToSpeechDeploymentId` configured |
+| `AudioInput` | Adds microphone button for speech-to-text dictation | `DefaultSpeechToTextDeploymentName` configured |
+| `Conversation` | Two-way voice conversation | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
 
 Unlike AI profiles (configured per profile), chat interactions use a **single site-wide setting** that applies to all chat interaction sessions.
 
