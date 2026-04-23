@@ -1,6 +1,6 @@
 ---
 name: orchardcore-elasticsearch
-description: Skill for configuring Elasticsearch in Orchard Core. Covers Elasticsearch setup and Docker deployment, connection configuration, analyzers and token filters, index creation recipe steps, query types, comparison with Lucene, field mapping, custom data indexing, and Elasticsearch-specific configuration options. Use this skill when requests mention Orchard Core Elasticsearch, Configure Elasticsearch, Enabling Elasticsearch Features, Elasticsearch Connection Configuration, Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules. It also helps with Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), Legacy Index Creation (Obsolete), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Elasticsearch in Orchard Core. Covers Elasticsearch setup and Docker deployment, connection configuration, analyzers and token filters, index creation recipe steps, query types, comparison with Lucene, field mapping, custom data indexing, and Elasticsearch-specific configuration options. Use this skill when requests mention Orchard Core Elasticsearch, Configure Elasticsearch, Enabling Elasticsearch Features, Elasticsearch Connection Configuration, Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules. It also helps with Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), Legacy Index Creation (Obsolete), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Elasticsearch - Prompt Templates
@@ -11,7 +11,7 @@ You are an Orchard Core expert. Generate code and configuration for Elasticsearc
 
 ### Guidelines
 
-- Enable `OrchardCore.Search.Elasticsearch` to manage Elasticsearch indices.
+- Enable `OrchardCore.Elasticsearch` to manage Elasticsearch indices.
 - Configure the Elasticsearch connection in `appsettings.json` under the `OrchardCore_Elasticsearch` section.
 - Use the `CreateOrUpdateIndexProfile` recipe step to create indexes (preferred over the obsolete `ElasticIndexSettings` step).
 - Use the `ResetIndex` recipe step to restart indexing without deleting entries (preferred over the obsolete `elastic-index-reset` step).
@@ -34,7 +34,7 @@ You are an Orchard Core expert. Generate code and configuration for Elasticsearc
       "name": "Feature",
       "enable": [
         "OrchardCore.Search",
-        "OrchardCore.Search.Elasticsearch",
+        "OrchardCore.Elasticsearch",
         "OrchardCore.Indexing"
       ],
       "disable": []

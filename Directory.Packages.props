@@ -12,7 +12,7 @@
 		<PackageVersion Include="ModelContextProtocol" Version="1.2.0" />
 		<PackageVersion Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />
 		<PackageVersion Include="YamlDotNet" Version="17.0.1" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.6" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- Testing -->

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-ai-search
-description: Skill for configuring Azure AI Search in Orchard Core. Covers Azure AI Search setup, index creation and management, recipe steps for index operations, search module integration, custom data indexing, frontend search configuration, and Azure-specific search settings. Use this skill when requests mention Orchard Core Azure AI Search, Configure Azure AI Search, Enabling Azure AI Search Features, Azure AI Search Connection Configuration, Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.AzureAI, OrchardCore.OrchardCore_AzureAISearch, OrchardCore.Search, OrchardCore.Indexing. It also helps with Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Azure AI Search Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Azure AI Search in Orchard Core. Covers Azure AI Search setup, index creation and management, recipe steps for index operations, search module integration, custom data indexing, frontend search configuration, and Azure-specific search settings. Use this skill when requests mention Orchard Core Azure AI Search, Configure Azure AI Search, Enabling Azure AI Search Features, Azure AI Search Connection Configuration, Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AzureAI, OrchardCore.OrchardCore_AzureAISearch, OrchardCore.Search, OrchardCore.Indexing. It also helps with Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Azure AI Search Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Azure AI Search - Prompt Templates
@@ -11,7 +11,7 @@ You are an Orchard Core expert. Generate code and configuration for Azure AI Sea
 
 ### Guidelines
 
-- Enable `OrchardCore.Search.AzureAI` to manage Azure AI Search indices.
+- Enable `OrchardCore.AzureAI` to manage Azure AI Search indices.
 - Configure the Azure AI Search connection in `appsettings.json` under `OrchardCore.OrchardCore_AzureAISearch` or through the admin UI at Settings > Search > Azure AI Search.
 - Use the `CreateOrUpdateIndexProfile` recipe step to create indexes (preferred over the obsolete `azureai-index-create` step).
 - Use the `ResetIndex` recipe step to restart indexing without deleting entries (preferred over the obsolete `azureai-index-reset` step).
@@ -32,7 +32,7 @@ You are an Orchard Core expert. Generate code and configuration for Azure AI Sea
       "name": "Feature",
       "enable": [
         "OrchardCore.Search",
-        "OrchardCore.Search.AzureAI",
+        "OrchardCore.AzureAI",
         "OrchardCore.Indexing"
       ],
       "disable": []

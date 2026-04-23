@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp
-description: Skill for configuring Model Context Protocol (MCP) in Orchard Core using the CrestApps MCP module. Covers MCP client connections (SSE and Stdio transports), MCP server setup to expose Orchard Core as an MCP endpoint, MCP resources, authentication, and custom resource types. Use this skill when requests mention Orchard Core MCP (Model Context Protocol), Configure MCP Integration, MCP Features Overview, MCP Client Connecting to External MCP Servers, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp. It also helps with ai mcp examples, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, Adding a Remote MCP Connection via Recipe (SSE), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Model Context Protocol (MCP) in Orchard Core using the CrestApps MCP module. Covers MCP client connections over SSE and local client transports, MCP server setup to expose Orchard Core as an MCP endpoint, MCP resources, authentication, and custom resource types. Use this skill when requests mention Orchard Core MCP (Model Context Protocol), Configure MCP Integration, MCP Features Overview, MCP Client Connecting to External MCP Servers, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp. It also helps with ai mcp examples, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, Adding a Remote MCP Connection via Recipe (SSE), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for in
 
 - The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is an open standard for seamless integration between LLM applications and external tools or data sources.
 - The CrestApps MCP module provides both client and server features.
-- **MCP Client**: Connect Orchard Core to external MCP servers using SSE or Stdio transports, extending AI chat capabilities with external tools.
+- **MCP Client**: Connect Orchard Core to external MCP servers using SSE or local client transports, extending AI chat capabilities with external tools.
 - **MCP Server**: Expose Orchard Core AI tools and resources to external MCP-compatible clients (AI agents, IDEs, copilots).
 - MCP connections can be configured via the admin UI or recipes.
 - MCP server authentication supports OpenId, ApiKey, or None (development only).
@@ -30,7 +30,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for in
 | Feature | Feature ID | Description |
 |---------|-----------|-------------|
 | MCP Client (SSE) | `CrestApps.OrchardCore.AI.Mcp` | Connect to remote MCP servers via Server-Sent Events |
-| MCP Client (Stdio) | `CrestApps.OrchardCore.AI.Mcp.Local` | Connect to local MCP servers via Standard Input/Output |
+| MCP Client (Local Client) | `CrestApps.OrchardCore.AI.Mcp.LocalClient` | Connect to local MCP servers via Standard Input/Output |
 | MCP Server | `CrestApps.OrchardCore.AI.Mcp.Server` | Expose Orchard Core as an MCP server endpoint |
 
 ## MCP Client: Connecting to External MCP Servers
@@ -144,7 +144,7 @@ The Local MCP Client feature enables connections to MCP servers running locally 
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Local",
+        "CrestApps.OrchardCore.AI.Mcp.LocalClient",
         "CrestApps.OrchardCore.OpenAI"
       ],
       "disable": []

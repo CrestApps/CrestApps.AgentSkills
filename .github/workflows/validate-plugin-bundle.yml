@@ -31,12 +31,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          plugin_changes=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- \
+          plugin_changes=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
             'plugins/orchardcore/skills/**' \
             'plugins/crestapps-orchardcore/skills/**' \
-            'plugins/crestapps-core/skills/**' | wc -l | tr -d ' ')
+            'plugins/crestapps-core/skills/**')
 
-          if [ "$plugin_changes" -gt 0 ]; then
+          if [ -z "$plugin_changes" ]; then
+            exit 0
+          fi
+
+          disallowed_changes=$(printf '%s\n' "$plugin_changes" | awk '
+            $2 ~ /\/\.gitkeep$/ && $1 == "A" { next }
+            $1 == "D" { next }
+            { print }
+          ')
+
+          if [ -n "$disallowed_changes" ]; then
             echo "::error::Pull requests must not modify generated plugin bundles under plugins/*/skills. Update the matching source roots under src/CrestApps.AgentSkills instead; the plugin bundles are published separately."
+            printf '%s\n' "$disallowed_changes"
             exit 1
           fi

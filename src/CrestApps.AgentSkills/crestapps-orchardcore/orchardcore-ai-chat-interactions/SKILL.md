@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-interactions
-description: Skill for configuring AI Chat Interactions in Orchard Core using the CrestApps module. Covers ad-hoc chat sessions, prompt routing with intent detection, document upload with RAG support, image and chart generation, and custom processing strategies. Use this skill when requests mention Orchard Core AI Chat Interactions, Configure AI Chat Interactions, Enabling AI Chat Interactions, Getting Started, Built-in Intents, Configuring Image Generation, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, CrestApps.OrchardCore.OpenAI, OrchardCore.Search.AzureAI, OrchardCore.Search.Elasticsearch, IServiceCollection, ChatInteractionChatModeSettings, GenerateImage. It also helps with ai chat interactions examples, Built-in Intents, Configuring Image Generation, Configuring Intent Detection Model, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring AI Chat Interactions in Orchard Core using the CrestApps module. Covers ad-hoc chat sessions, prompt routing with intent detection, document upload with RAG support, image and chart generation, and custom processing strategies. Use this skill when requests mention Orchard Core AI Chat Interactions, Configure AI Chat Interactions, Enabling AI Chat Interactions, Getting Started, Built-in Intents, Configuring Image Generation, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, CrestApps.OrchardCore.OpenAI, CrestApps.OrchardCore.AI.DataSources.AzureAI, CrestApps.OrchardCore.AI.DataSources.Elasticsearch, IServiceCollection, ChatInteractionChatModeSettings, GenerateImage. It also helps with ai chat interactions examples, Built-in Intents, Configuring Image Generation, Configuring Intent Detection Model, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,8 +23,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 - All chat messages are persisted and sessions can be resumed later.
 - Prompt routing uses intent detection to classify user prompts and route them to specialized processing strategies.
 - Intent detection can use a dedicated lightweight AI model or fall back to keyword-based detection.
-- The Documents extension adds document upload with RAG (Retrieval Augmented Generation) support.
-- Document indexing requires Elasticsearch or Azure AI Search as the embedding/search provider.
+- The AI Documents modules add document upload with RAG (Retrieval Augmented Generation) support.
+- Document-aware chat interactions should use `CrestApps.OrchardCore.AI.Documents.ChatInteractions` plus a current data-source module such as `CrestApps.OrchardCore.AI.DataSources.AzureAI` or `CrestApps.OrchardCore.AI.DataSources.Elasticsearch`.
 - Install CrestApps packages in the web/startup project.
 - Always secure API keys using user secrets or environment variables.
 
@@ -124,7 +124,7 @@ If no Utility deployment is configured, the system retries deployment resolution
 
 ### Enabling Document Upload and RAG
 
-The Documents extension (`CrestApps.OrchardCore.AI.Chat.Interactions.Documents`) adds document upload and document-aware prompt processing. It requires a search/indexing provider.
+The AI Documents for Chat Interactions feature (`CrestApps.OrchardCore.AI.Documents.ChatInteractions`) adds document upload and document-aware prompt processing. Pair it with the current data-source feature for the backend you are using.
 
 ```json
 {
@@ -134,8 +134,8 @@ The Documents extension (`CrestApps.OrchardCore.AI.Chat.Interactions.Documents`)
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Documents.AzureAI",
-        "OrchardCore.Search.AzureAI",
+        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
+        "CrestApps.OrchardCore.AI.DataSources.AzureAI",
         "CrestApps.OrchardCore.OpenAI"
       ],
       "disable": []
@@ -154,8 +154,8 @@ Or for Elasticsearch:
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Documents.Elasticsearch",
-        "OrchardCore.Search.Elasticsearch",
+        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
+        "CrestApps.OrchardCore.AI.DataSources.Elasticsearch",
         "CrestApps.OrchardCore.OpenAI"
       ],
       "disable": []
@@ -166,10 +166,10 @@ Or for Elasticsearch:
 
 ### Setting Up Document Indexing
 
-1. Enable a search provider feature (Elasticsearch or Azure AI Search).
+1. Enable the current data-source feature for Elasticsearch or Azure AI Search.
 2. Navigate to **Search → Indexing** and create a new index (e.g., "ChatDocuments").
 3. Navigate to **Settings → Artificial Intelligence → Chat Interactions** and select the new index as the default document index.
-4. Enable the `AI Chat Interactions - Documents` feature.
+4. Enable the `AI Documents for Chat Interactions` feature.
 
 ### Configuring Embedding Model for Documents
 

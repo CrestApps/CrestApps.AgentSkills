@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp-client
-description: Skill for configuring CrestApps MCP client connections in Orchard Core. Covers SSE and Stdio transports, authentication, recipes, and assigning MCP connections to AI experiences. Use this skill when requests mention Orchard Core MCP Client, Configure MCP Clients, Feature Overview, Enable the SSE MCP Client, Add a Remote MCP Connection via Admin UI, SSE Authentication Types, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp, CrestApps.OrchardCore.AI.Mcp.Stdio, CrestApps.OrchardCore.AI, ApiKey, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2MutualTls, CustomHeaders. It also helps with Add a Remote MCP Connection via Admin UI, SSE Authentication Types, SSE Recipe Example, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring CrestApps MCP client connections in Orchard Core. Covers SSE and local client transports, authentication, recipes, and assigning MCP connections to AI experiences. Use this skill when requests mention Orchard Core MCP Client, Configure MCP Clients, Feature Overview, Enable the SSE MCP Client, Add a Remote MCP Connection via Admin UI, SSE Authentication Types, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp, CrestApps.OrchardCore.AI.Mcp.LocalClient, CrestApps.OrchardCore.AI, ApiKey, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2MutualTls, CustomHeaders. It also helps with Add a Remote MCP Connection via Admin UI, SSE Authentication Types, SSE Recipe Example, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
 ### Guidelines
 
 - Use `CrestApps.OrchardCore.AI.Mcp` for remote MCP servers over SSE.
-- Use `CrestApps.OrchardCore.AI.Mcp.Stdio` for local MCP servers over standard input/output.
+- Use `CrestApps.OrchardCore.AI.Mcp.LocalClient` for local MCP servers over standard input/output.
 - Remote SSE connections are managed under **Artificial Intelligence → MCP Connections**.
 - Sensitive secrets are encrypted at rest using ASP.NET Core Data Protection.
 - Do not export encrypted values and do not commit plaintext secrets.
@@ -26,7 +26,7 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
 | Transport | Feature ID | Description |
 |-----------|-----------|-------------|
 | SSE | `CrestApps.OrchardCore.AI.Mcp` | Connect to remote MCP servers over HTTP/SSE |
-| Stdio | `CrestApps.OrchardCore.AI.Mcp.Stdio` | Connect to local MCP servers over stdin/stdout |
+| Local Client | `CrestApps.OrchardCore.AI.Mcp.LocalClient` | Connect to local MCP servers over stdin/stdout |
 
 ### Enable the SSE MCP Client
 
@@ -94,7 +94,7 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
 }
 ```
 
-### Enable the Stdio MCP Client
+### Enable the Local MCP Client
 
 ```json
 {
@@ -104,7 +104,7 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Stdio"
+        "CrestApps.OrchardCore.AI.Mcp.LocalClient"
       ],
       "disable": []
     }
@@ -123,7 +123,7 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
    - **Command Arguments**: `["run", "-i", "--rm", "mcp/time"]`
 5. Save the connection.
 
-### Stdio Recipe Example
+### Local Client Recipe Example
 
 ```json
 {

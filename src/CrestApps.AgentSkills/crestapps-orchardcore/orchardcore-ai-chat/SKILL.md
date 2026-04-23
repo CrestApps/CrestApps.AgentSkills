@@ -32,10 +32,11 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 | Provider | Feature ID | Description |
 |----------|-----------|-------------|
 | OpenAI | `CrestApps.OrchardCore.OpenAI` | Connect to OpenAI or any OpenAI-compatible endpoint (DeepSeek, Gemini, Together AI, LM Studio, etc.) |
-| Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure.Standard` | Azure OpenAI service |
-| Azure OpenAI with Data | `CrestApps.OrchardCore.OpenAI.Azure.AISearch` | Azure OpenAI with Azure AI Search data |
+| Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | Azure OpenAI service |
 | Azure AI Inference | `CrestApps.OrchardCore.AzureAIInference` | Azure AI Inference (GitHub Models) |
 | Ollama | `CrestApps.OrchardCore.Ollama` | Local Ollama models |
+
+For retrieval-backed chat, pair the chat feature with the current AI data and document modules such as `CrestApps.OrchardCore.AI.DataSources.AzureAI`, `CrestApps.OrchardCore.AI.DataSources.Elasticsearch`, and the matching `CrestApps.OrchardCore.AI.Documents.*` modules instead of the older Azure OpenAI with data feature names.
 
 ### Enabling AI Chat Features
 

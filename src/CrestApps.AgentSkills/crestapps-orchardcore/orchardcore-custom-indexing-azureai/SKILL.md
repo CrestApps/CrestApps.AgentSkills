@@ -1,6 +1,6 @@
 ---
 name: orchardcore-custom-indexing-azureai
-description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Azure AI Search, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Azure AI Search, Create a custom Azure AI Search index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing.Core, OrchardCore.Search.AzureAI, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities, OrchardCore.Search.AzureAI.Core. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Azure AI Search, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Azure AI Search, Create a custom Azure AI Search index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing.Core, OrchardCore.AzureAI, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities, OrchardCore.AzureAI.Core. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -80,7 +80,7 @@ This mirrors `AIMemoryIndexProfileMetadata`, which stores embedding provider, co
 ```csharp
 using OrchardCore.Indexing;
 using OrchardCore.Indexing.Core;
-using OrchardCore.Search.AzureAI;
+using OrchardCore.AzureAI;
 
 public sealed class Startup : StartupBase
 {
@@ -104,9 +104,9 @@ public sealed class Startup : StartupBase
 using OrchardCore.Entities;
 using OrchardCore.Indexing.Models;
 using OrchardCore.Infrastructure.Entities;
-using OrchardCore.Search.AzureAI;
-using OrchardCore.Search.AzureAI.Core;
-using OrchardCore.Search.AzureAI.Models;
+using OrchardCore.AzureAI;
+using OrchardCore.AzureAI.Core;
+using OrchardCore.AzureAI.Models;
 
 public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfileHandlerBase
 {
@@ -193,7 +193,7 @@ public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfi
 ```csharp
 using OrchardCore.Indexing;
 using OrchardCore.Indexing.Models;
-using OrchardCore.Search.AzureAI;
+using OrchardCore.AzureAI;
 
 public sealed class CustomerInsightAzureAISearchDocumentIndexHandler : IDocumentIndexHandler
 {

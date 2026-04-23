@@ -1,17 +1,17 @@
 ---
-name: orchardcore-ai-templates
-description: Skill for creating and managing AI Templates in Orchard Core. Covers template creation via admin UI, markdown files, recipes, deployment steps, template sources (SystemMessage, Profile), and applying templates when creating AI Profiles. Use this skill when requests mention Orchard Core AI Templates, Template Sources, Enabling AI Templates, Creating Templates via Markdown Files, Profile Templates, SystemMessage Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, OrchardCore.Entities, INamedCatalogManager, GetSettings, AlterSettings, AIProfilePostSessionSettings, AIProfileDataExtractionSettings, DisplayDriver, MyCustomTemplateDriver, IDisplayResult, BuildEditorContext. It also helps with Profile Templates, SystemMessage Templates, Markdown Template Format (Profile Source), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+name: orchardcore-ai-prompting
+description: Skill for creating and managing AI prompting assets in Orchard Core. Covers prompt templates via admin UI and markdown files, the AI Prompting feature, template sources, and applying templates when creating AI Profiles. Use this skill when requests mention Orchard Core AI Prompting, Prompt Templates, Enabling AI Prompting, Creating Templates via Markdown Files, Profile Templates, SystemMessage Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Prompting, OrchardCore.Entities, INamedCatalogManager, AIProfilePostSessionSettings, AIProfileDataExtractionSettings, DisplayDriver, MyCustomTemplateDriver, IDisplayResult, BuildEditorContext. It also helps with Profile Templates, SystemMessage Templates, Markdown Template Format (Profile Source), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Templates
+# Orchard Core AI Prompting
 
 ## Overview
 
-AI Templates are reusable configurations that can serve as profile templates or system message templates. They can include system messages, model parameters, connection settings, tools, agents, data sources, documents, and more.
+The AI Prompting feature provides reusable prompt templates that can serve as profile templates or system message templates. They can include system messages, model parameters, connection settings, tools, agents, data sources, documents, and more.
 
 ### Template Sources
 
@@ -26,7 +26,7 @@ Templates can be defined in two ways:
 
 ### Guidelines
 
-- AI Templates extend `CatalogItem` and use the `INamedCatalogManager<AIProfileTemplate>` pattern.
+- AI Prompting extends `CatalogItem` and uses the `INamedCatalogManager<AIProfileTemplate>` pattern.
 - Templates are source-independent — the same template works with any AI provider.
 - Database templates take precedence over file-based templates with the same name.
 - Template properties are read with `Entity.TryGet<T>(out var value)` and written with `Put<T>()` (not `GetSettings/AlterSettings`).
@@ -35,9 +35,9 @@ Templates can be defined in two ways:
 - Profile types supported: `Chat`, `Utility`, `TemplatePrompt`, `Agent`.
 - Agent templates must include `Description` and `AgentMetadata` with availability setting.
 
-### Enabling AI Templates
+### Enabling AI Prompting
 
-The AI Templates feature is included with the core AI module:
+Enable the dedicated AI Prompting feature:
 
 ```json
 {
@@ -45,7 +45,8 @@ The AI Templates feature is included with the core AI module:
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI"
+        "CrestApps.OrchardCore.AI",
+        "CrestApps.OrchardCore.AI.Prompting"
       ]
     }
   ]
