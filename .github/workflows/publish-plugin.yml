@@ -1,4 +1,4 @@
-name: Publish plugin bundle
+name: Publish plugin bundles
 
 on:
   workflow_dispatch:
@@ -25,55 +25,92 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.TARGET_BRANCH }}
 
-      - name: Sync Orchard Core skills into plugin bundle
+      - name: Sync source roots into plugin bundles
         shell: bash
         run: |
           set -euo pipefail
 
-          src="src/CrestApps.AgentSkills/orchardcore"
-          dst="plugins/crestapps-orchardcore/skills"
+          while IFS='|' read -r src dst; do
+            rm -rf "$dst"
+            mkdir -p "$dst"
+            cp -a "$src"/. "$dst"/
+          done <<'EOF'
+          src/CrestApps.AgentSkills/orchardcore|plugins/orchardcore/skills
+          src/CrestApps.AgentSkills/crestapps-orchardcore|plugins/crestapps-orchardcore/skills
+          src/CrestApps.AgentSkills/crestapps-core|plugins/crestapps-core/skills
+          EOF
 
-          rm -rf "$dst"
-          mkdir -p "$dst"
-          cp -a "$src"/. "$dst"/
-
-      - name: Increment plugin patch version in marketplace manifest
+      - name: Increment changed plugin versions in marketplace manifests
         shell: python
         run: |
           import json
           import re
+          import subprocess
           from pathlib import Path
 
-          marketplace_path = Path(".github/plugin/marketplace.json")
-          marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+          plugin_paths = {
+              "orchardcore": "plugins/orchardcore/skills",
+              "crestapps-orchardcore": "plugins/crestapps-orchardcore/skills",
+              "crestapps-core": "plugins/crestapps-core/skills",
+          }
 
-          plugin = next(
-              (entry for entry in marketplace.get("plugins", []) if entry.get("name") == "crestapps-orchardcore"),
-              None,
-          )
-          if plugin is None:
-              raise SystemExit("Plugin 'crestapps-orchardcore' not found in .github/plugin/marketplace.json")
+          changed_plugins = []
 
-          version = plugin.get("version", "")
-          match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)?", version)
-          if match is None:
-              raise SystemExit(f"Unsupported plugin version format: {version}")
+          for plugin_name, plugin_path in plugin_paths.items():
+              result = subprocess.run(
+                  ["git", "status", "--porcelain", "--", plugin_path],
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              if result.stdout.strip():
+                  changed_plugins.append(plugin_name)
 
-          major, minor, patch, suffix = match.groups()
-          plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
+          if not changed_plugins:
+              raise SystemExit(0)
 
-          marketplace_path.write_text(
-              json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n",
-              encoding="utf-8",
-          )
+          for manifest_name in (".github/plugin/marketplace.json", ".claude-plugin/marketplace.json"):
+              manifest_path = Path(manifest_name)
+              manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+              for plugin_name in changed_plugins:
+                  plugin = next(
+                      (entry for entry in manifest.get("plugins", []) if entry.get("name") == plugin_name),
+                      None,
+                  )
+                  if plugin is None:
+                      raise SystemExit(f"Plugin '{plugin_name}' not found in {manifest_name}")
+
+                  version = plugin.get("version", "")
+                  match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)?", version)
+                  if match is None:
+                      raise SystemExit(f"Unsupported plugin version format in {manifest_name}: {version}")
+
+                  major, minor, patch, suffix = match.groups()
+                  plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
+
+              manifest_path.write_text(
+                  json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                  encoding="utf-8",
+              )
 
       - name: Check for plugin bundle changes
         id: changes
         shell: bash
         run: |
-          git add -A .github/plugin/marketplace.json plugins/crestapps-orchardcore/skills
+          git add -A \
+            .github/plugin/marketplace.json \
+            .claude-plugin/marketplace.json \
+            plugins/orchardcore/skills \
+            plugins/crestapps-orchardcore/skills \
+            plugins/crestapps-core/skills
 
-          if git diff --cached --quiet -- .github/plugin/marketplace.json plugins/crestapps-orchardcore/skills; then
+          if git diff --cached --quiet -- \
+            .github/plugin/marketplace.json \
+            .claude-plugin/marketplace.json \
+            plugins/orchardcore/skills \
+            plugins/crestapps-orchardcore/skills \
+            plugins/crestapps-core/skills; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
@@ -87,15 +124,22 @@ jobs:
           branch: automation/publish-plugin-bundle
           delete-branch: true
           commit-message: |
-            Refresh crestapps-orchardcore plugin bundle
+            Refresh plugin bundles
 
             Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
-          title: Refresh crestapps-orchardcore plugin bundle
+          title: Refresh plugin bundles
           body: |
-            This pull request was created automatically by the `Publish plugin bundle` workflow.
+            This pull request was created automatically by the `Publish plugin bundles` workflow.
 
-            It refreshes `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore`
-            and increments the patch version for `crestapps-orchardcore` in `.github/plugin/marketplace.json`.
+            It refreshes:
+            - `plugins/orchardcore/skills` from `src/CrestApps.AgentSkills/orchardcore`
+            - `plugins/crestapps-orchardcore/skills` from `src/CrestApps.AgentSkills/crestapps-orchardcore`
+            - `plugins/crestapps-core/skills` from `src/CrestApps.AgentSkills/crestapps-core`
+
+            It also increments changed plugin versions in both marketplace manifests.
           add-paths: |
             .github/plugin/marketplace.json
+            .claude-plugin/marketplace.json
+            plugins/orchardcore/skills
             plugins/crestapps-orchardcore/skills
+            plugins/crestapps-core/skills

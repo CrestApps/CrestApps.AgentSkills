@@ -4,6 +4,10 @@
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 	<ItemGroup>
+		<!-- CrestApps.Core SDK -->
+		<PackageVersion Include="CrestApps.Core.AI.Mcp" Version="1.0.0-preview-50" />
+	</ItemGroup>
+	<ItemGroup>
 		<!-- MCP Packages -->
 		<PackageVersion Include="ModelContextProtocol" Version="1.1.0" />
 		<PackageVersion Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />

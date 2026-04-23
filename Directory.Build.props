@@ -25,6 +25,8 @@
     <CompanyUrl>https://crestapps.com</CompanyUrl>
     <PackageTags>orchardcore skills agents mcp</PackageTags>
     <OrchardCoreSkillsDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildThisFileDirectory)src\CrestApps.AgentSkills\orchardcore'))</OrchardCoreSkillsDirectory>
+    <CrestAppsOrchardCoreSkillsDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildThisFileDirectory)src\CrestApps.AgentSkills\crestapps-orchardcore'))</CrestAppsOrchardCoreSkillsDirectory>
+    <CrestAppsCoreSkillsDirectory>$([MSBuild]::EnsureTrailingSlash('$(MSBuildThisFileDirectory)src\CrestApps.AgentSkills\crestapps-core'))</CrestAppsCoreSkillsDirectory>
   </PropertyGroup>
 
   <ItemGroup>
