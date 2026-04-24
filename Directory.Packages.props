@@ -5,7 +5,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- CrestApps.Core SDK -->
-		<PackageVersion Include="CrestApps.Core.AI.Mcp" Version="1.0.0-preview-50" />
+		<PackageVersion Include="CrestApps.Core.AI.Mcp" Version="1.0.0-preview-51" />
 	</ItemGroup>
 	<ItemGroup>
 		<!-- MCP Packages -->
