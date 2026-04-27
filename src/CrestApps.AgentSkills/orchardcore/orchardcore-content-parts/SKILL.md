@@ -413,7 +413,7 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 ## Installing Third-Party Part Modules
 
-Modules that provide custom parts from external sources (CrestApps, Lombiq, or community modules) must be installed as NuGet packages in the **web project** (the startup project of the solution):
+Modules that provide custom parts from external sources (community or third-party modules) must be installed as NuGet packages in the **web project** (the startup project of the solution):
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -422,7 +422,6 @@ Modules that provide custom parts from external sources (CrestApps, Lombiq, or c
     <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
 
     <!-- Third-party modules must be added to the web project -->
-    <PackageReference Include="CrestApps.OrchardCore.AI" Version="1.*" />
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
   </ItemGroup>
 </Project>

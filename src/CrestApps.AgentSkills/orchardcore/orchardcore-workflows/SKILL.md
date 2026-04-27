@@ -68,15 +68,6 @@ You are an Orchard Core expert. Generate workflow definitions and custom activit
 - `SendEmailTask` - Send an email notification.
 - `ScriptTask` - Execute a JavaScript expression.
 
-### AI Workflow Activities
-
-If the site also enables `CrestApps.OrchardCore.AI`, workflow definitions can include AI-specific tasks such as **AI Completion using Direct Config**.
-
-- The direct-config AI task should be deployment-driven.
-- Its display driver should populate a chat deployment dropdown from `IAIDeploymentManager.GetByTypeAsync(AIDeploymentType.Chat)`.
-- Do not model separate provider or connection selectors for that task.
-- Store the selected deployment in `DeploymentName` and resolve it during execution.
-
 ### Creating a Custom Activity
 
 ```csharp
