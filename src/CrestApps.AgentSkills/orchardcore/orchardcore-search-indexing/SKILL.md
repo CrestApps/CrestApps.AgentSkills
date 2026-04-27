@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-indexing
-description: Skill for configuring search and indexing in Orchard Core. Covers Lucene indexing, Elasticsearch integration, search settings, index definitions, and search queries. Use this skill when requests mention Orchard Core Search & Indexing, Configure Search and Indexing, Enabling Search Features, Lucene Index Configuration via Recipe, Elasticsearch Configuration, Elasticsearch Index via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.Lucene, OrchardCore.Search.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, SearchService, LuceneQueryService, LuceneIndexManager, IEnumerable, LuceneQueryContext, MyPartIndexHandler, ContentPartIndexHandler, MyPart. It also helps with search indexing examples, Elasticsearch Configuration, Elasticsearch Index via Recipe, Lucene Queries via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring search and indexing in Orchard Core. Covers Lucene indexing, Elasticsearch integration, search settings, index definitions, and search queries. Use this skill when requests mention Orchard Core Search & Indexing, Configure Search and Indexing, Enabling Search Features, Lucene Index Configuration via Recipe, Elasticsearch Configuration, Elasticsearch Index via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, SearchService, LuceneQueryService, LuceneIndexManager, IEnumerable, LuceneQueryContext, MyPartIndexHandler, ContentPartIndexHandler, MyPart. It also helps with search indexing examples, Elasticsearch Configuration, Elasticsearch Index via Recipe, Lucene Queries via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ You are an Orchard Core expert. Generate search and indexing configurations for 
 ### Guidelines
 
 - Orchard Core supports Lucene and Elasticsearch as search providers.
-- Enable `OrchardCore.Search.Lucene` or `OrchardCore.Search.Elasticsearch` as needed.
+- Enable `OrchardCore.Lucene` or `OrchardCore.Elasticsearch` as needed.
 - Lucene indexes are stored on the local file system.
 - Elasticsearch requires an external Elasticsearch cluster.
 - Create indexes that specify which content types and fields to index.
@@ -33,7 +33,7 @@ You are an Orchard Core expert. Generate search and indexing configurations for 
       "name": "Feature",
       "enable": [
         "OrchardCore.Search",
-        "OrchardCore.Search.Lucene",
+        "OrchardCore.Lucene",
         "OrchardCore.Indexing"
       ],
       "disable": []
@@ -147,7 +147,7 @@ Configure in `appsettings.json`:
 ### Programmatic Search Queries
 
 ```csharp
-using OrchardCore.Search.Lucene;
+using OrchardCore.Lucene;
 
 public sealed class SearchService
 {

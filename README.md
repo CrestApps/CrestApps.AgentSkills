@@ -1,16 +1,29 @@
 # CrestApps.AgentSkills
 
-Shared **AI agent skills** and MCP tooling for .NET applications and Orchard Core based projects. The repository contains three projects plus a GitHub Copilot CLI plugin marketplace:
+Shared **AI agent skills** and MCP tooling for .NET applications, Orchard Core solutions, CrestApps OrchardCore modules, and CrestApps.Core libraries.
 
-| Project | README | Problem it solves |
+## Projects
+
+| Project | README | Purpose |
 |---|---|---|
-| `CrestApps.AgentSkills.Mcp` | [`src/CrestApps.AgentSkills.Mcp/README.md`](src/CrestApps.AgentSkills.Mcp/README.md) | Provides a reusable MCP skill engine for any .NET app without building custom parsers/providers. |
-| `CrestApps.AgentSkills.OrchardCore` | [`src/CrestApps.AgentSkills.OrchardCore/README.md`](src/CrestApps.AgentSkills.OrchardCore/README.md) | Used for Orchard Core local development by copying skills to `.agents/skills`. |
-| `CrestApps.AgentSkills.Mcp.OrchardCore` | [`src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md`](src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md) | Exposes Orchard Core skills as MCP prompts and MCP resources at runtime. |
+| `CrestApps.AgentSkills` | [`src/CrestApps.AgentSkills/README.md`](src/CrestApps.AgentSkills/README.md) | Canonical skill source roots grouped by owning project. |
+| `CrestApps.AgentSkills.Mcp` | [`src/CrestApps.AgentSkills.Mcp/README.md`](src/CrestApps.AgentSkills.Mcp/README.md) | Generic MCP skill engine for any .NET app. |
+| `CrestApps.AgentSkills.OrchardCore` | [`src/CrestApps.AgentSkills.OrchardCore/README.md`](src/CrestApps.AgentSkills.OrchardCore/README.md) | Dev-time package that copies Orchard Core and CrestApps OrchardCore skills into `.agents/skills`. |
+| `CrestApps.AgentSkills.Mcp.OrchardCore` | [`src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md`](src/CrestApps.AgentSkills.Mcp.OrchardCore/README.md) | Runtime MCP package that bundles Orchard Core and CrestApps OrchardCore skills. |
 
-## Quick Start
+## Skill source roots
 
-### Generic MCP Skill Engine
+| Source root | Contents | Used by |
+|---|---|---|
+| `src/CrestApps.AgentSkills/orchardcore/` | Framework-only Orchard Core skills that work out of the box without CrestApps modules | Orchard Core packages, `orchardcore` plugin |
+| `src/CrestApps.AgentSkills/crestapps-orchardcore/` | Skills for `CrestApps.OrchardCore` modules such as AI, MCP, A2A, and CrestApps docs | Orchard Core packages, `crestapps-orchardcore` plugin |
+| `src/CrestApps.AgentSkills/crestapps-core/` | Skills dedicated to `CrestApps.Core` | `crestapps-core` plugin |
+
+`CrestApps.AgentSkills.OrchardCore` and `CrestApps.AgentSkills.Mcp.OrchardCore` intentionally bundle **both** `orchardcore` and `crestapps-orchardcore` so Orchard Core consumers get the full framework + CrestApps module experience from one package.
+
+## Quick start
+
+### Generic MCP skill engine
 
 ```bash
 dotnet add package CrestApps.AgentSkills.Mcp
@@ -23,40 +36,30 @@ builder.Services.AddMcpServer(mcp =>
 });
 ```
 
-- Works with any `.agents/skills` directory (or a custom path).
-- Use this when you need a framework-agnostic MCP skill engine.
-
-### Orchard Core Local AI Authoring
+### Orchard Core local AI authoring
 
 ```bash
 dotnet add package CrestApps.AgentSkills.OrchardCore
 dotnet build
 ```
 
-After the first **build** after install, the solution root will contain:
+After the first build, the solution root contains:
 
-```
+```text
 .agents/
   skills/
     orchardcore/
-      orchardcore.content-types/
-        SKILL.md
-        references/
-      orchardcore.modules/
-        SKILL.md
-        references/
-      orchardcore.recipes/
-        SKILL.md
+      orchardcore-content-types/
+      orchardcore-recipes/
+      ...
+    crestapps-orchardcore/
+      orchardcore-ai/
+      orchardcore-ai-chat/
+      orchardcore-ai-mcp/
       ...
 ```
 
-- Files are copied on the **first build** after install/update, before compilation starts (`BeforeTargets="PrepareForBuild;CompileDesignTime"`).
-- In **Visual Studio**, a design-time build fires automatically after package install, so the folder appears immediately.
-- `dotnet restore` alone does **not** trigger the copy — this is a fundamental NuGet/MSBuild limitation.
-- **No runtime dependency** — purely for development and AI tooling guidance.
-- Files are refreshed when the package is updated.
-
-### Orchard Core MCP Server Hosting
+### Orchard Core MCP server hosting
 
 ```bash
 dotnet add package CrestApps.AgentSkills.Mcp.OrchardCore
@@ -69,254 +72,142 @@ builder.Services.AddMcpServer(mcp =>
 });
 ```
 
-- Loads skills at runtime via OrchardCore `FileSystemStore`.
-- `IMcpResourceFileStore`, `IMcpPromptProvider`, and `IMcpResourceProvider` registered as **singletons** — no repeated file reads.
-- No file copying to solution.
+## Copilot CLI plugins
 
-### Full Orchard Core Experience
-
-Install both Orchard Core packages to get local AI authoring **and** MCP server support.
-
-### Orchard Core Copilot CLI Plugin
-
-If you want Orchard Core skills in GitHub Copilot CLI **without** copying files into your repository, install the `crestapps-orchardcore` plugin from this repository's marketplace:
+Add this repository as a marketplace:
 
 ```bash
 copilot plugin marketplace add CrestApps/CrestApps.AgentSkills
+```
+
+Then install the plugin you want:
+
+| Plugin | Installs |
+|---|---|
+| `orchardcore` | Framework-only Orchard Core skills |
+| `crestapps-orchardcore` | CrestApps OrchardCore module skills |
+| `crestapps-core` | CrestApps.Core skills |
+
+```bash
+copilot plugin install orchardcore@crestapps-agentskills
 copilot plugin install crestapps-orchardcore@crestapps-agentskills
+copilot plugin install crestapps-core@crestapps-agentskills
 ```
 
-- Uses the Orchard Core skills from this repository as a Copilot CLI plugin
-- Avoids managing `.agents/skills` inside your solution
-- Best option when you want plugin-based installation instead of NuGet-managed or manually copied skill files
+If you want the full Orchard Core plugin experience without copying files into your repository, install **both** `orchardcore` and `crestapps-orchardcore`.
 
-## Copilot CLI Plugin Marketplace
+The `crestapps-orchardcore` plugin is versioned from **2.0.0** onward because it now contains only CrestApps OrchardCore module skills instead of the previous mixed bundle.
 
-This repository now includes GitHub Copilot CLI marketplace manifests at `.github/plugin/marketplace.json` **and** `.claude-plugin/marketplace.json`, plus a plugin at `plugins/crestapps-orchardcore`.
+## Plugin publishing
 
-### Install the Orchard Core plugin from the marketplace
+Marketplace manifests live at:
 
-```bash
-copilot plugin marketplace add CrestApps/CrestApps.AgentSkills
-copilot plugin install crestapps-orchardcore@crestapps-agentskills
-```
+- `.github/plugin/marketplace.json`
+- `.claude-plugin/marketplace.json`
 
-You can browse the marketplace entries after adding it:
+Generated plugin bundles live at:
 
-```bash
-copilot plugin marketplace browse crestapps-agentskills
-```
+- `plugins/orchardcore`
+- `plugins/crestapps-orchardcore`
+- `plugins/crestapps-core`
 
-You can confirm it loaded successfully with:
+The `Publish plugin bundles` workflow recreates each `plugins/*/skills` directory from its matching source root and increments the version of each changed plugin in the marketplace manifests. Do not edit generated plugin bundles manually in normal pull requests, and do not copy skill contents into `plugins/*/skills` as part of source changes. Those generated files should arrive only through the workflow's follow-up PR.
 
-```bash
-copilot plugin list
-```
-
-In an interactive Copilot CLI session you can also run:
+## Repository structure
 
 ```text
-/skills list
+.github/
+├─ plugin/
+│  └─ marketplace.json
+├─ workflows/
+│  ├─ publish-plugin.yml
+│  └─ validate-plugin-bundle.yml
+│
+plugins/
+├─ orchardcore/
+│  ├─ README.md
+│  └─ skills/
+├─ crestapps-orchardcore/
+│  ├─ README.md
+│  └─ skills/
+└─ crestapps-core/
+   ├─ README.md
+   └─ skills/
+
+src/
+├─ CrestApps.AgentSkills/
+│  ├─ orchardcore/
+│  ├─ crestapps-orchardcore/
+│  └─ crestapps-core/
+├─ CrestApps.AgentSkills.Mcp/
+├─ CrestApps.AgentSkills.OrchardCore/
+└─ CrestApps.AgentSkills.Mcp.OrchardCore/
 ```
 
-The plugin loads the bundled Orchard Core skills from `plugins/crestapps-orchardcore/skills`, so users do **not** need to clone this repository into their own project or copy files into `.agents/skills` just to use the skills.
+## Skill format
 
-### How Copilot CLI discovers this plugin
-
-Copilot CLI does **not** automatically scan GitHub for plugins in arbitrary repositories. Users must tell Copilot CLI where the plugin or marketplace lives.
-
-There are two supported ways:
-
-1. Add the repository as a marketplace:
-
-```bash
-copilot plugin marketplace add CrestApps/CrestApps.AgentSkills
-copilot plugin install crestapps-orchardcore@crestapps-agentskills
-```
-
-When users run `copilot plugin marketplace add CrestApps/CrestApps.AgentSkills`, Copilot CLI looks for a marketplace manifest in `.github/plugin/marketplace.json` or `.claude-plugin/marketplace.json`. That is why both files are now included in this repository.
-
-2. Install the plugin directly from the repository subdirectory:
-
-```bash
-copilot plugin install CrestApps/CrestApps.AgentSkills:plugins/crestapps-orchardcore
-```
-
-That direct install works because the marketplace manifest in `.github/plugin/marketplace.json` includes the `crestapps-orchardcore` plugin entry and points it at `plugins/crestapps-orchardcore`.
-
-### Publish the marketplace so others can use it
-
-There is no separate approval-based central marketplace submission process described in the current Copilot CLI docs. A public repository becomes a marketplace when it contains `.github/plugin/marketplace.json` or `.claude-plugin/marketplace.json` and the referenced plugin content.
-
-To publish this plugin and marketplace:
-
-1. Commit and push the plugin files, plugin README, and both marketplace manifests to the default branch of the public `CrestApps/CrestApps.AgentSkills` repository.
-2. Verify the marketplace manifests point to `plugins/crestapps-orchardcore` and the plugin entry points its `skills` path at `plugins/crestapps-orchardcore/skills`.
-3. From a clean machine or user profile, run `copilot plugin marketplace add CrestApps/CrestApps.AgentSkills`.
-4. Optionally confirm discovery with `copilot plugin marketplace browse crestapps-agentskills`.
-5. Install the plugin with `copilot plugin install crestapps-orchardcore@crestapps-agentskills`.
-6. Verify installation with `copilot plugin list` and confirm the skills appear with `/skills list` in a new Copilot CLI session.
-7. Optionally verify the direct install path also works with `copilot plugin install CrestApps/CrestApps.AgentSkills:plugins/crestapps-orchardcore`.
-8. Optionally tag a release in GitHub so users have a clear published milestone to reference.
-9. Share the marketplace add/install commands and the direct install command in release notes, documentation, and examples so users can discover it easily.
-
-### Manual folder download fallback
-
-If you do not want to use the Copilot CLI plugin system, you can still download only the Orchard Core skill files under `src/CrestApps.AgentSkills/orchardcore` into `.agents/skills/orchardcore` with a small PowerShell script:
-
-```powershell
-$owner = "CrestApps"
-$repo = "CrestApps.AgentSkills"
-$branch = "main"
-$sourceRoot = "src/CrestApps.AgentSkills/orchardcore/"
-$targetRoot = ".agents\skills\orchardcore"
-
-$tree = Invoke-RestMethod -Uri "https://api.github.com/repos/$owner/$repo/git/trees/$branch?recursive=1"
-$files = $tree.tree | Where-Object { $_.type -eq "blob" -and $_.path.StartsWith($sourceRoot) }
-
-foreach ($file in $files) {
-    $relativePath = $file.path.Substring($sourceRoot.Length)
-    $destinationPath = Join-Path $targetRoot $relativePath
-    $destinationDirectory = Split-Path $destinationPath -Parent
-
-    New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$owner/$repo/$branch/$($file.path)" -OutFile $destinationPath
-}
-```
-
-That script downloads only the files inside `src/CrestApps.AgentSkills/orchardcore` and recreates the same directory structure under `.agents/skills/orchardcore`.
-
-## Skill Format (agentskills.io specification)
-
-Each skill is defined in a single **`SKILL.md`** file inside a skill directory under `src/CrestApps.AgentSkills/orchardcore/`. The file must contain YAML front-matter with at least `name` and `description` fields:
+Each skill lives in its own directory and must contain `SKILL.md` with YAML front-matter:
 
 ```md
 ---
-name: orchardcore.example
-description: A description of what this skill does and when to use it.
+name: orchardcore-content-types
+description: Clear description of what this skill does and when to use it.
 ---
 
 # Skill Title
 
-Skill content goes here (guidelines, code templates, examples, etc.)
+Guidelines, code templates, and examples go here.
 ```
 
 ### Requirements
 
-- The `SKILL.md` file **must** start with `---` and contain a closing `---` delimiter
-- The `name` field **must** match the directory name exactly
-- The `description` field is required and should clearly explain the skill's purpose
-- Additional reference material can be placed in a `references/` subdirectory as `.md` files
+- `name` must match the directory name exactly
+- `description` is required
+- Optional references go under `references/`
+- Orchard Core framework skills belong in `src/CrestApps.AgentSkills/orchardcore/`
+- CrestApps OrchardCore module skills belong in `src/CrestApps.AgentSkills/crestapps-orchardcore/`
+- Direct CrestApps.Core skills belong in `src/CrestApps.AgentSkills/crestapps-core/`
 
-## Repository Structure
-
-```
-.github/
-├─ plugin/
-│  └─ marketplace.json                         ← Copilot CLI marketplace manifest
-│
-plugins/
-└─ crestapps-orchardcore/
-   ├─ README.md
-   └─ skills/                                  ← Generated Orchard Core bundle for plugin publishing
-
-src/
-├─ CrestApps.AgentSkills/                        ← Central skill content (single source of truth)
-│  └─ orchardcore/                               ← Orchard Core specific skills
-│     ├─ orchardcore.content-types/
-│     │  ├─ SKILL.md                             ← Skill definition (front-matter + body)
-│     │  └─ references/                          ← Optional reference/example files
-│     ├─ orchardcore.modules/
-│     ├─ orchardcore.recipes/
-│     └─ ...
-│
-├─ CrestApps.AgentSkills.Mcp/                    ← Generic MCP engine
-│  ├─ Extensions/                                ← MCP extension methods
-│  ├─ Providers/                                 ← Prompt & resource providers
-│  ├─ Services/                                  ← Skill file store + parsing
-│  ├─ README.md
-│  └─ CrestApps.AgentSkills.Mcp.csproj
-│
-├─ CrestApps.AgentSkills.OrchardCore/            ← Orchard Core dev package
-│  ├─ buildTransitive/                           ← MSBuild .targets for solution-root copy
-│  ├─ README.md
-│  └─ CrestApps.AgentSkills.OrchardCore.csproj
-│
-└─ CrestApps.AgentSkills.Mcp.OrchardCore/        ← Orchard Core MCP runtime package
-   ├─ Extensions/                                ← MCP extension methods
-   ├─ Providers/                                 ← Prompt & resource providers
-   ├─ Services/                                  ← IMcpResourceFileStore, McpSkillFileStore, SkillFrontMatterParser
-   ├─ README.md
-   └─ CrestApps.AgentSkills.Mcp.OrchardCore.csproj
-```
-
-The Orchard Core packages pack skill files from the central `src/CrestApps.AgentSkills/orchardcore/` directory — the dev package packs them under `skills/orchardcore/` (MSBuild copy only), while the MCP package packs them under `contentFiles/any/any/.agents/skills/orchardcore/`. The generic `CrestApps.AgentSkills.Mcp` package is skill-source agnostic and expects skills to be provided by your application.
-
-## Build & Test
-
-### Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) or later
-
-### Build
+## Build and test
 
 ```bash
 dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true /p:NuGetAudit=false
-```
-
-### Run Tests
-
-```bash
 dotnet test -c Release --verbosity normal
 ```
 
-### Validate Skills Locally
+### Validate skill front-matter locally
 
-You can verify all skill files are valid before submitting a PR:
+**PowerShell**
 
-**Bash (Linux/macOS):**
-```bash
-for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
-  name=$(basename "$dir")
-  if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; continue; fi
-  if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; continue; fi
-  echo "OK: $name"
-done
-```
-
-**PowerShell (Windows):**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
-    $name = $_.Name
-    $skillFile = Join-Path $_.FullName "SKILL.md"
-    if (-not (Test-Path $skillFile)) {
-        Write-Host "FAIL: $name missing SKILL.md" -ForegroundColor Red
-    } else {
-        $firstLine = Get-Content $skillFile -First 1
-        if ($firstLine -ne "---") {
-            Write-Host "FAIL: $name bad front-matter" -ForegroundColor Red
-        } else {
-            Write-Host "OK: $name" -ForegroundColor Green
-        }
+Get-ChildItem -Path "src\CrestApps.AgentSkills" -Directory | ForEach-Object {
+    Get-ChildItem -Path $_.FullName -Directory | ForEach-Object {
+        $skillFile = Join-Path $_.FullName "SKILL.md"
+        if (-not (Test-Path $skillFile)) { Write-Host "FAIL: $($_.FullName) missing SKILL.md" -ForegroundColor Red }
+        elseif ((Get-Content $skillFile -First 1) -ne "---") { Write-Host "FAIL: $($_.FullName) bad front-matter" -ForegroundColor Red }
+        else { Write-Host "OK: $($_.FullName)" -ForegroundColor Green }
     }
 }
 ```
 
+**Bash**
+
+```bash
+for root in src/CrestApps.AgentSkills/orchardcore src/CrestApps.AgentSkills/crestapps-orchardcore src/CrestApps.AgentSkills/crestapps-core; do
+  [ -d "$root" ] || continue
+  for dir in "$root"/*/; do
+    [ -d "$dir" ] || continue
+    if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $dir missing SKILL.md"; continue; fi
+    if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $dir bad front-matter"; continue; fi
+    echo "OK: $dir"
+  done
+done
+```
+
 ## Contributing
 
-Contributions are welcome! Please review [CONTRIBUTING.md](.github/CONTRIBUTING.md) for setup details and coding standards.
+See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for contribution guidelines and the expected source-root placement for new skills.
 
-### Submitting a New Skill PR
-
-1. Open a **New Skill Request** issue (or confirm an existing one) to align on scope: <https://github.com/CrestApps/CrestApps.AgentSkills/issues/new?template=skill_request.md>.
-2. Add a new directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/` with a `SKILL.md` that matches the [agentskills.io specification](https://agentskills.io/specification).
-3. Run the build and tests listed above, plus the local skill validation script.
-4. Open a PR that links the issue (e.g., `Fix #123`), summarizes the skill, and includes any references or screenshots if applicable.
-
-> **Warning:**
-> This package will **always overwrite** files in the `.agents/` folder in your solution root.
-> Any changes you make to files inside `.agents/` that were generated by this package **will be lost** when you build after installing or updating this NuGet package.
-> Do **not** modify files added by this package inside `.agents/`. Treat them as read-only.
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

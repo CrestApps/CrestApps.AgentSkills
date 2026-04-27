@@ -1,6 +1,6 @@
 ---
 name: orchardcore-features
-description: Explains OrchardCore feature management including enabling and disabling features, programmatic control with IShellFeaturesManager, feature dependencies, conditional service registration, feature event handlers, recipe-based activation, and a catalog of commonly used features organized by category. Use this skill when requests mention OrchardCore Features, Enabling the Features Module, Feature Management from the Admin Dashboard, Programmatic Feature Control with IShellFeaturesManager, Querying Feature States, Enabling and Disabling Features, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Features, OrchardCore.Contents, OrchardCore.Queries, OrchardCore.Search.Lucene. It also helps with features examples, Querying Feature States, Enabling and Disabling Features, Retrieving Available Features, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Explains OrchardCore feature management including enabling and disabling features, programmatic control with IShellFeaturesManager, feature dependencies, conditional service registration, feature event handlers, recipe-based activation, and a catalog of commonly used features organized by category. Use this skill when requests mention OrchardCore Features, Enabling the Features Module, Feature Management from the Admin Dashboard, Programmatic Feature Control with IShellFeaturesManager, Querying Feature States, Enabling and Disabling Features, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Features, OrchardCore.Contents, OrchardCore.Queries, OrchardCore.Lucene. It also helps with features examples, Querying Feature States, Enabling and Disabling Features, Retrieving Available Features, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -121,12 +121,12 @@ In this example, enabling `MyModule.Reporting` automatically enables `OrchardCor
 The `[RequireFeatures]` attribute restricts a `Startup` class so that its services are only registered when the specified features are enabled. This is useful for optional integrations between modules.
 
 ```csharp
-[RequireFeatures("OrchardCore.Search.Lucene")]
+[RequireFeatures("OrchardCore.Lucene")]
 public sealed class LuceneIntegrationStartup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        // These services are only registered when OrchardCore.Search.Lucene is enabled.
+        // These services are only registered when OrchardCore.Lucene is enabled.
         services.AddScoped<ILuceneQueryProvider, CustomLuceneQueryProvider>();
     }
 }
@@ -254,7 +254,7 @@ Use the `feature` recipe step to enable or disable features as part of a site se
     {
       "name": "feature",
       "disable": [
-        "OrchardCore.Search.Lucene"
+        "OrchardCore.Lucene"
       ]
     }
   ]
@@ -269,10 +269,10 @@ Use the `feature` recipe step to enable or disable features as part of a site se
     {
       "name": "feature",
       "enable": [
-        "OrchardCore.Search.Elasticsearch"
+        "OrchardCore.Elasticsearch"
       ],
       "disable": [
-        "OrchardCore.Search.Lucene"
+        "OrchardCore.Lucene"
       ]
     }
   ]
@@ -419,8 +419,8 @@ Below is a catalog of commonly used OrchardCore features organized by category. 
 | Feature ID | Description |
 |---|---|
 | `OrchardCore.Search` | Core search infrastructure providing a unified search API. |
-| `OrchardCore.Search.Lucene` | Full-text search powered by Lucene.NET. |
-| `OrchardCore.Search.Elasticsearch` | Full-text search powered by Elasticsearch. |
+| `OrchardCore.Lucene` | Full-text search powered by Lucene.NET. |
+| `OrchardCore.Elasticsearch` | Full-text search powered by Elasticsearch. |
 | `OrchardCore.Queries` | Query engine for defining and executing named queries. |
 
 ### Workflows

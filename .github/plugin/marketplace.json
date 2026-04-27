@@ -10,10 +10,34 @@
   },
   "plugins": [
     {
+      "name": "orchardcore",
+      "source": "./plugins/orchardcore",
+      "description": "Orchard Core framework skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/orchardcore",
+      "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
+      "license": "MIT",
+      "keywords": [
+        "orchard-core",
+        "copilot-cli",
+        "skills",
+        "dotnet"
+      ],
+      "category": "framework",
+      "tags": [
+        "orchardcore",
+        "cms",
+        "agentskills"
+      ],
+      "skills": [
+        "./skills/orchardcore"
+      ]
+    },
+    {
       "name": "crestapps-orchardcore",
       "source": "./plugins/crestapps-orchardcore",
-      "description": "Orchard Core skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
-      "version": "1.0.1",
+      "description": "CrestApps OrchardCore module skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
+      "version": "2.0.0",
       "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/crestapps-orchardcore",
       "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
       "license": "MIT",
@@ -33,6 +57,30 @@
       ],
       "skills": [
         "./skills/crestapps-orchardcore"
+      ]
+    },
+    {
+      "name": "crestapps-core",
+      "source": "./plugins/crestapps-core",
+      "description": "CrestApps.Core skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/crestapps-core",
+      "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
+      "license": "MIT",
+      "keywords": [
+        "crestapps",
+        "copilot-cli",
+        "skills",
+        "dotnet"
+      ],
+      "category": "library",
+      "tags": [
+        "crestapps",
+        "core",
+        "agentskills"
+      ],
+      "skills": [
+        "./skills/crestapps-core"
       ]
     }
   ]

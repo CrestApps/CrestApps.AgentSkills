@@ -199,8 +199,13 @@ public sealed class CustomProviderOptionsConfiguration : IConfigureOptions<SmsPr
     {
         var typeOptions = new SmsProviderTypeOptions(typeof(CustomSmsProvider));
 
+        // Read-only access is fine here. Use LoadSiteSettingsAsync() only when updating site settings.
         var site = _siteService.GetSiteSettingsAsync().GetAwaiter().GetResult();
-        var settings = site.As<CustomSmsSettings>();
+
+        if (!site.TryGet<CustomSmsSettings>(out var settings))
+        {
+            settings = new CustomSmsSettings();
+        }
 
         typeOptions.IsEnabled = settings.IsEnabled;
 
