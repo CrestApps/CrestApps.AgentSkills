@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "MediaProfiles"
+    },
+    "MediaProfiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Hint": {
+            "type": "string"
+          },
+          "Width": {
+            "type": "integer"
+          },
+          "Height": {
+            "type": "integer"
+          },
+          "Mode": {
+            "type": "string",
+            "enum": [
+              "Undefined",
+              "Max",
+              "Crop",
+              "Pad",
+              "BoxPad",
+              "Min",
+              "Stretch"
+            ],
+            "description": "The image resize mode."
+          },
+          "Format": {
+            "type": "string",
+            "enum": [
+              "Undefined",
+              "Bmp",
+              "Gif",
+              "Jpg",
+              "Png",
+              "Tga",
+              "WebP"
+            ],
+            "description": "The output image format."
+          },
+          "Quality": {
+            "type": "integer"
+          },
+          "BackgroundColor": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "A dictionary keyed by profile name. Each value is a media profile object."
+    }
+  },
+  "required": [
+    "name",
+    "MediaProfiles"
+  ],
+  "additionalProperties": true
+}

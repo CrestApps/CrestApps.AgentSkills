@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AdminTemplates"
+    },
+    "AdminTemplates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Content": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "A dictionary keyed by template name. Each value has a Content property with Liquid markup."
+    }
+  },
+  "required": [
+    "name",
+    "AdminTemplates"
+  ],
+  "additionalProperties": true
+}

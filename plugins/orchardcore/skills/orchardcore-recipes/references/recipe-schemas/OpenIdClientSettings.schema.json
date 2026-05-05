@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OpenIdClientSettings"
+    },
+    "DisplayName": {
+      "type": "string"
+    },
+    "Authority": {
+      "type": "string"
+    },
+    "ClientId": {
+      "type": "string"
+    },
+    "ClientSecret": {
+      "type": "string"
+    },
+    "CallbackPath": {
+      "type": "string"
+    },
+    "SignedOutRedirectUri": {
+      "type": "string"
+    },
+    "SignedOutCallbackPath": {
+      "type": "string"
+    },
+    "Scopes": {
+      "type": "string"
+    },
+    "ResponseType": {
+      "type": "string",
+      "enum": [
+        "code",
+        "code id_token",
+        "code id_token token",
+        "code token",
+        "id_token",
+        "id_token token"
+      ]
+    },
+    "ResponseMode": {
+      "type": "string",
+      "enum": [
+        "form_post",
+        "fragment",
+        "query"
+      ]
+    },
+    "StoreExternalTokens": {
+      "type": "boolean"
+    },
+    "Parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name",
+          "Value"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

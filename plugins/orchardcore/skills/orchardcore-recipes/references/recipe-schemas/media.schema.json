@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "media"
+    },
+    "Files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "TargetPath": {
+            "type": "string"
+          },
+          "Path": {
+            "type": "string",
+            "description": "Alias for TargetPath. Path where the content will be written."
+          },
+          "SourcePath": {
+            "type": "string",
+            "description": "Relative path from the recipe file to the source media."
+          },
+          "SourceUrl": {
+            "type": "string",
+            "description": "Absolute URL to download the media from."
+          },
+          "Base64": {
+            "type": "string",
+            "description": "Base64-encoded content of the file."
+          }
+        },
+        "required": [
+          "TargetPath"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "Files"
+  ],
+  "additionalProperties": true
+}

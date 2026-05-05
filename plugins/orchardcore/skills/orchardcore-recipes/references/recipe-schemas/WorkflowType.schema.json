@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkflowType"
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Activities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string"
+                },
+                "IsStart": {
+                  "type": "boolean"
+                },
+                "X": {
+                  "type": "number",
+                  "description": "Horizontal pixel position of the activity node in the designer."
+                },
+                "Y": {
+                  "type": "number",
+                  "description": "Vertical pixel position of the activity node in the designer."
+                },
+                "Properties": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "Name",
+                "Properties"
+              ],
+              "additionalProperties": true,
+              "if": {
+                "properties": {
+                  "IsStart": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "IsStart"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "Name": {
+                    "enum": [
+                      "HttpRequestEvent"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "Name": {
+                    "enum": [
+                      "NotifyTask"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "Transitions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "Name",
+          "Activities",
+          "Transitions"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "data"
+  ],
+  "additionalProperties": true
+}

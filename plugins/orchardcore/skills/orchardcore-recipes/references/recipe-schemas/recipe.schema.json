@@ -1,0 +1,135 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "A unique name for the recipe."
+    },
+    "displayName": {
+      "type": "string",
+      "description": "A display name for the recipe."
+    },
+    "description": {
+      "type": "string",
+      "description": "A description for the recipe."
+    },
+    "author": {
+      "type": "string",
+      "description": "The author of the recipe."
+    },
+    "website": {
+      "type": "string",
+      "description": "The website URL associated with the recipe."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the recipe."
+    },
+    "isSetupRecipe": {
+      "type": "boolean",
+      "description": "Whether this recipe is a setup recipe."
+    },
+    "exportUtc": {
+      "type": "string",
+      "description": "The UTC date/time when the recipe was exported."
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categories for the recipe."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for the recipe."
+    },
+    "requireNewScope": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the recipe requires a new scope."
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "AdminMenu",
+              "AdminTemplates",
+              "AIDeployment",
+              "AIProfile",
+              "AIProfileTemplate",
+              "AIProviderConnections",
+              "AzureADSettings",
+              "azureai-index-create",
+              "azureai-index-rebuild",
+              "azureai-index-reset",
+              "command",
+              "content",
+              "ContentDefinition",
+              "CreateOrUpdateIndexProfile",
+              "custom-settings",
+              "custom-user-settings",
+              "DeleteAIDeployments",
+              "DeleteContentDefinition",
+              "deployment",
+              "DynamicDataTranslations",
+              "elastic-index-rebuild",
+              "elastic-index-reset",
+              "ElasticIndexSettings",
+              "FacebookCoreSettings",
+              "FacebookLoginSettings",
+              "feature",
+              "FeatureProfiles",
+              "GitHubAuthenticationSettings",
+              "Layers",
+              "lucene-index",
+              "lucene-index-rebuild",
+              "lucene-index-reset",
+              "media",
+              "MediaProfiles",
+              "MicrosoftAccountSettings",
+              "OpenIdApplication",
+              "OpenIdClientSettings",
+              "OpenIdScope",
+              "OpenIdServerSettings",
+              "OpenIdValidationSettings",
+              "Placements",
+              "Queries",
+              "RebuildIndex",
+              "recipes",
+              "ReplaceContentDefinition",
+              "ResetIndex",
+              "Roles",
+              "Settings",
+              "ShortcodeTemplates",
+              "Sitemaps",
+              "Templates",
+              "themes",
+              "Translations",
+              "TwitterSettings",
+              "UrlRewriting",
+              "Users",
+              "WorkflowType"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The collection of recipe steps."
+    }
+  },
+  "required": [
+    "steps"
+  ]
+}

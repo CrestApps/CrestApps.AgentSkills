@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Layers"
+    },
+    "Layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Rule": {
+            "type": "string",
+            "description": "A JavaScript rule expression, e.g. isHomepage()."
+          },
+          "LayerRule": {
+            "type": "object",
+            "properties": {
+              "Name": {
+                "type": "string"
+              },
+              "ConditionId": {
+                "type": "string"
+              },
+              "Conditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true,
+            "description": "Structured layer rule object."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "Layers"
+  ],
+  "additionalProperties": true
+}
