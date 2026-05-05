@@ -69,30 +69,35 @@ jobs:
           if not changed_plugins:
               raise SystemExit(0)
 
-          for manifest_name in (".github/plugin/marketplace.json", ".claude-plugin/marketplace.json"):
-              manifest_path = Path(manifest_name)
-              manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          manifest_name = ".github/plugin/marketplace.json"
+          manifest_path = Path(manifest_name)
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-              for plugin_name in changed_plugins:
-                  plugin = next(
-                      (entry for entry in manifest.get("plugins", []) if entry.get("name") == plugin_name),
-                      None,
-                  )
-                  if plugin is None:
-                      raise SystemExit(f"Plugin '{plugin_name}' not found in {manifest_name}")
-
-                  version = plugin.get("version", "")
-                  match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)?", version)
-                  if match is None:
-                      raise SystemExit(f"Unsupported plugin version format in {manifest_name}: {version}")
-
-                  major, minor, patch, suffix = match.groups()
-                  plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
-
-              manifest_path.write_text(
-                  json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
-                  encoding="utf-8",
+          for plugin_name in changed_plugins:
+              plugin = next(
+                  (entry for entry in manifest.get("plugins", []) if entry.get("name") == plugin_name),
+                  None,
               )
+              if plugin is None:
+                  raise SystemExit(f"Plugin '{plugin_name}' not found in {manifest_name}")
+
+              version = plugin.get("version", "")
+              match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)?", version)
+              if match is None:
+                  raise SystemExit(f"Unsupported plugin version format in {manifest_name}: {version}")
+
+              major, minor, patch, suffix = match.groups()
+              plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
+
+          manifest_path.write_text(
+              json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+
+          Path(".claude-plugin/marketplace.json").write_text(
+              "../.github/plugin/marketplace.json\n",
+              encoding="utf-8",
+          )
 
       - name: Check for plugin bundle changes
         id: changes
