@@ -1,131 +1,62 @@
 # CrestApps.AgentSkills
 
-This project is a **non-packagable** skill repository that serves as the single source of truth for all agent skills in this solution.
+This project is the **skill content container** for the repository. It is not published directly; other projects and plugin bundles consume the source roots defined here.
 
-## Purpose
+## Source roots
 
-This project exists solely to **host and organize shared skills** by framework. It is not published as a NuGet package. Instead, other projects in this solution reference these skills and include them in their respective NuGet packages during the packaging process.
+| Root | Purpose |
+|---|---|
+| `orchardcore/` | Framework-only Orchard Core skills |
+| `crestapps-orchardcore/` | Skills for `CrestApps.OrchardCore` modules |
+| `crestapps-core/` | Skills for direct `CrestApps.Core` scenarios |
 
-## Structure
+## Packaging behavior
 
-Skills are organized into framework-specific subdirectories:
+- `CrestApps.AgentSkills.OrchardCore` packs `orchardcore/` and `crestapps-orchardcore/` under `skills/`
+- `CrestApps.AgentSkills.Mcp.OrchardCore` packs `orchardcore/` and `crestapps-orchardcore/` under `contentFiles/any/any/.agents/skills/`
+- The Copilot CLI plugins are generated from matching roots:
+  - `plugins/orchardcore` ← `src/CrestApps.AgentSkills/orchardcore`
+  - `plugins/crestapps-orchardcore` ← `src/CrestApps.AgentSkills/crestapps-orchardcore`
+  - `plugins/crestapps-core` ← `src/CrestApps.AgentSkills/crestapps-core`
 
-```
-CrestApps.AgentSkills/
-├─ orchardcore/              ← Orchard Core framework skills
-│  ├─ orchardcore.content-types/
-│  │  ├─ SKILL.md
-│  │  └─ references/
-│  ├─ orchardcore.modules/
-│  ├─ orchardcore.recipes/
-│  └─ ...
-│
-└─ [future-framework]/       ← Additional frameworks can be added here
-   └─ ...
-```
+## Adding a new skill
 
-### Current Frameworks
-
-- **`orchardcore/`** - Contains all Orchard Core-specific skills (content types, modules, recipes, etc.)
-
-Future frameworks can be added as new subdirectories alongside `orchardcore/`.
-
-## How Skills Are Packaged
-
-The Orchard Core skill files live under `src/CrestApps.AgentSkills/orchardcore`. The corresponding package projects reference the shared `$(OrchardCoreSkillsDirectory)` MSBuild property:
-
-### Example: Orchard Core Skills
-
-The `CrestApps.AgentSkills.OrchardCore.csproj` includes:
-
-```xml
-<ItemGroup>
-  <None Include="$(OrchardCoreSkillsDirectory)**\*"
-        Pack="true"
-        PackagePath="skills"
-        Visible="false" />
-</ItemGroup>
-```
-
-Similarly, `CrestApps.AgentSkills.Mcp.OrchardCore.csproj` includes:
-
-```xml
-<ItemGroup>
-  <Content Include="$(OrchardCoreSkillsDirectory)**\*"
-           Pack="true"
-           PackagePath="contentFiles\any\any\.agents\skills"
-           BuildAction="Content"
-           CopyToOutputDirectory="PreserveNewest"
-           Visible="false">
-    <PackageCopyToOutput>true</PackageCopyToOutput>
-  </Content>
-</ItemGroup>
-```
-
-This approach ensures:
-- ✅ Single source of truth for all skills
-- ✅ Skills can be shared across multiple packages
-- ✅ Framework-specific skills are cleanly separated
-- ✅ Easy to add skills for new frameworks in the future
-
-## Adding a New Framework
-
-To add skills for a new framework (e.g., `aspnetcore`):
-
-1. Create a new directory: `CrestApps.AgentSkills/aspnetcore/`
-2. Add skill directories under it (e.g., `aspnetcore/aspnetcore.minimal-apis/`)
-3. Create corresponding NuGet package projects that reference these skills
-4. Update package `.csproj` files to include the new framework skills
-
-## Skill Format
-
-Each skill must follow the [agentskills.io specification](https://agentskills.io/specification). Every skill directory must contain a `SKILL.md` file with YAML front-matter:
-
-```md
----
-name: framework.skill-name
-description: Clear description of what this skill does and when to use it.
----
-
-# Skill Title
-
-Guidelines, code templates, and examples go here.
-```
+1. Choose the owning source root based on the project the skill targets.
+2. Create a directory under that root, for example `src/CrestApps.AgentSkills/orchardcore/orchardcore-content-types/`.
+3. Add `SKILL.md` with front-matter whose `name` matches the directory name exactly.
+4. Add optional supporting files under `references/`.
+5. Run the repository build and tests.
 
 ## Validation
 
-Validate all skills before committing:
+**PowerShell**
 
-**PowerShell (Windows):**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
-    $name = $_.Name
-    $skillFile = Join-Path $_.FullName "SKILL.md"
-    
-    if (-not (Test-Path $skillFile)) {
-        Write-Host "FAIL: $name missing SKILL.md" -ForegroundColor Red
-    } else {
-        $firstLine = Get-Content $skillFile -First 1
-        if ($firstLine -ne "---") {
-            Write-Host "FAIL: $name bad front-matter" -ForegroundColor Red
-        } else {
-            Write-Host "OK: $name" -ForegroundColor Green
-        }
+Get-ChildItem -Path "src\CrestApps.AgentSkills" -Directory | ForEach-Object {
+    Get-ChildItem -Path $_.FullName -Directory | ForEach-Object {
+        $skillFile = Join-Path $_.FullName "SKILL.md"
+        if (-not (Test-Path $skillFile)) { Write-Host "FAIL: $($_.FullName) missing SKILL.md" -ForegroundColor Red }
+        elseif ((Get-Content $skillFile -First 1) -ne "---") { Write-Host "FAIL: $($_.FullName) bad front-matter" -ForegroundColor Red }
+        else { Write-Host "OK: $($_.FullName)" -ForegroundColor Green }
     }
 }
 ```
 
-**Bash (Linux/macOS):**
+**Bash**
+
 ```bash
-for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
-  name=$(basename "$dir")
-  if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; continue; fi
-  if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; continue; fi
-  echo "OK: $name"
+for root in src/CrestApps.AgentSkills/orchardcore src/CrestApps.AgentSkills/crestapps-orchardcore src/CrestApps.AgentSkills/crestapps-core; do
+  [ -d "$root" ] || continue
+  for dir in "$root"/*/; do
+    [ -d "$dir" ] || continue
+    if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $dir missing SKILL.md"; continue; fi
+    if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $dir bad front-matter"; continue; fi
+    echo "OK: $dir"
+  done
 done
 ```
 
-## See Also
+## See also
 
-- [Main README](../../README.md) - Project overview and quick start
-- [Contributing Guide](../../.github/CONTRIBUTING.md) - How to contribute new skills
+- [Repository README](../../README.md)
+- [Contributing guide](../../.github/CONTRIBUTING.md)

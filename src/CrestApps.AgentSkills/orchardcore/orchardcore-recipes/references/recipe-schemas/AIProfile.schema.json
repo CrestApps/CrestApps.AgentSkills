@@ -51,17 +51,21 @@
             "type": "string",
             "description": "Liquid template for TemplatePrompt profiles."
           },
+          "ChatDeploymentName": {
+            "type": "string",
+            "description": "Chat deployment technical name for the AI model."
+          },
+          "UtilityDeploymentName": {
+            "type": "string",
+            "description": "Utility deployment technical name for the AI model."
+          },
           "ChatDeploymentId": {
             "type": "string",
-            "description": "Chat deployment ID for the AI model."
+            "description": "Legacy chat deployment selector. Use ChatDeploymentName instead."
           },
           "UtilityDeploymentId": {
             "type": "string",
-            "description": "Utility deployment ID for the AI model."
-          },
-          "DeploymentId": {
-            "type": "string",
-            "description": "Deprecated. Use ChatDeploymentId instead."
+            "description": "Legacy utility deployment selector. Use UtilityDeploymentName instead."
           },
           "Properties": {
             "type": "object",

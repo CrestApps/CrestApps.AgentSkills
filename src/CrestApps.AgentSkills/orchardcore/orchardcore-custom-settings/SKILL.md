@@ -111,17 +111,23 @@ public sealed class MyService
     {
         ContentItem settingsItem = await _siteService.GetCustomSettingsAsync("{{SettingsTypeName}}");
 
-        return settingsItem.As<{{SettingsPartName}}>();
+        return settingsItem.GetOrCreate<{{SettingsPartName}}>();
     }
 }
 ```
 
-Alternatively, access settings without the extension method:
+Alternatively, read the named custom settings content item from the site document:
 
 ```csharp
 var siteSettings = await _siteService.GetSiteSettingsAsync();
-var settingsItem = siteSettings.As<ContentItem>("{{SettingsTypeName}}");
+
+if (siteSettings.TryGet<ContentItem>("{{SettingsTypeName}}", out var settingsItem))
+{
+    // Use settingsItem here.
+}
 ```
+
+Use `GetSiteSettingsAsync()` for read-only access. If you plan to modify the site document and then call `UpdateSiteSettingsAsync()`, load a mutable copy first with `LoadSiteSettingsAsync()`.
 
 ### Accessing Custom Settings in Controllers
 
@@ -138,7 +144,7 @@ public sealed class MyController : Controller
     public async Task<IActionResult> Index()
     {
         ContentItem settingsItem = await _siteService.GetCustomSettingsAsync("{{SettingsTypeName}}");
-        var settings = settingsItem.As<{{SettingsPartName}}>();
+        var settings = settingsItem.GetOrCreate<{{SettingsPartName}}>();
 
         return View(settings);
     }

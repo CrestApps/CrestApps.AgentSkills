@@ -65,7 +65,11 @@ public sealed class ProductPartIndexProvider : IndexProvider<ContentItem>
             .When(contentItem => contentItem.Has<ProductPart>())
             .Map(contentItem =>
             {
-                var part = contentItem.As<ProductPart>();
+                if (!contentItem.TryGet<ProductPart>(out var part))
+                {
+                    return null;
+                }
+
                 return new ProductPartIndex
                 {
                     ContentItemId = contentItem.ContentItemId,

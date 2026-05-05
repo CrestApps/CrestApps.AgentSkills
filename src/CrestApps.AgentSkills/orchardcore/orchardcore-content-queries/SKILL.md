@@ -124,7 +124,11 @@ public sealed class {{PartName}}IndexProvider : IndexProvider<ContentItem>
             .When(contentItem => contentItem.Has<{{PartName}}>())
             .Map(contentItem =>
             {
-                var part = contentItem.As<{{PartName}}>();
+                if (!contentItem.TryGet<{{PartName}}>(out var part))
+                {
+                    return null;
+                }
+
                 return new {{PartName}}Index
                 {
                     ContentItemId = contentItem.ContentItemId,

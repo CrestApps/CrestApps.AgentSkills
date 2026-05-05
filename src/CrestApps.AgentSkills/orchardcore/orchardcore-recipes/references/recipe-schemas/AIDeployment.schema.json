@@ -23,15 +23,29 @@
             "description": "Connection name used to configure the provider."
           },
           "Type": {
-            "type": "string",
-            "enum": [
-              "Chat",
-              "Utility",
-              "Embedding",
-              "Image",
-              "SpeechToText"
-            ],
-            "description": "The deployment type. Defaults to Chat when not specified."
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "The deployment type, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "Chat",
+                    "Utility",
+                    "Embedding",
+                    "Image",
+                    "SpeechToText",
+                    "TextToSpeech"
+                  ]
+                },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "The deployment types."
+              }
+            ]
           },
           "IsDefault": {
             "type": "boolean",

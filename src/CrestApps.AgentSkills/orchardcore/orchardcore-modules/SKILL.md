@@ -1,6 +1,6 @@
 ---
 name: orchardcore-modules
-description: Skill for creating and structuring Orchard Core modules. Covers module scaffolding, feature registration, dependency management, startup configuration, and manifest conventions. Use this skill when requests mention Orchard Core Modules, Create a Module, Installing Third-Party Modules, Manifest Pattern, Startup Pattern, Project File Pattern, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyModule, OrchardCore.Application.Cms.Targets, CrestApps.OrchardCore.AI, OrchardCore.Modules.Manifest, OrchardCore.ContentManagement, OrchardCore.Modules, OrchardCore.Module.Targets, IServiceCollection, Manifest.cs, [RequireFeatures]. It also helps with module examples, Startup Pattern, Project File Pattern, Module Folder Structure, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and structuring Orchard Core modules. Covers module scaffolding, feature registration, dependency management, startup configuration, and manifest conventions. Use this skill when requests mention Orchard Core Modules, Create a Module, Installing Third-Party Modules, Manifest Pattern, Startup Pattern, Project File Pattern, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Application.Cms.Targets, OrchardCore.Modules.Manifest, OrchardCore.ContentManagement, OrchardCore.Modules, OrchardCore.Module.Targets, IServiceCollection, Manifest.cs, [RequireFeatures]. It also helps with module examples, Startup Pattern, Project File Pattern, Module Folder Structure, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,7 +15,7 @@ You are an Orchard Core expert. Generate the scaffolding for a new Orchard Core 
 
 ### Guidelines
 
-- Module names should be PascalCase and typically prefixed with the organization name (e.g., `CrestApps.MyModule`).
+- Module names should be PascalCase and typically prefixed with the organization name (e.g., `MyOrg.MyModule`).
 - Every module must have a `Manifest.cs` file declaring its features.
 - Each feature must have a unique ID and should declare its dependencies.
 - Use `Startup` classes to register services, routes, and navigation.
@@ -35,7 +35,6 @@ Third-party modules are installed by adding NuGet packages or project references
     <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
 
     <!-- Third-party modules must be in the web project -->
-    <PackageReference Include="CrestApps.OrchardCore.AI" Version="1.*" />
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
   </ItemGroup>
 </Project>

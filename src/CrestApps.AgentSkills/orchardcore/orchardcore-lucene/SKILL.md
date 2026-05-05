@@ -1,6 +1,6 @@
 ---
 name: orchardcore-lucene
-description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Search.Lucene, OrchardCore.Search.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Lucene Search - Prompt Templates
@@ -11,7 +11,7 @@ You are an Orchard Core expert. Generate code and configuration for Lucene-based
 
 ### Guidelines
 
-- Enable `OrchardCore.Search.Lucene` to manage Lucene indexes.
+- Enable `OrchardCore.Lucene` to manage Lucene indexes.
 - Lucene indexes are stored on the local file system under `/App_Data/Sites/{TenantName}/Lucene/{IndexName}`.
 - Use the `CreateOrUpdateIndexProfile` recipe step to create indexes (preferred over the obsolete `lucene-index` and `LuceneIndexSettings` steps).
 - Use the `ResetIndex` recipe step to restart indexing from the beginning without deleting existing entries (preferred over the obsolete `lucene-index-reset` step).
@@ -19,7 +19,7 @@ You are an Orchard Core expert. Generate code and configuration for Lucene-based
 - Lucene queries use Elasticsearch Query DSL syntax.
 - Supported query types: `bool`, `match`, `match_all`, `match_phrase`, `term`, `terms`, `wildcard`, `prefix`, `fuzzy`, `range`, `regexp`, `query_string`, `simple_query_string`, `geo_distance`, `geo_bounding_box`.
 - Text fields with a `.keyword` suffix are automatically stored in the index (max 256 chars) for term-level queries.
-- Enable `OrchardCore.Search.Lucene.Worker` only when running the same tenant on multiple instances (farm) with a file system index.
+- Enable `OrchardCore.Lucene.Worker` only when running the same tenant on multiple instances (farm) with a file system index.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -32,7 +32,7 @@ You are an Orchard Core expert. Generate code and configuration for Lucene-based
       "name": "Feature",
       "enable": [
         "OrchardCore.Search",
-        "OrchardCore.Search.Lucene",
+        "OrchardCore.Lucene",
         "OrchardCore.Indexing"
       ],
       "disable": []
@@ -288,7 +288,7 @@ Same parameters as `api/lucene/content`.
 
 ### Lucene Worker
 
-Enable `OrchardCore.Search.Lucene.Worker` to synchronize the local file system index across multiple instances. This creates a background task that keeps indexes in sync in a farm scenario.
+Enable `OrchardCore.Lucene.Worker` to synchronize the local file system index across multiple instances. This creates a background task that keeps indexes in sync in a farm scenario.
 
 Do **not** enable the Worker if:
 - You are running a single instance.

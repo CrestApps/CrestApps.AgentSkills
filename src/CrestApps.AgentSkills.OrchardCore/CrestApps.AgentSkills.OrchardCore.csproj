@@ -19,6 +19,7 @@
         NuGet auto-linking. The buildTransitive .targets handles copying. -->
 	<ItemGroup>
 		<None Include="$(OrchardCoreSkillsDirectory)**\*" Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
+		<None Include="$(CrestAppsOrchardCoreSkillsDirectory)**\*" Exclude="$(CrestAppsOrchardCoreSkillsDirectory)**\bin\**\*;$(CrestAppsOrchardCoreSkillsDirectory)**\lib\**\*" Pack="true" PackagePath="skills" Visible="false" />
 	</ItemGroup>
 
 	<!-- Place an empty _._  marker inside lib/<tfm> for each target framework

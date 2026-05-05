@@ -1,6 +1,6 @@
 ---
 name: orchardcore-setup
-description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, testing with the Blog recipe, and configuring tenants for multi-site testing. Use this skill when requests mention Orchard Core Setup, Create and Set Up an Orchard Core Application, Creating a New Orchard Core Web Application, Manual Project Setup (Without Templates), Program.cs Configuration, Program.cs with Additional CMS Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ProjectTemplates, OrchardCore.Application.Cms.Targets, OrchardCore.AutoSetup, CrestApps.OrchardCore.AI. It also helps with setup examples, Program.cs Configuration, Program.cs with Additional CMS Configuration, Adding CMS Modules to the Project, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, testing with the Blog recipe, and configuring tenants for multi-site testing. Use this skill when requests mention Orchard Core Setup, Create and Set Up an Orchard Core Application, Creating a New Orchard Core Web Application, Manual Project Setup (Without Templates), Program.cs Configuration, Program.cs with Additional CMS Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ProjectTemplates, OrchardCore.Application.Cms.Targets, OrchardCore.AutoSetup. It also helps with setup examples, Program.cs Configuration, Program.cs with Additional CMS Configuration, Adding CMS Modules to the Project, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -91,7 +91,7 @@ app.Run();
 
 ### Adding CMS Modules to the Project
 
-Add NuGet packages for the modules you need. **All modules** — whether from OrchardCore directly, CrestApps, Lombiq, or any community source — must be installed in the **web project** (the startup project of the solution):
+Add NuGet packages for the modules you need. **All modules** — whether from OrchardCore directly, Lombiq, or any community source — must be installed in the **web project** (the startup project of the solution):
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -104,7 +104,6 @@ Add NuGet packages for the modules you need. **All modules** — whether from Or
     <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
 
     <!-- Third-party modules are also added to the web project -->
-    <PackageReference Include="CrestApps.OrchardCore.AI" Version="1.*" />
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
   </ItemGroup>
 

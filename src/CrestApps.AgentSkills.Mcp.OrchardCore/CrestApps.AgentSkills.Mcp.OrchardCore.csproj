@@ -16,8 +16,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CrestApps.Core.AI.Mcp" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="$(OrchardCoreSkillsDirectory)**\*"
 				 Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"
+				 Pack="true"
+				 PackagePath="contentFiles\any\any\.agents\skills"
+				 BuildAction="Content"
+				 CopyToOutputDirectory="PreserveNewest"
+				 Visible="false">
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+		</Content>
+		<Content Include="$(CrestAppsOrchardCoreSkillsDirectory)**\*"
+				 Exclude="$(CrestAppsOrchardCoreSkillsDirectory)**\bin\**\*;$(CrestAppsOrchardCoreSkillsDirectory)**\lib\**\*"
 				 Pack="true"
 				 PackagePath="contentFiles\any\any\.agents\skills"
 				 BuildAction="Content"

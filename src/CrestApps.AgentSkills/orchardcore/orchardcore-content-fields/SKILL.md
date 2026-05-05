@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-fields
-description: Skill for adding and configuring content fields in Orchard Core. Covers every built-in field type with all available settings, editor options, display modes, and migration code patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, CrestApps.OrchardCore.AI, FieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring content fields in Orchard Core. Covers every built-in field type with all available settings, editor options, display modes, and migration code patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,7 +21,7 @@ You are an Orchard Core expert. Generate migration code and recipes for adding c
 - Fields also have `ContentPartFieldSettings` controlling `DisplayName`, `Description`, `Editor`, `DisplayMode`, and `Position`.
 - Use `.WithEditor("EditorName")` to select an editor variant.
 - Use `.WithDisplayMode("DisplayModeName")` to select a display variant.
-- Third-party modules providing fields (CrestApps, Lombiq, etc.) must be installed as NuGet packages in the web project (the startup project of the solution), not just in the module project.
+- Third-party modules providing fields (CrestApps, Lombiq, community modules, etc.) must be installed as NuGet packages in the web project (the startup project of the solution), not just in the module project.
 - Always seal classes.
 
 ### General Pattern for Adding a Field
@@ -617,7 +617,7 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
 
 ## Installing Third-Party Field Modules
 
-Modules that provide custom fields from external sources (CrestApps, Lombiq, or community modules) must be installed as NuGet packages in the **web project** (the startup project of the solution):
+Modules that provide custom fields from external sources (community or third-party modules) must be installed as NuGet packages in the **web project** (the startup project of the solution):
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -626,7 +626,6 @@ Modules that provide custom fields from external sources (CrestApps, Lombiq, or 
     <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
 
     <!-- Third-party modules must be added to the web project -->
-    <PackageReference Include="CrestApps.OrchardCore.AI" Version="1.*" />
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
   </ItemGroup>
 </Project>
