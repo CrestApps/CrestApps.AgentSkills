@@ -1,65 +1,22 @@
 # Contributing to CrestApps.AgentSkills
 
-Thank you for your interest in contributing! Whether you're fixing bugs, adding new skills, or improving documentation, your help is appreciated.
+Thanks for contributing.
 
-Before getting started, please read through our [README](../README.md) to familiarize yourself with the project.
+## Skill placement
 
----
+Choose the source root that matches the project the skill belongs to:
 
-## Setting Up the Project Locally
+- `src/CrestApps.AgentSkills/orchardcore/` for framework-only Orchard Core skills
+- `src/CrestApps.AgentSkills/crestapps-orchardcore/` for `CrestApps.OrchardCore` module skills
+- `src/CrestApps.AgentSkills/crestapps-core/` for direct `CrestApps.Core` skills
 
-Start by cloning the repository and switching to the `main` branch:
+Each skill must live in its own directory and include `SKILL.md` with front-matter whose `name` matches the directory name exactly.
 
-```bash
-git clone https://github.com/CrestApps/CrestApps.AgentSkills.git
-cd CrestApps.AgentSkills
-git checkout main
-```
-
-### Command Line
-
-1. Install the latest .NET SDK from [https://dotnet.microsoft.com/download](https://dotnet.microsoft.com/download).
-2. Run the build using `dotnet build`.
-
-### Visual Studio
-
-1. Install Visual Studio 2022 or newer from [https://visualstudio.microsoft.com/downloads](https://visualstudio.microsoft.com/downloads).
-2. Open the solution file (`.sln`) found at the root of the repo.
-3. Wait for NuGet packages to restore.
-4. Build the solution.
-
----
-
-## Choosing What to Work On
-
-We welcome contributions of all kinds! Here's how you can find something meaningful to contribute:
-
-* Browse [open issues](https://github.com/CrestApps/CrestApps.AgentSkills/issues) to see what's currently being worked on or needs help.
-
-If you have an idea or improvement that's not tracked yet, please open a new issue first and discuss it with the maintainers before starting work.
-
----
-
-## Adding New Skills
-
-Skills must comply with the [agentskills.io specification](https://agentskills.io/specification). Each skill lives in its own directory under `src/CrestApps.AgentSkills/orchardcore/` and must contain a `SKILL.md` file.
-
-### Required File Structure
-
-```
-src/CrestApps.AgentSkills/orchardcore/orchardcore.my-skill/
-├── SKILL.md                    ← Required: skill definition with front-matter
-└── references/                 ← Optional: additional reference/example files
-    └── my-skill-examples.md
-```
-
-### SKILL.md Format
-
-Every `SKILL.md` must start with YAML front-matter containing at least `name` and `description`:
+## Skill format
 
 ```md
 ---
-name: orchardcore.my-skill
+name: orchardcore-content-types
 description: A clear description of what this skill does and when to use it.
 ---
 
@@ -68,80 +25,28 @@ description: A clear description of what this skill does and when to use it.
 Guidelines, code templates, and examples go here.
 ```
 
-### Naming Conventions
+Use `references/` for extra examples. Keep directory names lowercase and hyphenated.
 
-* **Directory name**: lowercase, hyphenated, prefixed with `orchardcore.` (e.g., `orchardcore.content-types`)
-* **`name` field**: must exactly match the directory name
-* **`SKILL.md`**: must be uppercase (`SKILL.md`, not `skill.md`)
-* **References directory**: `references/` (not `examples/`)
-
-### Documentation Conventions
-
-* All recipe step JSON blocks must be wrapped in the root recipe format: `{ "steps": [...] }`
-* All C# classes in code samples must use the `sealed` modifier
-* Third-party module packages (non `OrchardCore.*`) must be installed in the web/startup project
-
-### Validation
-
-Skills are validated automatically in CI. Before submitting a PR, verify your skill locally:
+## Validation
 
 ```bash
 dotnet build -c Release -warnaserror /p:TreatWarningsAsErrors=true /p:RunAnalyzers=true /p:NuGetAudit=false
 dotnet test -c Release --verbosity normal
 ```
 
-### Submitting a New Skill PR
+## Plugin bundles
 
-1. Open a **New Skill Request** issue (or confirm one already exists): <https://github.com/CrestApps/CrestApps.AgentSkills/issues/new?template=skill_request.md>.
-2. Create a branch and add the new skill directory under `src/CrestApps.AgentSkills/orchardcore/`.
-3. Ensure the `SKILL.md` front-matter matches the directory name and include any supporting `references/` files.
-4. Run the validation steps above.
-5. Submit a PR that links the issue (e.g., `Fix #123`) and summarizes the new skill.
+Do **not** manually edit generated files under:
 
-Do **not** manually edit `plugins/crestapps-orchardcore/skills`. That directory is a generated plugin bundle refreshed by the `Publish plugin bundle` GitHub Actions workflow.
+- `plugins/orchardcore/skills`
+- `plugins/crestapps-orchardcore/skills`
+- `plugins/crestapps-core/skills`
 
-Pull requests must not include changes under `plugins/crestapps-orchardcore/skills`. Update `src/CrestApps.AgentSkills/orchardcore` only; the plugin bundle is published separately by automation.
+Update the matching source root under `src/CrestApps.AgentSkills/` instead. The `Publish plugin bundles` workflow refreshes generated plugin bundles separately.
 
-The plugin bundle itself is published by automation: use the `Publish plugin bundle` workflow manually when needed, or let it run automatically after a successful `Release - CI` workflow. The workflow creates or updates an automation pull request instead of pushing directly to `main`.
+## Pull requests
 
----
-
-## Contribution Scope
-
-* **Small Fixes (typos, minor bugs)**: Feel free to submit a pull request directly.
-* **Features or Major Changes**: Please open an issue to discuss first. We want to make sure it aligns with the overall goals and doesn't duplicate existing efforts.
-
----
-
-## Submitting a Pull Request (PR)
-
-> New to pull requests? Check out [this guide](https://help.github.com/articles/using-pull-requests).
-
-To submit a quality PR:
-
-* Ensure your code follows our coding style and practices.
-* Verify the project builds and all tests pass.
-* Link your PR to a relevant issue using `Fix #issue_number` in the description.
-* If you're not finished yet, mark your PR as a **draft**.
-* Include screenshots or screen recordings for UI changes.
-* Please [allow maintainers to edit your PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork) for easier collaboration.
-
----
-
-## Review Process & Feedback
-
-Every PR is reviewed by the core team. Here's how to keep the process smooth:
-
-* Address feedback promptly and thoroughly.
-* Apply [suggested changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/incorporating-feedback-in-your-pull-request#applying-suggested-changes) directly whenever possible.
-* Don't manually resolve conversations — let the reviewer do that.
-* Keep all related discussions inside the PR to keep things organized.
-* When you've addressed feedback, use "Re-request review" to notify reviewers.
-
----
-
-## Thank You!
-
-We deeply appreciate your contributions. All PRs are reviewed with care to ensure they fit the quality and goals of the project.
-
-Following these guidelines helps make sure your contribution is merged quickly and smoothly — and makes the process pleasant for everyone involved.
+1. Open or confirm the related issue first for new skills or substantial changes.
+2. Add the skill under the correct source root.
+3. Run the build and tests.
+4. Submit a PR summarizing the change and linking the issue.

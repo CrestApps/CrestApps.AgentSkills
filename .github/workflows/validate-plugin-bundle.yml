@@ -1,15 +1,20 @@
-name: Validate plugin bundle
+name: Validate plugin bundles
 
 on:
   pull_request:
     paths:
       - 'src/CrestApps.AgentSkills/orchardcore/**'
+      - 'src/CrestApps.AgentSkills/crestapps-orchardcore/**'
+      - 'src/CrestApps.AgentSkills/crestapps-core/**'
+      - 'plugins/orchardcore/skills/**'
       - 'plugins/crestapps-orchardcore/skills/**'
+      - 'plugins/crestapps-core/skills/**'
       - '.github/workflows/publish-plugin.yml'
       - '.github/workflows/validate-plugin-bundle.yml'
 
 jobs:
   validate-plugin-skills:
+    if: github.event.pull_request.head.ref != 'automation/publish-plugin-bundle'
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +31,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          plugin_changes=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'plugins/crestapps-orchardcore/skills/**' | wc -l | tr -d ' ')
+          plugin_changes=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+            'plugins/orchardcore/skills/**' \
+            'plugins/crestapps-orchardcore/skills/**' \
+            'plugins/crestapps-core/skills/**')
 
-          if [ "$plugin_changes" -gt 0 ]; then
-            echo "::error::Pull requests must not modify plugins/crestapps-orchardcore/skills. Update src/CrestApps.AgentSkills/orchardcore only; the plugin bundle is published separately."
+          if [ -z "$plugin_changes" ]; then
+            exit 0
+          fi
+
+          disallowed_changes=$(printf '%s\n' "$plugin_changes" | awk '
+            $2 ~ /\/\.gitkeep$/ && $1 == "A" { next }
+            $1 == "D" { next }
+            { print }
+          ')
+
+          if [ -n "$disallowed_changes" ]; then
+            echo "::error::Pull requests must not modify generated plugin bundles under plugins/*/skills. Update the matching source roots under src/CrestApps.AgentSkills instead; the plugin bundles are published separately."
+            printf '%s\n' "$disallowed_changes"
             exit 1
           fi

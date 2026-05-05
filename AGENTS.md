@@ -1,48 +1,32 @@
 # Agent Instructions
 
-This repository contains Orchard Core agent skills under `src/CrestApps.AgentSkills/orchardcore/`.
+This repository contains agent skills grouped by owning project under `src/CrestApps.AgentSkills/`.
 
-## Skill Structure
+## Skill roots
 
-- Each skill lives in its own directory under `src/CrestApps.AgentSkills/orchardcore/<skill-name>/`.
-- Directory names use lowercase, hyphenated format, prefixed with `orchardcore.` (e.g., `orchardcore.content-types`).
+- `src/CrestApps.AgentSkills/orchardcore/` - framework-only Orchard Core skills
+- `src/CrestApps.AgentSkills/crestapps-orchardcore/` - `CrestApps.OrchardCore` module skills
+- `src/CrestApps.AgentSkills/crestapps-core/` - direct `CrestApps.Core` skills
+
+## Skill structure
+
+- Each skill lives in its own directory under the correct source root.
+- Directory names use lowercase, hyphenated format and the `name` front-matter value must match the directory name exactly.
 - Every skill directory must contain a `SKILL.md` file with YAML front-matter including `name` and `description`.
-- The `name` field in front-matter must exactly match the directory name.
 - Use a `references/` subdirectory for supporting documentation and examples.
 
-## Content Conventions
+## Content conventions
 
 - Front-matter must start and end with `---`.
-- All recipe step JSON blocks must be wrapped in root recipe format: `{ "steps": [...] }`.
-- All C# classes in code samples must use the `sealed` modifier, **except for View Models** which must not be `sealed` because they are used for model binding.
-- Third-party module packages (non `OrchardCore.*`) must be installed in the web/startup project.
+- All recipe step JSON blocks must be wrapped in the root recipe format: `{ "steps": [...] }`.
+- All C# classes in code samples must use the `sealed` modifier, except View Models.
+- Third-party module packages must be installed in the web/startup project.
 - Keep guidance concise, example-driven, and actionable.
-- Prefer ready-to-use patterns over abstract descriptions.
 
-## Code Style
+## Adding a new skill
 
-- Use file-scoped namespaces in C# examples.
-- Enable nullable reference types.
-- Target `net10.0` framework.
-- Follow `.editorconfig` formatting rules.
-
-## Skill Categories
-
-Skills are organized by Orchard Core functional area:
-- **Content Model**: content-types, content-parts, content-fields, content-items, content-queries, taxonomies
-- **Templating**: theming, razor, liquid, shapes, placement, display-management
-- **Infrastructure**: modules, features, setup, tenants, data-migrations, background-tasks, caching
-- **Recipes & Deployment**: recipes, deployments, autoroute, site-settings
-- **Security**: security, users-roles, openid
-- **UI & Navigation**: navigation, menus, widgets, forms, admin
-- **Search & Media**: search-indexing, media, graphql
-- **Communication**: email, notifications, workflows
-- **Other**: ai, localization, seo, audit-trail
-
-## Adding a New Skill
-
-1. Create a directory under `src/CrestApps.AgentSkills/orchardcore/orchardcore.<skill-name>/`.
-2. Add `SKILL.md` with front-matter (`name`, `description`) and prompt templates with guidelines and examples.
-3. Add `references/<topic>-examples.md` with practical code examples.
-4. Run validation: ensure `SKILL.md` starts with `---` and `name` matches directory name.
-5. Build and test: `dotnet build -c Release -warnaserror` and `dotnet test -c Release`.
+1. Choose the correct source root for the project the skill targets.
+2. Create a directory under that root, for example `src/CrestApps.AgentSkills/orchardcore/orchardcore-content-types/`.
+3. Add `SKILL.md` with matching `name` and `description`.
+4. Add optional `references/<topic>-examples.md`.
+5. Run the repository build and tests.

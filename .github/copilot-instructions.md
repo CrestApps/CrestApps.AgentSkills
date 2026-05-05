@@ -9,13 +9,16 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 - **Target Framework**: .NET 10 (net10.0)
 - **SDK Version**: .NET 10.0.100 (see `global.json`)
 - **Package Management**: Central Package Management via `Directory.Packages.props`
-- **Skill source of truth**: `src/CrestApps.AgentSkills/orchardcore/` (106 Orchard Core skills)
+- **Skill source roots**:
+  - `src/CrestApps.AgentSkills/orchardcore/` - framework-only Orchard Core skills
+  - `src/CrestApps.AgentSkills/crestapps-orchardcore/` - `CrestApps.OrchardCore` module skills
+  - `src/CrestApps.AgentSkills/crestapps-core/` - direct `CrestApps.Core` skills
 
 ### Four Source Projects
 
 1. **`CrestApps.AgentSkills`** - Skill content container
-   - Contains all Orchard Core skill files under `orchardcore/`
-   - Not packable — purely a source container referenced by the other packages
+   - Contains canonical skill source roots under `orchardcore/`, `crestapps-orchardcore/`, and `crestapps-core/`
+   - Not packable — purely a source container referenced by the other packages and plugin bundles
 
 2. **`CrestApps.AgentSkills.Mcp`** - Generic MCP engine
    - Framework-agnostic skill parser and MCP provider
@@ -27,12 +30,12 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 
 3. **`CrestApps.AgentSkills.OrchardCore`** - Dev-time skill distributor
    - Development dependency only (`IncludeBuildOutput=false`, `DevelopmentDependency=true`)
-   - Uses MSBuild `.targets` to copy skills to solution root `.agents/skills/` on first build
+   - Uses MSBuild `.targets` to copy both `orchardcore/` and `crestapps-orchardcore/` to solution root `.agents/skills/` on first build
    - No runtime code — purely for local AI authoring
 
 4. **`CrestApps.AgentSkills.Mcp.OrchardCore`** - Runtime MCP server for Orchard Core
    - Extends `CrestApps.AgentSkills.Mcp` with Orchard Core–specific convenience wrappers
-   - Bundles skills via `contentFiles` (copied to bin output on restore)
+   - Bundles both `orchardcore/` and `crestapps-orchardcore/` via `contentFiles` (copied to bin output on restore)
    - Entry point: `OrchardCoreSkillMcpExtensions` (`AddOrchardCoreSkills`, `AddOrchardCoreAgentSkillServices`)
    - Services registered as singletons for caching
 
@@ -63,7 +66,7 @@ dotnet test -c Release --no-build --filter "FullyQualifiedName~SkillFrontMatterP
 
 ## Skill Validation
 
-Each skill directory under `src/CrestApps.AgentSkills/orchardcore/` must contain a `SKILL.md` file with YAML front-matter (must include `name` and `description`).
+Each skill directory under `src/CrestApps.AgentSkills/orchardcore/`, `src/CrestApps.AgentSkills/crestapps-orchardcore/`, or `src/CrestApps.AgentSkills/crestapps-core/` must contain a `SKILL.md` file with YAML front-matter (must include `name` and `description`).
 
 ### Skill Requirements
 
@@ -84,7 +87,7 @@ Each skill directory under `src/CrestApps.AgentSkills/orchardcore/` must contain
   - `MCP Client Connecting to External MCP Servers`
   - `Two Approaches Webhook vs. Protocol-Agnostic Relay`
 - Watch for namespaced configuration keys in descriptions as well. If mentioned in front matter, prefer forms that avoid YAML-like `key: value` text.
-- After editing any skill front matter, run a quick repository-wide search for unsafe descriptions, for example searching `^description: .*: .*` across `src/CrestApps.AgentSkills/orchardcore/**/SKILL.md`.
+- After editing any skill front matter, run a quick repository-wide search for unsafe descriptions, for example searching `^description: .*: .*` across all source roots under `src/CrestApps.AgentSkills/**/SKILL.md`.
 - If a description truly requires YAML quoting to stay correct, keep it valid YAML first, but prefer rewording over quoting when possible to stay consistent with the existing corpus and user preference.
 
 ### Skill Documentation Conventions (from CONTRIBUTING.md)
@@ -115,27 +118,33 @@ Skills are organized by Orchard Core functional area:
 
 **Bash:**
 ```bash
-for dir in src/CrestApps.AgentSkills/orchardcore/*/; do
-  name=$(basename "$dir")
-  if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; fi
-  if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; fi
-  echo "OK: $name"
+for root in src/CrestApps.AgentSkills/orchardcore src/CrestApps.AgentSkills/crestapps-orchardcore src/CrestApps.AgentSkills/crestapps-core; do
+  [ -d "$root" ] || continue
+  for dir in "$root"/*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    if [ ! -f "$dir/SKILL.md" ]; then echo "FAIL: $name missing SKILL.md"; continue; fi
+    if ! head -1 "$dir/SKILL.md" | grep -q "^---$"; then echo "FAIL: $name bad front-matter"; continue; fi
+    echo "OK: $name"
+  done
 done
 ```
 
 **PowerShell:**
 ```powershell
-Get-ChildItem -Path "src\CrestApps.AgentSkills\orchardcore" -Directory | ForEach-Object {
-    $skillFile = Join-Path $_.FullName "SKILL.md"
-    if (-not (Test-Path $skillFile)) { Write-Host "FAIL: $($_.Name) missing SKILL.md" -ForegroundColor Red }
-    elseif ((Get-Content $skillFile -First 1) -ne "---") { Write-Host "FAIL: $($_.Name) bad front-matter" -ForegroundColor Red }
-    else { Write-Host "OK: $($_.Name)" -ForegroundColor Green }
+Get-ChildItem -Path "src\CrestApps.AgentSkills" -Directory | ForEach-Object {
+    Get-ChildItem -Path $_.FullName -Directory | ForEach-Object {
+        $skillFile = Join-Path $_.FullName "SKILL.md"
+        if (-not (Test-Path $skillFile)) { Write-Host "FAIL: $($_.FullName) missing SKILL.md" -ForegroundColor Red }
+        elseif ((Get-Content $skillFile -First 1) -ne "---") { Write-Host "FAIL: $($_.FullName) bad front-matter" -ForegroundColor Red }
+        else { Write-Host "OK: $($_.FullName)" -ForegroundColor Green }
+    }
 }
 ```
 
 **Useful validation habit after front-matter edits:**
 ```bash
-rg '^description: .*: .*' src/CrestApps.AgentSkills/orchardcore -g '*/SKILL.md'
+rg '^description: .*: .*' src/CrestApps.AgentSkills -g '*/SKILL.md'
 ```
 
 ## Packaging Notes
@@ -145,13 +154,13 @@ For release builds, override the version (for example via CI) and publish with `
 
 ### Plugin Bundle Publishing
 
-- The plugin bundle is published from the canonical skill source at `src/CrestApps.AgentSkills/orchardcore/`.
-- The workflow that refreshes the published plugin bundle and opens the automation PR is `.github/workflows/publish-plugin.yml`.
+- Plugin bundles are published from the canonical skill sources at `src/CrestApps.AgentSkills/orchardcore/`, `src/CrestApps.AgentSkills/crestapps-orchardcore/`, and `src/CrestApps.AgentSkills/crestapps-core/`.
+- The workflow that refreshes the published plugin bundles and opens the automation PR is `.github/workflows/publish-plugin.yml`.
 - That workflow:
-  - deletes and recreates `plugins/crestapps-orchardcore/skills`
-  - copies the latest Orchard Core skills into that folder
-  - increments the `crestapps-orchardcore` plugin version in `.github/plugin/marketplace.json`
-- The plugin version source of truth is **not** `plugins/crestapps-orchardcore/plugin.json`; it is the `crestapps-orchardcore` entry in `.github/plugin/marketplace.json`.
+  - deletes and recreates `plugins/orchardcore/skills`, `plugins/crestapps-orchardcore/skills`, and `plugins/crestapps-core/skills`
+  - copies the latest skills from each matching source root into those folders
+  - increments changed plugin versions in `.github/plugin/marketplace.json` and keeps `.claude-plugin/marketplace.json` aligned
+- The plugin version source of truth is **not** any `plugins/*/plugin.json`; it is the matching plugin entry in `.github/plugin/marketplace.json`.
 - Keep `.claude-plugin/marketplace.json` aligned with `.github/plugin/marketplace.json` according to the current repo convention.
 
 ### Central Package Management
@@ -219,7 +228,10 @@ builder.AddOrchardCoreSkills();
 **Adding a new skill**:
 
 1. Open/confirm a "New Skill Request" issue first
-2. Create directory under `src/CrestApps.AgentSkills/orchardcore/orchardcore-<skill-name>/`
+2. Create the skill directory under the correct source root:
+   - `src/CrestApps.AgentSkills/orchardcore/orchardcore-<skill-name>/` for framework-only Orchard Core skills
+   - `src/CrestApps.AgentSkills/crestapps-orchardcore/<skill-name>/` for `CrestApps.OrchardCore` module skills
+   - `src/CrestApps.AgentSkills/crestapps-core/<skill-name>/` for direct `CrestApps.Core` skills
 3. Add `SKILL.md` with front-matter `name` matching the directory name exactly
 4. Run validation scripts and full build/test
 5. Submit PR linking the issue (e.g., `Fix #123`)

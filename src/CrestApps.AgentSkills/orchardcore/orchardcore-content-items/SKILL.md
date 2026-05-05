@@ -113,7 +113,7 @@ public sealed class {{ServiceName}}
 
 ### Accessing Parts and Fields
 
-Content items store data in parts and fields. Use the `As<T>()` and `Get<T>()` extension methods to access them:
+Content items store data in parts and fields. Use `TryGet<T>()` and `Get<T>()` for reads, and `GetOrCreate<T>()` when you intentionally need a writable part instance:
 
 ```csharp
 public sealed class {{ServiceName}}
@@ -131,8 +131,9 @@ public sealed class {{ServiceName}}
             contentItemId, VersionOptions.Published);
 
         // Access a well-known part using the strongly-typed helper.
-        var titlePart = contentItem.As<TitlePart>();
-        var title = titlePart?.Title;
+        var title = contentItem.TryGet<TitlePart>(out var titlePart)
+            ? titlePart.Title
+            : null;
 
         // Access a named part as a content element.
         var customPart = contentItem.Get<ContentPart>("{{ContentTypeName}}");
