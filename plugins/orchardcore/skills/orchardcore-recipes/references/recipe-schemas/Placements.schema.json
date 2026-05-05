@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Placements"
+    },
+    "Placements": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "A dictionary keyed by shape type. Each value is an array of placement objects with \u0027place\u0027 and optional filters."
+    }
+  },
+  "required": [
+    "name",
+    "Placements"
+  ],
+  "additionalProperties": true
+}

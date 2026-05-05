@@ -1,0 +1,95 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AIProfile"
+    },
+    "Profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. If provided, used to find existing profile to update."
+          },
+          "Source": {
+            "type": "string",
+            "description": "The AI provider source name (e.g., OpenAI, Azure, Ollama). Required for new profiles."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique technical name for the profile."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Human-readable display name."
+          },
+          "WelcomeMessage": {
+            "type": "string",
+            "description": "Initial greeting shown to users."
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "Chat",
+              "Utility",
+              "TemplatePrompt"
+            ],
+            "description": "The profile type."
+          },
+          "TitleType": {
+            "type": "string",
+            "enum": [
+              "InitialPrompt",
+              "Generated"
+            ],
+            "description": "How the session title is generated."
+          },
+          "PromptTemplate": {
+            "type": "string",
+            "description": "Liquid template for TemplatePrompt profiles."
+          },
+          "ChatDeploymentName": {
+            "type": "string",
+            "description": "Chat deployment technical name for the AI model."
+          },
+          "UtilityDeploymentName": {
+            "type": "string",
+            "description": "Utility deployment technical name for the AI model."
+          },
+          "ChatDeploymentId": {
+            "type": "string",
+            "description": "Legacy chat deployment selector. Use ChatDeploymentName instead."
+          },
+          "UtilityDeploymentId": {
+            "type": "string",
+            "description": "Legacy utility deployment selector. Use UtilityDeploymentName instead."
+          },
+          "Properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extended profile properties including AIProfileMetadata."
+          },
+          "Settings": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Profile settings."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The AI profiles to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Profiles"
+  ],
+  "additionalProperties": true
+}

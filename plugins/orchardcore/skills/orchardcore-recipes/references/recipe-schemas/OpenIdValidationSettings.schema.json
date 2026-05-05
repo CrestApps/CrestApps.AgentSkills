@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OpenIdValidationSettings"
+    },
+    "MetadataAddress": {
+      "type": "string"
+    },
+    "Audience": {
+      "type": "string"
+    },
+    "Authority": {
+      "type": "string"
+    },
+    "DisableTokenTypeValidation": {
+      "type": "boolean"
+    },
+    "Tenant": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

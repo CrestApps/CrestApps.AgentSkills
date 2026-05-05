@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "MicrosoftAccountSettings"
+    },
+    "AppId": {
+      "type": "string"
+    },
+    "AppSecret": {
+      "type": "string"
+    },
+    "CallbackPath": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

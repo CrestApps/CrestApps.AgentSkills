@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "elastic-index-reset"
+    },
+    "IncludeAll": {
+      "type": "boolean"
+    },
+    "Indices": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "custom-user-settings"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "minProperties": 2,
+  "additionalProperties": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "user-custom-user-settings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ContentType": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ContentType"
+            ],
+            "additionalProperties": true
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "userId",
+        "user-custom-user-settings"
+      ],
+      "additionalProperties": true
+    },
+    "minItems": 1
+  },
+  "description": "Each additional property can use any collection name and must contain an array of user custom settings entries."
+}

@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "DynamicDataTranslations"
+    },
+    "Translations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Translation": {
+            "type": "object",
+            "properties": {
+              "Context": {
+                "type": "string"
+              },
+              "Key": {
+                "type": "string"
+              },
+              "Value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Key"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "Name",
+          "Translation"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "name",
+    "Translations"
+  ],
+  "additionalProperties": true
+}

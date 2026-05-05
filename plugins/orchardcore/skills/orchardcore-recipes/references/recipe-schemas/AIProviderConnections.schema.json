@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AIProviderConnections"
+    },
+    "Connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique connection name."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "ProviderName": {
+            "type": "string",
+            "description": "The AI provider name."
+          },
+          "Properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Connection properties."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The AI provider connections to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Connections"
+  ],
+  "additionalProperties": true
+}

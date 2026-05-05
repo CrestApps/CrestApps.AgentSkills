@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "lucene-index-rebuild"
+    },
+    "IncludeAll": {
+      "type": "boolean"
+    },
+    "Indices": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

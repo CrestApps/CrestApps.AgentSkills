@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "themes"
+    },
+    "site": {
+      "type": "string",
+      "enum": [
+        "TheAdmin",
+        "TheTheme",
+        "SafeMode"
+      ],
+      "description": "The theme ID to use for the front-end site."
+    },
+    "admin": {
+      "type": "string",
+      "enum": [
+        "TheAdmin",
+        "TheTheme",
+        "SafeMode"
+      ],
+      "description": "The theme ID to use for the admin dashboard."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

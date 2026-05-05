@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "UrlRewriting"
+    },
+    "Rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}
