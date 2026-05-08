@@ -225,6 +225,8 @@ builder.AddOrchardCoreSkills();
 
 **Warning**: The `CrestApps.AgentSkills.OrchardCore` package **always overwrites** files in the `.agents/` folder at the solution root. Treat generated files as read-only — modifications will be lost on the next build.
 
+**Warning**: **Never modify files under `plugins/`** (i.e., `plugins/orchardcore/skills/`, `plugins/crestapps-orchardcore/skills/`, `plugins/crestapps-core/skills/`). These are **auto-generated** by the `Publish plugin bundles` workflow (`.github/workflows/publish-plugin.yml`) after merging to `main`. Any manual edits will be overwritten. Always make skill changes in the canonical source roots under `src/CrestApps.AgentSkills/` instead.
+
 **Adding a new skill**:
 
 1. Open/confirm a "New Skill Request" issue first

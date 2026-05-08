@@ -36,13 +36,15 @@ dotnet test -c Release --verbosity normal
 
 ## Plugin bundles
 
-Do **not** manually edit generated files under:
+**NEVER** manually edit any files under:
 
 - `plugins/orchardcore/skills`
 - `plugins/crestapps-orchardcore/skills`
 - `plugins/crestapps-core/skills`
 
-Update the matching source root under `src/CrestApps.AgentSkills/` instead. The `Publish plugin bundles` workflow refreshes generated plugin bundles separately.
+These directories are **auto-generated** by the `Publish plugin bundles` workflow (`.github/workflows/publish-plugin.yml`) after merging to `main`. Any manual edits will be silently overwritten by the next workflow run.
+
+Update the matching source root under `src/CrestApps.AgentSkills/` instead.
 
 ## Pull requests
 
