@@ -300,3 +300,124 @@ public override void ConfigureServices(IServiceCollection services)
     services.AddContentHandler<YourContentHandler>();
 }
 ```
+
+## DisplayDriver for Non-Content Models (Admin CRUD)
+
+When building admin CRUD for custom models (not content items), use `DisplayDriver<TModel>`. This pattern requires **wrapper templates** for each display type used.
+
+### Custom Model Display Driver
+
+```csharp
+using OrchardCore.DisplayManagement.Handlers;
+using OrchardCore.DisplayManagement.Views;
+
+namespace YourModule.Drivers;
+
+internal sealed class YourModelDisplayDriver : DisplayDriver<YourModel>
+{
+    public override Task<IDisplayResult> DisplayAsync(YourModel model, BuildDisplayContext context)
+    {
+        return CombineAsync(
+            View("YourModel_Fields_SummaryAdmin", model).Location("Content:1"),
+            View("YourModel_Buttons_SummaryAdmin", model).Location("Actions:5"),
+            View("YourModel_DefaultMeta_SummaryAdmin", model).Location("Meta:5"),
+            View("YourModel_Description_SummaryAdmin", model).Location("Description:1")
+        );
+    }
+
+    public override IDisplayResult Edit(YourModel model, BuildEditorContext context)
+    {
+        return Initialize<YourModelViewModel>("YourModelFields_Edit", m =>
+        {
+            m.DisplayText = model.DisplayText;
+        }).Location("Content:1");
+    }
+
+    public override async Task<IDisplayResult> UpdateAsync(YourModel model, UpdateEditorContext context)
+    {
+        var viewModel = new YourModelViewModel();
+        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
+        model.DisplayText = viewModel.DisplayText?.Trim();
+        return Edit(model, context);
+    }
+}
+```
+
+### CRITICAL: Required Wrapper Templates
+
+For `DisplayDriver<TModel>`, Orchard Core resolves a **root shape** per display type. If the wrapper template is missing, you get:
+
+```
+InvalidOperationException: The shape type 'YourModel_Edit' is not found
+```
+
+**You MUST create these wrapper template files:**
+
+1. **`Views/YourModel.Edit.cshtml`** — root wrapper for the editor:
+
+```cshtml
+@await DisplayAsync(Model.Content)
+```
+
+2. **`Views/YourModel.SummaryAdmin.cshtml`** — root wrapper for admin list items:
+
+```cshtml
+<div class="row g-0">
+    <div class="col-lg col-12 title d-flex align-items-center">
+        <div class="summary">
+            <div class="d-flex flex-column flex-md-row">
+                <div class="me-2">
+                    @if (Model.Content != null)
+                    {
+                        @await DisplayAsync(Model.Content)
+                    }
+                </div>
+                @if (Model.Tags != null)
+                {
+                    <div class="tags me-1">@await DisplayAsync(Model.Tags)</div>
+                }
+                @if (Model.Meta != null)
+                {
+                    <div class="metadata me-1">@await DisplayAsync(Model.Meta)</div>
+                }
+            </div>
+            @if (Model.Description != null)
+            {
+                <div>@await DisplayAsync(Model.Description)</div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-auto col-12 d-flex justify-content-end align-items-center">
+        <div class="actions">
+            @if (Model.Actions != null)
+            {
+                @await DisplayAsync(Model.Actions)
+            }
+        </div>
+    </div>
+</div>
+```
+
+### Child Shape Templates (in Views/Items/ or Views/)
+
+| Shape name in driver | Template file |
+|-----|------|
+| `YourModelFields_Edit` | `Views/YourModelFields.Edit.cshtml` |
+| `YourModel_Fields_SummaryAdmin` | `Views/Items/YourModel.Fields.SummaryAdmin.cshtml` |
+| `YourModel_Buttons_SummaryAdmin` | `Views/Items/YourModel.Buttons.SummaryAdmin.cshtml` |
+| `YourModel_DefaultMeta_SummaryAdmin` | `Views/Items/YourModel.DefaultMeta.SummaryAdmin.cshtml` |
+| `YourModel_Description_SummaryAdmin` | `Views/Items/YourModel.Description.SummaryAdmin.cshtml` |
+
+### Shape Name to File Name Mapping Rules
+
+- Underscores (`_`) in shape names map to dots (`.`) in file names: `YourModel_Edit` → `YourModel.Edit.cshtml`
+- Shapes referenced with `View("ShapeName", model)` use the above dot mapping.
+- Shapes referenced with `Initialize<TViewModel>("ShapeName", ...)` use the dot mapping: `YourModelFields_Edit` → `YourModelFields.Edit.cshtml`
+- Child shapes placed in the `Items/` subfolder when they represent parts of a summary display: `Items/YourModel.Fields.SummaryAdmin.cshtml`
+
+### Startup Registration for DisplayDriver<TModel>
+
+```csharp
+services.AddDisplayDriver<YourModel, YourModelDisplayDriver>();
+services.AddScoped<ICatalogEntryHandler<YourModel>, YourModelHandler>();
+```
