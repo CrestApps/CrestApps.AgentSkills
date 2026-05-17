@@ -145,7 +145,18 @@ Orchard Core uses display types to differentiate how content is rendered:
 
 ### Wrapper Templates for `DisplayDriver<TModel>`
 
-When you use `DisplayDriver<TModel>` for custom admin models such as catalog items, Orchard resolves a root shape for the model and display type. Child shapes returned by `Combine()` or `Initialize()` are then placed into the wrapper's zones according to `.Location(...)`.
+**CRITICAL**: When you use `DisplayDriver<TModel>` (not `ContentPartDisplayDriver`), Orchard Core resolves a **root shape** for each display type. If this root shape template does not exist, you get `InvalidOperationException: The shape type '{ModelName}_Edit' is not found`. You **must** create wrapper templates for every display type the driver builds shapes for.
+
+**Required wrapper templates per display type:**
+
+| Display type built by driver | Required wrapper template file |
+|-----|------|
+| Edit (via `Edit()` / `BuildEditorAsync`) | `Views/{ModelName}.Edit.cshtml` |
+| SummaryAdmin (via `DisplayAsync` + `Location("Content:1")`) | `Views/{ModelName}.SummaryAdmin.cshtml` |
+| Detail | `Views/{ModelName}.cshtml` |
+| Summary | `Views/{ModelName}.Summary.cshtml` |
+
+**The wrapper template renders the zones that child shapes are placed into.** If the wrapper doesn't render a zone (e.g., `Model.Content`, `Model.Actions`, `Model.Meta`), the child shapes placed in those zones will be silently dropped.
 
 Example driver:
 

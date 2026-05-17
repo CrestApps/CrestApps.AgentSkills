@@ -14,6 +14,10 @@
             "type": "string",
             "description": "Optional unique identifier."
           },
+          "Source": {
+            "type": "string",
+            "description": "Connection source/provider identifier (for example OpenAI, Azure, or AzureAIInference)."
+          },
           "Name": {
             "type": "string",
             "description": "Unique connection name."
@@ -22,14 +26,136 @@
             "type": "string",
             "description": "Display name."
           },
-          "ProviderName": {
+          "ClientName": {
             "type": "string",
-            "description": "The AI provider name."
+            "description": "Obsolete alias for Source kept for backward compatibility."
+          },
+          "Endpoint": {
+            "type": "string",
+            "description": "Common connection endpoint alias for recipe imports."
+          },
+          "AuthenticationType": {
+            "type": "string",
+            "enum": [
+              "Default",
+              "ManagedIdentity",
+              "ApiKey"
+            ],
+            "description": "Common Azure connection authentication type alias for recipe imports."
+          },
+          "ApiKey": {
+            "type": "string",
+            "description": "Common connection API key alias for recipe imports."
+          },
+          "IdentityId": {
+            "type": "string",
+            "description": "Common Azure connection managed identity client ID alias for recipe imports."
           },
           "Properties": {
             "type": "object",
+            "properties": {
+              "OpenAIConnectionMetadata": {
+                "type": "object",
+                "properties": {
+                  "Endpoint": {
+                    "type": "string",
+                    "description": "Provider API endpoint."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "Provider API key."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Metadata for OpenAI-compatible connections."
+              },
+              "AzureConnectionMetadata": {
+                "type": "object",
+                "properties": {
+                  "Endpoint": {
+                    "type": "string",
+                    "description": "Provider API endpoint."
+                  },
+                  "AuthenticationType": {
+                    "type": "string",
+                    "enum": [
+                      "Default",
+                      "ManagedIdentity",
+                      "ApiKey"
+                    ],
+                    "description": "Azure authentication type. Supported values are Default, ManagedIdentity, or ApiKey."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                  },
+                  "IdentityId": {
+                    "type": "string",
+                    "description": "Optional client ID of a user-assigned managed identity. Used when AuthenticationType is ManagedIdentity."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Metadata for Azure AI Inference connections."
+              },
+              "AzureOpenAIConnectionMetadata": {
+                "type": "object",
+                "properties": {
+                  "Endpoint": {
+                    "type": "string",
+                    "description": "Provider API endpoint."
+                  },
+                  "AuthenticationType": {
+                    "type": "string",
+                    "enum": [
+                      "Default",
+                      "ManagedIdentity",
+                      "ApiKey"
+                    ],
+                    "description": "Azure authentication type. Supported values are Default, ManagedIdentity, or ApiKey."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                  },
+                  "IdentityId": {
+                    "type": "string",
+                    "description": "Optional client ID of a user-assigned managed identity. Used when AuthenticationType is ManagedIdentity."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Metadata for Azure AI Inference connections."
+              },
+              "AzureAIInferenceConnectionMetadata": {
+                "type": "object",
+                "properties": {
+                  "Endpoint": {
+                    "type": "string",
+                    "description": "Provider API endpoint."
+                  },
+                  "AuthenticationType": {
+                    "type": "string",
+                    "enum": [
+                      "Default",
+                      "ManagedIdentity",
+                      "ApiKey"
+                    ],
+                    "description": "Azure authentication type. Supported values are Default, ManagedIdentity, or ApiKey."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                  },
+                  "IdentityId": {
+                    "type": "string",
+                    "description": "Optional client ID of a user-assigned managed identity. Used when AuthenticationType is ManagedIdentity."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Metadata for Azure AI Inference connections."
+              }
+            },
             "additionalProperties": true,
-            "description": "Connection properties."
+            "description": "Provider-specific connection metadata. Recipe exports keep provider settings under these metadata objects."
           }
         },
         "required": [

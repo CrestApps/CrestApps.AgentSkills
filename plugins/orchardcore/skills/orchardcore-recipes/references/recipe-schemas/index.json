@@ -1,5 +1,5 @@
 {
-  "GeneratedUtc": "2026-03-30T23:16:42.1986405+00:00",
+  "GeneratedUtc": "2026-05-17T18:01:55.172104+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
@@ -191,8 +191,8 @@
       "File": "Roles.schema.json"
     },
     {
-      "Name": "Settings",
-      "File": "Settings.schema.json"
+      "Name": "settings",
+      "File": "settings.schema.json"
     },
     {
       "Name": "ShortcodeTemplates",
