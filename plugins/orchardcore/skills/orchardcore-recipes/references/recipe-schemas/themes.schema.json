@@ -8,18 +8,24 @@
     "site": {
       "type": "string",
       "enum": [
+        "SafeMode",
         "TheAdmin",
-        "TheTheme",
-        "SafeMode"
+        "TheAgencyTheme",
+        "TheBlogTheme",
+        "TheComingSoonTheme",
+        "TheTheme"
       ],
       "description": "The theme ID to use for the front-end site."
     },
     "admin": {
       "type": "string",
       "enum": [
+        "SafeMode",
         "TheAdmin",
-        "TheTheme",
-        "SafeMode"
+        "TheAgencyTheme",
+        "TheBlogTheme",
+        "TheComingSoonTheme",
+        "TheTheme"
       ],
       "description": "The theme ID to use for the admin dashboard."
     }

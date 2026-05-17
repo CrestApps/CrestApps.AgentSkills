@@ -13,7 +13,7 @@
       "name": "orchardcore",
       "source": "./plugins/orchardcore",
       "description": "Orchard Core framework skills for GitHub Copilot CLI backed by CrestApps.AgentSkills.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "homepage": "https://github.com/CrestApps/CrestApps.AgentSkills/tree/main/plugins/orchardcore",
       "repository": "https://github.com/CrestApps/CrestApps.AgentSkills",
       "license": "MIT",
