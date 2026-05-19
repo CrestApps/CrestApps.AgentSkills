@@ -27,8 +27,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
       shell: bash
-    - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4
+    - uses: actions/checkout@v5
+    - uses: actions/setup-dotnet@v5
       with:
         dotnet-version: |
           10.0.x
@@ -41,7 +41,7 @@ jobs:
     - name: Test
       run: |
         dotnet test -c Release --no-build --verbosity normal
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       if: matrix.os == 'ubuntu-latest'
       with:
         python-version: '3.12'
