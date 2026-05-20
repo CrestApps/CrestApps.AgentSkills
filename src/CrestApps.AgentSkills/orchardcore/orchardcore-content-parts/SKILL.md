@@ -19,6 +19,8 @@ You are an Orchard Core expert. Generate migration code and recipes for attachin
 - Each part has specific settings that control its behavior.
 - Part settings are applied via `.WithSettings(new XxxPartSettings { ... })`.
 - Use `.WithPosition("N")` to control the order of parts in the editor.
+- Content part editor wrapper placement uses `ContentPart_Edit` with differentiator `{ContentType}-{PartName}` when you need to move or hide the whole editor row.
+- Part display shapes and inner `XxxPart_Edit` shapes from part drivers typically use `{PartName}` as the differentiator.
 - Third-party modules providing parts (CrestApps, Lombiq, etc.) must be installed as NuGet packages in the web project (the startup project of the solution), not just in the module project.
 - Always seal classes.
 

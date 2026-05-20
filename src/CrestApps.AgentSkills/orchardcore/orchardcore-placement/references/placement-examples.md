@@ -127,3 +127,49 @@ public sealed class MyPlacementProvider : IShapePlacementProvider
     }
 }
 ```
+
+## Example 6: Hiding whole part editor wrappers
+
+Use `ContentPart_Edit` when the whole editor row should disappear, including the label, description, and wrapper:
+
+```json
+{
+  "ContentPart_Edit": [
+    {
+      "differentiator": "PlacementTest-BagPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-FlowPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-WidgetsListPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-TitlePart",
+      "place": "-"
+    }
+  ]
+}
+```
+
+## Example 7: Field differentiators
+
+```json
+{
+  "TextField": [
+    {
+      "differentiator": "Article-Subtitle",
+      "place": "Content:2"
+    }
+  ],
+  "TextField_Display": [
+    {
+      "differentiator": "Blog-Subtitle-TextField_Display__Header",
+      "place": "Content:1"
+    }
+  ]
+}
+```

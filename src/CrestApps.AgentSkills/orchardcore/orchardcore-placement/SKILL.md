@@ -25,6 +25,11 @@ You are an Orchard Core expert. Generate correct placement for shapes, editor sh
 - Use `-` to hide a shape.
 - Use `alternates` to swap templates and `wrappers` to wrap a shape in additional markup.
 - Use a custom `IShapePlacementProvider` only when placement must be computed dynamically.
+- Shape type and differentiator are calculated from the rendered shape, not from the content part or field name alone.
+- Use `ContentPart_Edit` to hide or move a whole content part editor row in the admin UI. Its differentiator is `{ContentType}-{PartName}`.
+- Inner part editor shapes such as `BagPart_Edit`, `FlowPart_Edit`, or `TitlePart_Edit` use `{PartName}` as differentiator and only affect the inner editor content, not the wrapper.
+- Standard field shapes use `{PartName}-{FieldName}` as differentiator.
+- Field display-mode shapes use `{PartName}-{FieldName}-{FieldType}_Display__{DisplayMode}` as differentiator.
 - Always seal classes.
 
 ## Placement string format
@@ -61,6 +66,18 @@ Every segment after `Zone:position` is optional.
 | `Content:4%Interaction;1` | Place in the `Interaction` card inside `Content` |
 | `Content:4#Capabilities;8%Tools;3` | Place in the `Capabilities` tab, then the `Tools` card |
 | `Content:4#Capabilities;8%Tools;3|Col_4;2` | Place in a 4-wide column, ordered second, inside the `Tools` card inside the `Capabilities` tab |
+
+## Differentiator patterns
+
+| Shape type | Typical usage | Differentiator pattern | Example |
+| --- | --- | --- | --- |
+| `BagPart`, `FlowPart`, `TitlePart` | Part display shape or inner `XxxPart_Edit` shape from a part driver | `{PartName}` | `Services`, `FlowPart`, `TitlePart` |
+| `ContentPart` | Display wrapper for parts without a dedicated display driver | `{PartName}` | `GalleryPart` |
+| `ContentPart_Edit` | Whole content part editor row in admin | `{ContentType}-{PartName}` | `PlacementTest-BagPart`, `LandingPage-Services`, `Article-TitlePart` |
+| `TextField`, `HtmlField`, `ContentPickerField`, etc. | Standard field display/editor shape | `{PartName}-{FieldName}` | `Article-Subtitle`, `Address-City` |
+| `TextField_Display`, `HtmlField_Display`, etc. | Field display-mode shape | `{PartName}-{FieldName}-{FieldType}_Display__{DisplayMode}` | `Blog-Subtitle-TextField_Display__Header` |
+
+`PartName` is the attached part name. For non-named parts it is usually the part type, such as `BagPart`, `FlowPart`, `WidgetsListPart`, or `TitlePart`. For named parts, use the custom name such as `Services`.
 
 ## placement.json examples
 
@@ -192,6 +209,33 @@ This places `MyFieldA_Edit`, `MyFieldB_Edit`, and `MyFieldC_Edit` in three separ
   ]
 }
 ```
+
+### Hiding whole part editor wrappers
+
+```json
+{
+  "ContentPart_Edit": [
+    {
+      "differentiator": "PlacementTest-BagPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-FlowPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-WidgetsListPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-TitlePart",
+      "place": "-"
+    }
+  ]
+}
+```
+
+Use this pattern when you need to hide or move the whole editor row. Do not use `BagPart_Edit`, `FlowPart_Edit`, `WidgetsListPart_Edit`, or `TitlePart_Edit` for this unless you intentionally want to target only the inner editor shape.
 
 ## Display driver placement
 
