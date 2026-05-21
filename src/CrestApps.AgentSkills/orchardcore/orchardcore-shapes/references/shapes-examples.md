@@ -221,6 +221,45 @@ public sealed class DashboardController : Controller
 {% endif %}
 ```
 
+## Example 6: Display Driver Editor Wrapper
+
+When `IDisplayManager<T>.BuildEditorAsync()` renders an editor for a model, Orchard resolves the root `<Type>_Edit` shape first. If the driver only returns nested editor shapes, add a root wrapper template that renders the content zone.
+
+### Driver
+
+```csharp
+public sealed class TableauExportPipelineDisplayDriver : DisplayDriver<TableauExportPipeline>
+{
+    public override IDisplayResult Edit(TableauExportPipeline pipeline, BuildEditorContext context)
+    {
+        return Initialize<EditTableauExportPipelineViewModel>("TableauExportPipelineFields_Edit", model =>
+        {
+            model.Name = pipeline.Name;
+        })
+        .Location("Content:1");
+    }
+}
+```
+
+### Views/TableauExportPipeline_Edit.cshtml
+
+```cshtml
+@await DisplayAsync(Model.Content)
+```
+
+### Views/TableauExportPipelineFields.Edit.cshtml
+
+```cshtml
+@model EditTableauExportPipelineViewModel
+
+<div class="mb-3">
+    <label asp-for="Name" class="form-label"></label>
+    <input asp-for="Name" class="form-control" />
+</div>
+```
+
+If the root wrapper is missing, Orchard throws an `InvalidOperationException` for the missing `<Type>_Edit` shape.
+
 ### Views/MediaField.liquid
 
 ```liquid

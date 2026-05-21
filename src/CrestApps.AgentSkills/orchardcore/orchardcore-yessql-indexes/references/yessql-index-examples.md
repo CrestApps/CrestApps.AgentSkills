@@ -19,8 +19,11 @@ When drills can target many skills, project one DrillsIndex row per selected ski
 ## Migration Checklist
 
 - Add or update the content definition first if the relationship field is new.
-- Create the map-index table with correctly sized string columns.
-- Add a SQL index for the main lookup column plus Published if you query published items.
+- Create the map-index table with correctly sized string columns and use literal column names instead of `nameof(...)`.
+- Do not add `DocumentId` manually for `MapIndex` tables, because YesSql creates it automatically.
+- Add a SQL index for the main lookup column plus `Published` if you query published items, for example `CreateIndex("IDX_ClubTeamsIndex_ClubContentItemId", "ClubContentItemId", "Published")`.
+- If you need the YesSql document id in code, add `public long DocumentId { get; set; }` to the index model and let YesSql populate it.
+- Store enum values directly with `.Column<YourEnum>("Status")` when the index needs enum-based filtering.
 - Return the next migration version after the index table is created.
 
 ## Startup Checklist
