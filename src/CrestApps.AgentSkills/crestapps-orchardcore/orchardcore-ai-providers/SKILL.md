@@ -14,9 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for setting up AI provider modules in an Orchard Core application using CrestApps packages.
 
 ### Guidelines
-
-- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - Every AI feature in Orchard Core requires a provider module. Enable at least one provider alongside `CrestApps.OrchardCore.AI`.
 - Provider modules fall into two categories: **connection-based providers** (OpenAI, Azure OpenAI, Azure AI Inference, Ollama) that create connections and deployments, and **orchestrators** (Claude, Copilot) that provide alternative chat session orchestration via site settings.
 - Connection-based providers follow a three-layer model: a **connection** holds credentials, a **deployment** maps a model name to a connection, and an **AI profile** references deployments by name.

@@ -14,9 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding ad-hoc AI chat interactions with document upload, RAG, and intent-based prompt routing to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
-
-- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
 - The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on the configured site-level default deployments when explicit deployments are not set.

@@ -25,6 +25,8 @@ You are an Orchard Core expert. Generate display drivers, shapes, and display ma
 - Register drivers in `Startup.cs` using `services.AddContentPart<TPart>().UseDisplayDriver<TDriver>()`.
 - For non-content-item models rendered through `DisplayDriver<TModel>`, the root shape still needs its own wrapper template for each display type you build (for example, `CampaignAction.Edit.cshtml` for `CampaignAction_Edit` and `CampaignAction.SummaryAdmin.cshtml` for `CampaignAction_SummaryAdmin`).
 - When driver results are placed into zones with `.Location("Content:1")`, `.Location("Actions:5")`, or similar, the wrapper template must render those zones (`Model.Content`, `Model.Actions`, `Model.Meta`, etc.) or the child shapes will never appear.
+- For non-settings admin editor views (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), use the Orchard admin helper wrappers instead of raw `mb-3`, `form-label`, or hard-coded grid classes: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve custom CSS classes by passing them into the helper arguments. For checkbox-only rows that align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this rule to Orchard site settings editors.
 - Always seal classes.
 
 ### Content Part Display Driver Pattern
@@ -95,10 +97,12 @@ public class {{PartName}}ViewModel
 ```cshtml
 @model {{Namespace}}.ViewModels.{{PartName}}ViewModel
 
-<div class="mb-3">
-    <label asp-for="{{PropertyName}}" class="form-label">{{DisplayLabel}}</label>
-    <input asp-for="{{PropertyName}}" class="form-control" />
-    <span asp-validation-for="{{PropertyName}}" class="text-danger"></span>
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="{{PropertyName}}" class="@Orchard.GetLabelClasses()">{{DisplayLabel}}</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="{{PropertyName}}" class="form-control" />
+        <span asp-validation-for="{{PropertyName}}" class="text-danger"></span>
+    </div>
 </div>
 ```
 

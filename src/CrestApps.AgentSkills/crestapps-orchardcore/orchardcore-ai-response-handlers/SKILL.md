@@ -14,9 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code for implementing custom chat response handlers that route chat prompts to external systems (live agent platforms, custom backends) instead of AI. Support both webhook-based and protocol-agnostic relay approaches.
 
 ### Guidelines
-
-- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - The `IChatResponseHandler` interface processes chat prompts and returns either a **streaming** result (immediate response) or a **deferred** result (response arrives later via webhook or relay).
 - Handlers are registered in `Startup.cs` using `services.TryAddEnumerable(ServiceDescriptor.Scoped<IChatResponseHandler, YourHandler>())`.
 - When a session's `ResponseHandlerName` is `null` or empty, the built-in AI handler processes prompts.

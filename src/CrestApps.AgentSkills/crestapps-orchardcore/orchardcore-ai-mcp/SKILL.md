@@ -14,9 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for integrating Model Context Protocol (MCP) client and server capabilities into Orchard Core using CrestApps modules.
 
 ### Guidelines
-
-- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is an open standard for seamless integration between LLM applications and external tools or data sources.
 - The CrestApps MCP module provides both client and server features.
 - **MCP Client**: Connect Orchard Core to external MCP servers using SSE or local client transports, extending AI chat capabilities with external tools.

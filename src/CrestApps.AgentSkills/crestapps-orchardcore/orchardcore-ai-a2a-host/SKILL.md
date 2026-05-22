@@ -14,9 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate configuration and guidance for exposing Orchard Core Agent AI Profiles through the CrestApps A2A Host feature.
 
 ### Guidelines
-
-- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - Use the A2A Host feature ID `CrestApps.OrchardCore.AI.A2A.Host`.
 - The host exposes AI Profiles whose `Type` is `Agent`.
 - Agent cards are served from `/.well-known/agent-card.json`.

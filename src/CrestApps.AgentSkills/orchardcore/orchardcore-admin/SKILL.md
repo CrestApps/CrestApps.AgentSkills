@@ -21,6 +21,31 @@ Key characteristics:
 - Uses Bootstrap-based styling with Orchard Core admin CSS.
 - Supports customization through shape overrides, zone manipulation, and theme inheritance.
 
+### TheAdmin responsive editor helpers
+
+Orchard Core supports responsive admin editor layouts through `TheAdminTheme.StyleSettings`, including settings such as `WrapperClasses`, `LabelClasses`, `EndClasses`, and `OffsetClasses`.
+
+When building custom non-settings admin editors (`*.Edit.cshtml` that are **not** `*Settings.Edit.cshtml`), use the Orchard helper extensions so labels and inputs align with the current admin theme settings:
+
+- `@Orchard.GetWrapperClasses(...)` for the outer field wrapper
+- `@Orchard.GetLabelClasses(...)` for the label element
+- `@Orchard.GetEndClasses(...)` for the input/content container
+- `@Orchard.GetEndClasses(true)` for checkbox-only rows or other rows that should align with the input column without rendering a label column
+
+Preserve custom CSS classes by passing them into the helper arguments instead of replacing them with raw `mb-3`, `form-label`, or hard-coded grid classes. Do **not** apply this pattern to Orchard site settings editors, because those editors use a different layout convention.
+
+Example:
+
+```cshtml
+<div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="Title">
+    <label asp-for="Title" class="@Orchard.GetLabelClasses()">@T["Title"]</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title"></span>
+    </div>
+</div>
+```
+
 ## Admin Controllers
 
 To create a controller that renders inside the admin panel, apply the `[Admin]` attribute to the controller class or individual action methods. This attribute routes the action through the admin theme and enforces authentication.
