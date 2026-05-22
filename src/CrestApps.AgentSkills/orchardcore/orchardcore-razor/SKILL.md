@@ -159,6 +159,56 @@ Check if a zone has content before rendering its wrapper:
 
 Common zone names: `Header`, `Navigation`, `Content`, `Sidebar`, `Footer`, `AfterContent`, `BeforeContent`.
 
+## Link Generation
+
+In Orchard Core views, prefer MVC tag helpers so link generation stays in the Razor template and remains route-aware.
+
+### Preferred View Pattern
+
+```cshtml
+<a asp-action="Edit" asp-controller="Admin" asp-area="MyModule" asp-route-id="@Model.ContentItemId">
+    @T["Edit"]
+</a>
+```
+
+### Guidelines
+
+- Prefer `asp-action`, `asp-controller`, and when needed `asp-area` instead of hard-coded application URLs.
+- Do not use `@Url.Content("~/...")` to generate application links in Orchard Core views.
+- Keep link generation in the view when possible so routes stay explicit and easy to override.
+- Continue using normal tag helpers for forms and buttons, such as `<form asp-action="Update" method="post">`.
+
+### URL Generation in Code
+
+If a URL must be generated outside the view, inject `LinkGenerator` and pass the current `HttpContext` so Orchard Core generates the correct route-aware URL.
+
+```csharp
+using Microsoft.AspNetCore.Routing;
+
+public sealed class AdminLinkService
+{
+    private readonly LinkGenerator _linkGenerator;
+
+    public AdminLinkService(LinkGenerator linkGenerator)
+    {
+        _linkGenerator = linkGenerator;
+    }
+
+    public string? GetEditUrl(HttpContext httpContext, string contentItemId)
+    {
+        return _linkGenerator.GetPathByAction(
+            httpContext,
+            action: "Edit",
+            controller: "Admin",
+            values: new
+            {
+                area = "MyModule",
+                id = contentItemId,
+            });
+    }
+}
+```
+
 ## Resource Tag Helpers
 
 ### Register a Stylesheet

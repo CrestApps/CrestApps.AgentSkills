@@ -126,11 +126,40 @@ When applied at the class level, all actions in the controller are treated as ad
 
 ### Admin Route URL Generation
 
-Use the named route to generate admin URLs:
+In Razor views, prefer anchor and form tag helpers so link generation stays in the view:
+
+```cshtml
+<a asp-action="Index" asp-controller="Settings" asp-area="MyModule">
+    @T["Open settings"]
+</a>
+```
+
+If you need to generate an admin URL in code, prefer `LinkGenerator` and pass the current `HttpContext`:
 
 ```csharp
-var url = Url.RouteUrl("MyModule.Settings", new { action = "Index" });
+using Microsoft.AspNetCore.Routing;
+
+public sealed class AdminUrlService
+{
+    private readonly LinkGenerator _linkGenerator;
+
+    public AdminUrlService(LinkGenerator linkGenerator)
+    {
+        _linkGenerator = linkGenerator;
+    }
+
+    public string? GetSettingsUrl(HttpContext httpContext)
+    {
+        return _linkGenerator.GetPathByAction(
+            httpContext,
+            action: "Index",
+            controller: "Settings",
+            values: new { area = "MyModule" });
+    }
+}
 ```
+
+Do not use `@Url.Content("~/...")` for application links in Orchard Core views.
 
 ## Admin Menu Registration
 
