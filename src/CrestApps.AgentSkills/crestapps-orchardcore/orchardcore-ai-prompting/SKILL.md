@@ -26,6 +26,8 @@ Templates can be defined in two ways:
 
 ### Guidelines
 
+- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - AI Prompting extends `CatalogItem` and uses the `INamedCatalogManager<AIProfileTemplate>` pattern.
 - Templates are source-independent — the same template works with any AI provider.
 - Database templates take precedence over file-based templates with the same name.

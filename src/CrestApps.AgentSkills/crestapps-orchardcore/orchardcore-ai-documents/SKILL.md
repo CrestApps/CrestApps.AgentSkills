@@ -15,6 +15,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 ### Guidelines
 
+- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - The AI Documents modules provide document upload, text extraction, chunking, vector indexing, and RAG search for AI conversations.
 - The base feature `CrestApps.OrchardCore.AI.Documents` is `EnabledByDependencyOnly` and is activated automatically when you enable one of the higher-level features.
 - Document processing follows the pipeline Upload → Extract Text → Chunk → Embed → Index → Vector Search.

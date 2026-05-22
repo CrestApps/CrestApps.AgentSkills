@@ -15,6 +15,8 @@ You are an Orchard Core expert specializing in CrestApps AI provider connection 
 
 ### Guidelines
 
+- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - The AI Connection Management feature provides a centralized admin UI for managing connections to AI providers.
 - Enable the `CrestApps.OrchardCore.AI.ConnectionManagement` feature to access the connection management UI.
 - Each provider (OpenAI, Azure OpenAI, Ollama, Azure AI Inference) requires its own NuGet package installed in the web project.

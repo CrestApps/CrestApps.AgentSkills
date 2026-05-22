@@ -15,6 +15,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for co
 
 ### Guidelines
 
+- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - AI Data Sources provide knowledge base indexing and RAG search capabilities for AI profiles in Orchard Core.
 - A data source maps a **source index** (e.g., Lucene, Elasticsearch, Azure AI Search content index) to an **AI knowledge base index** that stores chunked, embedded documents for vector search.
 - The indexing pipeline reads documents from the source index, generates embeddings via a configured embedding deployment, chunks content, and writes vector documents into the knowledge base index.

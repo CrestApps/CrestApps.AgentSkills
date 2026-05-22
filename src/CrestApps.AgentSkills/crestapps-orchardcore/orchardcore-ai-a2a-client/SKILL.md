@@ -15,6 +15,8 @@ You are an Orchard Core expert. Generate configuration and admin guidance for co
 
 ### Guidelines
 
+- For non-settings admin editors (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), always use the Orchard admin helper wrappers so custom `TheAdminTheme.StyleSettings` classes align labels and inputs correctly: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- Preserve existing custom CSS classes by passing them into the Orchard helper arguments instead of replacing them. For checkbox-only rows that should align with the input column, use `@Orchard.GetEndClasses(true)` instead of rendering an empty label column. Do not apply this pattern to Orchard site settings editors.
 - Use feature ID `CrestApps.OrchardCore.AI.A2A`.
 - A2A client connections are managed under **Artificial Intelligence → Agent to Agent Hosts**.
 - Each connection points to a remote A2A host whose agent card is discovered at `/.well-known/agent-card.json`.
