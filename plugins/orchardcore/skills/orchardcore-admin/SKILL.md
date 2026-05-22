@@ -21,6 +21,68 @@ Key characteristics:
 - Uses Bootstrap-based styling with Orchard Core admin CSS.
 - Supports customization through shape overrides, zone manipulation, and theme inheritance.
 
+### TheAdmin responsive editor helpers
+
+Orchard Core supports responsive admin editor layouts through `TheAdminTheme.StyleSettings`, including settings such as `WrapperClasses`, `LabelClasses`, `EndClasses`, and `OffsetClasses`.
+
+When building custom non-settings admin editors (`*.Edit.cshtml` that are **not** `*Settings.Edit.cshtml`), use the Orchard helper extensions so labels and inputs align with the current admin theme settings:
+
+- `@Orchard.GetWrapperClasses(...)` for the outer field wrapper
+- `@Orchard.GetLabelClasses(...)` for the label element
+- `@Orchard.GetEndClasses(...)` for the input/content container
+- `@Orchard.GetEndClasses(true)` for checkbox-only rows and any other right-side content that should align with the input column or sit on the same horizontal line as other inputs without rendering a label column
+
+These helpers accept arbitrary class names, so preserve custom styling by passing classes into the helper arguments instead of replacing them with raw `mb-3`, `form-label`, or hard-coded grid classes. For example, `@Orchard.GetWrapperClasses("class1", "class2", "class3")`. Do **not** apply this pattern to Orchard site settings editors, because those editors use a different layout convention.
+
+Example:
+
+```cshtml
+<div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="Title">
+    <label asp-for="Title" class="@Orchard.GetLabelClasses()">@T["Title"]</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title"></span>
+    </div>
+</div>
+```
+
+The admin theme classes can be configured from `appsettings.json`:
+
+```json
+{
+  "OrchardCore": {
+    "TheAdminTheme": {
+      "StyleSettings": {
+        "WrapperClasses": "row mb-3",
+        "LimitedWidthWrapperClasses": "row",
+        "LimitedWidthClasses": "col-md-6 col-lg-5 col-xxl-4",
+        "StartClasses": "col-lg-2 col-xl-3",
+        "EndClasses": "col-lg-10 col-xl-9",
+        "LabelClasses": "col-form-label text-lg-end col-lg-2 col-xl-3",
+        "OffsetClasses": "offset-lg-2 offset-xl-3"
+      }
+    }
+  }
+}
+```
+
+They can also be configured in code:
+
+```csharp
+services.PostConfigure<TheAdminThemeOptions>(options =>
+{
+    options.WrapperClasses = "row mb-3";
+    options.LimitedWidthWrapperClasses = "row";
+    options.LimitedWidthClasses = "col-md-6 col-lg-5 col-xxl-4";
+    options.StartClasses = "col-lg-2 col-xl-3";
+    options.EndClasses = "col-lg-10 col-xl-9";
+    options.LabelClasses = "col-form-label text-lg-end col-lg-2 col-xl-3";
+    options.OffsetClasses = "offset-lg-2 offset-xl-3";
+});
+```
+
+When these settings are customized, editor templates that use the Orchard helpers will automatically stay aligned with the active admin theme layout.
+
 ## Admin Controllers
 
 To create a controller that renders inside the admin panel, apply the `[Admin]` attribute to the controller class or individual action methods. This attribute routes the action through the admin theme and enforces authentication.
@@ -64,11 +126,40 @@ When applied at the class level, all actions in the controller are treated as ad
 
 ### Admin Route URL Generation
 
-Use the named route to generate admin URLs:
+In Razor views, prefer anchor and form tag helpers so link generation stays in the view:
+
+```cshtml
+<a asp-action="Index" asp-controller="Settings" asp-area="MyModule">
+    @T["Open settings"]
+</a>
+```
+
+If you need to generate an admin URL in code, prefer `LinkGenerator` and pass the current `HttpContext`:
 
 ```csharp
-var url = Url.RouteUrl("MyModule.Settings", new { action = "Index" });
+using Microsoft.AspNetCore.Routing;
+
+public sealed class AdminUrlService
+{
+    private readonly LinkGenerator _linkGenerator;
+
+    public AdminUrlService(LinkGenerator linkGenerator)
+    {
+        _linkGenerator = linkGenerator;
+    }
+
+    public string? GetSettingsUrl(HttpContext httpContext)
+    {
+        return _linkGenerator.GetPathByAction(
+            httpContext,
+            action: "Index",
+            controller: "Settings",
+            values: new { area = "MyModule" });
+    }
+}
 ```
+
+Do not use `@Url.Content("~/...")` for application links in Orchard Core views.
 
 ## Admin Menu Registration
 

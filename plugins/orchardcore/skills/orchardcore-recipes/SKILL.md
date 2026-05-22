@@ -22,6 +22,8 @@ You are an Orchard Core expert. Generate a recipe JSON file for configuring an O
 - Use `ContentDefinition` step to define content types and parts.
 - Use `Content` step to create content items.
 - Recipe files are placed in the module's `Recipes` folder.
+- For recipe-generated content items, do not hard-code manually invented `ContentItemId` or `ContentItemVersionId` values.
+- Prefer recipe variables and JavaScript expressions such as `[js: uuid()]`, `[js: new Date().toISOString()]`, and `variables('name')` when you need reusable ids, timestamps, concatenation, or other computed values.
 - Treat `references/recipe-schemas/recipe.schema.json` as the authoritative schema for the full recipe document.
 - Before writing any step payload, open `references/recipe-schemas/index.json`, find the exact step file, and use that `<step>.schema.json` as the authoritative contract for allowed properties, required properties, casing, and enum values.
 - Do not invent step names, property names, or alternate casing. Copy the exact `name` value required by the step schema.
@@ -124,18 +126,41 @@ Use `references/recipe-schemas/ContentDefinition.schema.json` for the step wrapp
 
 ```json
 {
+  "variables": {
+    "now": "[js: new Date().toISOString()]",
+    "year": "[js: new Date().getFullYear()]",
+    "featuredCategoryId": "[js: uuid()]"
+  },
   "steps": [
     {
       "name": "Content",
       "data": [
         {
-          "ContentItemId": "{{unique-id}}",
+          "ContentItemId": "[js: uuid()]",
+          "ContentItemVersionId": "[js: uuid()]",
           "ContentType": "{{ContentTypeName}}",
-          "DisplayText": "{{Title}}",
+          "DisplayText": "[js: 'Spring of ' + variables('year')]",
           "Latest": true,
           "Published": true,
+          "ModifiedUtc": "[js: variables('now')]",
+          "PublishedUtc": "[js: variables('now')]",
+          "CreatedUtc": "[js: variables('now')]",
           "TitlePart": {
-            "Title": "{{Title}}"
+            "Title": "[js: 'Spring of ' + variables('year')]"
+          }
+        },
+        {
+          "ContentItemId": "[js: variables('featuredCategoryId')]",
+          "ContentItemVersionId": "[js: uuid()]",
+          "ContentType": "{{ContentTypeName}}",
+          "DisplayText": "Summer Program",
+          "Latest": true,
+          "Published": true,
+          "ModifiedUtc": "[js: variables('now')]",
+          "PublishedUtc": "[js: variables('now')]",
+          "CreatedUtc": "[js: variables('now')]",
+          "TitlePart": {
+            "Title": "Summer Program"
           }
         }
       ]

@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding ad-hoc AI chat interactions with document upload, RAG, and intent-based prompt routing to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
-
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
 - Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
 - The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on the configured site-level default deployments when explicit deployments are not set.

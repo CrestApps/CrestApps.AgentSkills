@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding AI chat capabilities to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
-
 - The CrestApps AI Chat module (`CrestApps.OrchardCore.AI.Chat`) builds on the core AI Services feature to provide chat interfaces.
 - You must enable at least one AI completion provider (OpenAI, Azure OpenAI, Azure AI Inference, Ollama, DeepSeek) alongside the chat feature.
 - Chat-type AI profiles with the "Show On Admin Menu" option appear under the **Artificial Intelligence** section in the admin menu.

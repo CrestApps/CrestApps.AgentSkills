@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate configuration and guidance for enabling and using the CrestApps AI Agent module to manage an Orchard Core site through natural language.
 
 ### Guidelines
-
 - Use feature ID `CrestApps.OrchardCore.AI.Agent`.
 - The module depends on `CrestApps.OrchardCore.AI` and `CrestApps.OrchardCore.Recipes`.
 - All tools are selectable per AI profile (toggled on/off individually).

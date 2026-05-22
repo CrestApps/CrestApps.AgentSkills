@@ -91,17 +91,17 @@ public sealed class Migrations : DataMigration
 
         // Create the index table
         await SchemaBuilder.CreateMapIndexTableAsync<EventPartIndex>(table => table
-            .Column<string>(nameof(EventPartIndex.ContentItemId), col => col.WithLength(26))
-            .Column<string>(nameof(EventPartIndex.Location), col => col.WithLength(256))
-            .Column<DateTime>(nameof(EventPartIndex.StartDate))
-            .Column<DateTime>(nameof(EventPartIndex.EndDate))
-            .Column<bool>(nameof(EventPartIndex.Published))
+            .Column<string>("ContentItemId", col => col.WithLength(26))
+            .Column<string>("Location", col => col.WithLength(256))
+            .Column<DateTime>("StartDate")
+            .Column<DateTime>("EndDate")
+            .Column<bool>("Published")
         );
 
         await SchemaBuilder.AlterIndexTableAsync<EventPartIndex>(table => table
             .CreateIndex("IDX_EventPartIndex_StartDate",
-                nameof(EventPartIndex.StartDate),
-                nameof(EventPartIndex.Published))
+                "StartDate",
+                "Published")
         );
 
         return 1;

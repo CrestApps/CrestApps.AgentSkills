@@ -18,6 +18,8 @@ You are an Orchard Core expert. Generate widget definitions, layer configuration
 - Each widget is a content item that can be edited from the admin panel.
 - Layer rules use JavaScript-like expressions to control visibility.
 - Use `FlowPart` to allow widgets inside content items.
+- `WidgetsListPart` editor wrapper placement uses `ContentPart_Edit` with differentiator `{ContentType}-{PartName}`.
+- `WidgetsListPart` does not render its own front-end display shape; it injects widgets directly into layout zones.
 
 ### Enabling Widget Features
 
@@ -209,6 +211,23 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("Page", type => type
 ```
 
 FlowPart allows editors to add widgets inline within content item editing.
+
+### WidgetsListPart Editor Placement
+
+To hide or move the whole `WidgetsListPart` editor row in the admin UI:
+
+```json
+{
+  "ContentPart_Edit": [
+    {
+      "differentiator": "PlacementTest-WidgetsListPart",
+      "place": "-"
+    }
+  ]
+}
+```
+
+If the part is attached as a named part, replace `WidgetsListPart` with the part name.
 
 ### Common Built-in Widget Types
 

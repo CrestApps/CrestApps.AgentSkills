@@ -18,6 +18,9 @@ You are an Orchard Core expert. Generate code and configuration for composing pa
 - BagPart items are stored as a single document in the database for efficient retrieval.
 - Empty flows render with shape name `FlowPart_Empty`; empty bags render as `BagPart_Empty`.
 - Use placement to hide empty parts by placing `FlowPart_Empty` or `BagPart_Empty` to `"-"`.
+- `FlowPart` and `BagPart` display shapes use `{PartName}` as their differentiator.
+- To hide or move a whole FlowPart or BagPart editor row in the admin UI, use `ContentPart_Edit` with differentiator `{ContentType}-{PartName}`.
+- Inner shapes such as `FlowPart_Edit` and `BagPart_Edit` target only the inner editor content, not the wrapper.
 - The **Blocks Editor** provides a modal-based content type picker as an alternative to the default dropdown. Enable it by setting the editor to `Blocks`.
 - Always wrap recipe JSON in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier except View Models.
@@ -275,6 +278,38 @@ Use the named BagPart name as the differentiator in `placement.json`:
     ]
 }
 ```
+
+For a standard `FlowPart` on the front end:
+
+```json
+{
+    "FlowPart": [
+        {
+            "differentiator": "FlowPart",
+            "place": "-"
+        }
+    ]
+}
+```
+
+To hide the whole editor row in the admin UI, use `ContentPart_Edit` and the `{ContentType}-{PartName}` differentiator:
+
+```json
+{
+    "ContentPart_Edit": [
+        {
+            "differentiator": "LandingPage-FlowPart",
+            "place": "-"
+        },
+        {
+            "differentiator": "LandingPage-Services",
+            "place": "-"
+        }
+    ]
+}
+```
+
+Use `LandingPage-Services` for a named BagPart called `Services`. Use `LandingPage-BagPart` for a standard non-named BagPart.
 
 ### Recipe: Creating a Page with FlowPart Content
 

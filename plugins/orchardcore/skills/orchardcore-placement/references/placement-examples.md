@@ -55,18 +55,30 @@ Use cards when the editor should stay in a single `Content` zone but related fie
 
 ```json
 {
-  "SeoBasic_Edit": [
+  "PlacementFieldOne_Edit": [
     {
-      "place": "Content:1%SEO;1|Left;1"
+      "place": "Content:1%Layout;1|Col_4;1"
     }
   ],
-  "SeoAdvanced_Edit": [
+  "PlacementFieldTwo_Edit": [
     {
-      "place": "Content:1%SEO;1|Right;2"
+      "place": "Content:1%Layout;1|Col_4;2"
+    }
+  ],
+  "PlacementFieldThree_Edit": [
+    {
+      "place": "Content:1%Layout;1|Col_4;3"
+    }
+  ],
+  "PlacementFieldFour_Edit": [
+    {
+      "place": "Content:2%Layout;1"
     }
   ]
 }
 ```
+
+The first three shapes render in three separate `col-md-4` wrappers on one row. The fourth shape has no column modifier, so Orchard Core renders it full-width below the row in the same card.
 
 ## Example 4: Fluent placement in a display driver
 
@@ -83,7 +95,7 @@ public sealed class MySettingsDisplayDriver : SiteDisplayDriver<MySettings>
             .Zone("Content", "4")
             .Tab("Capabilities", "8")
             .Card("Tools", "3")
-            .Column("Right", "2"));
+            .Column("Col", "2", "4"));
     }
 }
 ```
@@ -113,5 +125,51 @@ public sealed class MyPlacementProvider : IShapePlacementProvider
             return null;
         }
     }
+}
+```
+
+## Example 6: Hiding whole part editor wrappers
+
+Use `ContentPart_Edit` when the whole editor row should disappear, including the label, description, and wrapper:
+
+```json
+{
+  "ContentPart_Edit": [
+    {
+      "differentiator": "PlacementTest-BagPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-FlowPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-WidgetsListPart",
+      "place": "-"
+    },
+    {
+      "differentiator": "PlacementTest-TitlePart",
+      "place": "-"
+    }
+  ]
+}
+```
+
+## Example 7: Field differentiators
+
+```json
+{
+  "TextField": [
+    {
+      "differentiator": "Article-Subtitle",
+      "place": "Content:2"
+    }
+  ],
+  "TextField_Display": [
+    {
+      "differentiator": "Blog-Subtitle-TextField_Display__Header",
+      "place": "Content:1"
+    }
+  ]
 }
 ```

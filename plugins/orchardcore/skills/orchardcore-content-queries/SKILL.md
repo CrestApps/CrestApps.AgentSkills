@@ -24,6 +24,8 @@ You are an Orchard Core expert. Generate code for querying content items using Y
 - Use `.With<IndexType>()` to join against specific indexes.
 - Keep YesSql predicates translatable: use comparisons, null checks, and boolean `&&` / `||`, but avoid ternaries and other conditional expressions inside query lambdas.
 - If null and non-null rows need different query logic, split the query into multiple supported YesSql expressions and combine the results in memory.
+- Use literal column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()` for custom YesSql migrations; do not use `nameof(...)`.
+- `MapIndex` tables already include the `DocumentId` column automatically, so do not add it manually in the migration.
 - Always seal classes.
 
 ### Querying with ContentItemIndex
@@ -151,15 +153,15 @@ public sealed class Migrations : DataMigration
     public async Task<int> CreateAsync()
     {
         await SchemaBuilder.CreateMapIndexTableAsync<{{PartName}}Index>(table => table
-            .Column<string>(nameof({{PartName}}Index.ContentItemId), col => col.WithLength(26))
-            .Column<string>(nameof({{PartName}}Index.{{PropertyName}}), col => col.WithLength(256))
-            .Column<bool>(nameof({{PartName}}Index.Published))
+            .Column<string>("ContentItemId", col => col.WithLength(26))
+            .Column<string>("{{PropertyName}}", col => col.WithLength(256))
+            .Column<bool>("Published")
         );
 
         await SchemaBuilder.AlterIndexTableAsync<{{PartName}}Index>(table => table
             .CreateIndex("IDX_{{PartName}}Index_{{PropertyName}}",
-                nameof({{PartName}}Index.{{PropertyName}}),
-                nameof({{PartName}}Index.Published))
+                "{{PropertyName}}",
+                "Published"))
         );
 
         return 1;

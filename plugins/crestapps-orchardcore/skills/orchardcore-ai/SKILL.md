@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code and configuration for AI integrations in Orchard Core.
 
 ### Guidelines
-
 - Orchard Core supports AI integrations through the CrestApps AI module ecosystem.
 - Supported AI providers: OpenAI, Azure, AzureAIInference, and Ollama.
 - Configure AI services through `appsettings.json` or the admin UI.
@@ -207,11 +206,13 @@ public sealed class AICompletionWithConfigTaskDisplayDriver
 ```
 
 ```cshtml
-<div class="mb-3" asp-validation-class-for="DeploymentName">
-    <label asp-for="DeploymentName" class="form-label">@T["Deployment"]</label>
-    <select asp-for="DeploymentName" class="form-select" asp-items="Model.DeploymentNames">
-        <option value="">@T["Select a deployment"]</option>
-    </select>
+<div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="DeploymentName">
+    <label asp-for="DeploymentName" class="@Orchard.GetLabelClasses()">@T["Deployment"]</label>
+    <div class="@Orchard.GetEndClasses()">
+        <select asp-for="DeploymentName" class="form-select" asp-items="Model.DeploymentNames">
+            <option value="">@T["Select a deployment"]</option>
+        </select>
+    </div>
 </div>
 ```
 
