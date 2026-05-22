@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for integrating Model Context Protocol (MCP) client and server capabilities into Orchard Core using CrestApps modules.
 
 ### Guidelines
-
 - The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is an open standard for seamless integration between LLM applications and external tools or data sources.
 - The CrestApps MCP module provides both client and server features.
 - **MCP Client**: Connect Orchard Core to external MCP servers using SSE or local client transports, extending AI chat capabilities with external tools.

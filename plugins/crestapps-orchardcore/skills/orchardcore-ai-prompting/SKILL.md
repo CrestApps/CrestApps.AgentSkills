@@ -25,7 +25,6 @@ Templates can be defined in two ways:
 2. **Markdown files (code)** — placed in `AITemplates/Profiles/` or `AITemplates/SystemMessages/` folders within modules, read-only at runtime
 
 ### Guidelines
-
 - AI Prompting extends `CatalogItem` and uses the `INamedCatalogManager<AIProfileTemplate>` pattern.
 - Templates are source-independent — the same template works with any AI provider.
 - Database templates take precedence over file-based templates with the same name.

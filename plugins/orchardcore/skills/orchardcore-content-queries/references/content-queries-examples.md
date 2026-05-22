@@ -94,17 +94,17 @@ public sealed class Migrations : DataMigration
     public async Task<int> CreateAsync()
     {
         await SchemaBuilder.CreateMapIndexTableAsync<ProductPartIndex>(table => table
-            .Column<string>(nameof(ProductPartIndex.ContentItemId), col => col.WithLength(26))
-            .Column<string>(nameof(ProductPartIndex.Sku), col => col.WithLength(100))
-            .Column<decimal>(nameof(ProductPartIndex.Price))
-            .Column<string>(nameof(ProductPartIndex.Category), col => col.WithLength(256))
-            .Column<bool>(nameof(ProductPartIndex.Published))
+            .Column<string>("ContentItemId", col => col.WithLength(26))
+            .Column<string>("Sku", col => col.WithLength(100))
+            .Column<decimal>("Price")
+            .Column<string>("Category", col => col.WithLength(256))
+            .Column<bool>("Published")
         );
 
         await SchemaBuilder.AlterIndexTableAsync<ProductPartIndex>(table => table
             .CreateIndex("IDX_ProductPartIndex_Sku",
-                nameof(ProductPartIndex.Sku),
-                nameof(ProductPartIndex.Published))
+                "Sku",
+                "Published")
         );
 
         return 1;

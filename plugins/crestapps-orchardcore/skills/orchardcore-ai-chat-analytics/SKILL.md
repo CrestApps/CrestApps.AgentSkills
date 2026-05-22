@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding AI chat session analytics and reporting to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
-
 - The AI Chat Analytics feature (`CrestApps.OrchardCore.AI.Chat.Analytics`) tracks chat session metrics and provides dashboard reporting with extensible display drivers.
 - It depends on both the AI Chat feature (`CrestApps.OrchardCore.AI.Chat`) and the AI Chat Core feature (`CrestApps.OrchardCore.AI.Chat.Core`).
 - Metrics are collected automatically when analytics is enabled on an AI profile.

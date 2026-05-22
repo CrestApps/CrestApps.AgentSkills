@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding persistent, user-scoped AI memory to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
-
 - AI Memory provides persistent, user-scoped memory so the AI can remember durable, non-sensitive preferences and background details for authenticated users across multiple conversations.
 - Memory is only available to authenticated users. Anonymous users do not receive memory tools and cannot search, list, or save memories.
 - All memory reads and writes are filtered by the current authenticated user's `ClaimTypes.NameIdentifier`, ensuring user isolation.

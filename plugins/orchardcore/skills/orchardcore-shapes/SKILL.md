@@ -21,6 +21,9 @@ You are an Orchard Core expert. Generate shape templates, shape providers, and s
 - Shape templates can be written in Liquid (`.liquid`) or Razor (`.cshtml`).
 - Template file names map to shape types using conventions: `Content.liquid`, `Content__BlogPost.liquid`.
 - Use double underscore (`__`) in file names to represent the dash (`-`) separator in alternates.
+- For `DisplayDriver<T>.Edit()` flows, remember the root editor shape for the model type as well as any nested field/editor shapes. If `BuildEditorAsync()` is used for `TableauExportPipeline`, Orchard will resolve a root `TableauExportPipeline_Edit` shape in addition to shapes like `TableauExportPipelineFields_Edit`.
+- For admin editor Razor shapes (`*.Edit.cshtml`) that are not Orchard site settings editors, shape templates should use the Orchard admin helper extensions so `TheAdminTheme.StyleSettings` controls field layout consistently: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
+- These helpers accept arbitrary class names, so preserve custom classes by passing them into the helper arguments. Use `@Orchard.GetEndClasses(true)` for checkbox-only layouts and for any right-side content that should align to the input column instead of outputting an empty label container.
 - `IShapeFactory` creates shapes dynamically from code.
 - `IShapeTableProvider` customizes shape behavior (alternates, wrappers, bindings).
 - `IDisplayManager<T>` orchestrates building and rendering shapes for content.
@@ -82,6 +85,16 @@ Every shape has a `Metadata` property with:
     </footer>
 </article>
 ```
+
+### Root Editor Wrapper Template (Views/TableauExportPipeline_Edit.cshtml)
+
+When a `DisplayDriver<T>` editor is built through `IDisplayManager<T>.BuildEditorAsync()` or `UpdateEditorAsync()`, Orchard also resolves a root editor shape for the model type. That root template usually just renders the editor zones populated by nested shapes:
+
+```cshtml
+@await DisplayAsync(Model.Content)
+```
+
+Without this wrapper, Orchard throws an `InvalidOperationException` saying the root shape type (for example `TableauExportPipeline_Edit`) was not found.
 
 ## Shape Alternates
 
@@ -238,6 +251,38 @@ public sealed class MyPartDisplayDriver : ContentPartDisplayDriver<MyPart>
     }
 }
 ```
+
+### Root + Nested Editor Shape Pattern
+
+If your driver returns nested editor shapes like `Initialize<MyViewModel>("MyTypeFields_Edit", ...)`, also add the root editor template for the model type used by `BuildEditorAsync()`:
+
+```csharp
+public sealed class MyTypeDisplayDriver : DisplayDriver<MyType>
+{
+    public override IDisplayResult Edit(MyType model, BuildEditorContext context)
+    {
+        return Initialize<MyTypeViewModel>("MyTypeFields_Edit", viewModel =>
+        {
+            viewModel.Name = model.Name;
+        })
+        .Location("Content:1");
+    }
+}
+```
+
+```cshtml
+@* Views/MyType_Edit.cshtml *@
+@await DisplayAsync(Model.Content)
+```
+
+```cshtml
+@* Views/MyTypeFields.Edit.cshtml *@
+@model MyTypeViewModel
+
+<input asp-for="Name" class="form-control" />
+```
+
+This split keeps the model-level wrapper and the field editor template aligned with Orchard's shape resolution rules.
 
 ### Combining Multiple Shapes
 

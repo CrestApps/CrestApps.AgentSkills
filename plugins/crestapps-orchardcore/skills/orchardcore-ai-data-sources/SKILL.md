@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for configuring AI data sources in Orchard Core using CrestApps modules to enable knowledge base indexing and RAG (Retrieval-Augmented Generation) search.
 
 ### Guidelines
-
 - AI Data Sources provide knowledge base indexing and RAG search capabilities for AI profiles in Orchard Core.
 - A data source maps a **source index** (e.g., Lucene, Elasticsearch, Azure AI Search content index) to an **AI knowledge base index** that stores chunked, embedded documents for vector search.
 - The indexing pipeline reads documents from the source index, generates embeddings via a configured embedding deployment, chunks content, and writes vector documents into the knowledge base index.
