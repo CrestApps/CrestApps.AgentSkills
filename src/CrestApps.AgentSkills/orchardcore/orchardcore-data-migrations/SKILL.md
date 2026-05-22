@@ -25,6 +25,9 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - Register migrations in `Startup.cs` using `services.AddScoped<IDataMigration, Migrations>()`.
 - `IContentDefinitionManager` is used to define content types and parts.
 - `SchemaBuilder` is used to create and alter YesSql index tables.
+- Use literal column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()`; do not use `nameof(...)` for YesSql migration column names.
+- `MapIndex` tables already get a `DocumentId` column from YesSql. Never declare or alter that column manually in the migration.
+- If an index needs access to the YesSql document id, expose `public long DocumentId { get; set; }` on the `MapIndex` type and let YesSql populate it.
 - Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.
 
 ### Basic Migration with Content Type
@@ -161,17 +164,17 @@ public sealed class Migrations : DataMigration
     public async Task<int> CreateAsync()
     {
         await SchemaBuilder.CreateMapIndexTableAsync<{{IndexName}}>(table => table
-            .Column<string>(nameof({{IndexName}}.ContentItemId), col => col.WithLength(26))
-            .Column<string>(nameof({{IndexName}}.{{PropertyName}}), col => col.WithLength(256))
-            .Column<bool>(nameof({{IndexName}}.Published))
-            .Column<DateTime>(nameof({{IndexName}}.CreatedUtc))
+            .Column<string>("ContentItemId", col => col.WithLength(26))
+            .Column<string>("{{PropertyName}}", col => col.WithLength(256))
+            .Column<bool>("Published")
+            .Column<DateTime>("CreatedUtc")
         );
 
         await SchemaBuilder.AlterIndexTableAsync<{{IndexName}}>(table => table
             .CreateIndex(
                 "IDX_{{IndexName}}_{{PropertyName}}",
-                nameof({{IndexName}}.{{PropertyName}}),
-                nameof({{IndexName}}.Published)
+                "{{PropertyName}}",
+                "Published"
             )
         );
 
@@ -238,6 +241,26 @@ public sealed class Migrations : DataMigration
 ```csharp
 using OrchardCore.Data.Migration;
 using YesSql.Indexes;
+
+public enum {{IndexName}}Status
+{
+    One,
+    Two,
+}
+
+public sealed class {{IndexName}} : MapIndex
+{
+    public long DocumentId { get; set; }
+
+    public string ContentItemId { get; set; }
+
+    public {{IndexName}}Status Status { get; set; }
+}
+
+await SchemaBuilder.CreateMapIndexTableAsync<{{IndexName}}>(table => table
+    .Column<string>("ContentItemId", col => col.WithLength(26))
+    .Column<{{IndexName}}Status>("Status")
+);
 
 public sealed class Startup : StartupBase
 {

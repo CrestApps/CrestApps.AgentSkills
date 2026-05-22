@@ -98,7 +98,7 @@ public sealed class Migrations : DataMigration
     public async Task<int> CreateAsync()
     {
         await SchemaBuilder.CreateMapIndexTableAsync<YourIndex>(table => table
-            .Column<string>("DocumentId", col => col.WithLength(26))
+            .Column<YourDocumentStatusEnum>("Status")
             .Column<string>("Name", col => col.WithLength(255))
             .Column<bool>("IsEnabled")
         );
@@ -130,7 +130,7 @@ namespace OrchardCore.YourModule.Indexes;
 
 public sealed class YourIndex : MapIndex
 {
-    public string DocumentId { get; set; }
+    public long DocumentId { get; set; }
     public string Name { get; set; }
     public bool IsEnabled { get; set; }
 }

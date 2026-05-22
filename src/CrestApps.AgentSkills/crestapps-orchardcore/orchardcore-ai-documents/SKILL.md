@@ -14,7 +14,6 @@ metadata:
 You are an Orchard Core expert. Generate code, configuration, and recipes for adding document processing, storage, indexing, and Retrieval-Augmented Generation (RAG) capabilities to an Orchard Core application using CrestApps AI Documents modules.
 
 ### Guidelines
-
 - The AI Documents modules provide document upload, text extraction, chunking, vector indexing, and RAG search for AI conversations.
 - The base feature `CrestApps.OrchardCore.AI.Documents` is `EnabledByDependencyOnly` and is activated automatically when you enable one of the higher-level features.
 - Document processing follows the pipeline Upload → Extract Text → Chunk → Embed → Index → Vector Search.
