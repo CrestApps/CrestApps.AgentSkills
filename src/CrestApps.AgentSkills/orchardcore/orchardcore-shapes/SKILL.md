@@ -23,7 +23,7 @@ You are an Orchard Core expert. Generate shape templates, shape providers, and s
 - Use double underscore (`__`) in file names to represent the dash (`-`) separator in alternates.
 - For `DisplayDriver<T>.Edit()` flows, remember the root editor shape for the model type as well as any nested field/editor shapes. If `BuildEditorAsync()` is used for `TableauExportPipeline`, Orchard will resolve a root `TableauExportPipeline_Edit` shape in addition to shapes like `TableauExportPipelineFields_Edit`.
 - For admin editor Razor shapes (`*.Edit.cshtml`) that are not Orchard site settings editors, shape templates should use the Orchard admin helper extensions so `TheAdminTheme.StyleSettings` controls field layout consistently: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- Preserve custom classes by passing them into the helper arguments. For checkbox-only layouts that should align to the input column, use `@Orchard.GetEndClasses(true)` instead of outputting an empty label container.
+- These helpers accept arbitrary class names, so preserve custom classes by passing them into the helper arguments. Use `@Orchard.GetEndClasses(true)` for checkbox-only layouts and for any right-side content that should align to the input column instead of outputting an empty label container.
 - `IShapeFactory` creates shapes dynamically from code.
 - `IShapeTableProvider` customizes shape behavior (alternates, wrappers, bindings).
 - `IDisplayManager<T>` orchestrates building and rendering shapes for content.

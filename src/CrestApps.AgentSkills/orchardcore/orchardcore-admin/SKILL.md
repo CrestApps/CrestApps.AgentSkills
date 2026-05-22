@@ -30,9 +30,9 @@ When building custom non-settings admin editors (`*.Edit.cshtml` that are **not*
 - `@Orchard.GetWrapperClasses(...)` for the outer field wrapper
 - `@Orchard.GetLabelClasses(...)` for the label element
 - `@Orchard.GetEndClasses(...)` for the input/content container
-- `@Orchard.GetEndClasses(true)` for checkbox-only rows or other rows that should align with the input column without rendering a label column
+- `@Orchard.GetEndClasses(true)` for checkbox-only rows and any other right-side content that should align with the input column or sit on the same horizontal line as other inputs without rendering a label column
 
-Preserve custom CSS classes by passing them into the helper arguments instead of replacing them with raw `mb-3`, `form-label`, or hard-coded grid classes. Do **not** apply this pattern to Orchard site settings editors, because those editors use a different layout convention.
+These helpers accept arbitrary class names, so preserve custom styling by passing classes into the helper arguments instead of replacing them with raw `mb-3`, `form-label`, or hard-coded grid classes. For example, `@Orchard.GetWrapperClasses("class1", "class2", "class3")`. Do **not** apply this pattern to Orchard site settings editors, because those editors use a different layout convention.
 
 Example:
 
@@ -45,6 +45,43 @@ Example:
     </div>
 </div>
 ```
+
+The admin theme classes can be configured from `appsettings.json`:
+
+```json
+{
+  "OrchardCore": {
+    "TheAdminTheme": {
+      "StyleSettings": {
+        "WrapperClasses": "row mb-3",
+        "LimitedWidthWrapperClasses": "row",
+        "LimitedWidthClasses": "col-md-6 col-lg-5 col-xxl-4",
+        "StartClasses": "col-lg-2 col-xl-3",
+        "EndClasses": "col-lg-10 col-xl-9",
+        "LabelClasses": "col-form-label text-lg-end col-lg-2 col-xl-3",
+        "OffsetClasses": "offset-lg-2 offset-xl-3"
+      }
+    }
+  }
+}
+```
+
+They can also be configured in code:
+
+```csharp
+services.PostConfigure<TheAdminThemeOptions>(options =>
+{
+    options.WrapperClasses = "row mb-3";
+    options.LimitedWidthWrapperClasses = "row";
+    options.LimitedWidthClasses = "col-md-6 col-lg-5 col-xxl-4";
+    options.StartClasses = "col-lg-2 col-xl-3";
+    options.EndClasses = "col-lg-10 col-xl-9";
+    options.LabelClasses = "col-form-label text-lg-end col-lg-2 col-xl-3";
+    options.OffsetClasses = "offset-lg-2 offset-xl-3";
+});
+```
+
+When these settings are customized, editor templates that use the Orchard helpers will automatically stay aligned with the active admin theme layout.
 
 ## Admin Controllers
 
