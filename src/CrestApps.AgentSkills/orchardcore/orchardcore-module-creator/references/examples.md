@@ -102,14 +102,18 @@ public class RatingPartViewModel
 ```html
 @model OrchardCore.Rating.ViewModels.RatingPartViewModel
 
-<div class="mb-3">
-    <label asp-for="Stars" class="form-label">Stars (1-5)</label>
-    <input asp-for="Stars" type="number" min="1" max="5" class="form-control" />
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="Stars" class="@Orchard.GetLabelClasses()">Stars (1-5)</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="Stars" type="number" min="1" max="5" class="form-control" />
+    </div>
 </div>
 
-<div class="mb-3">
-    <label asp-for="ReviewCount" class="form-label">Review Count</label>
-    <input asp-for="ReviewCount" type="number" min="0" class="form-control" />
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="ReviewCount" class="@Orchard.GetLabelClasses()">Review Count</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="ReviewCount" type="number" min="0" class="form-control" />
+    </div>
 </div>
 ```
 

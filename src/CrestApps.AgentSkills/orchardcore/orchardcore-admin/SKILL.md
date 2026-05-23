@@ -23,18 +23,29 @@ Key characteristics:
 
 ### TheAdmin responsive editor helpers
 
-Orchard Core supports responsive admin editor layouts through `TheAdminTheme.StyleSettings`, including settings such as `WrapperClasses`, `LabelClasses`, `EndClasses`, and `OffsetClasses`.
+Orchard Core supports responsive admin editor layouts through `TheAdminTheme.StyleSettings`. All admin `*.Edit.cshtml` views (including site settings editors) should use the Orchard helper extensions so labels and inputs align with the current admin theme settings.
 
-When building custom non-settings admin editors (`*.Edit.cshtml` that are **not** `*Settings.Edit.cshtml`), use the Orchard helper extensions so labels and inputs align with the current admin theme settings:
+**Do NOT apply these helpers to frontend-facing views** such as Login, Register, ForgotPassword, or any view rendered by the site theme. These helpers are exclusively for admin (back-end) views.
 
-- `@Orchard.GetWrapperClasses(...)` for the outer field wrapper
-- `@Orchard.GetLabelClasses(...)` for the label element
-- `@Orchard.GetEndClasses(...)` for the input/content container
-- `@Orchard.GetEndClasses(true)` for checkbox-only rows and any other right-side content that should align with the input column or sit on the same horizontal line as other inputs without rendering a label column
+#### Available helper extensions
 
-These helpers accept arbitrary class names, so preserve custom styling by passing classes into the helper arguments instead of replacing them with raw `mb-3`, `form-label`, or hard-coded grid classes. For example, `@Orchard.GetWrapperClasses("class1", "class2", "class3")`. Do **not** apply this pattern to Orchard site settings editors, because those editors use a different layout convention.
+All extensions are defined in `OrchardCore.DisplayManagement/Html/CssOrchardHelperExtensions.cs` and are available via `@using OrchardCore`.
 
-Example:
+| Helper | Purpose |
+|--------|---------|
+| `@Orchard.GetWrapperClasses(...)` | Outer field wrapper (default: `"mb-3"`) |
+| `@Orchard.GetLabelClasses(...)` | Label element (default: `"form-label"`) |
+| `@Orchard.GetLabelClasses(true)` | Label for a required field (appends required indicator class) |
+| `@Orchard.GetEndClasses(...)` | Input/content container column |
+| `@Orchard.GetEndClasses(true)` | Content column with offset (for checkbox-only rows, headings, buttons) |
+| `@Orchard.GetLimitedWidthWrapperClasses(...)` | Wrapper for fields that intentionally use narrower columns |
+| `@Orchard.GetLimitedWidthClasses(...)` | The narrower input container inside a limited-width wrapper |
+| `@Orchard.GetStartClasses(...)` | Start/left column |
+| `@Orchard.GetOffsetClasses(...)` | Offset spacing (aligns content without a label) |
+
+All helpers accept `params string[] additionalClasses` so you can pass extra CSS classes without hardcoding them. For example, `@Orchard.GetWrapperClasses("class1", "class2")`.
+
+#### Pattern 1: Standard field (label + input)
 
 ```cshtml
 <div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="Title">
@@ -45,6 +56,58 @@ Example:
     </div>
 </div>
 ```
+
+#### Pattern 2: Checkbox without a separate left label
+
+```cshtml
+<div class="@Orchard.GetWrapperClasses()">
+    <div class="@Orchard.GetEndClasses(true)">
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" asp-for="IsEnabled" />
+            <label class="form-check-label" asp-for="IsEnabled">@T["Enable feature"]</label>
+        </div>
+    </div>
+</div>
+```
+
+#### Pattern 3: Limited-width field (narrower input column)
+
+The label MUST be placed OUTSIDE the `GetLimitedWidthClasses()` div:
+
+```cshtml
+<div class="@Orchard.GetLimitedWidthWrapperClasses("mb-3")" asp-validation-class-for="TimeZone">
+    <label asp-for="TimeZone" class="@Orchard.GetLabelClasses()">@T["Default Time Zone"]</label>
+    <div class="@Orchard.GetLimitedWidthClasses()">
+        <select asp-for="TimeZone" class="form-select">
+            <option value="">@T["Select..."]</option>
+        </select>
+        <span asp-validation-for="TimeZone"></span>
+        <span class="hint">@T["Hint text"]</span>
+    </div>
+</div>
+```
+
+#### Pattern 4: Section heading (pushed right to align with inputs)
+
+```cshtml
+<div class="@Orchard.GetWrapperClasses()">
+    <div class="@Orchard.GetEndClasses(true)">
+        <h3>@T["Section Title"]</h3>
+    </div>
+</div>
+```
+
+#### Pattern 5: Action buttons (submit, cancel)
+
+```cshtml
+<div class="@Orchard.GetWrapperClasses()">
+    <div class="@Orchard.GetEndClasses(true)">
+        <button type="submit" class="btn btn-primary">@T["Save"]</button>
+    </div>
+</div>
+```
+
+#### Configuration
 
 The admin theme classes can be configured from `appsettings.json`:
 
@@ -82,6 +145,16 @@ services.PostConfigure<TheAdminThemeOptions>(options =>
 ```
 
 When these settings are customized, editor templates that use the Orchard helpers will automatically stay aligned with the active admin theme layout.
+
+#### Rules for applying helpers
+
+1. **All admin views** should use the helpers (including `*Settings.Edit.cshtml` views)
+2. **Frontend views MUST NOT use helpers** — Login, Register, ForgotPassword, email verification, etc.
+3. **Admin Menu node editing** should NOT use helpers (needs full width)
+4. **Widget containers** (BagPart, FlowPart, WidgetsListPart) are skipped — no standard form fields
+5. **Labels with `GetLimitedWidthWrapperClasses`** must be placed OUTSIDE the `GetLimitedWidthClasses` div
+6. **Headings/section titles** in settings should use `GetEndClasses(true)` to align with field content
+7. **Checkboxes without a left label** use `GetWrapperClasses()` + `GetEndClasses(true)` for the form-check div
 
 ## Admin Controllers
 
@@ -305,13 +378,17 @@ To create an admin view at `Views/Settings/Index.cshtml`:
 </zone>
 
 <form asp-action="Update" method="post">
-    <div class="mb-3">
-        <label asp-for="DisplayName" class="form-label">@T["Display Name"]</label>
-        <input asp-for="DisplayName" class="form-control" />
+    <div class="@Orchard.GetWrapperClasses()">
+        <label asp-for="DisplayName" class="@Orchard.GetLabelClasses()">@T["Display Name"]</label>
+        <div class="@Orchard.GetEndClasses()">
+            <input asp-for="DisplayName" class="form-control" />
+        </div>
     </div>
 
-    <div class="mb-3">
-        <button type="submit" class="btn btn-primary">@T["Save"]</button>
+    <div class="@Orchard.GetWrapperClasses()">
+        <div class="@Orchard.GetEndClasses(true)">
+            <button type="submit" class="btn btn-primary">@T["Save"]</button>
+        </div>
     </div>
 </form>
 ```

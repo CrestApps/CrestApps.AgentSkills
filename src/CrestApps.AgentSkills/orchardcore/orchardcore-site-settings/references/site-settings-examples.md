@@ -222,31 +222,39 @@ public sealed class Startup : StartupBase
 ```html
 @model SocialMediaSettingsViewModel
 
-<div class="mb-3">
-    <label asp-for="FacebookUrl" class="form-label">Facebook URL</label>
-    <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
-    <span asp-validation-for="FacebookUrl"></span>
-</div>
-
-<div class="mb-3">
-    <label asp-for="TwitterHandle" class="form-label">Twitter Handle</label>
-    <div class="input-group">
-        <span class="input-group-text">@@</span>
-        <input asp-for="TwitterHandle" class="form-control" placeholder="yourhandle" />
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="FacebookUrl" class="@Orchard.GetLabelClasses()">Facebook URL</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
+        <span asp-validation-for="FacebookUrl"></span>
     </div>
-    <span asp-validation-for="TwitterHandle"></span>
 </div>
 
-<div class="mb-3">
-    <label asp-for="LinkedInUrl" class="form-label">LinkedIn URL</label>
-    <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/company/yourcompany" />
-    <span asp-validation-for="LinkedInUrl"></span>
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="TwitterHandle" class="@Orchard.GetLabelClasses()">Twitter Handle</label>
+    <div class="@Orchard.GetEndClasses()">
+        <div class="input-group">
+            <span class="input-group-text">@@</span>
+            <input asp-for="TwitterHandle" class="form-control" placeholder="yourhandle" />
+        </div>
+        <span asp-validation-for="TwitterHandle"></span>
+    </div>
 </div>
 
-<div class="mb-3">
-    <div class="form-check">
-        <input asp-for="ShowSocialLinks" class="form-check-input" />
-        <label asp-for="ShowSocialLinks" class="form-check-label">Display social media links on the site</label>
+<div class="@Orchard.GetWrapperClasses()">
+    <label asp-for="LinkedInUrl" class="@Orchard.GetLabelClasses()">LinkedIn URL</label>
+    <div class="@Orchard.GetEndClasses()">
+        <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/company/yourcompany" />
+        <span asp-validation-for="LinkedInUrl"></span>
+    </div>
+</div>
+
+<div class="@Orchard.GetWrapperClasses()">
+    <div class="@Orchard.GetEndClasses(true)">
+        <div class="form-check">
+            <input asp-for="ShowSocialLinks" class="form-check-input" />
+            <label asp-for="ShowSocialLinks" class="form-check-label">Display social media links on the site</label>
+        </div>
     </div>
 </div>
 ```

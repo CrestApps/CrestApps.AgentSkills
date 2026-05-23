@@ -182,10 +182,12 @@ Create a file `Markdown-{Name}.Edit.cshtml` to render the editor:
 @using OrchardCore.Markdown.ViewModels
 @model MarkdownBodyPartViewModel
 
-<fieldset class="mb-3">
-    <label asp-for="Markdown">@T["Markdown"]</label>
-    <textarea asp-for="Markdown" rows="10" class="form-control"></textarea>
-    <span class="hint">@T["The markdown content of the item."]</span>
+<fieldset class="@Orchard.GetWrapperClasses()">
+    <label asp-for="Markdown" class="@Orchard.GetLabelClasses()">@T["Markdown"]</label>
+    <div class="@Orchard.GetEndClasses()">
+        <textarea asp-for="Markdown" rows="10" class="form-control"></textarea>
+        <span class="hint">@T["The markdown content of the item."]</span>
+    </div>
 </fieldset>
 ```
 
