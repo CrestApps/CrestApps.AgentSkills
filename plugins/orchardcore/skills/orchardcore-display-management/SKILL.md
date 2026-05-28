@@ -25,8 +25,8 @@ You are an Orchard Core expert. Generate display drivers, shapes, and display ma
 - Register drivers in `Startup.cs` using `services.AddContentPart<TPart>().UseDisplayDriver<TDriver>()`.
 - For non-content-item models rendered through `DisplayDriver<TModel>`, the root shape still needs its own wrapper template for each display type you build (for example, `CampaignAction.Edit.cshtml` for `CampaignAction_Edit` and `CampaignAction.SummaryAdmin.cshtml` for `CampaignAction_SummaryAdmin`).
 - When driver results are placed into zones with `.Location("Content:1")`, `.Location("Actions:5")`, or similar, the wrapper template must render those zones (`Model.Content`, `Model.Actions`, `Model.Meta`, etc.) or the child shapes will never appear.
-- For non-settings admin editor views (`*.Edit.cshtml` that are not `*Settings.Edit.cshtml`), use the Orchard admin helper wrappers instead of raw `mb-3`, `form-label`, or hard-coded grid classes: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- These helpers accept arbitrary class names, so preserve custom CSS by passing classes into the helper arguments, for example `@Orchard.GetWrapperClasses("class1", "class2", "class3")`. Use `@Orchard.GetEndClasses(true)` for checkbox-only rows and for any right-side content that should align with the input column without rendering an empty label column. Do not apply this rule to Orchard site settings editors.
+- For ALL admin editor views (`*.Edit.cshtml` including `*Settings.Edit.cshtml`), use the `ocat-*` (Orchard Core Admin Theme) CSS classes instead of raw `mb-3`, `form-label`, or hard-coded grid classes. Use `ocat-wrapper` for the outer row, `ocat-label` for labels, `ocat-end` for the input column, `ocat-end-offset` for checkbox-only rows/headings/buttons with no left label, `ocat-limited-wrapper` + `ocat-limited` for narrow-width fields. Do NOT apply these classes to frontend views (Login, Register, etc.) or Admin Menu node editing (needs full width).
+- The former `@Orchard.GetWrapperClasses()`, `@Orchard.GetLabelClasses()`, `@Orchard.GetEndClasses()` helper methods and `TheAdminThemeOptions` class have been removed. Use the static `ocat-*` CSS classes directly.
 - Always seal classes.
 
 ### Content Part Display Driver Pattern
@@ -97,11 +97,11 @@ public class {{PartName}}ViewModel
 ```cshtml
 @model {{Namespace}}.ViewModels.{{PartName}}ViewModel
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="{{PropertyName}}" class="@Orchard.GetLabelClasses()">{{DisplayLabel}}</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="{{PropertyName}}">
+    <label asp-for="{{PropertyName}}" class="ocat-label">{{DisplayLabel}}</label>
+    <div class="ocat-end">
         <input asp-for="{{PropertyName}}" class="form-control" />
-        <span asp-validation-for="{{PropertyName}}" class="text-danger"></span>
+        <span asp-validation-for="{{PropertyName}}"></span>
     </div>
 </div>
 ```
@@ -284,3 +284,32 @@ public sealed class MyShapeTableProvider : IShapeTableProvider
     }
 }
 ```
+
+### Shape Debug Information
+
+You can instruct Orchard Core to write HTML comments around rendered shapes. This makes it easier to identify which Razor or Liquid template produced a specific fragment in the page output.
+
+Enable during startup:
+
+```csharp
+services
+    .AddOrchardCms()
+    .AddShapeDebugInformation();
+```
+
+Or enable directly through options:
+
+```csharp
+services.Configure<ShapeRenderingOptions>(options =>
+    options.WriteShapeDebugInformation = true);
+```
+
+When enabled, rendered shapes are wrapped with HTML comments:
+
+```html
+<!--shape-start type:Menu bindings:Menu__Main=>Themes/Contoso/Views/Menu-Main.cshtml (razor)-->
+...
+<!--shape-end type:Menu-->
+```
+
+The start comment contains the shape type and the binding that was used. Razor bindings report the `.cshtml` path, while Liquid bindings report a virtual `.liquid` source. This is useful during development to trace which template is responsible for each fragment of the rendered page.

@@ -227,16 +227,20 @@ Create a view at `Views/{{SettingsPartName}}_Edit.cshtml`:
 ```html
 @model {{SettingsPartName}}ViewModel
 
-<div class="mb-3">
-    <label asp-for="{{PropertyName}}" class="form-label">{{Property Display Name}}</label>
-    <input asp-for="{{PropertyName}}" class="form-control" />
-    <span asp-validation-for="{{PropertyName}}"></span>
+<div class="ocat-wrapper" asp-validation-class-for="{{PropertyName}}">
+    <label asp-for="{{PropertyName}}" class="ocat-label">{{Property Display Name}}</label>
+    <div class="ocat-end">
+        <input asp-for="{{PropertyName}}" class="form-control" />
+        <span asp-validation-for="{{PropertyName}}"></span>
+    </div>
 </div>
 
-<div class="mb-3">
-    <div class="form-check">
-        <input asp-for="{{BoolPropertyName}}" class="form-check-input" />
-        <label asp-for="{{BoolPropertyName}}" class="form-check-label">{{Bool Display Name}}</label>
+<div class="ocat-wrapper" asp-validation-class-for="{{BoolPropertyName}}">
+    <div class="ocat-end-offset">
+        <div class="form-check">
+            <input asp-for="{{BoolPropertyName}}" class="form-check-input" />
+            <label asp-for="{{BoolPropertyName}}" class="form-check-label">{{Bool Display Name}}</label>
+        </div>
     </div>
 </div>
 ```
