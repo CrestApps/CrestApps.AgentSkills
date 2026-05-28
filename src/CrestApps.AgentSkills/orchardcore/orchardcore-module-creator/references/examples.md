@@ -102,14 +102,18 @@ public class RatingPartViewModel
 ```html
 @model OrchardCore.Rating.ViewModels.RatingPartViewModel
 
-<div class="mb-3">
-    <label asp-for="Stars" class="form-label">Stars (1-5)</label>
-    <input asp-for="Stars" type="number" min="1" max="5" class="form-control" />
+<div class="ocat-wrapper" asp-validation-class-for="Stars">
+    <label asp-for="Stars" class="ocat-label">Stars (1-5)</label>
+    <div class="ocat-end">
+        <input asp-for="Stars" type="number" min="1" max="5" class="form-control" />
+    </div>
 </div>
 
-<div class="mb-3">
-    <label asp-for="ReviewCount" class="form-label">Review Count</label>
-    <input asp-for="ReviewCount" type="number" min="0" class="form-control" />
+<div class="ocat-wrapper" asp-validation-class-for="ReviewCount">
+    <label asp-for="ReviewCount" class="ocat-label">Review Count</label>
+    <div class="ocat-end">
+        <input asp-for="ReviewCount" type="number" min="0" class="form-control" />
+    </div>
 </div>
 ```
 

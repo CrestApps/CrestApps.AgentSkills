@@ -71,10 +71,12 @@ public sealed class SubtitlePartDisplayDriver : ContentPartDisplayDriver<Subtitl
 ```cshtml
 @model SubtitlePartViewModel
 
-<div class="mb-3">
-    <label asp-for="Subtitle" class="form-label">Subtitle</label>
-    <input asp-for="Subtitle" class="form-control" />
-    <span asp-validation-for="Subtitle" class="text-danger"></span>
+<div class="ocat-wrapper" asp-validation-class-for="Subtitle">
+    <label asp-for="Subtitle" class="ocat-label">Subtitle</label>
+    <div class="ocat-end">
+        <input asp-for="Subtitle" class="form-control" />
+        <span asp-validation-for="Subtitle" class="text-danger"></span>
+    </div>
 </div>
 ```
 

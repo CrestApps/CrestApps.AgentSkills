@@ -56,9 +56,12 @@ You are an Orchard Core expert. Generate workflow definitions and custom activit
 
 - `NotifyTask` - Displays a notification message.
 - `LogTask` - Writes to the application log.
-- `SetPropertyTask` - Sets a workflow property.
-- `IfElseTask` - Conditional branching.
-- `ForLoopTask` - Loop over a collection.
+- `SetPropertyTask` - Sets a workflow property (supports JavaScript and Liquid syntax).
+- `SetOutputTask` - Sets a workflow output value (supports JavaScript and Liquid syntax).
+- `IfElseTask` - Conditional branching (supports JavaScript and Liquid syntax).
+- `ForLoopTask` - Loop with counter (supports JavaScript and Liquid syntax).
+- `ForEachTask` - Iterate over a collection (supports JavaScript and Liquid syntax).
+- `WhileLoopTask` - Loop while condition is true (supports JavaScript and Liquid syntax).
 - `ForkTask` - Parallel execution branches.
 - `JoinTask` - Wait for parallel branches to complete.
 - `HttpRequestTask` - Make an outbound HTTP request.
@@ -66,7 +69,25 @@ You are an Orchard Core expert. Generate workflow definitions and custom activit
 - `ContentCreateTask` - Create a new content item.
 - `ContentPublishTask` - Publish a content item.
 - `SendEmailTask` - Send an email notification.
-- `ScriptTask` - Execute a JavaScript expression.
+- `ScriptTask` - Execute a JavaScript expression and return the result.
+- `LiquidTask` - Execute a Liquid expression and return the result.
+
+### Workflow Script Syntax
+
+Many workflow tasks (IfElseTask, ForLoopTask, ForEachTask, WhileLoopTask, SetPropertyTask, SetOutputTask) now support both **JavaScript** and **Liquid** syntax. Each task has a `Syntax` property that selects between `WorkflowScriptSyntax.JavaScript` and `WorkflowScriptSyntax.Liquid`.
+
+- When `JavaScript` is selected, the task evaluates the JavaScript expression field.
+- When `Liquid` is selected, the task evaluates the Liquid expression field instead.
+
+```csharp
+namespace OrchardCore.Workflows.Models;
+
+public enum WorkflowScriptSyntax
+{
+    JavaScript,
+    Liquid,
+}
+```
 
 ### Creating a Custom Activity
 
@@ -166,7 +187,7 @@ public sealed class Startup : StartupBase
 
 ### Workflow Expressions
 
-Workflows support JavaScript and Liquid expressions:
+Workflows support JavaScript and Liquid expressions. Tasks with dual syntax (IfElseTask, ForLoopTask, etc.) use the `Syntax` property to select which expression to evaluate.
 
 **JavaScript expressions:**
 ```javascript
@@ -184,6 +205,52 @@ setOutcome("Done");
 ```liquid
 {{ Workflow.Input.ContentItem.DisplayText }}
 {{ Workflow.Properties.MyProperty }}
+{% if Workflow.Properties.Count > 0 %}true{% endif %}
+```
+
+### LiquidTask Example
+
+`LiquidTask` is the Liquid counterpart of `ScriptTask`. It evaluates a Liquid expression and stores the result in `WorkflowContext.LastResult`:
+
+```csharp
+using OrchardCore.Workflows.Activities;
+using OrchardCore.Workflows.Models;
+using OrchardCore.Workflows.Services;
+
+public class LiquidTask : TaskActivity<LiquidTask>
+{
+    private readonly IWorkflowExpressionEvaluator _expressionEvaluator;
+    protected readonly IStringLocalizer S;
+
+    public LiquidTask(
+        IWorkflowExpressionEvaluator expressionEvaluator,
+        IStringLocalizer<LiquidTask> localizer)
+    {
+        _expressionEvaluator = expressionEvaluator;
+        S = localizer;
+    }
+
+    public override LocalizedString DisplayText => S["Liquid Task"];
+    public override LocalizedString Category => S["Control Flow"];
+
+    public WorkflowExpression<object> Expression
+    {
+        get => GetProperty(() => new WorkflowExpression<object>());
+        set => SetProperty(value);
+    }
+
+    public override IEnumerable<Outcome> GetPossibleOutcomes(
+        WorkflowExecutionContext workflowContext, ActivityContext activityContext)
+        => Outcomes(S["Done"]);
+
+    public override async Task<ActivityExecutionResult> ExecuteAsync(
+        WorkflowExecutionContext workflowContext, ActivityContext activityContext)
+    {
+        workflowContext.LastResult = await _expressionEvaluator.EvaluateAsync(
+            Expression, workflowContext, null);
+        return Outcomes("Done");
+    }
+}
 ```
 
 ### Timer Cron Expressions

@@ -206,9 +206,9 @@ public sealed class AICompletionWithConfigTaskDisplayDriver
 ```
 
 ```cshtml
-<div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="DeploymentName">
-    <label asp-for="DeploymentName" class="@Orchard.GetLabelClasses()">@T["Deployment"]</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="DeploymentName">
+    <label asp-for="DeploymentName" class="ocat-label">@T["Deployment"]</label>
+    <div class="ocat-end">
         <select asp-for="DeploymentName" class="form-select" asp-items="Model.DeploymentNames">
             <option value="">@T["Select a deployment"]</option>
         </select>
