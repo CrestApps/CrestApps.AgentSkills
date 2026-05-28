@@ -71,9 +71,9 @@ public sealed class SubtitlePartDisplayDriver : ContentPartDisplayDriver<Subtitl
 ```cshtml
 @model SubtitlePartViewModel
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="Subtitle" class="@Orchard.GetLabelClasses()">Subtitle</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="Subtitle">
+    <label asp-for="Subtitle" class="ocat-label">Subtitle</label>
+    <div class="ocat-end">
         <input asp-for="Subtitle" class="form-control" />
         <span asp-validation-for="Subtitle" class="text-danger"></span>
     </div>

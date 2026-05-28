@@ -222,17 +222,17 @@ public sealed class Startup : StartupBase
 ```html
 @model SocialMediaSettingsViewModel
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="FacebookUrl" class="@Orchard.GetLabelClasses()">Facebook URL</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="FacebookUrl">
+    <label asp-for="FacebookUrl" class="ocat-label">Facebook URL</label>
+    <div class="ocat-end">
         <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
         <span asp-validation-for="FacebookUrl"></span>
     </div>
 </div>
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="TwitterHandle" class="@Orchard.GetLabelClasses()">Twitter Handle</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="TwitterHandle">
+    <label asp-for="TwitterHandle" class="ocat-label">Twitter Handle</label>
+    <div class="ocat-end">
         <div class="input-group">
             <span class="input-group-text">@@</span>
             <input asp-for="TwitterHandle" class="form-control" placeholder="yourhandle" />
@@ -241,16 +241,16 @@ public sealed class Startup : StartupBase
     </div>
 </div>
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="LinkedInUrl" class="@Orchard.GetLabelClasses()">LinkedIn URL</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="LinkedInUrl">
+    <label asp-for="LinkedInUrl" class="ocat-label">LinkedIn URL</label>
+    <div class="ocat-end">
         <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/company/yourcompany" />
         <span asp-validation-for="LinkedInUrl"></span>
     </div>
 </div>
 
-<div class="@Orchard.GetWrapperClasses()">
-    <div class="@Orchard.GetEndClasses(true)">
+<div class="ocat-wrapper" asp-validation-class-for="ShowSocialLinks">
+    <div class="ocat-end-offset">
         <div class="form-check">
             <input asp-for="ShowSocialLinks" class="form-check-input" />
             <label asp-for="ShowSocialLinks" class="form-check-label">Display social media links on the site</label>

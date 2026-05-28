@@ -21,38 +21,33 @@ Key characteristics:
 - Uses Bootstrap-based styling with Orchard Core admin CSS.
 - Supports customization through shape overrides, zone manipulation, and theme inheritance.
 
-### TheAdmin responsive editor helpers
+### The `ocat-*` CSS Class System
 
-Orchard Core supports responsive admin editor layouts through `TheAdminTheme.StyleSettings`. All admin `*.Edit.cshtml` views (including site settings editors) should use the Orchard helper extensions so labels and inputs align with the current admin theme settings.
+Admin editor views use static CSS classes prefixed with `ocat-` (Orchard Core Admin Theme) for consistent two-column layout. These classes replaced the former `TheAdminThemeOptions` and `CssOrchardHelperExtensions` (e.g., `@Orchard.GetWrapperClasses()`) which have been removed.
 
-**Do NOT apply these helpers to frontend-facing views** such as Login, Register, ForgotPassword, or any view rendered by the site theme. These helpers are exclusively for admin (back-end) views.
+**Do NOT apply these classes to frontend-facing views** such as Login, Register, ForgotPassword, or any view rendered by the site theme. They are exclusively for admin (back-end) views.
 
-#### Available helper extensions
+#### Core CSS Classes
 
-All extensions are defined in `OrchardCore.DisplayManagement/Html/CssOrchardHelperExtensions.cs` and are available via `@using OrchardCore`.
-
-| Helper | Purpose |
-|--------|---------|
-| `@Orchard.GetWrapperClasses(...)` | Outer field wrapper (default: `"mb-3"`) |
-| `@Orchard.GetLabelClasses(...)` | Label element (default: `"form-label"`) |
-| `@Orchard.GetLabelClasses(true)` | Label for a required field (appends required indicator class) |
-| `@Orchard.GetEndClasses(...)` | Input/content container column |
-| `@Orchard.GetEndClasses(true)` | Content column with offset (for checkbox-only rows, headings, buttons) |
-| `@Orchard.GetLimitedWidthWrapperClasses(...)` | Wrapper for fields that intentionally use narrower columns |
-| `@Orchard.GetLimitedWidthClasses(...)` | The narrower input container inside a limited-width wrapper |
-| `@Orchard.GetStartClasses(...)` | Start/left column |
-| `@Orchard.GetOffsetClasses(...)` | Offset spacing (aligns content without a label) |
-
-All helpers accept `params string[] additionalClasses` so you can pass extra CSS classes without hardcoding them. For example, `@Orchard.GetWrapperClasses("class1", "class2")`.
+| Class | Element | Purpose |
+|-------|---------|---------|
+| `ocat-wrapper` | `<div>` | Outer container for a form field row (replaces `mb-3`/`form-group`) |
+| `ocat-label` | `<label>` | Styles the field label in the left column (replaces `form-label`) |
+| `ocat-label-required` | `<label>` | Add alongside `ocat-label` to mark a field as required |
+| `ocat-end` | `<div>` | Wraps the input, validation, and hint in the right column |
+| `ocat-end-offset` | `<div>` | Right-column content with no left label (for checkboxes, headings, buttons) |
+| `ocat-limited-wrapper` | `<div>` | Outer row for limited-width controls (short text, numbers, selects) |
+| `ocat-limited` | `<div>` | Constrains the control width inside `ocat-limited-wrapper` |
 
 #### Pattern 1: Standard field (label + input)
 
 ```cshtml
-<div class="@Orchard.GetWrapperClasses()" asp-validation-class-for="Title">
-    <label asp-for="Title" class="@Orchard.GetLabelClasses()">@T["Title"]</label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="Title">
+    <label asp-for="Title" class="ocat-label">@T["Title"]</label>
+    <div class="ocat-end">
         <input asp-for="Title" class="form-control" />
         <span asp-validation-for="Title"></span>
+        <span class="hint">@T["Hint text."]</span>
     </div>
 </div>
 ```
@@ -60,29 +55,28 @@ All helpers accept `params string[] additionalClasses` so you can pass extra CSS
 #### Pattern 2: Checkbox without a separate left label
 
 ```cshtml
-<div class="@Orchard.GetWrapperClasses()">
-    <div class="@Orchard.GetEndClasses(true)">
+<div class="ocat-wrapper" asp-validation-class-for="IsEnabled">
+    <div class="ocat-end-offset">
         <div class="form-check">
             <input type="checkbox" class="form-check-input" asp-for="IsEnabled" />
             <label class="form-check-label" asp-for="IsEnabled">@T["Enable feature"]</label>
         </div>
+        <span class="hint dashed">@T["Check to enable this feature."]</span>
     </div>
 </div>
 ```
 
 #### Pattern 3: Limited-width field (narrower input column)
 
-The label MUST be placed OUTSIDE the `GetLimitedWidthClasses()` div:
-
 ```cshtml
-<div class="@Orchard.GetLimitedWidthWrapperClasses("mb-3")" asp-validation-class-for="TimeZone">
-    <label asp-for="TimeZone" class="@Orchard.GetLabelClasses()">@T["Default Time Zone"]</label>
-    <div class="@Orchard.GetLimitedWidthClasses()">
+<div class="ocat-limited-wrapper" asp-validation-class-for="TimeZone">
+    <label asp-for="TimeZone" class="ocat-label">@T["Default Time Zone"]</label>
+    <div class="ocat-limited">
         <select asp-for="TimeZone" class="form-select">
             <option value="">@T["Select..."]</option>
         </select>
         <span asp-validation-for="TimeZone"></span>
-        <span class="hint">@T["Hint text"]</span>
+        <span class="hint">@T["Hint text."]</span>
     </div>
 </div>
 ```
@@ -90,8 +84,8 @@ The label MUST be placed OUTSIDE the `GetLimitedWidthClasses()` div:
 #### Pattern 4: Section heading (pushed right to align with inputs)
 
 ```cshtml
-<div class="@Orchard.GetWrapperClasses()">
-    <div class="@Orchard.GetEndClasses(true)">
+<div class="ocat-wrapper">
+    <div class="ocat-end-offset">
         <h3>@T["Section Title"]</h3>
     </div>
 </div>
@@ -100,61 +94,99 @@ The label MUST be placed OUTSIDE the `GetLimitedWidthClasses()` div:
 #### Pattern 5: Action buttons (submit, cancel)
 
 ```cshtml
-<div class="@Orchard.GetWrapperClasses()">
-    <div class="@Orchard.GetEndClasses(true)">
+<div class="ocat-wrapper">
+    <div class="ocat-end-offset">
         <button type="submit" class="btn btn-primary">@T["Save"]</button>
     </div>
 </div>
 ```
 
-#### Configuration
+#### Pattern 6: Required field label
 
-The admin theme classes can be configured from `appsettings.json`:
+```cshtml
+<div class="ocat-wrapper" asp-validation-class-for="Name">
+    <label asp-for="Name" class="ocat-label ocat-label-required">@T["Name"]</label>
+    <div class="ocat-end">
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name"></span>
+    </div>
+</div>
+```
 
-```json
-{
-  "OrchardCore": {
-    "TheAdminTheme": {
-      "StyleSettings": {
-        "WrapperClasses": "row mb-3",
-        "LimitedWidthWrapperClasses": "row",
-        "LimitedWidthClasses": "col-md-6 col-lg-5 col-xxl-4",
-        "StartClasses": "col-lg-2 col-xl-3",
-        "EndClasses": "col-lg-10 col-xl-9",
-        "LabelClasses": "col-form-label text-lg-end col-lg-2 col-xl-3",
-        "OffsetClasses": "offset-lg-2 offset-xl-3"
-      }
-    }
-  }
+#### Pattern 7: Limited-width control inside a field wrapper
+
+Use when the editor row needs Orchard-specific wrapper classes like `field-wrapper-*`:
+
+```cshtml
+<div class="ocat-wrapper field-wrapper field-wrapper-MyPart-MyField">
+    <label asp-for="Value" class="ocat-label">@T["Value"]</label>
+    <div class="ocat-end">
+        <div class="ocat-limited-wrapper">
+            <div class="ocat-limited">
+                <input asp-for="Value" class="form-control" />
+                <span asp-validation-for="Value"></span>
+            </div>
+        </div>
+        <span class="hint">@T["Use a compact editor width while preserving the field wrapper row."]</span>
+    </div>
+</div>
+```
+
+#### Customizing the Layout via CSS
+
+To customize the admin layout, override the `ocat-*` CSS classes in your custom admin theme's stylesheet. For example, to create a horizontal layout:
+
+```css
+.ocat-wrapper {
+    --ocat-gutter-x: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: calc(-0.5 * var(--ocat-gutter-x));
+    margin-left: calc(-0.5 * var(--ocat-gutter-x));
+    margin-bottom: 1rem;
+}
+.ocat-label {
+    flex: 0 0 auto;
+    width: 25%;
+    text-align: end;
+    padding-top: calc(0.375rem + var(--bs-border-width));
+}
+.ocat-end {
+    flex: 0 0 auto;
+    width: 75%;
+}
+.ocat-end-offset {
+    flex: 0 0 auto;
+    width: 75%;
+    margin-inline-start: 25%;
 }
 ```
 
-They can also be configured in code:
+#### Rules for applying `ocat-*` classes
 
-```csharp
-services.PostConfigure<TheAdminThemeOptions>(options =>
-{
-    options.WrapperClasses = "row mb-3";
-    options.LimitedWidthWrapperClasses = "row";
-    options.LimitedWidthClasses = "col-md-6 col-lg-5 col-xxl-4";
-    options.StartClasses = "col-lg-2 col-xl-3";
-    options.EndClasses = "col-lg-10 col-xl-9";
-    options.LabelClasses = "col-form-label text-lg-end col-lg-2 col-xl-3";
-    options.OffsetClasses = "offset-lg-2 offset-xl-3";
-});
-```
-
-When these settings are customized, editor templates that use the Orchard helpers will automatically stay aligned with the active admin theme layout.
-
-#### Rules for applying helpers
-
-1. **All admin views** should use the helpers (including `*Settings.Edit.cshtml` views)
-2. **Frontend views MUST NOT use helpers** — Login, Register, ForgotPassword, email verification, etc.
-3. **Admin Menu node editing** should NOT use helpers (needs full width)
+1. **All admin views** should use `ocat-*` classes (including `*Settings.Edit.cshtml` views)
+2. **Frontend views MUST NOT use `ocat-*` classes** — Login, Register, ForgotPassword, email verification, etc.
+3. **Admin Menu node editing** should NOT use these classes (needs full width)
 4. **Widget containers** (BagPart, FlowPart, WidgetsListPart) are skipped — no standard form fields
-5. **Labels with `GetLimitedWidthWrapperClasses`** must be placed OUTSIDE the `GetLimitedWidthClasses` div
-6. **Headings/section titles** in settings should use `GetEndClasses(true)` to align with field content
-7. **Checkboxes without a left label** use `GetWrapperClasses()` + `GetEndClasses(true)` for the form-check div
+5. **Validation spans** (`<span asp-validation-for="...">`) always go inside `ocat-end` or `ocat-end-offset`
+6. **Hint spans** (`<span class="hint">`) always go inside `ocat-end` or `ocat-end-offset`
+7. **Checkboxes without a left label** use `ocat-wrapper` + `ocat-end-offset` for the form-check div
+
+#### Migration from Old Helpers
+
+| Old Pattern | New Pattern |
+|-------------|-------------|
+| `@Orchard.GetWrapperClasses()` | `ocat-wrapper` |
+| `@Orchard.GetLabelClasses()` | `ocat-label` |
+| `@Orchard.GetLabelClasses(true)` | `ocat-label ocat-label-required` |
+| `@Orchard.GetEndClasses()` | `ocat-end` |
+| `@Orchard.GetEndClasses(true)` | `ocat-end-offset` |
+| `@Orchard.GetLimitedWidthWrapperClasses()` | `ocat-limited-wrapper` |
+| `@Orchard.GetLimitedWidthClasses()` | `ocat-limited` |
+| `@Orchard.GetStartClasses()` | (removed, use CSS override) |
+| `@Orchard.GetOffsetClasses()` | `ocat-end-offset` |
+| `TheAdminTheme:StyleSettings` in appsettings.json | Override `ocat-*` classes in custom admin theme CSS |
+| `PostConfigure<TheAdminThemeOptions>` | Override `ocat-*` classes in custom admin theme CSS |
 
 ## Admin Controllers
 
@@ -378,15 +410,16 @@ To create an admin view at `Views/Settings/Index.cshtml`:
 </zone>
 
 <form asp-action="Update" method="post">
-    <div class="@Orchard.GetWrapperClasses()">
-        <label asp-for="DisplayName" class="@Orchard.GetLabelClasses()">@T["Display Name"]</label>
-        <div class="@Orchard.GetEndClasses()">
+    <div class="ocat-wrapper" asp-validation-class-for="DisplayName">
+        <label asp-for="DisplayName" class="ocat-label">@T["Display Name"]</label>
+        <div class="ocat-end">
             <input asp-for="DisplayName" class="form-control" />
+            <span asp-validation-for="DisplayName"></span>
         </div>
     </div>
 
-    <div class="@Orchard.GetWrapperClasses()">
-        <div class="@Orchard.GetEndClasses(true)">
+    <div class="ocat-wrapper">
+        <div class="ocat-end-offset">
             <button type="submit" class="btn btn-primary">@T["Save"]</button>
         </div>
     </div>

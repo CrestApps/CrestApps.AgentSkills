@@ -252,9 +252,9 @@ public sealed class TableauExportPipelineDisplayDriver : DisplayDriver<TableauEx
 ```cshtml
 @model EditTableauExportPipelineViewModel
 
-<div class="@Orchard.GetWrapperClasses()">
-    <label asp-for="Name" class="@Orchard.GetLabelClasses()"></label>
-    <div class="@Orchard.GetEndClasses()">
+<div class="ocat-wrapper" asp-validation-class-for="Name">
+    <label asp-for="Name" class="ocat-label"></label>
+    <div class="ocat-end">
         <input asp-for="Name" class="form-control" />
     </div>
 </div>

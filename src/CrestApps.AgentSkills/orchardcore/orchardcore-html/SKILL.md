@@ -151,9 +151,9 @@ To render the editor UI, create a file named `HtmlBodyPart-{Name}.Edit.cshtml`:
 @using OrchardCore.Html.ViewModels
 @model HtmlBodyPartViewModel
 
-<fieldset class="@Orchard.GetWrapperClasses()">
-    <label asp-for="Body" class="@Orchard.GetLabelClasses()">@T["Body"]</label>
-    <div class="@Orchard.GetEndClasses()">
+<fieldset class="ocat-wrapper">
+    <label asp-for="Body" class="ocat-label">@T["Body"]</label>
+    <div class="ocat-end">
         <textarea asp-for="Body" rows="10" class="form-control"></textarea>
         <span class="hint">@T["The body of the content item."]</span>
     </div>
