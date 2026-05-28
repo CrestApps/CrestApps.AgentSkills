@@ -74,6 +74,7 @@ SMTP settings can also be supplied through `appsettings.json` or environment var
 {
   "OrchardCore_Email_Smtp": {
     "DefaultSender": "noreply@example.com",
+    "DeliveryMethod": "Network",
     "Host": "smtp.example.com",
     "Port": 587,
     "EncryptionMethod": "STARTTLS",
@@ -83,6 +84,42 @@ SMTP settings can also be supplied through `appsettings.json` or environment var
   }
 }
 ```
+
+#### Pickup Directory Configuration
+
+When using `DeliveryMethod: "SpecifiedPickupDirectory"`, emails are written to disk instead of being sent over the network. The pickup directory is resolved from two settings:
+
+| Setting | Description |
+|---|---|
+| `PickupDirectoryLocationBase` | The absolute base path where email files are stored. Supports Liquid templating with `{{ AppData }}` and `{{ ShellSettings.Name }}`. Configured only via `appsettings.json` or environment variables (not through the admin UI). Defaults to `{{ AppData }}\Sites\{{ ShellSettings.Name }}\Emails`. |
+| `PickupDirectoryLocation` | A **relative** path within the base directory. Must start with `/` (for the base folder itself) or `/Subfolder` for a subfolder. Full Windows paths (e.g., `C:\Emails`) are **not allowed**. The path must not contain `..`, `~`, `{`, `}`, or other invalid characters, and must not navigate outside the base directory. |
+
+Example configuration:
+
+```json
+{
+  "OrchardCore_Email_Smtp": {
+    "DefaultSender": "noreply@example.com",
+    "DeliveryMethod": "SpecifiedPickupDirectory",
+    "PickupDirectoryLocationBase": "{{ AppData }}\\Sites\\{{ ShellSettings.Name }}\\Emails",
+    "PickupDirectoryLocation": "/"
+  }
+}
+```
+
+To write emails to a subfolder under the base:
+
+```json
+{
+  "OrchardCore_Email_Smtp": {
+    "DeliveryMethod": "SpecifiedPickupDirectory",
+    "PickupDirectoryLocationBase": "{{ AppData }}\\Sites\\{{ ShellSettings.Name }}\\Emails",
+    "PickupDirectoryLocation": "/Outbound/Notifications"
+  }
+}
+```
+
+> **Important**: The `PickupDirectoryLocation` value configured through the admin UI or recipe must be a relative path (e.g., `/` or `/Subfolder`). Absolute paths, drive-qualified paths, and paths containing directory traversal segments are rejected. The directory is automatically created if it does not exist.
 
 ## Configuring Azure Communication Services Email
 

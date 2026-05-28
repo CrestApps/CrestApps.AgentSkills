@@ -252,9 +252,11 @@ public sealed class TableauExportPipelineDisplayDriver : DisplayDriver<TableauEx
 ```cshtml
 @model EditTableauExportPipelineViewModel
 
-<div class="mb-3">
-    <label asp-for="Name" class="form-label"></label>
-    <input asp-for="Name" class="form-control" />
+<div class="ocat-wrapper" asp-validation-class-for="Name">
+    <label asp-for="Name" class="ocat-label"></label>
+    <div class="ocat-end">
+        <input asp-for="Name" class="form-control" />
+    </div>
 </div>
 ```
 

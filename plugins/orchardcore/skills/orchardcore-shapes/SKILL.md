@@ -22,8 +22,8 @@ You are an Orchard Core expert. Generate shape templates, shape providers, and s
 - Template file names map to shape types using conventions: `Content.liquid`, `Content__BlogPost.liquid`.
 - Use double underscore (`__`) in file names to represent the dash (`-`) separator in alternates.
 - For `DisplayDriver<T>.Edit()` flows, remember the root editor shape for the model type as well as any nested field/editor shapes. If `BuildEditorAsync()` is used for `TableauExportPipeline`, Orchard will resolve a root `TableauExportPipeline_Edit` shape in addition to shapes like `TableauExportPipelineFields_Edit`.
-- For admin editor Razor shapes (`*.Edit.cshtml`) that are not Orchard site settings editors, shape templates should use the Orchard admin helper extensions so `TheAdminTheme.StyleSettings` controls field layout consistently: `@Orchard.GetWrapperClasses(...)`, `@Orchard.GetLabelClasses(...)`, and `@Orchard.GetEndClasses(...)`.
-- These helpers accept arbitrary class names, so preserve custom classes by passing them into the helper arguments. Use `@Orchard.GetEndClasses(true)` for checkbox-only layouts and for any right-side content that should align to the input column instead of outputting an empty label container.
+- For ALL admin editor Razor shapes (`*.Edit.cshtml` including site settings editors), shape templates should use the `ocat-*` (Orchard Core Admin Theme) CSS classes for consistent field layout: `ocat-wrapper` for the outer row, `ocat-label` for labels, `ocat-end` for the input column, `ocat-end-offset` for checkbox-only layouts/headings/buttons, `ocat-limited-wrapper` + `ocat-limited` for narrower inputs.
+- The former `@Orchard.GetWrapperClasses()`, `@Orchard.GetLabelClasses()`, `@Orchard.GetEndClasses()` helper methods and `TheAdminThemeOptions` class have been removed. Use the static `ocat-*` CSS classes directly. Do NOT use these classes in frontend views or Admin Menu node editing.
 - `IShapeFactory` creates shapes dynamically from code.
 - `IShapeTableProvider` customizes shape behavior (alternates, wrappers, bindings).
 - `IDisplayManager<T>` orchestrates building and rendering shapes for content.
@@ -502,3 +502,32 @@ Wrappers surround a shape's output with additional markup.
     {{ Model.Content | shape_render }}
 </article>
 ```
+
+## Shape Debug Information
+
+You can enable HTML comments around rendered shapes to trace which template produced each fragment. This is useful during development for identifying which Razor or Liquid template is responsible for a specific piece of output.
+
+Enable during startup:
+
+```csharp
+services
+    .AddOrchardCms()
+    .AddShapeDebugInformation();
+```
+
+Or configure via options:
+
+```csharp
+services.Configure<ShapeRenderingOptions>(options =>
+    options.WriteShapeDebugInformation = true);
+```
+
+When enabled, each rendered shape is wrapped with comments like:
+
+```html
+<!--shape-start type:Content bindings:Content__BlogPost=>Views/Content-BlogPost.cshtml (razor)-->
+...
+<!--shape-end type:Content-->
+```
+
+The comment shows the shape type and binding used for resolution.
