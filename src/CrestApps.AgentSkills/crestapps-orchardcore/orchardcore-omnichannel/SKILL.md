@@ -1,6 +1,6 @@
 ---
 name: orchardcore-omnichannel
-description: Skill for configuring Omnichannel communication in Orchard Core using CrestApps modules. Covers multi-channel messaging (SMS, email, phone, chat), contact management, campaigns, AI-powered SMS automation, Azure Event Grid webhooks, and Twilio integration. Use this skill when requests mention Orchard Core Omnichannel, Omnichannel SMS, Contact Management, Channel Endpoints, Communication Preferences, Activity Batches, Campaigns, Dispositions, or related setup and troubleshooting. Strong matches include CrestApps.OrchardCore.Omnichannel, CrestApps.OrchardCore.Omnichannel.Managements, CrestApps.OrchardCore.Omnichannel.Sms, CrestApps.OrchardCore.Omnichannel.EventGrid, OmnichannelContactPart, IOmnichannelProcessor, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Omnichannel communication in Orchard Core using CrestApps modules. Covers subject flows, subject actions, campaigns as grouping/reporting records, activity batches, dispositions, multi-channel messaging (SMS, email, phone, chat), AI-powered automation, Azure Event Grid webhooks, and Twilio integration. Use this skill when requests mention Orchard Core Omnichannel, Subject Flows, Manage Flow, Omnichannel SMS, Contact Management, Channel Endpoints, Communication Preferences, Activity Batches, Campaigns, Dispositions, or related setup and troubleshooting. Strong matches include CrestApps.OrchardCore.Omnichannel, CrestApps.OrchardCore.Omnichannel.Managements, CrestApps.OrchardCore.Omnichannel.Sms, CrestApps.OrchardCore.Omnichannel.EventGrid, OmnichannelContactPart, SubjectFlowSettings, SubjectAction, IOmnichannelProcessor, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 ### Guidelines
 
 - The CrestApps Omnichannel module (`CrestApps.OrchardCore.Omnichannel`) provides a unified multi-channel communication layer supporting SMS, email, phone, and chat channels.
-- The Managements feature (`CrestApps.OrchardCore.Omnichannel.Managements`) adds an admin UI for contacts, activities, campaigns, dispositions, channel endpoints, and activity batches under the **Interaction Center** menu.
+- The Managements feature (`CrestApps.OrchardCore.Omnichannel.Managements`) adds an admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints under the **Interaction Center** menu.
 - The SMS feature (`CrestApps.OrchardCore.Omnichannel.Sms`) enables AI-powered SMS automation. It integrates with the AI Chat module to run AI-driven conversations over SMS using Twilio webhooks.
 - The Event Grid feature (`CrestApps.OrchardCore.Omnichannel.EventGrid`) receives inbound messages from Azure Event Grid via a webhook endpoint, validated with a SAS key or AAD bearer token.
 - The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) provides integration points for Azure Communication Services.
@@ -34,7 +34,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 | Omnichannel | `CrestApps.OrchardCore.Omnichannel` | Base omnichannel layer with message indexing and contact communication preferences |
 | Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Azure Communication Services integration for multi-channel messaging |
 | Azure Event Grid | `CrestApps.OrchardCore.Omnichannel.EventGrid` | Webhook endpoint for receiving inbound messages from Azure Event Grid |
-| Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin UI for contacts, activities, campaigns, dispositions, and channel endpoints |
+| Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints |
 | SMS Automation | `CrestApps.OrchardCore.Omnichannel.Sms` | AI-powered SMS channel automation via Twilio with AI chat session integration |
 
 ### NuGet Packages
@@ -161,7 +161,7 @@ All webhook endpoints are anonymous and do not require antiforgery tokens. They 
 
 The SMS module integrates with the CrestApps AI Chat module to enable automated SMS conversations:
 
-1. **Outbound** - The `SmsOmnichannelProcessor` creates AI chat sessions, renders initial messages using Liquid templates from the campaign configuration, and sends them via `ISmsService`.
+1. **Outbound** - The `SmsOmnichannelProcessor` creates AI chat sessions, renders initial messages using the configured subject flow and AI profile, and sends them via `ISmsService`.
 2. **Inbound** - The `SmsOmnichannelEventHandler` receives customer SMS replies, feeds them into the AI chat session as user prompts, runs AI completion, and sends the AI response back as SMS.
 3. **Conclusion Analysis** - A deferred task uses AI with the `sms-conclusion-analysis` prompt template to determine if the conversation has concluded. When concluded, it auto-sets the disposition and triggers the `CompletedActivityEvent` workflow event.
 
@@ -170,10 +170,21 @@ The SMS module integrates with the CrestApps AI Chat module to enable automated 
 The Managements feature adds an **Interaction Center** menu in the admin dashboard with the following sections:
 
 1. **Activities** - View and manage omnichannel activities (calls, SMS, emails). Filter by status, channel, campaign, and assignee.
-2. **Activity Batches** - Group and manage activities in batches for bulk operations.
-3. **Campaigns** - Define campaign configurations including AI profiles, deployment names, and message templates.
-4. **Dispositions** - Configure activity outcome categories (e.g., completed, no answer, callback requested).
-5. **Channel Endpoints** - Manage communication channel endpoints (phone numbers, SMS numbers, email addresses).
+2. **Activity Batches** - Group and manage activities in batches for bulk operations. Batches choose a subject and contacts, then resolve campaign, interaction type, channel, and endpoint from the subject flow when activities are loaded.
+3. **Campaigns** - Define campaign names and descriptions used for grouping and reporting.
+4. **Subject Flows** - Configure campaign association, interaction type, channel, channel endpoint, and AI settings per `OmnichannelSubject` content type.
+5. **Dispositions** - Configure unique activity outcome categories (e.g., completed, no answer, callback requested) used by subject actions.
+6. **Channel Endpoints** - Manage communication channel endpoints (phone numbers, SMS numbers, email addresses).
+
+### Subject Flows and Manage Flow
+
+- A subject is any content type with the `OmnichannelSubject` stereotype.
+- Subject flow settings live at the subject-content-type level, not the campaign level.
+- Campaigns are used for grouping and reporting only; they no longer define channel, interaction type, endpoint, or action logic.
+- The **Configure** screen stores the campaign, interaction type, channel, endpoint, and AI-related settings for the subject.
+- The **Manage Flow** screen stores disposition-driven **Subject Actions** for that subject.
+- Subjects with no actions show a **Missing flow** badge in the Subject Flows list.
+- When the AI feature is enabled, automated subject flows expose a chat AI profile selector plus subject goal and initial outbound prompt pattern fields.
 
 ### Workflow Integration
 
@@ -184,7 +195,7 @@ The Managements feature provides workflow tasks and events for automation:
 
 **Workflow Tasks:**
 - `TryAgainActivityTask` - Creates a retry activity with configurable max attempts, urgency level, and schedule delay.
-- `NewActivityTask` - Creates a new activity for a different campaign or subject.
+- `NewActivityTask` - Creates a new activity for a different subject; the new activity resolves campaign and channel behavior from the target subject flow.
 - `SetContactCommunicationPreferenceActivityTask` - Updates a contact's DoNotCall, DoNotSms, DoNotEmail, or DoNotChat preferences.
 
 ### Permissions

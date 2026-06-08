@@ -1,5 +1,5 @@
 {
-  "GeneratedUtc": "2026-05-17T18:01:55.172104+00:00",
+  "GeneratedUtc": "2026-05-29T17:23:11.3210774+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
@@ -53,6 +53,10 @@
     {
       "Name": "ContentDefinition",
       "File": "ContentDefinition.schema.json"
+    },
+    {
+      "Name": "CreateAIProfileFromTemplate",
+      "File": "CreateAIProfileFromTemplate.schema.json"
     },
     {
       "Name": "CreateOrUpdateIndexProfile",
