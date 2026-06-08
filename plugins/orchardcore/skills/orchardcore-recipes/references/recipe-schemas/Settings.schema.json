@@ -547,6 +547,10 @@
           "type": "string",
           "description": "The technical name of the default image generation deployment."
         },
+        "DefaultVisionDeploymentName": {
+          "type": "string",
+          "description": "The technical name of the default vision deployment."
+        },
         "DefaultSpeechToTextDeploymentName": {
           "type": "string",
           "description": "The technical name of the default speech-to-text deployment."
@@ -953,6 +957,14 @@
             "Hierarchical"
           ],
           "description": "The document retrieval mode."
+        },
+        "AllowDocumentUploads": {
+          "type": "boolean",
+          "description": "Whether users can upload document files in chat interactions."
+        },
+        "AllowImageUploads": {
+          "type": "boolean",
+          "description": "Whether users can upload image files in chat interactions."
         }
       },
       "additionalProperties": false
