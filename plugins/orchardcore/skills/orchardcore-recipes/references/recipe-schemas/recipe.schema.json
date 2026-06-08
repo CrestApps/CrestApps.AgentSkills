@@ -73,6 +73,7 @@
               "command",
               "content",
               "ContentDefinition",
+              "CreateAIProfileFromTemplate",
               "CreateOrUpdateIndexProfile",
               "custom-settings",
               "custom-user-settings",
@@ -362,11 +363,11 @@
                         "additionalProperties": true,
                         "description": "Provider-specific deployment properties. AzureSpeech deployments use Endpoint, AuthenticationType, ApiKey, and optional IdentityId."
                       },
-                      "Type": {
+                      "Purpose": {
                         "anyOf": [
                           {
                             "type": "string",
-                            "description": "The deployment type, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
+                            "description": "The deployment purpose, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
                           },
                           {
                             "type": "array",
@@ -378,12 +379,13 @@
                                 "Embedding",
                                 "Image",
                                 "SpeechToText",
-                                "TextToSpeech"
+                                "TextToSpeech",
+                                "Vision"
                               ]
                             },
                             "minItems": 1,
                             "uniqueItems": true,
-                            "description": "The deployment types."
+                            "description": "The deployment purposes."
                           }
                         ]
                       }
@@ -1604,6 +1606,122 @@
             "if": {
               "properties": {
                 "name": {
+                  "const": "CreateAIProfileFromTemplate"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "const": "CreateAIProfileFromTemplate"
+                },
+                "Profiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "TemplateId": {
+                        "type": "string",
+                        "description": "Required identifier or name of an AI template whose source is Profile. The template is applied first, then any properties in this object override the generated profile."
+                      },
+                      "ItemId": {
+                        "type": "string",
+                        "description": "Optional unique identifier. If provided, used to find an existing profile to update."
+                      },
+                      "Source": {
+                        "type": "string",
+                        "description": "Overrides the AI provider source name."
+                      },
+                      "Name": {
+                        "type": "string",
+                        "description": "Overrides the profile name."
+                      },
+                      "DisplayText": {
+                        "type": "string",
+                        "description": "Overrides the human-readable profile display name."
+                      },
+                      "Description": {
+                        "type": "string",
+                        "description": "Overrides the profile description."
+                      },
+                      "WelcomeMessage": {
+                        "type": "string",
+                        "description": "Overrides the initial greeting shown to users."
+                      },
+                      "Type": {
+                        "type": "string",
+                        "enum": [
+                          "Chat",
+                          "Utility",
+                          "TemplatePrompt",
+                          "Agent"
+                        ],
+                        "description": "Overrides the profile type."
+                      },
+                      "TitleType": {
+                        "type": "string",
+                        "enum": [
+                          "InitialPrompt",
+                          "Generated"
+                        ],
+                        "description": "Overrides how the session title is generated."
+                      },
+                      "PromptTemplate": {
+                        "type": "string",
+                        "description": "Overrides the Liquid template for TemplatePrompt profiles."
+                      },
+                      "PromptSubject": {
+                        "type": "string",
+                        "description": "Overrides the prompt subject."
+                      },
+                      "OrchestratorName": {
+                        "type": "string",
+                        "description": "Overrides the orchestrator name."
+                      },
+                      "ChatDeploymentName": {
+                        "type": "string",
+                        "description": "Overrides the chat deployment technical name."
+                      },
+                      "UtilityDeploymentName": {
+                        "type": "string",
+                        "description": "Overrides the utility deployment technical name."
+                      },
+                      "Properties": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Overrides extended profile properties including AIProfileMetadata."
+                      },
+                      "Settings": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Overrides profile settings."
+                      }
+                    },
+                    "required": [
+                      "TemplateId"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "minItems": 1,
+                  "description": "The AI profiles to create or update from Profile templates. Each entry starts from the selected template and then applies any explicitly provided overrides."
+                }
+              },
+              "required": [
+                "name",
+                "Profiles"
+              ],
+              "additionalProperties": true
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "name": {
                   "const": "CreateOrUpdateIndexProfile"
                 }
               },
@@ -2159,6 +2277,7 @@
                       "CrestApps.OrchardCore.AI.Prompting",
                       "CrestApps.OrchardCore.AzureAIInference",
                       "CrestApps.OrchardCore.ContentAccessControl",
+                      "CrestApps.OrchardCore.ContentTransfer",
                       "CrestApps.OrchardCore.Ollama",
                       "CrestApps.OrchardCore.Omnichannel",
                       "CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices",
@@ -2401,6 +2520,7 @@
                       "CrestApps.OrchardCore.AI.Prompting",
                       "CrestApps.OrchardCore.AzureAIInference",
                       "CrestApps.OrchardCore.ContentAccessControl",
+                      "CrestApps.OrchardCore.ContentTransfer",
                       "CrestApps.OrchardCore.Ollama",
                       "CrestApps.OrchardCore.Omnichannel",
                       "CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices",
@@ -4779,6 +4899,10 @@
                       "type": "string",
                       "description": "The technical name of the default image generation deployment."
                     },
+                    "DefaultVisionDeploymentName": {
+                      "type": "string",
+                      "description": "The technical name of the default vision deployment."
+                    },
                     "DefaultSpeechToTextDeploymentName": {
                       "type": "string",
                       "description": "The technical name of the default speech-to-text deployment."
@@ -5185,6 +5309,14 @@
                         "Hierarchical"
                       ],
                       "description": "The document retrieval mode."
+                    },
+                    "AllowDocumentUploads": {
+                      "type": "boolean",
+                      "description": "Whether users can upload document files in chat interactions."
+                    },
+                    "AllowImageUploads": {
+                      "type": "boolean",
+                      "description": "Whether users can upload image files in chat interactions."
                     }
                   },
                   "additionalProperties": false
