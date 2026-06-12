@@ -5,14 +5,14 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- CrestApps.Core SDK -->
-    <PackageVersion Include="CrestApps.Core.AI.Mcp" Version="1.0.0-preview.121" />
+    <PackageVersion Include="CrestApps.Core.AI.Mcp" Version="1.0.0" />
   </ItemGroup>
   <ItemGroup>
     <!-- MCP Packages -->
     <PackageVersion Include="ModelContextProtocol" Version="1.4.0" />
     <PackageVersion Include="OrchardCore.FileStorage.FileSystem" Version="2.2.1" />
     <PackageVersion Include="YamlDotNet" Version="18.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
   </ItemGroup>
   <ItemGroup>
     <!-- Testing -->
