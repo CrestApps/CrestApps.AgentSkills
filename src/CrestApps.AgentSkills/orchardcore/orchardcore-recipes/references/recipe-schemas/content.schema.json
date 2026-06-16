@@ -56,7 +56,6 @@
           }
         },
         "required": [
-          "ContentItemId",
           "ContentType"
         ],
         "additionalProperties": true

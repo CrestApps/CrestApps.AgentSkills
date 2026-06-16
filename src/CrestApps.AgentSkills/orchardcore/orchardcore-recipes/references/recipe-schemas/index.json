@@ -1,5 +1,5 @@
 {
-  "GeneratedUtc": "2026-05-29T17:23:11.3210774+00:00",
+  "GeneratedUtc": "2026-06-16T22:00:56.7042453+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
@@ -213,6 +213,10 @@
     {
       "Name": "themes",
       "File": "themes.schema.json"
+    },
+    {
+      "Name": "TimeZoneMaps",
+      "File": "TimeZoneMaps.schema.json"
     },
     {
       "Name": "Translations",
