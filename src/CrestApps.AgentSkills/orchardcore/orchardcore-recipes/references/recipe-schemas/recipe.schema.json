@@ -96,6 +96,7 @@
               "media",
               "MediaProfiles",
               "MicrosoftAccountSettings",
+              "move-attached-media-fields",
               "OpenIdApplication",
               "OpenIdClientSettings",
               "OpenIdScope",
@@ -367,7 +368,16 @@
                         "anyOf": [
                           {
                             "type": "string",
-                            "description": "The deployment purpose, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
+                            "enum": [
+                              "Chat",
+                              "Utility",
+                              "Embedding",
+                              "Image",
+                              "SpeechToText",
+                              "TextToSpeech",
+                              "Vision"
+                            ],
+                            "description": "The deployment purpose. Defaults to Chat when not specified."
                           },
                           {
                             "type": "array",
@@ -381,7 +391,8 @@
                                 "SpeechToText",
                                 "TextToSpeech",
                                 "Vision"
-                              ]
+                              ],
+                              "description": "The deployment purpose. Defaults to Chat when not specified."
                             },
                             "minItems": 1,
                             "uniqueItems": true,
@@ -445,6 +456,10 @@
                         "type": "string",
                         "description": "Human-readable display name."
                       },
+                      "Description": {
+                        "type": "string",
+                        "description": "Profile description."
+                      },
                       "WelcomeMessage": {
                         "type": "string",
                         "description": "Initial greeting shown to users."
@@ -454,7 +469,8 @@
                         "enum": [
                           "Chat",
                           "Utility",
-                          "TemplatePrompt"
+                          "TemplatePrompt",
+                          "Agent"
                         ],
                         "description": "The profile type."
                       },
@@ -470,6 +486,14 @@
                         "type": "string",
                         "description": "Liquid template for TemplatePrompt profiles."
                       },
+                      "PromptSubject": {
+                        "type": "string",
+                        "description": "Prompt subject."
+                      },
+                      "OrchestratorName": {
+                        "type": "string",
+                        "description": "Orchestrator name."
+                      },
                       "ChatDeploymentName": {
                         "type": "string",
                         "description": "Chat deployment technical name for the AI model."
@@ -478,13 +502,17 @@
                         "type": "string",
                         "description": "Utility deployment technical name for the AI model."
                       },
-                      "ChatDeploymentId": {
+                      "CreatedUtc": {
                         "type": "string",
-                        "description": "Legacy chat deployment selector. Use ChatDeploymentName instead."
+                        "description": "Optional creation timestamp in ISO 8601 format."
                       },
-                      "UtilityDeploymentId": {
+                      "OwnerId": {
                         "type": "string",
-                        "description": "Legacy utility deployment selector. Use UtilityDeploymentName instead."
+                        "description": "Optional owner identifier."
+                      },
+                      "Author": {
+                        "type": "string",
+                        "description": "Optional author name."
                       },
                       "Properties": {
                         "type": "object",
@@ -3204,10 +3232,21 @@
                 }
               },
               "required": [
-                "name",
-                "ContentTypes"
+                "name"
               ],
-              "additionalProperties": true
+              "anyOf": [
+                {
+                  "required": [
+                    "ContentTypes"
+                  ]
+                },
+                {
+                  "required": [
+                    "ContentParts"
+                  ]
+                }
+              ],
+              "additionalProperties": false
             }
           },
           {
@@ -4787,6 +4826,38 @@
                 },
                 "CallbackPath": {
                   "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": true
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "name": {
+                  "const": "move-attached-media-fields"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "const": "move-attached-media-fields"
+                },
+                "ContentTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Optional content type filter. Omit this property to process every content type that contains a Media Field configured with the Attached editor."
                 }
               },
               "required": [
@@ -7483,7 +7554,19 @@
               "required": [
                 "name"
               ],
-              "additionalProperties": true
+              "anyOf": [
+                {
+                  "required": [
+                    "ContentTypes"
+                  ]
+                },
+                {
+                  "required": [
+                    "ContentParts"
+                  ]
+                }
+              ],
+              "additionalProperties": false
             }
           },
           {
@@ -7552,12 +7635,13 @@
                       "Permissions": {
                         "type": "array",
                         "items": {
-                          "type": "string"
-                        },
-                        "enum": [
-                          "PermissionA",
-                          "PermissionB"
-                        ]
+                          "type": "string",
+                          "enum": [
+                            "EditContent",
+                            "ViewContent",
+                            "ViewMediaContent"
+                          ]
+                        }
                       },
                       "PermissionBehavior": {
                         "type": "string",

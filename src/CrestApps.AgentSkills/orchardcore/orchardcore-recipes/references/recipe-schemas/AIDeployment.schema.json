@@ -79,7 +79,16 @@
             "anyOf": [
               {
                 "type": "string",
-                "description": "The deployment purpose, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
+                "enum": [
+                  "Chat",
+                  "Utility",
+                  "Embedding",
+                  "Image",
+                  "SpeechToText",
+                  "TextToSpeech",
+                  "Vision"
+                ],
+                "description": "The deployment purpose. Defaults to Chat when not specified."
               },
               {
                 "type": "array",
@@ -93,7 +102,8 @@
                     "SpeechToText",
                     "TextToSpeech",
                     "Vision"
-                  ]
+                  ],
+                  "description": "The deployment purpose. Defaults to Chat when not specified."
                 },
                 "minItems": 1,
                 "uniqueItems": true,

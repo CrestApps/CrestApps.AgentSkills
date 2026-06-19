@@ -19,12 +19,13 @@
           "Permissions": {
             "type": "array",
             "items": {
-              "type": "string"
-            },
-            "enum": [
-              "PermissionA",
-              "PermissionB"
-            ]
+              "type": "string",
+              "enum": [
+                "EditContent",
+                "ViewContent",
+                "ViewMediaContent"
+              ]
+            }
           },
           "PermissionBehavior": {
             "type": "string",

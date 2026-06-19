@@ -2089,5 +2089,17 @@
   "required": [
     "name"
   ],
-  "additionalProperties": true
+  "anyOf": [
+    {
+      "required": [
+        "ContentTypes"
+      ]
+    },
+    {
+      "required": [
+        "ContentParts"
+      ]
+    }
+  ],
+  "additionalProperties": false
 }

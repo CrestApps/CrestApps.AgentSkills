@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "move-attached-media-fields"
+    },
+    "ContentTypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional content type filter. Omit this property to process every content type that contains a Media Field configured with the Attached editor."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

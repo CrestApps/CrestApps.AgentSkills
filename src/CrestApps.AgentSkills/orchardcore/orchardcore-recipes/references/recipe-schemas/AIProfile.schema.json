@@ -26,6 +26,10 @@
             "type": "string",
             "description": "Human-readable display name."
           },
+          "Description": {
+            "type": "string",
+            "description": "Profile description."
+          },
           "WelcomeMessage": {
             "type": "string",
             "description": "Initial greeting shown to users."
@@ -35,7 +39,8 @@
             "enum": [
               "Chat",
               "Utility",
-              "TemplatePrompt"
+              "TemplatePrompt",
+              "Agent"
             ],
             "description": "The profile type."
           },
@@ -51,6 +56,14 @@
             "type": "string",
             "description": "Liquid template for TemplatePrompt profiles."
           },
+          "PromptSubject": {
+            "type": "string",
+            "description": "Prompt subject."
+          },
+          "OrchestratorName": {
+            "type": "string",
+            "description": "Orchestrator name."
+          },
           "ChatDeploymentName": {
             "type": "string",
             "description": "Chat deployment technical name for the AI model."
@@ -59,13 +72,17 @@
             "type": "string",
             "description": "Utility deployment technical name for the AI model."
           },
-          "ChatDeploymentId": {
+          "CreatedUtc": {
             "type": "string",
-            "description": "Legacy chat deployment selector. Use ChatDeploymentName instead."
+            "description": "Optional creation timestamp in ISO 8601 format."
           },
-          "UtilityDeploymentId": {
+          "OwnerId": {
             "type": "string",
-            "description": "Legacy utility deployment selector. Use UtilityDeploymentName instead."
+            "description": "Optional owner identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name."
           },
           "Properties": {
             "type": "object",
