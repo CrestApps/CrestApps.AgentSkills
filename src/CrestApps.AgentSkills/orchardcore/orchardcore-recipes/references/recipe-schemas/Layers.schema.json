@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Layers"
+      "const": "Layers",
+      "description": "Recipe step discriminator. Must be \u0027Layers\u0027."
     },
     "Layers": {
       "type": "array",
@@ -11,10 +12,12 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Layer name."
           },
           "Description": {
-            "type": "string"
+            "type": "string",
+            "description": "Administrative description of when the layer should be used."
           },
           "Rule": {
             "type": "string",
@@ -24,10 +27,12 @@
             "type": "object",
             "properties": {
               "Name": {
-                "type": "string"
+                "type": "string",
+                "description": "Rule name shown in the layer editor."
               },
               "ConditionId": {
-                "type": "string"
+                "type": "string",
+                "description": "Condition provider identifier used to evaluate the rule."
               },
               "Conditions": {
                 "type": "array",
@@ -45,7 +50,8 @@
           "Name"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Layers to create or update."
     }
   },
   "required": [

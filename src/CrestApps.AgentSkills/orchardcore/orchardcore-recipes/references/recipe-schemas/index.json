@@ -1,7 +1,11 @@
 {
-  "GeneratedUtc": "2026-06-19T23:20:28.2718442+00:00",
+  "GeneratedUtc": "2026-06-20T01:37:34.3493059+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
+    {
+      "Name": "A2AConnection",
+      "File": "A2AConnection.schema.json"
+    },
     {
       "Name": "AdminMenu",
       "File": "AdminMenu.schema.json"
@@ -9,6 +13,10 @@
     {
       "Name": "AdminTemplates",
       "File": "AdminTemplates.schema.json"
+    },
+    {
+      "Name": "AIDataSource",
+      "File": "AIDataSource.schema.json"
     },
     {
       "Name": "AIDeployment",
@@ -133,6 +141,18 @@
     {
       "Name": "lucene-index-reset",
       "File": "lucene-index-reset.schema.json"
+    },
+    {
+      "Name": "McpConnection",
+      "File": "McpConnection.schema.json"
+    },
+    {
+      "Name": "McpPrompt",
+      "File": "McpPrompt.schema.json"
+    },
+    {
+      "Name": "McpResource",
+      "File": "McpResource.schema.json"
     },
     {
       "Name": "media",

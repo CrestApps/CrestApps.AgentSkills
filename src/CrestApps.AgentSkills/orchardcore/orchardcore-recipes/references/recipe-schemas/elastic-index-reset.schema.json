@@ -3,16 +3,19 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "elastic-index-reset"
+      "const": "elastic-index-reset",
+      "description": "Recipe step discriminator. Must be \u0027elastic-index-reset\u0027."
     },
     "IncludeAll": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "When true, reset all Elasticsearch indexes and ignore the Indices list."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Specific Elasticsearch index names to reset when IncludeAll is false."
     }
   },
   "required": [

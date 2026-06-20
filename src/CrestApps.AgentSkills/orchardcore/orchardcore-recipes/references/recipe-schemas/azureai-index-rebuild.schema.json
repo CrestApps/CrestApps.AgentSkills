@@ -3,16 +3,19 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "azureai-index-rebuild"
+      "const": "azureai-index-rebuild",
+      "description": "Recipe step discriminator. Must be \u0027azureai-index-rebuild\u0027."
     },
     "IncludeAll": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "When true, rebuild all Azure AI Search indexes and ignore the Indices list."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Specific Azure AI Search index names to rebuild when IncludeAll is false."
     }
   },
   "required": [

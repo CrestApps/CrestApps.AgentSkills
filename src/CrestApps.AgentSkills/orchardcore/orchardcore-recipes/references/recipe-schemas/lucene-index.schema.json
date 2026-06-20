@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "lucene-index"
+      "const": "lucene-index",
+      "description": "Recipe step discriminator. Must be \u0027lucene-index\u0027."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true
-      }
+      },
+      "description": "Lucene index definitions to create or update. Each object is forwarded to the Lucene index handler."
     }
   },
   "required": [

@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AdminMenu"
+      "const": "AdminMenu",
+      "description": "Recipe step discriminator. Must be \u0027AdminMenu\u0027."
     },
     "data": {
       "type": "array",
@@ -11,13 +12,16 @@
         "type": "object",
         "properties": {
           "Id": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique admin menu content item identifier."
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Technical admin menu name."
           },
           "Enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the admin menu is enabled."
           },
           "MenuItems": {
             "type": "array",
@@ -83,7 +87,8 @@
           "MenuItems"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Admin menus to create or update."
     }
   },
   "required": [

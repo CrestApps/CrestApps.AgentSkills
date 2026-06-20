@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "TimeZoneMaps"
+      "const": "TimeZoneMaps",
+      "description": "Recipe step discriminator. Must be \u0027TimeZoneMaps\u0027."
     },
     "Maps": {
       "type": "array",

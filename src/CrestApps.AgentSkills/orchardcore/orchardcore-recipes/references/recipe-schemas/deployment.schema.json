@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "deployment"
+      "const": "deployment",
+      "description": "Recipe step discriminator. Must be \u0027deployment\u0027."
     },
     "Plans": {
       "type": "array",
@@ -11,7 +12,8 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Deployment plan name."
           },
           "Steps": {
             "type": "array",
@@ -19,11 +21,13 @@
               "type": "object",
               "properties": {
                 "Type": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Deployment step type identifier."
                 },
                 "Step": {
                   "type": "object",
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "description": "Raw deployment step payload passed to the step serializer."
                 }
               },
               "required": [
@@ -31,14 +35,16 @@
                 "Step"
               ],
               "additionalProperties": true
-            }
+            },
+            "description": "Deployment steps that belong to the plan."
           }
         },
         "required": [
           "Name"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Deployment plans to create or update."
     }
   },
   "required": [

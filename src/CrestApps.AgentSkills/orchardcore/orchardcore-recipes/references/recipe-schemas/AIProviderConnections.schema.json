@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AIProviderConnections"
+      "const": "AIProviderConnections",
+      "description": "Recipe step discriminator. Must be \u0027AIProviderConnections\u0027."
     },
     "Connections": {
       "type": "array",
@@ -16,7 +17,7 @@
           },
           "Source": {
             "type": "string",
-            "description": "Connection source/provider identifier (for example OpenAI, Azure, or AzureAIInference)."
+            "description": "Connection source/provider identifier for the registered AI provider."
           },
           "Name": {
             "type": "string",
@@ -155,7 +156,7 @@
               }
             },
             "additionalProperties": true,
-            "description": "Provider-specific connection metadata. Recipe exports keep provider settings under these metadata objects."
+            "description": "Provider-specific connection metadata grouped by metadata object name."
           }
         },
         "required": [

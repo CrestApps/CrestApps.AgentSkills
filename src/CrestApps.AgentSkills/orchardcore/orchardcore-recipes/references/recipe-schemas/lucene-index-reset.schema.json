@@ -3,16 +3,19 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "lucene-index-reset"
+      "const": "lucene-index-reset",
+      "description": "Recipe step discriminator. Must be \u0027lucene-index-reset\u0027."
     },
     "IncludeAll": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "When true, reset all Lucene indexes and ignore the Indices list."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Specific Lucene index names to reset when IncludeAll is false."
     }
   },
   "required": [

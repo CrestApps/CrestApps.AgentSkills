@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "WorkflowType"
+      "const": "WorkflowType",
+      "description": "Recipe step discriminator. Must be \u0027WorkflowType\u0027."
     },
     "data": {
       "type": "array",
@@ -11,7 +12,8 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Workflow type name."
           },
           "Activities": {
             "type": "array",
@@ -19,10 +21,12 @@
               "type": "object",
               "properties": {
                 "Name": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Activity type name. Start activities must be events; non-start activities must be tasks."
                 },
                 "IsStart": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Whether this activity is a workflow start event."
                 },
                 "X": {
                   "type": "number",
@@ -34,7 +38,8 @@
                 },
                 "Properties": {
                   "type": "object",
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "description": "Activity-specific property bag passed to the workflow activity."
                 }
               },
               "required": [
@@ -70,14 +75,16 @@
                   }
                 }
               }
-            }
+            },
+            "description": "Activities that belong to the workflow type."
           },
           "Transitions": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": true
-            }
+            },
+            "description": "Transition objects that connect activity outcomes."
           }
         },
         "required": [
@@ -86,7 +93,8 @@
           "Transitions"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Workflow type definitions to create or update."
     }
   },
   "required": [

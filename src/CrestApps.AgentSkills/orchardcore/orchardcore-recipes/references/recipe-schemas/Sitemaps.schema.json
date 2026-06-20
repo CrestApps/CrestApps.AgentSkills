@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Sitemaps"
+      "const": "Sitemaps",
+      "description": "Recipe step discriminator. Must be \u0027Sitemaps\u0027."
     },
     "data": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true
-      }
+      },
+      "description": "Sitemap content items or sitemap definitions to create or update."
     }
   },
   "required": [

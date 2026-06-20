@@ -3,16 +3,20 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "GitHubAuthenticationSettings"
+      "const": "GitHubAuthenticationSettings",
+      "description": "Recipe step discriminator. Must be \u0027GitHubAuthenticationSettings\u0027."
     },
     "ConsumerKey": {
-      "type": "string"
+      "type": "string",
+      "description": "GitHub OAuth application client ID."
     },
     "ConsumerSecret": {
-      "type": "string"
+      "type": "string",
+      "description": "GitHub OAuth application client secret."
     },
     "CallbackPath": {
-      "type": "string"
+      "type": "string",
+      "description": "Relative callback path that GitHub redirects back to after sign-in."
     }
   },
   "required": [

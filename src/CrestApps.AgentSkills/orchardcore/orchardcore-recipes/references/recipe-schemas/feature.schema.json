@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "feature"
+      "const": "feature",
+      "description": "Recipe step discriminator. Must be \u0027feature\u0027."
     },
     "enable": {
       "type": "array",
@@ -78,6 +79,7 @@
           "OrchardCore.AdminTemplates",
           "OrchardCore.Alias",
           "OrchardCore.Antivirus",
+          "OrchardCore.Antivirus.ClamAV",
           "OrchardCore.Apis.GraphQL",
           "OrchardCore.ArchiveLater",
           "OrchardCore.AuditTrail",
@@ -335,6 +337,7 @@
           "OrchardCore.AdminTemplates",
           "OrchardCore.Alias",
           "OrchardCore.Antivirus",
+          "OrchardCore.Antivirus.ClamAV",
           "OrchardCore.Apis.GraphQL",
           "OrchardCore.ArchiveLater",
           "OrchardCore.AuditTrail",

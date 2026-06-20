@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AIDeployment"
+      "const": "AIDeployment",
+      "description": "Recipe step discriminator. Must be \u0027AIDeployment\u0027."
     },
     "Deployments": {
       "type": "array",
@@ -20,7 +21,7 @@
           },
           "ClientName": {
             "type": "string",
-            "description": "Client name (e.g., OpenAI, Azure, AzureAIInference, Ollama, AzureSpeech)."
+            "description": "Client name for the registered AI provider."
           },
           "ConnectionName": {
             "type": "string",
@@ -73,7 +74,7 @@
               }
             },
             "additionalProperties": true,
-            "description": "Provider-specific deployment properties. AzureSpeech deployments use Endpoint, AuthenticationType, ApiKey, and optional IdentityId."
+            "description": "Contained provider connection properties stored directly on the deployment."
           },
           "Purpose": {
             "anyOf": [

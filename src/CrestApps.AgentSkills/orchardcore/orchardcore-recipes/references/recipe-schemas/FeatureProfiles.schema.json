@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "FeatureProfiles"
+      "const": "FeatureProfiles",
+      "description": "Recipe step discriminator. Must be \u0027FeatureProfiles\u0027."
     },
     "FeatureProfiles": {
       "type": "object",
@@ -11,10 +12,12 @@
         "type": "object",
         "properties": {
           "Id": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional unique identifier for the feature profile."
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the feature profile."
           },
           "FeatureRules": {
             "type": "array",
@@ -22,10 +25,12 @@
               "type": "object",
               "properties": {
                 "Rule": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Feature rule type identifier."
                 },
                 "Expression": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Expression evaluated by the rule."
                 }
               },
               "required": [
@@ -33,11 +38,13 @@
                 "Expression"
               ],
               "additionalProperties": true
-            }
+            },
+            "description": "Rules that determine which features belong to the profile."
           }
         },
         "additionalProperties": true
-      }
+      },
+      "description": "Dictionary of tenant feature profiles keyed by their technical name."
     }
   },
   "required": [

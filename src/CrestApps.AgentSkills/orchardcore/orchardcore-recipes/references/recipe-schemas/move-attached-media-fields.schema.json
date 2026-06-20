@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "move-attached-media-fields"
+      "const": "move-attached-media-fields",
+      "description": "Recipe step discriminator. Must be \u0027move-attached-media-fields\u0027."
     },
     "ContentTypes": {
       "type": "array",

@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Queries"
+      "const": "Queries",
+      "description": "Recipe step discriminator. Must be \u0027Queries\u0027."
     },
     "Queries": {
       "type": "array",
@@ -11,19 +12,24 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique query name."
           },
           "Source": {
-            "type": "string"
+            "type": "string",
+            "description": "Query source provider, such as Sql, Lucene, or Elasticsearch."
           },
           "Schema": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional schema or projection payload consumed by the source provider."
           },
           "Template": {
-            "type": "string"
+            "type": "string",
+            "description": "Raw query text or template executed by the source provider."
           },
           "ReturnContentItems": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the query returns full content items instead of primitive results."
           }
         },
         "required": [
@@ -32,7 +38,8 @@
         ],
         "additionalProperties": true
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Queries to create or update."
     }
   },
   "required": [

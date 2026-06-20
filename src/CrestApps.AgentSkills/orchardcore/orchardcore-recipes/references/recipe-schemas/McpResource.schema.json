@@ -1,0 +1,224 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "McpResource",
+      "description": "Recipe step discriminator. Must be \u0027McpResource\u0027."
+    },
+    "Resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. When supplied and found, the existing MCP resource is updated."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Human-readable title of the MCP resource."
+          },
+          "Source": {
+            "type": "string",
+            "description": "Resource source type. Known built-in values include \u0027file\u0027, \u0027media\u0027, \u0027recipe\u0027, \u0027recipe-schema\u0027, \u0027recipe-step-schema\u0027, \u0027content-item\u0027, \u0027content-type\u0027, \u0027ftp\u0027, and \u0027sftp\u0027."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve during import."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve during import."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "Optional owner user identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the resource."
+          },
+          "Resource": {
+            "type": "object",
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "Logical resource name exposed to MCP clients."
+              },
+              "Title": {
+                "type": "string",
+                "description": "Optional display title. Imports usually derive this from DisplayText, so this field can be omitted."
+              },
+              "Uri": {
+                "type": "string",
+                "description": "Resource URI or relative path. Imports accept full URIs such as ftp://{itemId}/path and may also accept the path portion that will be expanded to the final MCP URI."
+              },
+              "Description": {
+                "type": "string",
+                "description": "Optional description shown to MCP clients."
+              },
+              "MimeType": {
+                "type": "string",
+                "description": "Optional MIME type advertised to MCP clients."
+              }
+            },
+            "required": [
+              "Name",
+              "Uri"
+            ],
+            "additionalProperties": true,
+            "description": "The MCP resource definition exposed to clients."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Source-specific resource metadata grouped by metadata object name. Known built-in metadata objects are FtpConnectionMetadata and SftpConnectionMetadata, and extra objects are allowed for future resource sources.",
+            "properties": {
+              "FtpConnectionMetadata": {
+                "type": "object",
+                "description": "Known FTP connection settings for ftp:// MCP resources. Additional properties are allowed for provider-specific extensions.",
+                "properties": {
+                  "Host": {
+                    "type": "string",
+                    "description": "FTP or FTPS server host name."
+                  },
+                  "Port": {
+                    "type": "integer",
+                    "description": "Optional FTP server port. Common defaults are 21 for FTP and 990 for implicit FTPS."
+                  },
+                  "Username": {
+                    "type": "string",
+                    "description": "Username used to authenticate to the FTP server."
+                  },
+                  "Password": {
+                    "type": "string",
+                    "description": "Password used to authenticate to the FTP server. Recipe exports may sanitize this value."
+                  },
+                  "EncryptionMode": {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "Implicit",
+                      "Explicit",
+                      "Auto"
+                    ],
+                    "description": "FTP encryption mode. Use None for plain FTP, Explicit or Implicit for FTPS, or Auto to let the client decide."
+                  },
+                  "DataConnectionType": {
+                    "type": "string",
+                    "enum": [
+                      "AutoPassive",
+                      "PASV",
+                      "PASVEX",
+                      "EPSV",
+                      "AutoActive",
+                      "PORT",
+                      "EPRT"
+                    ],
+                    "description": "FTP data channel mode used for directory listings and file transfers."
+                  },
+                  "ValidateAnyCertificate": {
+                    "type": "boolean",
+                    "description": "Whether to accept any SSL/TLS certificate, including self-signed certificates."
+                  },
+                  "ConnectTimeout": {
+                    "type": "integer",
+                    "description": "Connection timeout in seconds."
+                  },
+                  "ReadTimeout": {
+                    "type": "integer",
+                    "description": "Read timeout in seconds for FTP operations."
+                  },
+                  "RetryAttempts": {
+                    "type": "integer",
+                    "description": "How many times failed FTP operations should be retried."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "SftpConnectionMetadata": {
+                "type": "object",
+                "description": "Known SFTP connection settings for sftp:// MCP resources. Additional properties are allowed for provider-specific extensions.",
+                "properties": {
+                  "Host": {
+                    "type": "string",
+                    "description": "SFTP server host name."
+                  },
+                  "Port": {
+                    "type": "integer",
+                    "description": "Optional SFTP server port. The usual default is 22."
+                  },
+                  "Username": {
+                    "type": "string",
+                    "description": "Username used to authenticate to the SFTP server."
+                  },
+                  "Password": {
+                    "type": "string",
+                    "description": "Password used for SFTP password authentication. Recipe exports may sanitize this value."
+                  },
+                  "PrivateKey": {
+                    "type": "string",
+                    "description": "Private key payload used for SFTP key-based authentication. Recipe exports may sanitize this value."
+                  },
+                  "Passphrase": {
+                    "type": "string",
+                    "description": "Optional passphrase for the private key. Recipe exports may sanitize this value."
+                  },
+                  "ProxyType": {
+                    "type": "string",
+                    "enum": [
+                      "None",
+                      "Socks4",
+                      "Socks5",
+                      "Http"
+                    ],
+                    "description": "Optional proxy type used when the SFTP server is reached through a proxy."
+                  },
+                  "ProxyHost": {
+                    "type": "string",
+                    "description": "Proxy host name when ProxyType is not None."
+                  },
+                  "ProxyPort": {
+                    "type": "integer",
+                    "description": "Proxy port when ProxyType is not None."
+                  },
+                  "ProxyUsername": {
+                    "type": "string",
+                    "description": "Optional proxy username."
+                  },
+                  "ProxyPassword": {
+                    "type": "string",
+                    "description": "Optional proxy password. Recipe exports may sanitize this value."
+                  },
+                  "ConnectionTimeout": {
+                    "type": "integer",
+                    "description": "Connection timeout in seconds."
+                  },
+                  "KeepAliveInterval": {
+                    "type": "integer",
+                    "description": "Optional keep-alive interval in seconds to keep idle SFTP sessions active."
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "DisplayText",
+          "Source",
+          "Resource"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The MCP resources to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Resources"
+  ],
+  "additionalProperties": true
+}

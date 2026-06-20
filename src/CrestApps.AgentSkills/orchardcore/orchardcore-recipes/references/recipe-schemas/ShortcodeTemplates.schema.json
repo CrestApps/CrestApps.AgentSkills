@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "ShortcodeTemplates"
+      "const": "ShortcodeTemplates",
+      "description": "Recipe step discriminator. Must be \u0027ShortcodeTemplates\u0027."
     },
     "ShortcodeTemplates": {
       "type": "object",
@@ -11,22 +12,27 @@
         "type": "object",
         "properties": {
           "Content": {
-            "type": "string"
+            "type": "string",
+            "description": "Shortcode template content."
           },
           "Hint": {
-            "type": "string"
+            "type": "string",
+            "description": "Short help text shown to editors."
           },
           "Usage": {
-            "type": "string"
+            "type": "string",
+            "description": "Example usage snippet shown to editors."
           },
           "DefaultValue": {
-            "type": "string"
+            "type": "string",
+            "description": "Default shortcode output or value."
           },
           "Categories": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Editor categories assigned to the shortcode template."
           }
         },
         "additionalProperties": true

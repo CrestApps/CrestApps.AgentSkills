@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "content"
+      "const": "content",
+      "description": "Recipe step discriminator. Must be \u0027content\u0027."
     },
     "data": {
       "type": "array",
@@ -60,7 +61,8 @@
         ],
         "additionalProperties": true
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Content items to import or update. Each item must match the schema for its content type."
     }
   },
   "required": [

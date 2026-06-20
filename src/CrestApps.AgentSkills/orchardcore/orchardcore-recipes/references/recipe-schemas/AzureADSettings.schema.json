@@ -3,19 +3,24 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AzureADSettings"
+      "const": "AzureADSettings",
+      "description": "Recipe step discriminator. Must be \u0027AzureADSettings\u0027."
     },
     "DisplayName": {
-      "type": "string"
+      "type": "string",
+      "description": "Display caption shown for the Azure AD login option."
     },
     "AppId": {
-      "type": "string"
+      "type": "string",
+      "description": "Azure AD application (client) ID."
     },
     "TenantId": {
-      "type": "string"
+      "type": "string",
+      "description": "Azure AD tenant identifier that owns the application."
     },
     "CallbackPath": {
-      "type": "string"
+      "type": "string",
+      "description": "Relative callback path that Azure AD redirects back to after sign-in."
     }
   },
   "required": [

@@ -3,25 +3,32 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "FacebookCoreSettings"
+      "const": "FacebookCoreSettings",
+      "description": "Recipe step discriminator. Must be \u0027FacebookCoreSettings\u0027."
     },
     "AppId": {
-      "type": "string"
+      "type": "string",
+      "description": "Facebook application ID."
     },
     "AppSecret": {
-      "type": "string"
+      "type": "string",
+      "description": "Facebook application secret."
     },
     "SdkJs": {
-      "type": "string"
+      "type": "string",
+      "description": "Optional URL override for the Facebook JavaScript SDK."
     },
     "FBInit": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether Orchard should emit the FB.init JavaScript bootstrap call."
     },
     "FBInitParams": {
-      "type": "string"
+      "type": "string",
+      "description": "JSON object serialized as the arguments for FB.init."
     },
     "Version": {
-      "type": "string"
+      "type": "string",
+      "description": "Facebook Graph API version to target, for example \u0027v20.0\u0027."
     }
   },
   "required": [

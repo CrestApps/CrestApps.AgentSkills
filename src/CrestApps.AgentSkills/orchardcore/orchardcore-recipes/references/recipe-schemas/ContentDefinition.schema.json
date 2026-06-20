@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "ContentDefinition"
+      "const": "ContentDefinition",
+      "description": "Recipe step discriminator. Must be \u0027ContentDefinition\u0027."
     },
     "ContentTypes": {
       "description": "List of content types. Fields must be attached through a content part whose PartName matches the content type\u0027s Name. Those parts must also appear in the ContentPartFieldDefinitionRecords inside ContentParts. Fields cannot be used directly in PartName.",
@@ -12,10 +13,12 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Technical content type name."
           },
           "DisplayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown in the Orchard admin UI."
           },
           "Settings": {
             "anyOf": [
@@ -26,19 +29,24 @@
                     "type": "object",
                     "properties": {
                       "Creatable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether editors can create new items of this type."
                       },
                       "Listable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether items of this type appear in content lists."
                       },
                       "Draftable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether items of this type support drafts."
                       },
                       "Versionable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether multiple versions are retained."
                       },
                       "Securable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether item-level permissions are enabled."
                       }
                     },
                     "required": [
@@ -48,7 +56,8 @@
                       "Versionable",
                       "Securable"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Standard Orchard Core content type settings."
                   }
                 },
                 "additionalProperties": true
@@ -57,7 +66,8 @@
                 "type": "object",
                 "additionalProperties": true
               }
-            ]
+            ],
+            "description": "Content type settings object, including standard Orchard ContentTypeSettings."
           },
           "ContentTypePartDefinitionRecords": {
             "type": "array",
@@ -92,10 +102,12 @@
                       "type": "string",
                       "pattern": "^(?!.*Field$).\u002B"
                     }
-                  ]
+                  ],
+                  "description": "Attached part type name. Known part names are enumerated when available."
                 },
                 "Name": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Attachment name used on the content type. Usually matches PartName."
                 },
                 "Settings": {
                   "type": "object",
@@ -104,25 +116,32 @@
                       "type": "object",
                       "properties": {
                         "DisplayName": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display label shown in the admin UI."
                         },
                         "Description": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Administrative description shown to editors."
                         },
                         "Position": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Placement position used by Orchard when rendering the part or field."
                         },
                         "DisplayMode": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display mode selected for the part or field."
                         },
                         "Editor": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Editor name used to edit the part or field."
                         }
                       },
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "description": "Standard Orchard settings stored under \u0027ContentTypePartSettings\u0027."
                     }
                   },
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "description": "Attachment settings for this part on the content type."
                 }
               },
               "required": [
@@ -962,7 +981,8 @@
                   }
                 }
               ]
-            }
+            },
+            "description": "Parts attached to this content type."
           }
         },
         "required": [
@@ -980,11 +1000,13 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Reusable content part name."
           },
           "Settings": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Part definition settings, including part-specific settings envelopes."
           },
           "ContentPartFieldDefinitionRecords": {
             "type": "array",
@@ -1011,10 +1033,12 @@
                     "TimeField",
                     "UserPickerField",
                     "YoutubeField"
-                  ]
+                  ],
+                  "description": "Field type name. Known Orchard field types are enumerated from the current tenant."
                 },
                 "Name": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Field name used inside the content part."
                 },
                 "Settings": {
                   "type": "object",
@@ -1023,25 +1047,32 @@
                       "type": "object",
                       "properties": {
                         "DisplayName": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display label shown in the admin UI."
                         },
                         "Description": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Administrative description shown to editors."
                         },
                         "Position": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Placement position used by Orchard when rendering the part or field."
                         },
                         "DisplayMode": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display mode selected for the part or field."
                         },
                         "Editor": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Editor name used to edit the part or field."
                         }
                       },
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "description": "Standard Orchard settings stored under \u0027ContentPartFieldSettings\u0027."
                     }
                   },
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "description": "Field definition settings, including Orchard placement/editor settings and field-specific settings envelopes."
                 }
               },
               "required": [
@@ -2074,7 +2105,8 @@
                   }
                 }
               ]
-            }
+            },
+            "description": "Field definitions that belong to this reusable part."
           }
         },
         "required": [
