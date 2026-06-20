@@ -3,16 +3,19 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "elastic-index-rebuild"
+      "const": "elastic-index-rebuild",
+      "description": "Recipe step discriminator. Must be \u0027elastic-index-rebuild\u0027."
     },
     "IncludeAll": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "When true, rebuild all Elasticsearch indexes and ignore the Indices list."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Specific Elasticsearch index names to rebuild when IncludeAll is false."
     }
   },
   "required": [

@@ -3,19 +3,22 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "DeleteContentDefinition"
+      "const": "DeleteContentDefinition",
+      "description": "Recipe step discriminator. Must be \u0027DeleteContentDefinition\u0027."
     },
     "ContentTypes": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Content type names to delete."
     },
     "ContentParts": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Reusable content part names to delete."
     }
   },
   "required": [

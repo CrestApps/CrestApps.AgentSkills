@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "ReplaceContentDefinition"
+      "const": "ReplaceContentDefinition",
+      "description": "Recipe step discriminator. Must be \u0027ReplaceContentDefinition\u0027."
     },
     "ContentTypes": {
       "description": "List of content types. Fields must be attached through a content part whose PartName matches the content type\u0027s Name. Those parts must also appear in the ContentPartFieldDefinitionRecords inside ContentParts. Fields cannot be used directly in PartName.",
@@ -12,10 +13,12 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Technical content type name."
           },
           "DisplayName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name shown in the Orchard admin UI."
           },
           "Settings": {
             "anyOf": [
@@ -26,19 +29,24 @@
                     "type": "object",
                     "properties": {
                       "Creatable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether editors can create new items of this type."
                       },
                       "Listable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether items of this type appear in content lists."
                       },
                       "Draftable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether items of this type support drafts."
                       },
                       "Versionable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether multiple versions are retained."
                       },
                       "Securable": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether item-level permissions are enabled."
                       }
                     },
                     "required": [
@@ -48,7 +56,8 @@
                       "Versionable",
                       "Securable"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "description": "Standard Orchard Core content type settings."
                   }
                 },
                 "additionalProperties": true
@@ -57,320 +66,82 @@
                 "type": "object",
                 "additionalProperties": true
               }
-            ]
+            ],
+            "description": "Content type settings object, including standard Orchard ContentTypeSettings."
           },
           "ContentTypePartDefinitionRecords": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "Settings": {
-                  "type": "object",
-                  "allOf": [
+                "PartName": {
+                  "type": "string",
+                  "anyOf": [
                     {
-                      "type": "object",
-                      "properties": {
-                        "AliasPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "Pattern": {
-                              "type": "string",
-                              "default": "{{ Model.ContentItem.DisplayText | slugify }}",
-                              "description": "Pattern for generating the alias. Must be valid Liquid syntax."
-                            },
-                            "Options": {
-                              "type": "string",
-                              "enum": [
-                                "Editable",
-                                "GeneratedDisabled"
-                              ],
-                              "default": "Editable",
-                              "description": "Whether the alias is editable or auto-generated."
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
+                      "enum": [
+                        "AliasPart",
+                        "AuditTrailPart",
+                        "AutoroutePart",
+                        "BagPart",
+                        "CommonPart",
+                        "ContainedPart",
+                        "FlowPart",
+                        "HtmlBodyPart",
+                        "HtmlMenuItemPart",
+                        "LayerMetadata",
+                        "ListPart",
+                        "MarkdownBodyPart",
+                        "PreviewPart",
+                        "PublishLaterPart",
+                        "SeoMetaPart",
+                        "TitlePart",
+                        "WidgetsListPart"
+                      ]
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "AuditTrailPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "ShowCommentInput": {
-                              "type": "boolean",
-                              "default": true,
-                              "description": "Show the comment input field."
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "AutoroutePartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "AllowCustomPath": {
-                              "type": "boolean"
-                            },
-                            "Pattern": {
-                              "type": "string",
-                              "default": "{{ ContentItem.DisplayText | slugify }}",
-                              "description": "The pattern used to build the Path. Must be valid Liquid syntax."
-                            },
-                            "ShowHomepageOption": {
-                              "type": "boolean"
-                            },
-                            "AllowUpdatePath": {
-                              "type": "boolean"
-                            },
-                            "AllowDisabled": {
-                              "type": "boolean"
-                            },
-                            "AllowRouteContainedItems": {
-                              "type": "boolean"
-                            },
-                            "ManageContainedItemRoutes": {
-                              "type": "boolean"
-                            },
-                            "AllowAbsolutePath": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "BagPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "ContainedContentTypes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "ContainedStereotypes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "DisplayType": {
-                              "type": "string"
-                            },
-                            "CollapseContainedItems": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "CommonPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "DisplayDateEditor": {
-                              "type": "boolean"
-                            },
-                            "DisplayOwnerEditor": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "FlowPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "ContainedContentTypes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "CollapseContainedItems": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "HtmlBodyPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "SanitizeHtml": {
-                              "type": "boolean",
-                              "default": true,
-                              "description": "Sanitize HTML input. Liquid is disabled when true."
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "ListPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "PageSize": {
-                              "type": "integer",
-                              "default": 10
-                            },
-                            "ContainedContentTypes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "EnableOrdering": {
-                              "type": "boolean"
-                            },
-                            "ShowHeader": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "MarkdownBodyPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "SanitizeHtml": {
-                              "type": "boolean",
-                              "default": true,
-                              "description": "Sanitize rendered HTML output."
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "PreviewPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "Pattern": {
-                              "type": "string",
-                              "description": "Pattern for building the preview path or display content."
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "SeoMetaPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "DisplayKeywords": {
-                              "type": "boolean"
-                            },
-                            "DisplayCustomMetaTags": {
-                              "type": "boolean"
-                            },
-                            "DisplayOpenGraph": {
-                              "type": "boolean"
-                            },
-                            "DisplayTwitter": {
-                              "type": "boolean"
-                            },
-                            "DisplayGoogleSchema": {
-                              "type": "boolean"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "TitlePartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "RenderTitle": {
-                              "type": "boolean"
-                            },
-                            "Options": {
-                              "type": "string",
-                              "enum": [
-                                "Editable",
-                                "GeneratedDisabled",
-                                "GeneratedHidden",
-                                "EditableRequired"
-                              ],
-                              "default": "Editable"
-                            },
-                            "Pattern": {
-                              "type": "string",
-                              "description": "This string must be a valid Liquid syntax"
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "WidgetsListPartSettings": {
-                          "type": "object",
-                          "properties": {
-                            "Zones": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": true
+                      "type": "string",
+                      "pattern": "^(?!.*Field$).\u002B"
                     }
                   ],
-                  "additionalProperties": true
+                  "description": "Attached part type name. Known part names are enumerated when available."
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Attachment name used on the content type. Usually matches PartName."
+                },
+                "Settings": {
+                  "type": "object",
+                  "properties": {
+                    "ContentTypePartSettings": {
+                      "type": "object",
+                      "properties": {
+                        "DisplayName": {
+                          "type": "string",
+                          "description": "Display label shown in the admin UI."
+                        },
+                        "Description": {
+                          "type": "string",
+                          "description": "Administrative description shown to editors."
+                        },
+                        "Position": {
+                          "type": "string",
+                          "description": "Placement position used by Orchard when rendering the part or field."
+                        },
+                        "DisplayMode": {
+                          "type": "string",
+                          "description": "Display mode selected for the part or field."
+                        },
+                        "Editor": {
+                          "type": "string",
+                          "description": "Editor name used to edit the part or field."
+                        }
+                      },
+                      "additionalProperties": false,
+                      "description": "Standard Orchard settings stored under \u0027ContentTypePartSettings\u0027."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "Attachment settings for this part on the content type."
                 }
               },
               "required": [
@@ -378,8 +149,840 @@
                 "Name",
                 "Settings"
               ],
-              "additionalProperties": true
-            }
+              "additionalProperties": true,
+              "allOf": [
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AliasPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "AliasPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Pattern": {
+                                    "type": "string",
+                                    "default": "{{ Model.ContentItem.DisplayText | slugify }}",
+                                    "description": "Pattern for generating the alias. Must be valid Liquid syntax."
+                                  },
+                                  "Options": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Editable",
+                                      "GeneratedDisabled"
+                                    ],
+                                    "default": "Editable",
+                                    "description": "Whether the alias is editable or auto-generated."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AuditTrailPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "AuditTrailPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowCommentInput": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Show the comment input field."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AutoroutePart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "AutoroutePartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "AllowCustomPath": {
+                                    "type": "boolean"
+                                  },
+                                  "Pattern": {
+                                    "type": "string",
+                                    "default": "{{ ContentItem.DisplayText | slugify }}",
+                                    "description": "The pattern used to build the Path. Must be valid Liquid syntax."
+                                  },
+                                  "ShowHomepageOption": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowUpdatePath": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowDisabled": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowRouteContainedItems": {
+                                    "type": "boolean"
+                                  },
+                                  "ManageContainedItemRoutes": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowAbsolutePath": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "BagPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "BagPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ContainedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "ContainedStereotypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "DisplayType": {
+                                    "type": "string"
+                                  },
+                                  "CollapseContainedItems": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "BagPartBlocksEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "AddButtonText": {
+                                    "type": "string"
+                                  },
+                                  "ModalTitleText": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "CommonPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "CommonPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "DisplayDateEditor": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayOwnerEditor": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "ContainedPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "FlowPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "FlowPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ContainedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "CollapseContainedItems": {
+                                    "type": "boolean"
+                                  },
+                                  "DefaultAlignment": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Left",
+                                      "Center",
+                                      "Right",
+                                      "Justify",
+                                      "Inherit"
+                                    ]
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "HtmlBodyPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "HtmlBodyPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "SanitizeHtml": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Sanitize HTML input."
+                                  },
+                                  "RenderLiquid": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "HtmlBodyPartMonacoEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  },
+                                  "InsertMediaWithUrl": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowCustomScripts": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "HtmlBodyPartTrumbowygEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  },
+                                  "InsertMediaWithUrl": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowCustomScripts": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "HtmlMenuItemPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "HtmlMenuItemPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "SanitizeHtml": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Sanitize HTML input."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "LayerMetadata"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "ListPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ListPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "PageSize": {
+                                    "type": "integer",
+                                    "default": 10
+                                  },
+                                  "ContainedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "EnableOrdering": {
+                                    "type": "boolean"
+                                  },
+                                  "ShowHeader": {
+                                    "type": "boolean"
+                                  },
+                                  "ShowFullPager": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "MarkdownBodyPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "MarkdownBodyPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "SanitizeHtml": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Sanitize rendered HTML output."
+                                  },
+                                  "RenderLiquid": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "MarkdownBodyPartWysiwygEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "PreviewPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "PreviewPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Pattern": {
+                                    "type": "string",
+                                    "description": "Pattern for building the preview path or display content."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "PublishLaterPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "SeoMetaPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "SeoMetaPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "DisplayKeywords": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayCustomMetaTags": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayOpenGraph": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayTwitter": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayGoogleSchema": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "TitlePart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TitlePartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "RenderTitle": {
+                                    "type": "boolean"
+                                  },
+                                  "Options": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Editable",
+                                      "GeneratedDisabled",
+                                      "GeneratedHidden",
+                                      "EditableRequired"
+                                    ],
+                                    "default": "Editable"
+                                  },
+                                  "Pattern": {
+                                    "type": "string",
+                                    "description": "This string must be a valid Liquid syntax"
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "WidgetsListPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "WidgetsListPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Zones": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              ]
+            },
+            "description": "Parts attached to this content type."
           }
         },
         "required": [
@@ -397,11 +1000,13 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Reusable content part name."
           },
           "Settings": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Part definition settings, including part-specific settings envelopes."
           },
           "ContentPartFieldDefinitionRecords": {
             "type": "array",
@@ -415,9 +1020,11 @@
                     "ContentPickerField",
                     "DateField",
                     "DateTimeField",
+                    "GeoPointField",
                     "HtmlField",
                     "LinkField",
                     "LocalizationSetContentPickerField",
+                    "MarkdownField",
                     "MediaField",
                     "MultiTextField",
                     "NumericField",
@@ -426,10 +1033,12 @@
                     "TimeField",
                     "UserPickerField",
                     "YoutubeField"
-                  ]
+                  ],
+                  "description": "Field type name. Known Orchard field types are enumerated from the current tenant."
                 },
                 "Name": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Field name used inside the content part."
                 },
                 "Settings": {
                   "type": "object",
@@ -438,25 +1047,32 @@
                       "type": "object",
                       "properties": {
                         "DisplayName": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display label shown in the admin UI."
                         },
                         "Description": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Administrative description shown to editors."
                         },
                         "Position": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Placement position used by Orchard when rendering the part or field."
                         },
                         "DisplayMode": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Display mode selected for the part or field."
                         },
                         "Editor": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Editor name used to edit the part or field."
                         }
                       },
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "description": "Standard Orchard settings stored under \u0027ContentPartFieldSettings\u0027."
                     }
                   },
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "description": "Field definition settings, including Orchard placement/editor settings and field-specific settings envelopes."
                 }
               },
               "required": [
@@ -464,8 +1080,1033 @@
                 "Name",
                 "Settings"
               ],
-              "additionalProperties": true
-            }
+              "additionalProperties": true,
+              "allOf": [
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "BooleanField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "BooleanFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Label": {
+                                    "type": "string"
+                                  },
+                                  "DefaultValue": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "ContentPickerField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ContentPickerFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Multiple": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayAllContentTypes": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "DisplayedStereotypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  },
+                                  "TitlePattern": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "DateField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "DateFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "DateTimeField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "DateTimeFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "GeoPointField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "GeoPointFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "HtmlField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "HtmlFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "SanitizeHtml": {
+                                    "type": "boolean"
+                                  },
+                                  "RenderLiquid": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "HtmlFieldMonacoEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "HtmlFieldTrumbowygEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  },
+                                  "InsertMediaWithUrl": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "LinkField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "LinkFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "HintLinkText": {
+                                    "type": "string"
+                                  },
+                                  "LinkTextMode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Optional",
+                                      "Required",
+                                      "Static",
+                                      "Url"
+                                    ]
+                                  },
+                                  "UrlPlaceholder": {
+                                    "type": "string"
+                                  },
+                                  "TextPlaceholder": {
+                                    "type": "string"
+                                  },
+                                  "DefaultUrl": {
+                                    "type": "string"
+                                  },
+                                  "DefaultText": {
+                                    "type": "string"
+                                  },
+                                  "DefaultTarget": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "LocalizationSetContentPickerField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "LocalizationSetContentPickerFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Multiple": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "MarkdownField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "MarkdownFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "SanitizeHtml": {
+                                    "type": "boolean"
+                                  },
+                                  "RenderLiquid": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "MarkdownFieldWysiwygEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "MediaField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "MediaFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Multiple": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowMediaText": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowAnchors": {
+                                    "type": "boolean"
+                                  },
+                                  "AllowedExtensions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "MultiTextField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "MultiTextFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        },
+                                        "default": {
+                                          "type": "boolean"
+                                        }
+                                      },
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "NumericField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "NumericFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Scale": {
+                                    "type": "integer"
+                                  },
+                                  "Minimum": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "Maximum": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  },
+                                  "DefaultValue": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "TaxonomyField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TaxonomyFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "TaxonomyContentItemId": {
+                                    "type": "string"
+                                  },
+                                  "Unique": {
+                                    "type": "boolean"
+                                  },
+                                  "LeavesOnly": {
+                                    "type": "boolean"
+                                  },
+                                  "Open": {
+                                    "type": "boolean"
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "TaxonomyFieldTagsEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Open": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "TextField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TextFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "DefaultValue": {
+                                    "type": "string"
+                                  },
+                                  "Type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Editable",
+                                      "GeneratedDisabled",
+                                      "GeneratedHidden"
+                                    ]
+                                  },
+                                  "Pattern": {
+                                    "type": "string",
+                                    "description": "This string must be valid Liquid syntax when provided."
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "TextFieldHeaderDisplaySettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Level": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "TextFieldMonacoEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "TextFieldPredefinedListEditorSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "Editor": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Radio",
+                                      "Dropdown"
+                                    ]
+                                  },
+                                  "DefaultValue": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "TimeField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TimeFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Step": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "UserPickerField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "UserPickerFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Multiple": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayAllUsers": {
+                                    "type": "boolean"
+                                  },
+                                  "DisplayedRoles": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "YoutubeField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "YoutubeFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": "string"
+                                  },
+                                  "Required": {
+                                    "type": "boolean"
+                                  },
+                                  "Label": {
+                                    "type": "string"
+                                  },
+                                  "Width": {
+                                    "type": "integer"
+                                  },
+                                  "Height": {
+                                    "type": "integer"
+                                  },
+                                  "Placeholder": {
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              ]
+            },
+            "description": "Field definitions that belong to this reusable part."
           }
         },
         "required": [
@@ -480,5 +2121,17 @@
   "required": [
     "name"
   ],
-  "additionalProperties": true
+  "anyOf": [
+    {
+      "required": [
+        "ContentTypes"
+      ]
+    },
+    {
+      "required": [
+        "ContentParts"
+      ]
+    }
+  ],
+  "additionalProperties": false
 }

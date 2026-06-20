@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "command"
+      "const": "command",
+      "description": "Recipe step discriminator. Must be \u0027command\u0027."
     },
     "Commands": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Commands to execute in order. Each entry is a single command line string."
     }
   },
   "required": [

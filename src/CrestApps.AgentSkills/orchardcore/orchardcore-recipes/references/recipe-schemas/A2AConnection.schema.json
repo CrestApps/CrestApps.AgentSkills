@@ -1,0 +1,144 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "A2AConnection",
+      "description": "Recipe step discriminator. Must be \u0027A2AConnection\u0027."
+    },
+    "Connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. When supplied and found, the existing connection is updated."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Human-readable name shown for the A2A connection in the admin UI."
+          },
+          "Endpoint": {
+            "type": "string",
+            "description": "Absolute HTTP or HTTPS endpoint of the remote A2A server."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve when importing exported records."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve when importing exported records."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "Optional owner user identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the connection."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Connection metadata grouped by metadata object name. Known built-in metadata currently lives under A2AConnectionMetadata, and extra objects are allowed for future extensions.",
+            "properties": {
+              "A2AConnectionMetadata": {
+                "type": "object",
+                "description": "Known A2A client authentication settings stored for the connection. Additional properties are allowed for future A2A transport extensions.",
+                "properties": {
+                  "AuthenticationType": {
+                    "type": "string",
+                    "enum": [
+                      "Anonymous",
+                      "ApiKey",
+                      "Basic",
+                      "OAuth2ClientCredentials",
+                      "OAuth2PrivateKeyJwt",
+                      "OAuth2Mtls",
+                      "CustomHeaders"
+                    ],
+                    "description": "How the A2A client authenticates to the remote endpoint."
+                  },
+                  "ApiKeyHeaderName": {
+                    "type": "string",
+                    "description": "Header name that carries the API key when AuthenticationType is ApiKey."
+                  },
+                  "ApiKeyPrefix": {
+                    "type": "string",
+                    "description": "Optional prefix placed before the API key value, such as \u0027Bearer\u0027 or a vendor-specific prefix."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "API key secret. Recipe exports may sanitize this value, so imports can leave it empty to keep an existing stored secret."
+                  },
+                  "BasicUsername": {
+                    "type": "string",
+                    "description": "Username used when AuthenticationType is Basic."
+                  },
+                  "BasicPassword": {
+                    "type": "string",
+                    "description": "Password used when AuthenticationType is Basic. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2TokenEndpoint": {
+                    "type": "string",
+                    "description": "OAuth 2.0 token endpoint used by client-credentials, private-key JWT, or mutual-TLS authentication."
+                  },
+                  "OAuth2ClientId": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client identifier."
+                  },
+                  "OAuth2ClientSecret": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client secret for client-credentials authentication. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2Scopes": {
+                    "type": "string",
+                    "description": "Optional OAuth 2.0 scopes, typically space-delimited."
+                  },
+                  "OAuth2KeyId": {
+                    "type": "string",
+                    "description": "Optional key identifier used when AuthenticationType is OAuth2PrivateKeyJwt."
+                  },
+                  "OAuth2PrivateKey": {
+                    "type": "string",
+                    "description": "Private key material used for OAuth2PrivateKeyJwt. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2ClientCertificate": {
+                    "type": "string",
+                    "description": "Client certificate payload used for OAuth2Mtls. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2ClientCertificatePassword": {
+                    "type": "string",
+                    "description": "Password for the client certificate when AuthenticationType is OAuth2Mtls. Recipe exports may sanitize this value."
+                  },
+                  "AdditionalHeaders": {
+                    "type": "object",
+                    "description": "Additional HTTP headers sent with each request when AuthenticationType is CustomHeaders.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "DisplayText",
+          "Endpoint"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The A2A connections to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Connections"
+  ],
+  "additionalProperties": true
+}

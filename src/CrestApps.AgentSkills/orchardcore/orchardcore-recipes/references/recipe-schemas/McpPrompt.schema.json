@@ -1,0 +1,109 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "McpPrompt",
+      "description": "Recipe step discriminator. Must be \u0027McpPrompt\u0027."
+    },
+    "Prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. When supplied and found, the existing MCP prompt is updated."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Optional stored prompt name alias kept for export parity. Recipe imports primarily use Prompt.Name."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve during import."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve during import."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "Optional owner user identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the prompt."
+          },
+          "Prompt": {
+            "type": "object",
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "Unique MCP prompt name. This is the authoritative name used during import."
+              },
+              "Title": {
+                "type": "string",
+                "description": "Optional human-readable title displayed by MCP clients."
+              },
+              "Description": {
+                "type": "string",
+                "description": "Optional description that explains when the prompt should be used."
+              },
+              "Arguments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "Unique argument name used inside the MCP prompt template."
+                    },
+                    "Title": {
+                      "type": "string",
+                      "description": "Optional human-friendly argument title shown to clients."
+                    },
+                    "Description": {
+                      "type": "string",
+                      "description": "Optional guidance describing what value the argument expects."
+                    },
+                    "Required": {
+                      "type": "boolean",
+                      "description": "Whether the client must provide this argument."
+                    }
+                  },
+                  "required": [
+                    "Name"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "Declared prompt arguments that clients can supply when invoking the prompt."
+              }
+            },
+            "required": [
+              "Name"
+            ],
+            "additionalProperties": true,
+            "description": "The MCP prompt definition to create or update."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Additional prompt metadata. No built-in MCP prompt metadata objects are currently exported here, but extra keys are allowed for future extensions.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "Prompt"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The MCP prompts to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Prompts"
+  ],
+  "additionalProperties": true
+}

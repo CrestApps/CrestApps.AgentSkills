@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "DeleteAIDeployments"
+      "const": "DeleteAIDeployments",
+      "description": "Recipe step discriminator. Must be \u0027DeleteAIDeployments\u0027."
     },
     "IncludeAll": {
       "type": "boolean",

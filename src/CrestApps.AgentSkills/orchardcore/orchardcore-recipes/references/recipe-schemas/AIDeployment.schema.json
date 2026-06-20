@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AIDeployment"
+      "const": "AIDeployment",
+      "description": "Recipe step discriminator. Must be \u0027AIDeployment\u0027."
     },
     "Deployments": {
       "type": "array",
@@ -20,7 +21,7 @@
           },
           "ClientName": {
             "type": "string",
-            "description": "Client name (e.g., OpenAI, Azure, AzureAIInference, Ollama, AzureSpeech)."
+            "description": "Client name for the registered AI provider."
           },
           "ConnectionName": {
             "type": "string",
@@ -73,13 +74,22 @@
               }
             },
             "additionalProperties": true,
-            "description": "Provider-specific deployment properties. AzureSpeech deployments use Endpoint, AuthenticationType, ApiKey, and optional IdentityId."
+            "description": "Contained provider connection properties stored directly on the deployment."
           },
           "Purpose": {
             "anyOf": [
               {
                 "type": "string",
-                "description": "The deployment purpose, or a comma-separated flag value such as \u0027Chat, Utility\u0027. Defaults to Chat when not specified."
+                "enum": [
+                  "Chat",
+                  "Utility",
+                  "Embedding",
+                  "Image",
+                  "SpeechToText",
+                  "TextToSpeech",
+                  "Vision"
+                ],
+                "description": "The deployment purpose. Defaults to Chat when not specified."
               },
               {
                 "type": "array",
@@ -93,7 +103,8 @@
                     "SpeechToText",
                     "TextToSpeech",
                     "Vision"
-                  ]
+                  ],
+                  "description": "The deployment purpose. Defaults to Chat when not specified."
                 },
                 "minItems": 1,
                 "uniqueItems": true,

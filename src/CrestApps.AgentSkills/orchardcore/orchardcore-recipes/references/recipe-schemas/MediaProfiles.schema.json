@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "MediaProfiles"
+      "const": "MediaProfiles",
+      "description": "Recipe step discriminator. Must be \u0027MediaProfiles\u0027."
     },
     "MediaProfiles": {
       "type": "object",
@@ -11,13 +12,16 @@
         "type": "object",
         "properties": {
           "Hint": {
-            "type": "string"
+            "type": "string",
+            "description": "Short note shown to editors explaining when to use the media profile."
           },
           "Width": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Target width in pixels."
           },
           "Height": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Target height in pixels."
           },
           "Mode": {
             "type": "string",
@@ -46,10 +50,12 @@
             "description": "The output image format."
           },
           "Quality": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Encoder quality percentage used by formats that support lossy compression."
           },
           "BackgroundColor": {
-            "type": "string"
+            "type": "string",
+            "description": "Background color used by pad-style resize modes."
           }
         },
         "additionalProperties": true

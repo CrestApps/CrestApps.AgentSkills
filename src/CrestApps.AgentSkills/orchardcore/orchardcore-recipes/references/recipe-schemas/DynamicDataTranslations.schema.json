@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "DynamicDataTranslations"
+      "const": "DynamicDataTranslations",
+      "description": "Recipe step discriminator. Must be \u0027DynamicDataTranslations\u0027."
     },
     "Translations": {
       "type": "array",
@@ -11,34 +12,41 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Logical translation set name."
           },
           "Translation": {
             "type": "object",
             "properties": {
               "Context": {
-                "type": "string"
+                "type": "string",
+                "description": "Optional localization context used to disambiguate the translation key."
               },
               "Key": {
-                "type": "string"
+                "type": "string",
+                "description": "Translation key to replace or add."
               },
               "Value": {
-                "type": "string"
+                "type": "string",
+                "description": "Localized value to store for the key."
               }
             },
             "required": [
               "Key"
             ],
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Translation entry payload."
           }
         },
         "required": [
           "Name",
           "Translation"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "A named dynamic-data translation entry."
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Dynamic data translation entries to import."
     }
   },
   "required": [

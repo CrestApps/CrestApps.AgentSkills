@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "media"
+      "const": "media",
+      "description": "Recipe step discriminator. Must be \u0027media\u0027."
     },
     "Files": {
       "type": "array",
@@ -11,7 +12,8 @@
         "type": "object",
         "properties": {
           "TargetPath": {
-            "type": "string"
+            "type": "string",
+            "description": "Media library path where the file will be stored."
           },
           "Path": {
             "type": "string",
@@ -34,7 +36,8 @@
           "TargetPath"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Media files to import."
     }
   },
   "required": [

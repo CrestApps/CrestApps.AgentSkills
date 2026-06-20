@@ -1,0 +1,173 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "McpConnection",
+      "description": "Recipe step discriminator. Must be \u0027McpConnection\u0027."
+    },
+    "Connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. When supplied and found, the existing MCP connection is updated."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Human-readable name shown for the MCP connection in the admin UI."
+          },
+          "Source": {
+            "type": "string",
+            "description": "MCP transport type. Known built-in values are \u0027sse\u0027 for remote HTTP/SSE servers and \u0027stdio\u0027 for local process-based servers."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve during import."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve during import."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "Optional owner user identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the connection."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Transport-specific MCP client metadata grouped by metadata object name. Known built-in metadata objects are SseMcpConnectionMetadata and StdioMcpConnectionMetadata, and extra objects are allowed for future transport extensions.",
+            "properties": {
+              "SseMcpConnectionMetadata": {
+                "type": "object",
+                "description": "Known HTTP/SSE MCP client settings for remote MCP servers. Additional properties are allowed for future MCP client features.",
+                "properties": {
+                  "Endpoint": {
+                    "type": "string",
+                    "description": "Absolute HTTP or HTTPS endpoint of the remote MCP server."
+                  },
+                  "AuthenticationType": {
+                    "type": "string",
+                    "enum": [
+                      "Anonymous",
+                      "ApiKey",
+                      "Basic",
+                      "OAuth2ClientCredentials",
+                      "OAuth2PrivateKeyJwt",
+                      "OAuth2Mtls",
+                      "CustomHeaders"
+                    ],
+                    "description": "How the SSE MCP client authenticates to the remote server."
+                  },
+                  "ApiKeyHeaderName": {
+                    "type": "string",
+                    "description": "Header name that carries the API key when AuthenticationType is ApiKey."
+                  },
+                  "ApiKeyPrefix": {
+                    "type": "string",
+                    "description": "Optional prefix placed before the API key value, such as \u0027Bearer\u0027."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "API key secret. Recipe exports may sanitize this value."
+                  },
+                  "BasicUsername": {
+                    "type": "string",
+                    "description": "Username used when AuthenticationType is Basic."
+                  },
+                  "BasicPassword": {
+                    "type": "string",
+                    "description": "Password used when AuthenticationType is Basic. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2TokenEndpoint": {
+                    "type": "string",
+                    "description": "OAuth 2.0 token endpoint used by client-credentials, private-key JWT, or mutual-TLS authentication."
+                  },
+                  "OAuth2ClientId": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client identifier."
+                  },
+                  "OAuth2ClientSecret": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client secret for client-credentials authentication. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2Scopes": {
+                    "type": "string",
+                    "description": "Optional OAuth 2.0 scopes, typically space-delimited."
+                  },
+                  "OAuth2KeyId": {
+                    "type": "string",
+                    "description": "Optional key identifier used when AuthenticationType is OAuth2PrivateKeyJwt."
+                  },
+                  "OAuth2PrivateKey": {
+                    "type": "string",
+                    "description": "Private key material used for OAuth2PrivateKeyJwt. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2ClientCertificate": {
+                    "type": "string",
+                    "description": "Client certificate payload used for OAuth2Mtls. Recipe exports may sanitize this value."
+                  },
+                  "OAuth2ClientCertificatePassword": {
+                    "type": "string",
+                    "description": "Password for the client certificate when AuthenticationType is OAuth2Mtls. Recipe exports may sanitize this value."
+                  },
+                  "AdditionalHeaders": {
+                    "type": "object",
+                    "description": "Additional HTTP headers sent with each request when AuthenticationType is CustomHeaders.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": true
+              },
+              "StdioMcpConnectionMetadata": {
+                "type": "object",
+                "description": "Known STDIO MCP client settings for launching a local MCP process. Additional properties are allowed for future transport options.",
+                "properties": {
+                  "Command": {
+                    "type": "string",
+                    "description": "Executable or shell command used to start the local MCP server."
+                  },
+                  "Arguments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Command-line arguments passed to the local MCP server process."
+                  },
+                  "WorkingDirectory": {
+                    "type": "string",
+                    "description": "Optional working directory used when starting the process."
+                  },
+                  "EnvironmentVariables": {
+                    "type": "object",
+                    "description": "Environment variables injected into the local MCP server process. Keys are variable names and values are strings.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The MCP connections to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Connections"
+  ],
+  "additionalProperties": true
+}

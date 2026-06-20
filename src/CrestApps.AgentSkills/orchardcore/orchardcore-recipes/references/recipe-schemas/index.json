@@ -1,7 +1,11 @@
 {
-  "GeneratedUtc": "2026-05-29T17:23:11.3210774+00:00",
+  "GeneratedUtc": "2026-06-20T01:37:34.3493059+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
+    {
+      "Name": "A2AConnection",
+      "File": "A2AConnection.schema.json"
+    },
     {
       "Name": "AdminMenu",
       "File": "AdminMenu.schema.json"
@@ -9,6 +13,10 @@
     {
       "Name": "AdminTemplates",
       "File": "AdminTemplates.schema.json"
+    },
+    {
+      "Name": "AIDataSource",
+      "File": "AIDataSource.schema.json"
     },
     {
       "Name": "AIDeployment",
@@ -135,6 +143,18 @@
       "File": "lucene-index-reset.schema.json"
     },
     {
+      "Name": "McpConnection",
+      "File": "McpConnection.schema.json"
+    },
+    {
+      "Name": "McpPrompt",
+      "File": "McpPrompt.schema.json"
+    },
+    {
+      "Name": "McpResource",
+      "File": "McpResource.schema.json"
+    },
+    {
       "Name": "media",
       "File": "media.schema.json"
     },
@@ -145,6 +165,10 @@
     {
       "Name": "MicrosoftAccountSettings",
       "File": "MicrosoftAccountSettings.schema.json"
+    },
+    {
+      "Name": "move-attached-media-fields",
+      "File": "move-attached-media-fields.schema.json"
     },
     {
       "Name": "OpenIdApplication",
@@ -213,6 +237,10 @@
     {
       "Name": "themes",
       "File": "themes.schema.json"
+    },
+    {
+      "Name": "TimeZoneMaps",
+      "File": "TimeZoneMaps.schema.json"
     },
     {
       "Name": "Translations",
