@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "azureai-index-create"
+      "const": "azureai-index-create",
+      "description": "Recipe step discriminator. Must be \u0027azureai-index-create\u0027."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true
-      }
+      },
+      "description": "Azure AI Search index definitions to create. Each object is forwarded to the Azure AI index recipe handler."
     }
   },
   "required": [

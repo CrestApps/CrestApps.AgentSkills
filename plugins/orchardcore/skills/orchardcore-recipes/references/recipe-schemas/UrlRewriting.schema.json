@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "UrlRewriting"
+      "const": "UrlRewriting",
+      "description": "Recipe step discriminator. Must be \u0027UrlRewriting\u0027."
     },
     "Rules": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true
-      }
+      },
+      "description": "URL rewrite rule objects to create or update."
     }
   },
   "required": [

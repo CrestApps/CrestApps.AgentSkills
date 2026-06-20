@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TimeZoneMaps",
+      "description": "Recipe step discriminator. Must be \u0027TimeZoneMaps\u0027."
+    },
+    "Maps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique friendly time zone name."
+          },
+          "TimeZoneId": {
+            "type": "string",
+            "description": "IANA time zone identifier to store for this map."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "The user id of the user creating the entry. Leave it blank to use the current user\u0027s Id."
+          },
+          "Author": {
+            "type": "string",
+            "description": "The username of the user creating the entry. Leave it blank to use the current username."
+          }
+        },
+        "required": [
+          "Name",
+          "TimeZoneId"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The time zone maps to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Maps"
+  ],
+  "additionalProperties": true
+}

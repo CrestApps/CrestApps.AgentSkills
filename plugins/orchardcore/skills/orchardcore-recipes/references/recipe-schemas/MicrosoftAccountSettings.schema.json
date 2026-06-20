@@ -3,16 +3,20 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "MicrosoftAccountSettings"
+      "const": "MicrosoftAccountSettings",
+      "description": "Recipe step discriminator. Must be \u0027MicrosoftAccountSettings\u0027."
     },
     "AppId": {
-      "type": "string"
+      "type": "string",
+      "description": "Microsoft application (client) ID."
     },
     "AppSecret": {
-      "type": "string"
+      "type": "string",
+      "description": "Microsoft application client secret."
     },
     "CallbackPath": {
-      "type": "string"
+      "type": "string",
+      "description": "Relative callback path that Microsoft redirects back to after sign-in."
     }
   },
   "required": [

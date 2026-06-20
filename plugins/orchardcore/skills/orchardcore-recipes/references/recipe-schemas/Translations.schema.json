@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Translations"
+      "const": "Translations",
+      "description": "Recipe step discriminator. Must be \u0027Translations\u0027."
     },
     "translations": {
       "type": "array",
@@ -11,25 +12,31 @@
         "type": "object",
         "properties": {
           "culture": {
-            "type": "string"
+            "type": "string",
+            "description": "Culture name, for example \u0027en-US\u0027 or \u0027fr\u0027."
           },
           "context": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional translation context used to disambiguate the key."
           },
           "key": {
-            "type": "string"
+            "type": "string",
+            "description": "Localization key to translate."
           },
           "value": {
-            "type": "string"
+            "type": "string",
+            "description": "Localized value stored for the key."
           }
         },
         "required": [
           "culture",
           "key"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Single localization entry."
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Translation entries to import."
     }
   },
   "required": [

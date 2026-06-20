@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Placements"
+      "const": "Placements",
+      "description": "Recipe step discriminator. Must be \u0027Placements\u0027."
     },
     "Placements": {
       "type": "object",

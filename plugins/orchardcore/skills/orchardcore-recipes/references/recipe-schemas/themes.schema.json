@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "themes"
+      "const": "themes",
+      "description": "Recipe step discriminator. Must be \u0027themes\u0027."
     },
     "site": {
       "type": "string",
