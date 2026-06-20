@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AIProfileTemplate"
+      "const": "AIProfileTemplate",
+      "description": "Recipe step discriminator. Must be \u0027AIProfileTemplate\u0027."
     },
     "Templates": {
       "type": "array",
@@ -116,8 +117,638 @@
           },
           "Properties": {
             "type": "object",
-            "additionalProperties": true,
-            "description": "Extended template properties."
+            "description": "Extended template properties. This includes the shared AI profile metadata objects plus template-specific metadata and template-stored settings objects, while still allowing additional feature-specific objects.",
+            "properties": {
+              "AgentMetadata": {
+                "type": "object",
+                "description": "Known agent metadata for agent profiles.",
+                "properties": {
+                  "Availability": {
+                    "type": "string",
+                    "enum": [
+                      "OnDemand",
+                      "AlwaysAvailable"
+                    ],
+                    "description": "Controls whether the agent is only available when selected or always injected into orchestration."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileMetadata": {
+                "type": "object",
+                "description": "Known prompt and model tuning metadata for the profile.",
+                "properties": {
+                  "InitialPrompt": {
+                    "type": "string",
+                    "description": "Optional initial prompt automatically injected for chat profiles."
+                  },
+                  "SystemMessage": {
+                    "type": "string",
+                    "description": "The system instructions for the profile."
+                  },
+                  "Temperature": {
+                    "type": "number",
+                    "description": "Sampling temperature."
+                  },
+                  "TopP": {
+                    "type": "number",
+                    "description": "Nucleus sampling threshold."
+                  },
+                  "FrequencyPenalty": {
+                    "type": "number",
+                    "description": "Reduces frequent token repetition."
+                  },
+                  "PresencePenalty": {
+                    "type": "number",
+                    "description": "Encourages topic diversity."
+                  },
+                  "MaxTokens": {
+                    "type": "integer",
+                    "description": "Maximum output tokens for responses."
+                  },
+                  "PastMessagesCount": {
+                    "type": "integer",
+                    "description": "Number of prior chat messages to include in context."
+                  },
+                  "UseCaching": {
+                    "type": "boolean",
+                    "description": "Whether distributed caching is enabled for the profile when the tenant allows it."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "FunctionInvocationMetadata": {
+                "type": "object",
+                "description": "Known tool selection metadata for the profile.",
+                "properties": {
+                  "Names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Tool names that can be invoked by this profile."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AgentInvocationMetadata": {
+                "type": "object",
+                "description": "Known on-demand agent selections for the profile.",
+                "properties": {
+                  "Names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Agent profile names that can be invoked by this profile."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "PromptTemplateMetadata": {
+                "type": "object",
+                "description": "Known prompt template selections applied before or alongside the system message.",
+                "properties": {
+                  "Templates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "TemplateId": {
+                          "type": "string",
+                          "description": "Prompt template identifier."
+                        },
+                        "Parameters": {
+                          "type": "object",
+                          "description": "Template parameter values. Keys are parameter names and values are strings.",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "description": "Ordered prompt template selections for the profile."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AnalyticsMetadata": {
+                "type": "object",
+                "description": "Known analytics and outcome tracking metadata for chat profiles.",
+                "properties": {
+                  "EnableSessionMetrics": {
+                    "type": "boolean",
+                    "description": "Enables per-session metrics collection."
+                  },
+                  "EnableAIResolutionDetection": {
+                    "type": "boolean",
+                    "description": "Enables AI resolution detection."
+                  },
+                  "EnableConversionMetrics": {
+                    "type": "boolean",
+                    "description": "Enables conversion goal scoring."
+                  },
+                  "ConversionGoals": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string",
+                          "description": "Unique goal key."
+                        },
+                        "Description": {
+                          "type": "string",
+                          "description": "Goal description used for scoring guidance."
+                        },
+                        "MinScore": {
+                          "type": "integer",
+                          "description": "Minimum accepted score."
+                        },
+                        "MaxScore": {
+                          "type": "integer",
+                          "description": "Maximum accepted score."
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "description": "Configured conversion goals for chat analytics."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "DataSourceMetadata": {
+                "type": "object",
+                "description": "Known external data source selection for retrieval augmentation.",
+                "properties": {
+                  "DataSourceId": {
+                    "type": "string",
+                    "description": "Identifier of the selected AI data source."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIDataSourceRagMetadata": {
+                "type": "object",
+                "description": "Known retrieval augmentation parameters for an attached AI data source.",
+                "properties": {
+                  "Strictness": {
+                    "type": "integer",
+                    "description": "Retrieval strictness value."
+                  },
+                  "TopNDocuments": {
+                    "type": "integer",
+                    "description": "How many documents to retrieve."
+                  },
+                  "IsInScope": {
+                    "type": "boolean",
+                    "description": "Whether answers must stay within the retrieved documents."
+                  },
+                  "Filter": {
+                    "type": "string",
+                    "description": "Optional OData filter applied to retrieved data."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileSessionDocumentsMetadata": {
+                "type": "object",
+                "description": "Known session upload capabilities for the profile.",
+                "properties": {
+                  "AllowSessionDocuments": {
+                    "type": "boolean",
+                    "description": "Allows session document uploads."
+                  },
+                  "AllowSessionImageUploads": {
+                    "type": "boolean",
+                    "description": "Allows session image uploads."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "DocumentsMetadata": {
+                "type": "object",
+                "description": "Known profile document attachments and retrieval behavior.",
+                "properties": {
+                  "Documents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "DocumentId": {
+                          "type": "string",
+                          "description": "Stored document identifier."
+                        },
+                        "FileName": {
+                          "type": "string",
+                          "description": "Original file name."
+                        },
+                        "ContentType": {
+                          "type": "string",
+                          "description": "Document MIME type."
+                        },
+                        "FileSize": {
+                          "type": "integer",
+                          "description": "Document size in bytes."
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "description": "Documents explicitly attached to the profile."
+                  },
+                  "DocumentTopN": {
+                    "type": "integer",
+                    "description": "How many top document matches to include."
+                  },
+                  "RetrievalMode": {
+                    "type": "string",
+                    "enum": [
+                      "Chunk",
+                      "Hierarchical"
+                    ],
+                    "description": "Document retrieval strategy."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "MemoryMetadata": {
+                "type": "object",
+                "description": "Known AI memory configuration for the profile.",
+                "properties": {
+                  "EnableUserMemory": {
+                    "type": "boolean",
+                    "description": "Whether user memory is enabled for the profile."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "ClaudeSessionMetadata": {
+                "type": "object",
+                "description": "Known Claude orchestrator overrides when the AI Claude Orchestrator feature is enabled.",
+                "properties": {
+                  "ClaudeModel": {
+                    "type": "string",
+                    "description": "Claude model override for this profile."
+                  },
+                  "EffortLevel": {
+                    "type": "string",
+                    "enum": [
+                      "Default",
+                      "Low",
+                      "Medium",
+                      "High"
+                    ],
+                    "description": "Claude reasoning effort override."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "CopilotSessionMetadata": {
+                "type": "object",
+                "description": "Known Copilot orchestrator overrides when the AI Copilot Orchestrator feature is enabled.",
+                "properties": {
+                  "CopilotModel": {
+                    "type": "string",
+                    "description": "Copilot model override for this profile."
+                  },
+                  "IsAllowAll": {
+                    "type": "boolean",
+                    "description": "Whether Copilot should run with the allow-all flag."
+                  },
+                  "ReasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "Default",
+                      "Low",
+                      "Medium",
+                      "High"
+                    ],
+                    "description": "Copilot reasoning effort override."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileMcpMetadata": {
+                "type": "object",
+                "description": "Known MCP connection selections for this profile.",
+                "properties": {
+                  "ConnectionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Selected connection identifiers."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileA2AMetadata": {
+                "type": "object",
+                "description": "Known A2A connection selections for this profile.",
+                "properties": {
+                  "ConnectionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Selected connection identifiers."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "ProfileTemplateMetadata": {
+                "type": "object",
+                "description": "Known profile-template metadata stored when the template Source is Profile. These values seed the generated AIProfile before explicit recipe overrides are applied.",
+                "properties": {
+                  "ProfileType": {
+                    "type": "string",
+                    "enum": [
+                      "Chat",
+                      "Utility",
+                      "TemplatePrompt",
+                      "Agent"
+                    ],
+                    "description": "Profile type created from this template."
+                  },
+                  "ChatDeploymentName": {
+                    "type": "string",
+                    "description": "Chat deployment name used when the generated profile needs a chat-capable model."
+                  },
+                  "UtilityDeploymentName": {
+                    "type": "string",
+                    "description": "Utility deployment name used when the generated profile needs a utility or background model."
+                  },
+                  "OrchestratorName": {
+                    "type": "string",
+                    "description": "Orchestrator name applied to generated profiles."
+                  },
+                  "InitialResponseHandlerName": {
+                    "type": "string",
+                    "description": "Optional response handler that runs before the main orchestrator."
+                  },
+                  "TitleType": {
+                    "type": "string",
+                    "enum": [
+                      "InitialPrompt",
+                      "Generated"
+                    ],
+                    "description": "How new session titles should be produced for generated profiles."
+                  },
+                  "WelcomeMessage": {
+                    "type": "string",
+                    "description": "Welcome message shown when the generated profile starts a new chat session."
+                  },
+                  "PromptTemplate": {
+                    "type": "string",
+                    "description": "Optional Liquid prompt template copied into the generated profile."
+                  },
+                  "PromptSubject": {
+                    "type": "string",
+                    "description": "Optional subject used with the prompt template."
+                  },
+                  "SystemMessage": {
+                    "type": "string",
+                    "description": "Base system message copied into generated profiles."
+                  },
+                  "Temperature": {
+                    "type": "number",
+                    "description": "Sampling temperature applied to generated profiles."
+                  },
+                  "TopP": {
+                    "type": "number",
+                    "description": "Nucleus sampling threshold applied to generated profiles."
+                  },
+                  "FrequencyPenalty": {
+                    "type": "number",
+                    "description": "Frequency penalty applied to generated profiles."
+                  },
+                  "PresencePenalty": {
+                    "type": "number",
+                    "description": "Presence penalty applied to generated profiles."
+                  },
+                  "MaxOutputTokens": {
+                    "type": "integer",
+                    "description": "Maximum output tokens copied into generated profiles."
+                  },
+                  "PastMessagesCount": {
+                    "type": "integer",
+                    "description": "Number of prior chat messages that generated profiles should include in context."
+                  },
+                  "ToolNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Tool names automatically selected for generated profiles."
+                  },
+                  "AgentNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "On-demand agent profile names automatically selected for generated profiles."
+                  },
+                  "Description": {
+                    "type": "string",
+                    "description": "Profile description copied into the generated profile."
+                  },
+                  "AgentAvailability": {
+                    "type": "string",
+                    "enum": [
+                      "OnDemand",
+                      "AlwaysAvailable"
+                    ],
+                    "description": "Agent availability applied when the generated profile type is Agent."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "SystemPromptTemplateMetadata": {
+                "type": "object",
+                "description": "Known system-prompt template metadata stored when the template Source is SystemPrompt.",
+                "properties": {
+                  "SystemMessage": {
+                    "type": "string",
+                    "description": "System message contributed by this reusable system-prompt template."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileSettings": {
+                "type": "object",
+                "description": "Known core profile settings.",
+                "properties": {
+                  "LockSystemMessage": {
+                    "type": "boolean",
+                    "description": "Prevents recipe or editor updates from changing the system message."
+                  },
+                  "IsRemovable": {
+                    "type": "boolean",
+                    "description": "Controls whether the profile can be deleted from the admin UI."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "ResponseHandlerProfileSettings": {
+                "type": "object",
+                "description": "Known response handler settings.",
+                "properties": {
+                  "InitialResponseHandlerName": {
+                    "type": "string",
+                    "description": "Initial non-AI response handler to invoke before the main orchestrator."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIChatProfileSettings": {
+                "type": "object",
+                "description": "Known chat UI settings.",
+                "properties": {
+                  "IsOnAdminMenu": {
+                    "type": "boolean",
+                    "description": "Whether the chat profile appears on the Orchard admin menu."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfileDataExtractionSettings": {
+                "type": "object",
+                "description": "Known session data extraction settings.",
+                "properties": {
+                  "EnableDataExtraction": {
+                    "type": "boolean",
+                    "description": "Enables extracting structured values from chat sessions."
+                  },
+                  "ExtractionCheckInterval": {
+                    "type": "integer",
+                    "description": "How often data extraction runs during the session."
+                  },
+                  "SessionInactivityTimeoutInMinutes": {
+                    "type": "integer",
+                    "description": "How long the session must be inactive before final extraction runs."
+                  },
+                  "DataExtractionEntries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string",
+                          "description": "Unique extraction key."
+                        },
+                        "Description": {
+                          "type": "string",
+                          "description": "What value should be extracted."
+                        },
+                        "AllowMultipleValues": {
+                          "type": "boolean",
+                          "description": "Whether multiple values can be captured."
+                        },
+                        "IsUpdatable": {
+                          "type": "boolean",
+                          "description": "Whether later session turns can update the extracted value."
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "description": "Structured extraction definitions."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIProfilePostSessionSettings": {
+                "type": "object",
+                "description": "Known post-session processing settings.",
+                "properties": {
+                  "EnablePostSessionProcessing": {
+                    "type": "boolean",
+                    "description": "Enables deferred post-session tasks."
+                  },
+                  "ToolNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Tools available to post-session processing."
+                  },
+                  "PostSessionTasks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string",
+                          "description": "Unique task key."
+                        },
+                        "Type": {
+                          "type": "string",
+                          "enum": [
+                            "Semantic",
+                            "PredefinedOptions"
+                          ],
+                          "description": "How the task result is generated."
+                        },
+                        "Instructions": {
+                          "type": "string",
+                          "description": "Instructions for the task."
+                        },
+                        "AllowMultipleValues": {
+                          "type": "boolean",
+                          "description": "Whether the task can return multiple values."
+                        },
+                        "Options": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "Value": {
+                                "type": "string",
+                                "description": "Predefined option value."
+                              },
+                              "Description": {
+                                "type": "string",
+                                "description": "Human-readable description for the option."
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "description": "Predefined options used when Type is PredefinedOptions."
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "description": "Tasks executed after the chat session closes."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "ChatModeProfileSettings": {
+                "type": "object",
+                "description": "Known chat interaction mode settings.",
+                "properties": {
+                  "ChatMode": {
+                    "type": "string",
+                    "enum": [
+                      "TextInput",
+                      "AudioInput",
+                      "Conversation"
+                    ],
+                    "description": "Preferred input mode for this profile."
+                  },
+                  "VoiceName": {
+                    "type": "string",
+                    "description": "Optional speech synthesis voice for conversation mode."
+                  },
+                  "EnableTextToSpeechPlayback": {
+                    "type": "boolean",
+                    "description": "Whether assistant responses should be played back with text-to-speech."
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
           }
         },
         "required": [

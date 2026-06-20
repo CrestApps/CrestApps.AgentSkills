@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "AdminTemplates"
+      "const": "AdminTemplates",
+      "description": "Recipe step discriminator. Must be \u0027AdminTemplates\u0027."
     },
     "AdminTemplates": {
       "type": "object",
@@ -11,10 +12,12 @@
         "type": "object",
         "properties": {
           "Content": {
-            "type": "string"
+            "type": "string",
+            "description": "Liquid template content."
           },
           "Description": {
-            "type": "string"
+            "type": "string",
+            "description": "Administrative description of what the template customizes."
           }
         },
         "additionalProperties": true

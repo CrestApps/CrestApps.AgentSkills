@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "recipes"
+      "const": "recipes",
+      "description": "Recipe step discriminator. Must be \u0027recipes\u0027."
     },
     "Values": {
       "type": "array",
@@ -11,11 +12,13 @@
         "type": "object",
         "properties": {
           "executionid": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique execution identifier used to track the nested recipe execution."
           },
           "name": {
             "type": "string",
-            "enum": []
+            "enum": [],
+            "description": "Name of the non-startup recipe to execute."
           }
         },
         "required": [
@@ -23,7 +26,8 @@
           "name"
         ],
         "additionalProperties": true
-      }
+      },
+      "description": "Referenced recipes to execute from this step."
     }
   },
   "required": [

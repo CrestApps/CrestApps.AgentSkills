@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "settings"
+      "const": "settings",
+      "description": "Recipe step discriminator. Must be \u0027settings\u0027."
     },
     "BaseUrl": {
       "anyOf": [
@@ -13,7 +14,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Optional absolute base URL for the site."
     },
     "Calendar": {
       "anyOf": [
@@ -23,16 +25,20 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Optional calendar system identifier used by the site."
     },
     "MaxPagedCount": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Maximum number of items Orchard may return from paged queries."
     },
     "MaxPageSize": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Maximum page size allowed by Orchard paging APIs."
     },
     "PageSize": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Default page size used by Orchard lists and queries."
     },
     "ResourceDebugMode": {
       "type": "string",
@@ -40,25 +46,32 @@
         "FromConfiguration",
         "Enabled",
         "Disabled"
-      ]
+      ],
+      "description": "Controls whether resource debugging stays with configuration, is forced on, or is forced off."
     },
     "SiteName": {
-      "type": "string"
+      "type": "string",
+      "description": "Public site name."
     },
     "PageTitleFormat": {
-      "type": "string"
+      "type": "string",
+      "description": "Page title format string, typically including placeholders like \u0027{{ Site.SiteName }}\u0027."
     },
     "SiteSalt": {
-      "type": "string"
+      "type": "string",
+      "description": "Application salt used by Orchard security and hashing features."
     },
     "SuperUser": {
-      "type": "string"
+      "type": "string",
+      "description": "User name of the Orchard super user account."
     },
     "TimeZoneId": {
-      "type": "string"
+      "type": "string",
+      "description": "Default site time zone ID."
     },
     "UseCdn": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether Orchard should serve static assets from a CDN base URL."
     },
     "CdnBaseUrl": {
       "anyOf": [
@@ -68,10 +81,12 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "CDN base URL used when UseCdn is enabled."
     },
     "AppendVersion": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether Orchard should append file version hashes to resource URLs."
     },
     "HomeRoute": {
       "anyOf": [
@@ -79,13 +94,16 @@
           "type": "object",
           "properties": {
             "Area": {
-              "type": "string"
+              "type": "string",
+              "description": "ASP.NET Core route area."
             },
             "Controller": {
-              "type": "string"
+              "type": "string",
+              "description": "ASP.NET Core route controller."
             },
             "Action": {
-              "type": "string"
+              "type": "string",
+              "description": "ASP.NET Core route action."
             }
           },
           "required": [
@@ -98,7 +116,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Optional route object that overrides the site\u0027s home page target."
     },
     "CacheMode": {
       "type": "string",
@@ -107,7 +126,8 @@
         "Enabled",
         "DebugEnabled",
         "Disabled"
-      ]
+      ],
+      "description": "Controls Orchard cache behavior for the tenant."
     },
     "AIChatAdminWidgetSettings": {
       "type": "object",
@@ -373,6 +393,25 @@
       ],
       "additionalProperties": false
     },
+    "CanadaDnclRegistrySettings": {
+      "type": "object",
+      "description": "Configuration for the Canada LNNTE-DNCL Registry provider.",
+      "properties": {
+        "ProtectedApiKey": {
+          "type": "string",
+          "description": "The encrypted API key used to authenticate with the Canada LNNTE-DNCL Registry."
+        },
+        "AccountNumber": {
+          "type": "string",
+          "description": "The Canada LNNTE-DNCL account number used for registry lookups."
+        },
+        "BaseUrl": {
+          "type": "string",
+          "description": "The base URL for the Canada LNNTE-DNCL Registry API."
+        }
+      },
+      "additionalProperties": false
+    },
     "ChangeEmailSettings": {
       "type": "object",
       "description": "Configuration for the change email feature.",
@@ -631,6 +670,24 @@
             "Required"
           ],
           "description": "Whether the middle name field is hidden, optional, or required."
+        }
+      },
+      "additionalProperties": false
+    },
+    "DncRegistrySettings": {
+      "type": "object",
+      "description": "Configuration for globally enforcing do-not-call registry checks during content imports.",
+      "properties": {
+        "EnforceGlobally": {
+          "type": "boolean",
+          "description": "Whether do-not-call registry checks are globally enforced for content imports."
+        },
+        "EnforcedRegistryKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The registry keys that are always checked during content imports."
         }
       },
       "additionalProperties": false
@@ -1016,6 +1073,11 @@
         "DisableLocalLogin": {
           "type": "boolean",
           "description": "Whether to disable local username/password login."
+        },
+        "AllowRememberMe": {
+          "type": "boolean",
+          "description": "Whether to allow users to be remembered across browser sessions during login.",
+          "default": true
         },
         "AllowChangingUsername": {
           "type": "boolean",
@@ -1698,6 +1760,25 @@
         "UseSiteTheme": {
           "type": "boolean",
           "description": "Whether to use the site theme for the two-factor authentication pages."
+        }
+      },
+      "additionalProperties": false
+    },
+    "UsaFtcDncRegistrySettings": {
+      "type": "object",
+      "description": "Configuration for the USA FTC Do Not Call Registry provider.",
+      "properties": {
+        "ProtectedApiKey": {
+          "type": "string",
+          "description": "The encrypted API key used to authenticate with the USA FTC Do Not Call Registry."
+        },
+        "OrganizationId": {
+          "type": "string",
+          "description": "The USA FTC organization identifier used for registry lookups."
+        },
+        "BaseUrl": {
+          "type": "string",
+          "description": "The base URL for the USA FTC Do Not Call Registry API."
         }
       },
       "additionalProperties": false

@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Users"
+      "const": "Users",
+      "description": "Recipe step discriminator. Must be \u0027Users\u0027."
     },
     "Users": {
       "type": "array",
@@ -11,63 +12,82 @@
         "type": "object",
         "properties": {
           "Id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Legacy numeric user ID when importing from older exports."
           },
           "UserId": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique string user identifier."
           },
           "UserName": {
-            "type": "string"
+            "type": "string",
+            "description": "Login user name."
           },
           "Email": {
-            "type": "string"
+            "type": "string",
+            "description": "Primary email address."
           },
           "PasswordHash": {
-            "type": "string"
+            "type": "string",
+            "description": "Existing password hash to import. Use only when migrating users."
           },
           "EmailConfirmed": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the email address is already confirmed."
           },
           "IsEnabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the user account is enabled."
           },
           "NormalizedEmail": {
-            "type": "string"
+            "type": "string",
+            "description": "Normalized email value used by the identity store."
           },
           "NormalizedUserName": {
-            "type": "string"
+            "type": "string",
+            "description": "Normalized user name used by the identity store."
           },
           "SecurityStamp": {
-            "type": "string"
+            "type": "string",
+            "description": "ASP.NET Identity security stamp."
           },
           "ResetToken": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional password reset token to import."
           },
           "PhoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "User phone number."
           },
           "PhoneNumberConfirmed": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the phone number is already confirmed."
           },
           "TwoFactorEnabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether two-factor authentication is enabled."
           },
           "IsLockoutEnabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the account can be locked out after failed sign-ins."
           },
           "AccessFailedCount": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Current failed sign-in count."
           },
           "RoleNames": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Roles assigned to the user."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "User record to create or update."
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Users to import."
     }
   },
   "required": [

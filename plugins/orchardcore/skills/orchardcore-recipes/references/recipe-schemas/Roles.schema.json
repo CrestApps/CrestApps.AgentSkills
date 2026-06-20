@@ -3,7 +3,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "Roles"
+      "const": "Roles",
+      "description": "Recipe step discriminator. Must be \u0027Roles\u0027."
     },
     "Roles": {
       "type": "array",
@@ -11,20 +12,24 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Role name."
           },
           "Description": {
-            "type": "string"
+            "type": "string",
+            "description": "Administrative description of the role."
           },
           "Permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "EditContent",
+                "ViewContent",
+                "ViewMediaContent"
+              ]
             },
-            "enum": [
-              "PermissionA",
-              "PermissionB"
-            ]
+            "description": "Permissions assigned to the role."
           },
           "PermissionBehavior": {
             "type": "string",
@@ -41,7 +46,8 @@
         ],
         "additionalProperties": true
       },
-      "minItems": 1
+      "minItems": 1,
+      "description": "Roles to create or update."
     }
   },
   "required": [

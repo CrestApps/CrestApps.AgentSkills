@@ -3,26 +3,32 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "OpenIdApplication"
+      "const": "OpenIdApplication",
+      "description": "Recipe step discriminator. Must be \u0027OpenIdApplication\u0027."
     },
     "ClientId": {
-      "type": "string"
+      "type": "string",
+      "description": "Unique OpenID application client identifier."
     },
     "DisplayName": {
-      "type": "string"
+      "type": "string",
+      "description": "Human-readable application name shown to users and administrators."
     },
     "RedirectUris": {
-      "type": "string"
+      "type": "string",
+      "description": "Space-separated or serialized list of allowed redirect URIs."
     },
     "PostLogoutRedirectUris": {
-      "type": "string"
+      "type": "string",
+      "description": "Space-separated or serialized list of allowed post-logout redirect URIs."
     },
     "Type": {
       "type": "string",
       "enum": [
         "confidential",
         "public"
-      ]
+      ],
+      "description": "OAuth client type."
     },
     "ConsentType": {
       "type": "string",
@@ -30,10 +36,12 @@
         "explicit",
         "external",
         "implicit"
-      ]
+      ],
+      "description": "How user consent is handled for the application."
     },
     "ClientSecret": {
-      "type": "string"
+      "type": "string",
+      "description": "Client secret used by confidential applications."
     },
     "RoleEntries": {
       "type": "array",
@@ -41,13 +49,15 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Role name granted to the application."
           }
         },
         "required": [
           "Name"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Roles granted to the client application."
       }
     },
     "ScopeEntries": {
@@ -56,47 +66,60 @@
         "type": "object",
         "properties": {
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "Scope name granted to the application."
           }
         },
         "required": [
           "Name"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Scopes granted to the client application."
       }
     },
     "AllowPasswordFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the resource owner password flow is allowed for this client."
     },
     "AllowClientCredentialsFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client credentials flow is allowed for this client."
     },
     "AllowAuthorizationCodeFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the authorization code flow is allowed for this client."
     },
     "AllowRefreshTokenFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client can request refresh tokens."
     },
     "AllowHybridFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether hybrid response types are allowed for this client."
     },
     "AllowImplicitFlow": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether implicit response types are allowed for this client."
     },
     "AllowLogoutEndpoint": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client can use the logout endpoint."
     },
     "AllowIntrospectionEndpoint": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client can call the introspection endpoint."
     },
     "AllowRevocationEndpoint": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client can call the revocation endpoint."
     },
     "RequireProofKeyForCodeExchange": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether PKCE is required for authorization code requests."
     },
     "RequirePushedAuthorizationRequests": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the client must use pushed authorization requests."
     }
   },
   "required": [

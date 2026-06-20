@@ -3,14 +3,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "const": "ElasticIndexSettings"
+      "const": "ElasticIndexSettings",
+      "description": "Recipe step discriminator. Must be \u0027ElasticIndexSettings\u0027."
     },
     "Indices": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true
-      }
+      },
+      "description": "Elasticsearch index definitions to create or update. Each object is forwarded to the index settings handler."
     }
   },
   "required": [
