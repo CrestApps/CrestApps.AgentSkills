@@ -77,6 +77,8 @@
                 "ManageAIDeployments",
                 "ManageAIProfileTemplates",
                 "ManageAIProfiles",
+                "ManageAIToolInstances",
+                "ManageAIToolInstancesCreatedByOthers",
                 "ManageAdminDashboard",
                 "ManageAdminMenu",
                 "ManageAdminSettings",
