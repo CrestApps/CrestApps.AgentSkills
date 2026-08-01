@@ -233,21 +233,27 @@ The API key can be provided in the `Authorization` header as: `Bearer <key>`, `A
 
 ### MCP Server Endpoint
 
+Endpoints are registered in `Startup.Configure` via `routes.MapMcp("mcp")` using the Streamable HTTP transport (`WithHttpTransport()`), protected by the MCP authorization policy. Paths are relative to the tenant prefix.
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/mcp/sse` | POST | SSE transport for MCP communication |
+| `/mcp` | `POST` (and `GET`/`DELETE`) | Streamable HTTP transport endpoint (current MCP standard) |
+| `/mcp/sse` | `GET` | Legacy SSE stream endpoint (for SSE-based clients) |
+| `/mcp/message` | `POST` | Legacy SSE message endpoint |
 
 ### Connecting External Clients to Orchard Core MCP Server
 
-**With OpenId:**
+Prefer the Streamable HTTP transport pointing at the `/mcp` base endpoint. Legacy SSE-only clients can still use `/mcp/sse`.
+
+**With OpenId (Streamable HTTP, recommended):**
 
 ```json
 {
   "mcpServers": {
     "orchard-core": {
       "transport": {
-        "type": "sse",
-        "url": "https://your-orchard-site.com/mcp/sse",
+        "type": "http",
+        "url": "https://your-orchard-site.com/mcp",
         "headers": {
           "Authorization": "Bearer <your-oauth-token>"
         }
@@ -257,7 +263,7 @@ The API key can be provided in the `Authorization` header as: `Bearer <key>`, `A
 }
 ```
 
-**With ApiKey:**
+**With ApiKey (legacy SSE):**
 
 ```json
 {

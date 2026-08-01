@@ -407,7 +407,7 @@ The Claude orchestrator (`CrestApps.OrchardCore.AI.Chat.Claude`) provides an alt
 ```json
 {
   "OrchardCore": {
-    "CrestApps:Claude": {
+    "CrestApps:AI:Claude": {
       "ApiKey": "{{YourClaudeApiKey}}",
       "BaseUrl": "https://api.anthropic.com",
       "DefaultModel": "claude-sonnet-4-20250514"
@@ -456,7 +456,7 @@ The Copilot orchestrator (`CrestApps.OrchardCore.AI.Chat.Copilot`) provides chat
 ```json
 {
   "OrchardCore": {
-    "CrestApps:Copilot": {
+    "CrestApps:AI:Copilot": {
       "AuthenticationType": "GitHubOAuth",
       "ClientId": "{{YourGitHubAppClientId}}",
       "ClientSecret": "{{YourGitHubAppClientSecret}}",
@@ -471,7 +471,7 @@ The Copilot orchestrator (`CrestApps.OrchardCore.AI.Chat.Copilot`) provides chat
 ```json
 {
   "OrchardCore": {
-    "CrestApps:Copilot": {
+    "CrestApps:AI:Copilot": {
       "AuthenticationType": "ApiKey",
       "BaseUrl": "{{YourEndpointUrl}}",
       "DefaultModel": "{{YourModelName}}",

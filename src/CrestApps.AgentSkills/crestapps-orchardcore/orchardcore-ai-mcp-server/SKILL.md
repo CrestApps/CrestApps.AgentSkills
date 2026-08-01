@@ -115,9 +115,13 @@ Accepted `Authorization` header formats include:
 
 ### Server Endpoint
 
+The MCP server endpoints are registered in `Startup.Configure` via `routes.MapMcp("mcp")` using the Streamable HTTP transport (`WithHttpTransport()`), protected by the MCP authorization policy. The paths are relative to the tenant prefix.
+
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/mcp/sse` | `POST` | MCP SSE endpoint |
+| `/mcp` | `POST` (and `GET`/`DELETE`) | Streamable HTTP transport endpoint (current MCP standard) |
+| `/mcp/sse` | `GET` | Legacy SSE stream endpoint (for SSE-based clients) |
+| `/mcp/message` | `POST` | Legacy SSE message endpoint |
 
 ### Add MCP Prompts via Admin UI
 
@@ -226,13 +230,15 @@ public sealed class DatabaseResourceTypeHandler : McpResourceTypeHandlerBase
 
 ### External Client Connection Example
 
+Streamable HTTP transport (recommended) connects to the `/mcp` base endpoint; legacy SSE clients use `/mcp/sse`.
+
 ```json
 {
   "mcpServers": {
     "orchard-core": {
       "transport": {
-        "type": "sse",
-        "url": "https://your-orchard-site.com/mcp/sse",
+        "type": "http",
+        "url": "https://your-orchard-site.com/mcp",
         "headers": {
           "Authorization": "Bearer <token-or-api-key>"
         }

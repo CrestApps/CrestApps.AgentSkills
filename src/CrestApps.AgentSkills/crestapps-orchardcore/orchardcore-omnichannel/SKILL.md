@@ -19,7 +19,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 - The Managements feature (`CrestApps.OrchardCore.Omnichannel.Managements`) adds an admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints under the **Interaction Center** menu.
 - The SMS feature (`CrestApps.OrchardCore.Omnichannel.Sms`) enables AI-powered SMS automation. It integrates with the AI Chat module to run AI-driven conversations over SMS using Twilio webhooks.
 - The Event Grid feature (`CrestApps.OrchardCore.Omnichannel.EventGrid`) receives inbound messages from Azure Event Grid via a webhook endpoint, validated with a SAS key or AAD bearer token.
-- The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) provides integration points for Azure Communication Services.
+- The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) is currently a placeholder. Its startup contains only TODOs for configuration and a settings display driver, so ACS is not yet configurable or wired as a messaging provider.
 - Omnichannel domain data (messages, activities, batches, AI chat sessions) is stored in a dedicated `Omnichannel` YesSql collection.
 - Communication preferences (`DoNotCall`, `DoNotSms`, `DoNotEmail`, `DoNotChat`) are tracked per contact with UTC timestamps.
 - The SMS module validates inbound Twilio requests using HMAC-SHA1 signature verification against the Twilio AuthToken.
@@ -32,7 +32,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 | Feature | Feature ID | Description |
 |---------|-----------|-------------|
 | Omnichannel | `CrestApps.OrchardCore.Omnichannel` | Base omnichannel layer with message indexing and contact communication preferences |
-| Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Azure Communication Services integration for multi-channel messaging |
+| Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Placeholder feature; ACS configuration and provider wiring are not yet implemented |
 | Azure Event Grid | `CrestApps.OrchardCore.Omnichannel.EventGrid` | Webhook endpoint for receiving inbound messages from Azure Event Grid |
 | Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints |
 | SMS Automation | `CrestApps.OrchardCore.Omnichannel.Sms` | AI-powered SMS channel automation via Twilio with AI chat session integration |
@@ -50,7 +50,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 The omnichannel system supports the following communication channels:
 
-- **SMS** - Text messaging via Twilio or Azure Communication Services
+- **SMS** - Text messaging via Twilio; the Azure Communication Services feature is currently a placeholder and does not yet provide ACS SMS wiring
 - **Email** - Email communication with contact email tracking
 - **Phone** - Voice call tracking with do-not-call preferences
 - **Chat** - Chat messaging with do-not-chat preferences
