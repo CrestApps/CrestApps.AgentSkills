@@ -74,7 +74,7 @@ Each field can be `None`, `Optional`, or `Required`. Required fields are checked
 ### Configure it in the admin UI
 
 1. Enable **User Display Name**.
-2. Navigate to **Configuration → Settings → User Display Name**.
+2. Navigate to **Settings → User Display Name**. On installations using the legacy admin-menu format, use **Configuration → Settings → User Display Name**.
 3. Choose a format and whether display, first, middle, and last names are optional or required.
 4. For **Custom format**, enter a valid Liquid template.
 5. Save the settings.
@@ -141,7 +141,7 @@ Use the enabled tenant's Users recipe behavior for user creation and updates. Th
 
 ## Configure user avatars
 
-Enable **User Avatar**, then configure it in **Configuration → Settings → User Avatars**. `UserAvatarOptions.Required` controls whether an avatar must be selected. `UseDefaultStyle` defaults to `true`.
+Enable **User Avatar**, then configure it in **Settings → User Avatars**. On installations using the legacy admin-menu format, use **Configuration → Settings → User Avatars**. `UserAvatarOptions.Required` controls whether an avatar must be selected. `UseDefaultStyle` defaults to `true`.
 
 `UserAvatarPart` stores an Orchard Core `MediaField` named `Avatar`. The editor permits image media types based on the tenant's `MediaOptions.AllowedFileExtensions`, supports anchors and media text, and prevents multiple selection when the configured field settings disallow it.
 

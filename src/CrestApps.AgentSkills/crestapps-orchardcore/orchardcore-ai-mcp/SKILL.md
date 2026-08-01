@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp
-description: Skill for configuring Model Context Protocol (MCP) in Orchard Core using the CrestApps MCP module. Covers MCP client connections over SSE and local client transports, MCP server setup to expose Orchard Core as an MCP endpoint, MCP resources, authentication, and custom resource types. Use this skill when requests mention Orchard Core MCP (Model Context Protocol), Configure MCP Integration, MCP Features Overview, MCP Client Connecting to External MCP Servers, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp. It also helps with ai mcp examples, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, Adding a Remote MCP Connection via Recipe (SSE), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Model Context Protocol (MCP) in Orchard Core using the CrestApps MCP module. Covers MCP client connections over SSE and standard input/output transports, MCP server setup to expose Orchard Core as an MCP endpoint, MCP resources, authentication, and custom resource types. Use this skill when requests mention Orchard Core MCP (Model Context Protocol), Configure MCP Integration, MCP Features Overview, MCP Client Connecting to External MCP Servers, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp. It also helps with ai mcp examples, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, Adding a Remote MCP Connection via Recipe (SSE), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -29,7 +29,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for in
 | Feature | Feature ID | Description |
 |---------|-----------|-------------|
 | MCP Client (SSE) | `CrestApps.OrchardCore.AI.Mcp` | Connect to remote MCP servers via Server-Sent Events |
-| MCP Client (Local Client) | `CrestApps.OrchardCore.AI.Mcp.LocalClient` | Connect to local MCP servers via Standard Input/Output |
+| MCP Client (Stdio) | `CrestApps.OrchardCore.AI.Mcp.Stdio` | Connect to local MCP servers via Standard Input/Output |
 | MCP Server | `CrestApps.OrchardCore.AI.Mcp.Server` | Expose Orchard Core as an MCP server endpoint |
 
 ## MCP Client: Connecting to External MCP Servers
@@ -143,7 +143,7 @@ The Local MCP Client feature enables connections to MCP servers running locally 
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.LocalClient",
+        "CrestApps.OrchardCore.AI.Mcp.Stdio",
         "CrestApps.OrchardCore.OpenAI"
       ],
       "disable": []
@@ -188,10 +188,12 @@ The MCP server supports three authentication modes:
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "OpenId",
-        "RequireAccessPermission": true
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "OpenId",
+          "RequireAccessPermission": true
+        }
       }
     }
   }
@@ -205,10 +207,12 @@ When `RequireAccessPermission` is `true`, users must have the `AccessMcpServer` 
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "ApiKey",
-        "ApiKey": "your-secure-api-key-here"
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "your-secure-api-key-here"
+        }
       }
     }
   }
@@ -222,9 +226,11 @@ The API key can be provided in the `Authorization` header as: `Bearer <key>`, `A
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "None"
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "None"
+        }
       }
     }
   }
@@ -238,12 +244,10 @@ Endpoints are registered in `Startup.Configure` via `routes.MapMcp("mcp")` using
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/mcp` | `POST` (and `GET`/`DELETE`) | Streamable HTTP transport endpoint (current MCP standard) |
-| `/mcp/sse` | `GET` | Legacy SSE stream endpoint (for SSE-based clients) |
-| `/mcp/message` | `POST` | Legacy SSE message endpoint |
 
 ### Connecting External Clients to Orchard Core MCP Server
 
-Prefer the Streamable HTTP transport pointing at the `/mcp` base endpoint. Legacy SSE-only clients can still use `/mcp/sse`.
+Use the Streamable HTTP transport pointing at the `/mcp` base endpoint. The pinned MCP ASP.NET Core transport maps only that endpoint because legacy SSE is disabled by default.
 
 **With OpenId (Streamable HTTP, recommended):**
 
@@ -256,24 +260,6 @@ Prefer the Streamable HTTP transport pointing at the `/mcp` base endpoint. Legac
         "url": "https://your-orchard-site.com/mcp",
         "headers": {
           "Authorization": "Bearer <your-oauth-token>"
-        }
-      }
-    }
-  }
-}
-```
-
-**With ApiKey (legacy SSE):**
-
-```json
-{
-  "mcpServers": {
-    "orchard-core": {
-      "transport": {
-        "type": "sse",
-        "url": "https://your-orchard-site.com/mcp/sse",
-        "headers": {
-          "Authorization": "ApiKey <your-api-key>"
         }
       }
     }
@@ -297,7 +283,8 @@ MCP Resources expose data sources through the MCP protocol. Built-in resource ty
 | Type | URI Pattern | Description |
 |------|-------------|-------------|
 | File | `file://{itemId}/{path}` | Local file system access |
-| Content | `content://{itemId}/...` | Orchard Core content items |
+| Content item | `content-item://{itemId}/...` | A specific Orchard Core content item or version |
+| Content type | `content-type://{itemId}/...` | Published items for an Orchard Core content type |
 | Recipe Schema | `recipe-schema://{itemId}/...` | JSON schema definitions |
 | FTP/FTPS | `ftp://{itemId}/{path}` | Remote files via FTP (separate module) |
 | SFTP | `sftp://{itemId}/{path}` | Remote files via SSH (separate module) |
@@ -329,61 +316,36 @@ MCP Resources expose data sources through the MCP protocol. Built-in resource ty
 ### Registering a Custom MCP Resource Type
 
 ```csharp
-services.AddMcpResourceType<DatabaseResourceTypeHandler>("database", entry =>
+services.AddCoreAIMcpResourceType<DatabaseResourceTypeHandler>("database", entry =>
 {
     entry.DisplayName = S["Database"];
     entry.Description = S["Query data from databases."];
-    entry.UriPatterns = ["db://{itemId}/{table}/{id}"];
+    entry.SupportedVariables =
+    [
+        new McpResourceVariable("table") { Description = S["The database table name."] },
+        new McpResourceVariable("id") { Description = S["The row ID to fetch."] },
+    ];
 });
 ```
 
 Implement the handler:
 
 ```csharp
-public sealed class DatabaseResourceTypeHandler : IMcpResourceTypeHandler
+public sealed class DatabaseResourceTypeHandler : McpResourceTypeHandlerBase
 {
-    public string Type => "database";
+    public DatabaseResourceTypeHandler() : base("database") { }
 
-    public async Task<ReadResourceResult> ReadAsync(
+    protected override Task<ReadResourceResult> GetResultAsync(
         McpResource resource,
+        IReadOnlyDictionary<string, string> variables,
         CancellationToken cancellationToken)
     {
-        var uri = new Uri(resource.Resource.Uri);
-        // Parse URI and query database.
-        // Return ReadResourceResult with content.
-        return new ReadResourceResult();
+        variables.TryGetValue("table", out var table);
+        variables.TryGetValue("id", out var id);
+        // Query the selected row and return a ReadResourceResult.
+        return Task.FromResult(new ReadResourceResult());
     }
 }
-```
-
-### Extending Content Resources with Custom Strategies
-
-```csharp
-public sealed class SearchContentResourceStrategy : IContentResourceStrategyProvider
-{
-    public string[] UriPatterns => ["content://{itemId}/{contentType}/search"];
-
-    public bool CanHandle(Uri uri)
-    {
-        return uri.Segments.Length >= 4 &&
-               uri.Segments[^1].TrimEnd('/') == "search";
-    }
-
-    public async Task<ReadResourceResult> ReadAsync(
-        McpResource resource,
-        Uri uri,
-        CancellationToken cancellationToken)
-    {
-        // Implement search logic.
-        return new ReadResourceResult();
-    }
-}
-```
-
-Register in `Startup.cs`:
-
-```csharp
-services.AddContentResourceStrategy<SearchContentResourceStrategy>();
 ```
 
 ### Security Best Practices

@@ -151,13 +151,13 @@ Enable the interactions feature when creating ad-hoc sessions:
 
 ### Authentication Callback Endpoints
 
-| Route | Controller action | Purpose |
+| Route | Handler | Purpose |
 |---|---|---|
 | `/copilot/Authorize` | `AuthorizeGitHub` | Starts OAuth and validates the local return URL |
 | `/copilot/OAuthCallback` | `OAuthCallback` | Exchanges the authorization code and stores credentials |
-| `/copilot/api/status` | `GetAuthStatus` | Returns current-user status and tenant configuration state |
-| `/copilot/api/models` | `GetModels` | Lists available models for the signed-in user |
-| `/copilot/api/disconnect` | `DisconnectGitHubAjax` | Removes current-user OAuth credentials |
+| `/copilot/api/status` | `CopilotAuthEndpoints` GET handler | Returns current-user status and tenant configuration state |
+| `/copilot/api/models` | `CopilotAuthEndpoints` GET handler | Lists available models for the signed-in user |
+| `/copilot/api/disconnect` | `CopilotAuthEndpoints` POST handler | Removes current-user OAuth credentials after antiforgery validation |
 
 ### Permission Management
 

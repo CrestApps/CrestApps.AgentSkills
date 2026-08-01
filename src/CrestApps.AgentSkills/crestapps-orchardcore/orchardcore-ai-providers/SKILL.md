@@ -90,19 +90,30 @@ The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API 
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "ApiKey": "<!-- Your API Key -->",
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true }
-              ]
-            }
+    "CrestApps": {
+      "AI": {
+        "Connections": [
+          {
+            "Name": "default",
+            "ClientName": "OpenAI",
+            "Endpoint": "https://api.openai.com/v1",
+            "ApiKey": "<!-- Your API Key -->"
           }
-        }
+        ],
+        "Deployments": [
+          {
+            "Name": "gpt-4o",
+            "ClientName": "OpenAI",
+            "ConnectionName": "default",
+            "Purpose": "Chat"
+          },
+          {
+            "Name": "gpt-4o-mini",
+            "ClientName": "OpenAI",
+            "ConnectionName": "default",
+            "Purpose": "Utility"
+          }
+        ]
       }
     }
   }
@@ -122,7 +133,7 @@ The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API 
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -130,7 +141,7 @@ The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API 
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Utility",
+          "Purpose": "Utility",
           "IsDefault": true
         }
       ]
@@ -243,7 +254,7 @@ The Azure OpenAI provider (`CrestApps.OrchardCore.OpenAI.Azure`) connects to Azu
           "Name": "gpt-4o",
           "ClientName": "Azure",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -251,7 +262,7 @@ The Azure OpenAI provider (`CrestApps.OrchardCore.OpenAI.Azure`) connects to Azu
           "Name": "text-embedding-3-large",
           "ClientName": "Azure",
           "ConnectionName": "default",
-          "Type": "Embedding",
+          "Purpose": "Embedding",
           "IsDefault": true
         }
       ]
@@ -321,7 +332,7 @@ The `AzureAIInferenceConnectionMetadata` supports the same authentication types 
           "Name": "gpt-4o",
           "ClientName": "AzureAIInference",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         }
       ]
@@ -332,7 +343,7 @@ The `AzureAIInferenceConnectionMetadata` supports the same authentication types 
 
 ## Ollama Provider
 
-The Ollama provider (`CrestApps.OrchardCore.Ollama`) connects to a local Ollama instance. Its `Source` / `ClientName` is `"Ollama"`. It uses the OpenAI-compatible connection pattern, so no API key is required for local setups.
+The Ollama provider (`CrestApps.OrchardCore.Ollama`) connects to a local Ollama instance. Its `Source` / `ClientName` is `"Ollama"`. It uses the connection entry's flat `Endpoint` property; it does not use `OpenAIConnectionMetadata`. No API key is required for a normal local setup.
 
 ### Ollama Connection via Recipe
 
@@ -346,11 +357,7 @@ The Ollama provider (`CrestApps.OrchardCore.Ollama`) connects to a local Ollama 
           "Source": "Ollama",
           "Name": "default",
           "DisplayText": "Ollama",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "http://localhost:11434"
-            }
-          }
+          "Endpoint": "http://localhost:11434"
         }
       ]
     }
@@ -371,7 +378,7 @@ The Ollama provider (`CrestApps.OrchardCore.Ollama`) connects to a local Ollama 
           "Name": "llama3.1",
           "ClientName": "Ollama",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         }
       ]
@@ -473,6 +480,7 @@ The Copilot orchestrator (`CrestApps.OrchardCore.AI.Chat.Copilot`) provides chat
   "OrchardCore": {
     "CrestApps:AI:Copilot": {
       "AuthenticationType": "ApiKey",
+      "ProviderType": "openai",
       "BaseUrl": "{{YourEndpointUrl}}",
       "DefaultModel": "{{YourModelName}}",
       "ApiKey": "{{YourApiKey}}"
@@ -486,7 +494,9 @@ The Copilot orchestrator (`CrestApps.OrchardCore.AI.Chat.Copilot`) provides chat
 | AuthenticationType | Description |
 |--------------------|-------------|
 | `GitHubOAuth` | GitHub OAuth flow requiring `ClientId` and `ClientSecret` from a GitHub App. Per-user credentials are stored and refreshed automatically. |
-| `ApiKey` | Direct API key authentication. Requires `BaseUrl`, `DefaultModel`, and `ApiKey`. Optionally set `AzureApiVersion` for Azure-backed endpoints. |
+| `ApiKey` | Direct API-key authentication. Requires `ProviderType`, `BaseUrl`, and `DefaultModel`. An API key is required for `azure`; it can be omitted for a local OpenAI-compatible provider. |
+
+For API-key authentication, `ProviderType` is always required. Use `openai`, `azure`, or `anthropic`. When `ProviderType` is `azure`, `AzureApiVersion` and an API key are also required; the Azure base URL is the resource URL without an added `/openai/v1` path.
 
 ### Copilot Site Settings
 
@@ -542,7 +552,7 @@ This recipe enables the OpenAI provider, creates a connection, adds deployments,
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -550,7 +560,7 @@ This recipe enables the OpenAI provider, creates a connection, adds deployments,
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Utility",
+          "Purpose": "Utility",
           "IsDefault": true
         }
       ]

@@ -18,10 +18,10 @@ You are a CrestApps.Core expert. Generate code and guidance for adding builder-b
   ```
 
   It depends on `Microsoft.Extensions.AI` and `Microsoft.Extensions.Resilience`.
-- The extensions live in namespace `CrestApps.Core.AI.Resilience` and apply to every Microsoft.Extensions.AI builder: `IChatClient`, `IEmbeddingGenerator<TInput, TEmbedding>`, `IImageGenerator`, `ISpeechToTextClient`, and `ITextToSpeechClient`.
+- The extensions live in namespace `CrestApps.Core.AI.Resilience` and apply to the corresponding Microsoft.Extensions.AI builders: `ChatClientBuilder`, `EmbeddingGeneratorBuilder<TInput, TEmbedding>`, `ImageGeneratorBuilder`, `SpeechToTextClientBuilder`, and `TextToSpeechClientBuilder`.
 - Framework-owned completion and utility chat paths in `CrestApps.Core` already use the default retry policy internally. Use this package for host-created clients or when an application wants to opt in explicitly.
 - Two ways to apply resilience:
-  1. Resolve the client through `IAIClientFactory` and configure the builder through the factory overload (the factory owns the final `Build`).
+  1. Resolve a chat client through `IAIClientFactory.CreateChatClientAsync(deployment, configurePipeline)`. The factory passes a `ChatClientBuilder` to the callback and owns the final build.
   2. Convert a raw client to its builder with `.AsBuilder()`, apply `UseDefaultResilience()` or `UseResilience(...)`, then finish with `Build(serviceProvider)`.
 - When you build manually, always pass the active `IServiceProvider` to `Build(serviceProvider)`. Never call `Build()` or `Build(null)` — downstream middleware may need DI to resolve tools and runtime components.
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-tools
-description: Skill for registering, authorizing, and selecting AI tools in Orchard Core using the CrestApps AI Services modules. Covers AIToolDefinitionOptions, local and system tool registry sources, keyed AITool instances, tool selection on AI profiles, profile templates, chat interactions, and direct-config workflow tasks, plus per-tool permissions. Use this skill when requests mention Orchard Core AI Tools, AIToolDefinitionOptions, AddAITool, selectable tools, AI Profile Capabilities, tool authorization, local tool registry, system tools, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, LocalToolRegistryProvider, OrchardCoreAIToolAccessEvaluator, AIToolPermissionProvider, AIProfileToolsDisplayDriver, AIProfileTemplateToolsDisplayDriver, ChatInteractionToolsDisplayDriver, AICompletionWithConfigTaskDisplayDriver.
+description: Skill for registering, authorizing, and selecting AI tools in Orchard Core using the CrestApps AI Services modules. Covers AIToolDefinitionOptions, local and system tool registry sources, keyed AITool instances, tool selection on AI profiles, profile templates, chat interactions, and direct-config workflow tasks, plus per-tool permissions. Use this skill when requests mention Orchard Core AI Tools, AIToolDefinitionOptions, AddCoreAITool, selectable tools, AI Profile Capabilities, tool authorization, local tool registry, system tools, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, LocalToolRegistryProvider, OrchardCoreAIToolAccessEvaluator, AIToolPermissionProvider, AIProfileToolsDisplayDriver, AIProfileTemplateToolsDisplayDriver, ChatInteractionToolsDisplayDriver, AICompletionWithConfigTaskDisplayDriver.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,9 +15,10 @@ You are an Orchard Core expert. Generate secure AI tool registration and selecti
 
 ### Guidelines
 - Enable `CrestApps.OrchardCore.AI` for the Orchard Core AI tool selection and permission integration.
-- Register a tool through the shared Core tool registration APIs and give it a unique, stable name.
-- Register each tool implementation as a keyed `AITool` service under that same name so registry resolution can create it.
-- Supply title, description, and category metadata through `AIToolDefinitionOptions`; these values drive capability pickers.
+- Register a tool through `AddCoreAITool<TTool>(name)` and give it a unique, stable name.
+- `AddCoreAITool` registers the keyed `AITool` service and its definition under the same name. Do not register an unrelated duplicate keyed service.
+- A new Core tool is hidden by default. Call `.Selectable()` only when Orchard users should be able to select it.
+- Set title, description, and category with the returned builder; these values drive capability pickers.
 - `GetSelectableTools()` excludes tools marked as system tools. System tools are for internal orchestration paths and are not shown in capability pickers.
 - `LocalToolRegistryProvider` returns only names configured on the completion context, skips system tools, and checks `AccessAITool` authorization.
 - The provider resolves a selected tool from DI with `GetKeyedService<AITool>(toolName)`.
@@ -79,12 +80,11 @@ public sealed class Startup : OrchardCore.Modules.StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddAITool<LookupOrderTool>("lookup_order", options =>
-        {
-            options.Title = "Order Lookup";
-            options.Description = "Looks up a customer's order status by order identifier.";
-            options.Category = "Commerce";
-        });
+        services.AddCoreAITool<LookupOrderTool>("lookup_order")
+            .WithTitle("Order Lookup")
+            .WithDescription("Looks up a customer's order status by order identifier.")
+            .WithCategory("Commerce")
+            .Selectable();
     }
 }
 ```
@@ -95,14 +95,18 @@ Implement the tool using the shared `AITool` contract and a JSON schema that lim
 
 The orchestrator can combine registry sources. For local Orchard registrations:
 
-1. A tool registration adds a definition to `AIToolDefinitionOptions`.
+1. `AddCoreAITool` adds a definition to `AIToolDefinitionOptions` and a keyed `AITool` service.
 2. A profile, interaction, or workflow task supplies selected tool names in its completion context.
 3. `LocalToolRegistryProvider` finds matching definitions.
 4. It excludes entries where `IsSystemTool` is true.
 5. It authorizes the current user against `AIPermissions.AccessAITool` and the tool name resource.
 6. It resolves the keyed `AITool` instance and returns a local `ToolRegistryEntry`.
 
-System tools follow a separate system registry path. Do not expect them in profile, template, interaction, workflow-task, or post-session capability pickers.
+System tools follow a separate Core system-registry path. Orchard's
+`LocalToolRegistryProvider` resolves explicitly selected non-system tools in
+the current tenant and user authorization context. Do not expect system tools
+in profile, template, interaction, workflow-task, or post-session capability
+pickers.
 
 ### Select Tools on an AI Profile
 

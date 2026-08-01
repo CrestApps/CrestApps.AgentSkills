@@ -23,8 +23,9 @@ your application understands.
 - The module exposes an anonymous `POST` endpoint at
   `Omnichannel/webhook/AzureEventGrid`; it disables antiforgery because Azure
   Event Grid cannot supply an Orchard antiforgery token.
-- Protect the endpoint with either the `aeg-sas-key` request header or a valid
-  Microsoft Entra bearer token. Do not expose an unauthenticated public webhook.
+- Prefer a valid Microsoft Entra bearer token for Event Grid delivery. A configured
+  `aeg-sas-key` request header is a supported shared-secret alternative. Do not
+  expose an unauthenticated public webhook.
 - Configure all three AAD settings when using bearer authentication. A partial
   AAD configuration cannot validate a token and the request is rejected.
 - Keep SAS keys and token configuration in user secrets, Key Vault, or
@@ -92,13 +93,13 @@ The feature binds `EventGridOptions` from
 | `AADAudience` | Expected audience for bearer token validation |
 | `AADMetadataAddress` | OpenID Connect metadata source for signing keys |
 
-Choose one authentication approach when practical:
+Prefer Microsoft Entra delivery for production:
 
-1. For shared-key delivery, set `EventGridSasKey` and configure Event Grid to
-   send the same value in `aeg-sas-key`.
-2. For Entra delivery, set `AADIssuer`, `AADAudience`, and
+1. For Entra delivery, set `AADIssuer`, `AADAudience`, and
    `AADMetadataAddress`, then configure Event Grid token delivery to match.
-3. A request is authorized as soon as one configured mechanism succeeds.
+2. For shared-key delivery, set `EventGridSasKey` and configure Event Grid to
+   send the same value in `aeg-sas-key`.
+3. A request is authorized as soon as either configured mechanism succeeds.
 
 ## Create the Event Subscription
 

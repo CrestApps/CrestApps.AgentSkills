@@ -23,9 +23,9 @@ surface that this module does not provide.
   contact, phone verification, user, time-zone, resource, and Orchard features.
 - Enable the exact management feature ID
   `CrestApps.OrchardCore.Omnichannel.Managements`.
-- The feature adds **Interaction Center** administration for activities, bulk
-  activity management, activity batches, subject flows, campaigns,
-  dispositions, and channel endpoints.
+- The feature adds **Interaction Center** administration for Activities and a
+  Management submenu containing Manage Activities, Load Inventory, Subject
+  Flows, Campaigns, Campaign Groups, Dispositions, and Channel Endpoints.
 - Contacts are ordinary Orchard content items with `OmnichannelContactPart`.
   The management module also registers `PhoneNumberInfoPart`, `EmailInfoPart`,
   and `OmnichannelContactInfoPart`.
@@ -71,17 +71,18 @@ surface that this module does not provide.
 |---|---|
 | Activities | Review, create, edit, complete, and filter omnichannel work |
 | Manage Activities | Bulk assignment, scheduling, subject, instruction, urgency, and purge operations |
-| Activity Batches | Define contact filters and generate activities in batches |
+| Load Inventory | Create and manage activity batches that define contact filters and generate activities |
 | Subject Flows | Configure a flow per `OmnichannelSubject` content type |
 | Campaigns | Maintain campaign catalog records |
+| Campaign Groups | Maintain campaign-group catalog records |
 | Dispositions | Maintain outcomes used by subject actions |
 | Channel Endpoints | Maintain channel-specific service addresses |
 
 Activities are represented by `OmnichannelActivity`; batches are represented by
-`OmnichannelActivityBatch`. The management feature registers
-`IOmnichannelActivityStore`, `IOmnichannelActivityManager`,
-`IOmnichannelChannelEndpointStore`, and `IOmnichannelChannelEndpointManager`
-for the UI and related management operations.
+`OmnichannelActivityBatch`. The management feature uses Orchard display managers for activity batches and
+subject actions, alongside its activity and channel-endpoint stores and
+managers. Extend those display-driver surfaces rather than replacing their
+controllers with a separate queue UI.
 
 ## Model Contacts Correctly
 
@@ -154,7 +155,7 @@ Use an activity batch to find contacts and create work at scale:
 `AutomatedActivitiesProcessorBackgroundTask` runs every five minutes with the
 schedule `*/5 * * * *`. It selects scheduled automated activities in batches
 of 100 and dispatches them to registered `IOmnichannelProcessor` instances
-matched by channel. It only processes activities whose status is `NotStated`,
+matched by channel. It only processes activities whose status is `NotStated` or `Scheduled`,
 whose interaction type is `Automated`, and whose scheduled time has arrived.
 
 ## Add a Custom Processor
@@ -191,15 +192,18 @@ The feature grants all of the following to the Administrator stereotype:
 - `ListActivities`
 - `ListContactActivities`
 - `CompleteActivity`
+- `CompleteOwnActivity`
 - `ManageActivities`
+- `PurgeActivity`
 - `ManageDispositions`
 - `ManageCampaigns`
+- `ManageCampaignGroups`
 - `ManageChannelEndpoints`
 - `ManageActivityBatches`
 - `ManageSubjectFlows`
 
-The `Agent` stereotype receives `ListActivities` and
-`ListContactActivities`. Grant management permissions deliberately; activity
+The `Agent` stereotype receives `ListActivities`, `ListContactActivities`, and
+`CompleteOwnActivity`. Grant management permissions deliberately; activity
 purging and broad assignment affect operational data.
 
 ## Operational Checklist

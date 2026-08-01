@@ -23,8 +23,8 @@ You are an Orchard Core expert. Generate accurate real-time hub, route, resource
 - Keep hub authorization explicit with normal ASP.NET Core or Orchard Core authorization patterns.
 - Configure `HubOptions<T>` for a specific hub when its work requires non-default connection timing.
 - The module configures camel-case SignalR JSON and registers `JOptions.KnownConverters`.
-- This module does not add a Redis backplane feature or configure a distributed backplane itself.
-- Configure any backplane at the hosting application level only after verifying the deployed SignalR package and topology.
+- Enable `CrestApps.OrchardCore.SignalR.Redis` when a tenant needs the built-in Redis backplane. It depends on `OrchardCore.Redis`.
+- The backplane uses Orchard Core Redis configuration, clones its connection options, and qualifies its channel prefix with the configured instance prefix and the shell name.
 - Do not hard-code tenant prefixes, host names, or base URLs in hub JavaScript.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except for View Models.
@@ -35,6 +35,7 @@ You are an Orchard Core expert. Generate accurate real-time hub, route, resource
 |---|---|
 | Package | `CrestApps.OrchardCore.SignalR` |
 | Feature ID | `CrestApps.OrchardCore.SignalR` |
+| Redis backplane feature | `CrestApps.OrchardCore.SignalR.Redis` |
 | Route service | `HubRouteManager` |
 | Script resource | `signalr` |
 | JSON naming | camel case |
@@ -188,9 +189,32 @@ Each hub method runs under normal tenant service resolution. Use scoped services
 
 ## Scale-Out and Redis
 
-The module source registers SignalR, route management, JSON configuration, and the browser resource only. It contains no `AddStackExchangeRedis`, Azure SignalR, or other backplane registration.
+The base feature registers SignalR, route management, camel-case JSON
+configuration, and the browser resource. The optional
+`CrestApps.OrchardCore.SignalR.Redis` feature adds `AddStackExchangeRedis()`
+only when Orchard Core Redis services are available.
 
-For multiple application instances, determine the required hosting-level SignalR scale-out design separately. Add a provider only in the startup host after installing and configuring the corresponding Microsoft package. Preserve `HubRouteManager` for routing regardless of the backplane choice.
+Enable the Redis feature on every tenant that shares SignalR messages across
+nodes:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "CrestApps.OrchardCore.SignalR.Redis"
+      ],
+      "disable": []
+    }
+  ]
+}
+```
+
+The resulting channel prefix is
+`{InstancePrefix}{ShellName}:SignalR`. Preserve `HubRouteManager` for routing
+regardless of the backplane choice. Azure SignalR and other scale-out providers
+remain hosting decisions outside this module.
 
 ## Common Failures
 
@@ -201,4 +225,4 @@ For multiple application instances, determine the required hosting-level SignalR
 | `signalR` is undefined | Add `depends-on="signalr"` and ensure the resource manager renders footer scripts |
 | Payload casing differs | Account for the configured camel-case JSON protocol |
 | Hub services resolve from the wrong tenant | Avoid singleton caching and resolve services in the active shell scope |
-| Multi-node clients miss messages | Configure a host-level scale-out provider; this module does not add one |
+| Multi-node clients miss messages | Enable the Redis backplane feature and configure Orchard Core Redis, or configure another hosting-level provider |

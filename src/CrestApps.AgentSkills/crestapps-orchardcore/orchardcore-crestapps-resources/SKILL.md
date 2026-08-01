@@ -57,15 +57,18 @@ Use the names in the following table. The implementation registers them in `Reso
 |---|---|---|
 | `list-management-ui` | Script | Local CrestApps list management UI |
 | `item-selector` | Script and style | Local CrestApps item-selector UI |
+| `collapsible-panel` | Script | Local collapsible admin-panel behavior |
 | `easymde` | Script and style | EasyMDE editor assets |
 | `chart.js` | Script | Local asset with jsDelivr CDN fallback |
 | `marked` | Script | Local asset with cdnjs fallback |
 | `flatpickr` | Script and style | Local assets with jsDelivr fallback |
 | `flatpickr-culture` | Script | Local culture integration script |
+| `date-range-picker` | Script | Local date-range picker; depends on `flatpickr` and `flatpickr-culture` |
 | `dompurify` | Script | Local asset with cdnjs fallback |
 | `highlightjs` | Script and style | CDN-backed Highlight.js and GitHub-style sheet |
 | `technical-name-generator` | Script | CrestApps AI chat UI asset |
 | `document-drop-zone` | Script and style | CrestApps AI chat UI asset |
+| `crestapps-bootstrap-select` | Script and style | CrestApps Bootstrap-select assets; script depends on `bootstrap` |
 | `intl-tel-input` | Script and style | International phone input assets |
 
 ## Register resources in Razor

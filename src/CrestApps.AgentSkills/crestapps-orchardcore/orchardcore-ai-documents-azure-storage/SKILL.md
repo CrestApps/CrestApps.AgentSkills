@@ -20,7 +20,7 @@ chunking, embedding, indexing, and RAG workflow.
 - Enable the exact feature ID `CrestApps.OrchardCore.AI.Documents.Azure`.
 - This feature depends on AI Documents through `ChatInteractionsConstants.Feature.ChatDocuments`; it enables the base document capability by dependency rather than replacing its processing pipeline.
 - The feature changes only the `IDocumentFileStore` implementation. It does not create an index, generate embeddings, or select a vector-search backend.
-- The default store remains active if either `ConnectionString` or `ContainerName` is empty. The feature logs an error rather than registering the Azure-backed replacement.
+- If either `ConnectionString` or `ContainerName` is empty, the feature logs an error and leaves the existing `IDocumentFileStore` registration unchanged rather than registering the Azure-backed replacement.
 - Install `CrestApps.OrchardCore.AI.Documents.Azure` in the web or startup project.
 - Keep connection strings in user secrets, environment variables, managed identity configuration, or a production secret store; never place production keys in recipes or source control.
 - Use a lowercase Azure-valid container name. Configuration normalizes the container name to lowercase.
@@ -121,8 +121,8 @@ container.
 
 1. A user uploads a document through a supported AI Documents context.
 2. `IDocumentFileStore` writes the file through `DefaultDocumentFileStore`.
-3. With valid Azure settings, that wrapper uses `BlobFileStore`; otherwise it remains
-   backed by the regular local storage implementation.
+3. With valid Azure settings, that wrapper uses `BlobFileStore`; otherwise this module
+   does not replace the application's existing document-file-store registration.
 4. The usual document processor extracts text, chunks it, and optionally indexes the
    resulting chunks through the enabled search backend.
 
@@ -159,7 +159,7 @@ use before relying on it for retention isolation.
 
 | Symptom | Check |
 |---|---|
-| Files still go to local storage | Confirm both required settings are non-empty and restart or reactivate the tenant after changing configuration. |
+| Azure storage is not active | Confirm both required settings are non-empty and restart or reactivate the tenant after changing configuration. The module otherwise preserves the pre-existing document-file-store registration. |
 | Feature logs configuration errors | Verify the exact `OrchardCore:CrestApps:AI:AzureDocuments` path and use a valid connection string and container. |
 | Container is not created | Set `CreateContainer` to true and confirm the storage identity can create containers. |
 | Tenant removal deletes too much | Disable `RemoveContainer` for shared containers and use a tenant-specific base path with `RemoveFilesFromBasePath`. |

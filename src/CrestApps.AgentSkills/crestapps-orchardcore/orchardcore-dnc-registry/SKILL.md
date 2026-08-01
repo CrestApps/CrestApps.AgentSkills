@@ -19,7 +19,7 @@ You are an Orchard Core expert. Generate accurate compliance-focused configurati
 - Enable `CrestApps.OrchardCore.DncRegistry` before provider features.
 - Install and enable `CrestApps.OrchardCore.DncRegistry.Azure` only when Azure Blob Storage should back local DNC uploaded files.
 - The core feature depends on `CrestApps.OrchardCore.PhoneNumbers`.
-- Normalize list numbers to E.164 using `IPhoneNumberService`; do not compare raw display strings.
+- Normalize list numbers to canonical `PhoneNumber` values using `IPhoneNumberService.TryParse`; do not compare raw display strings.
 - Treat registry hits as suppression decisions and retain appropriate audit/export information for skipped import rows.
 - Configure external registry credentials only in protected tenant settings.
 - Use `INationalDoNotCallRegistry` to add providers and return only input numbers reported as registered.
@@ -66,8 +66,8 @@ Each registry implements `INationalDoNotCallRegistry`:
 | `Key` | Stable registry identifier |
 | `DisplayName` | User-facing registry name |
 | `Description` | User-facing explanation |
-| `GetRegisteredNumbersAsync(IEnumerable<string>)` | Returns the input subset listed by the registry |
-| `GetRegisteredNumbersAsync(IEnumerable<string>, NumberSearchContext)` | Supports country-aware filtering |
+| `GetRegisteredNumbersAsync(IEnumerable<PhoneNumber>)` | Returns the canonical input subset listed by the registry |
+| `GetRegisteredNumbersAsync(IEnumerable<PhoneNumber>, NumberSearchContext)` | Supports country-aware filtering |
 
 The default context overload delegates to the basic method, so only providers that need country filtering must override it.
 
@@ -98,8 +98,8 @@ The settings objects can be provisioned through Orchard Core’s generic setting
       "DncRegistrySettings": {
         "EnforceGlobally": true,
         "EnforcedRegistryKeys": [
-          "usa-ftc",
-          "canada-dncl"
+          "usa-ftc-dnc",
+          "canada-lnnte-dncl"
         ]
       },
       "UsaFtcDncRegistrySettings": {
@@ -146,7 +146,7 @@ Supply one phone number per row in one populated column:
 
 During upload, select the country used as the parsing region for local numbers. The importer skips blank rows, header rows, duplicates in the same file, invalid numbers, and multi-column data. It queues work rather than importing in the upload request.
 
-The list state can be `Pending`, `Processing`, `Completed`, or `Failed`. Display progress from `TotalRecords`, `TotalProcessed`, `ImportedCount`, and error data instead of assuming the upload response means the list is ready.
+The list state can be `Pending`, `Processing`, `Paused`, `Completed`, `Failed`, or `Deleting`. Display progress from `TotalRecords`, `TotalProcessed`, `ImportedCount`, and error data instead of assuming the upload response means the list is ready.
 
 ### Local Lookup
 
@@ -182,6 +182,7 @@ Reference the DNC Registry abstractions, implement the interface, and register i
 
 ```csharp
 using CrestApps.OrchardCore.DncRegistry;
+using CrestApps.OrchardCore.PhoneNumbers;
 
 namespace MyCompany.OrchardCore.Compliance;
 
@@ -193,8 +194,8 @@ public sealed class MyRegistry : INationalDoNotCallRegistry
 
     public string Description => "Checks numbers against My Registry.";
 
-    public Task<HashSet<string>> GetRegisteredNumbersAsync(
-        IEnumerable<string> phoneNumbers,
+    public Task<HashSet<PhoneNumber>> GetRegisteredNumbersAsync(
+        IEnumerable<PhoneNumber> phoneNumbers,
         CancellationToken cancellationToken = default)
     {
         // Submit normalized numbers and return only matched inputs.
@@ -214,7 +215,7 @@ Add site settings, a display driver, and a navigation entry when the provider re
 
 | Symptom | Check |
 |---|---|
-| Local registry has no hits | Verify the list reached `Completed` and that input normalizes to the same E.164 value |
+| Local registry has no hits | Verify the list reached `Completed` and that input normalizes to the same canonical `PhoneNumber` value |
 | Upload returns but no entries exist | The background importer is still pending or failed; inspect list state and errors |
 | Local number is rejected | Select the correct ISO region during upload |
 | National feature is missing | Enable its specific USA FTC or Canada LNNTE-DNCL feature |

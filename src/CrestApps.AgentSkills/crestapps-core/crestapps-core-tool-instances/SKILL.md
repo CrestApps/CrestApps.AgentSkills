@@ -80,5 +80,4 @@ Replace `CreateConfiguredTool` with the application's `AITool` implementation. K
 
 `ToolInstanceRegistryProvider` looks up names in `AICompletionContext.ToolInstanceNames`, resolves each instance from `INamedCatalog<AIToolInstance>`, then resolves its keyed source and creates a `ToolRegistryEntry`.
 
-For per-instance authorization, derive a **sealed** provider and override `ShouldIncludeInstanceAsync(AIToolInstance, AICompletionContext, CancellationToken)`. Register that provider instead of the default by calling `AddToolInstances(useDefaultRegistry: false)`.
-
+For a replacement registry, call `AddToolInstances(useDefaultRegistry: false)` and register a scoped `IToolRegistryProvider` implementation. A sealed subclass of `ToolInstanceRegistryProvider` can override `ShouldIncludeInstanceAsync(AIToolInstance, AICompletionContext, CancellationToken)` to retain the built-in materialization behavior while adding per-instance authorization. Leave `useDefaultRegistry` enabled only when the custom provider should be additive rather than a replacement.

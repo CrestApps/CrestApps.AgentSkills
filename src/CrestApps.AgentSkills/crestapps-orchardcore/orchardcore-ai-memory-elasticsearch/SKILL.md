@@ -21,7 +21,7 @@ embedding compatibility.
 - Its manifest depends on `CrestApps.OrchardCore.AI.Memory` and `OrchardCore.Elasticsearch`; the base memory feature is enabled by dependency.
 - Create **AI Memory (Elasticsearch)** from **Search → Indexing**, select an embedding deployment, and choose it in **Settings → Artificial Intelligence → Memory**.
 - The provider is registered as keyed `IMemoryVectorSearchService` using `ElasticsearchConstants.ProviderName`.
-- Vector similarity never replaces authorization. Every retrieval must remain filtered to the current authenticated `UserId`.
+- Vector similarity never replaces authorization. Every retrieval must remain filtered to the current authenticated `userId`.
 - Install this package in the web or startup project and secure the Elasticsearch connection with production secret configuration.
 - Store only durable non-sensitive preferences and facts; do not persist credentials, tokens, financial data, or private keys as AI memory.
 
@@ -72,27 +72,27 @@ change, create a new compatible index and reindex instead of mixing incompatible
 
 | Field | Elasticsearch mapping |
 |---|---|
-| `MemoryId` | Keyword and index key |
-| `UserId` | Keyword |
-| `Name` | Text |
-| `Description` | Text |
-| `Content` | Text |
-| `UpdatedUtc` | Date |
-| `Embedding` | Indexed `dense_vector` using cosine similarity |
+| `memoryId` | Keyword and index key |
+| `userId` | Keyword |
+| `name` | Text |
+| `description` | Text |
+| `content` | Text |
+| `updatedUtc` | Date |
+| `embedding` | Indexed `dense_vector` using cosine similarity |
 
-The handler uses selected embedding dimensions for `Embedding`. When the profile has
-no default Elasticsearch query fields, it assigns `Name`, `Description`, and `Content`.
-Do not change the key field away from `MemoryId`; indexing updates and deletions depend
+The handler uses selected embedding dimensions for `embedding`. When the profile has
+no default Elasticsearch query fields, it assigns `name`, `description`, and `content`.
+Do not change the key field away from `memoryId`; indexing updates and deletions depend
 on the stable identifier.
 
 ### Vector retrieval behavior
 
 `ElasticsearchMemoryVectorSearchService` searches the profile `IndexFullName` with:
 
-- `Embedding` as the k-nearest-neighbor field
+- `embedding` as the k-nearest-neighbor field
 - `K = topN`
 - `NumCandidates = topN * 10`
-- a `UserId` term filter for the current authenticated user
+- a `userId` term filter for the current authenticated user
 
 It maps memory ID, name, description, content, updated time, and score from each hit.
 Results without content are discarded, then remaining results are ordered by score and
@@ -105,7 +105,7 @@ result set.
 2. The query is embedded with the memory profile deployment.
 3. The Elasticsearch keyed memory service executes filtered k-nearest-neighbor search.
 4. Relevant user-specific records become private retrieval context or tool results.
-5. The application never exposes hits from another user's `UserId`.
+5. The application never exposes hits from another user's `userId`.
 
 ### Troubleshooting
 
@@ -115,7 +115,7 @@ result set.
 | Index rejects a mapping | Verify Elasticsearch version support and the selected embedding vector dimensions. |
 | No memories are returned | Verify an authenticated identity, selected master profile, saved records, and index health. |
 | Search error is logged | Inspect Elasticsearch endpoint, TLS, credentials, index availability, and network access. |
-| Results cross user boundaries | Stop and correct the query. Preserve the mandatory `UserId` term filter. |
+| Results cross user boundaries | Stop and correct the query. Preserve the mandatory `userId` term filter. |
 | Textual memory queries behave unexpectedly | Review default query metadata; the handler assigns Name, Description, and Content only when no defaults exist. |
 
 ### Security and operations
@@ -134,11 +134,11 @@ It sets mapping metadata only for profiles it can handle:
 1. Confirm the profile provider is Elasticsearch.
 2. Confirm the selected embedding deployment is still available and dimension-compatible.
 3. Save the profile through **Search → Indexing** so managed properties remain valid.
-4. Preserve `MemoryId` as the key and the `UserId` keyword mapping for filtering.
+4. Preserve `memoryId` as the key and the `userId` keyword mapping for filtering.
 5. Reindex through the shared memory lifecycle after mapping or embedding changes.
 
 Add custom fields only with new names. Do not replace the `dense_vector` field,
-change its cosine similarity setting, or remove `UserId` from an index that backs
+change its cosine similarity setting, or remove `userId` from an index that backs
 shared authenticated-user memory.
 
 ### Index migration checklist

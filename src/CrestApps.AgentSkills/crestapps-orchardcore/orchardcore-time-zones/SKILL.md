@@ -88,8 +88,8 @@ Names are unique and immutable after creation. Update a mapping only when the ex
 The module replaces Orchard Core’s time-zone selector service:
 
 ```csharp
-using CrestApps.OrchardCore.Core;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using OrchardCore.Modules;
 
 namespace MyCompany.OrchardCore.Scheduling;
 
@@ -102,14 +102,17 @@ public sealed class ScheduleTimeZoneOptions
         _timeZoneSelectListProvider = timeZoneSelectListProvider;
     }
 
-    public Task<IEnumerable<SelectListItem>> GetItemsAsync()
+    public ValueTask<IReadOnlyList<SelectListItem>> GetItemsAsync()
     {
-        return _timeZoneSelectListProvider.GetTimeZoneSelectListAsync();
+        return _timeZoneSelectListProvider.GetTimeZoneSelectListItemsAsync();
     }
 }
 ```
 
-Use the actual selector interface members available in the installed CrestApps version. The important integration rule is to resolve `ITimeZoneSelectListProvider`; do not hard-code a time-zone array or bypass the curated maps.
+`ITimeZoneSelectListProvider.GetTimeZoneSelectListItemsAsync()` returns display
+items. `GetTimeZoneSelectListAsync(CancellationToken)` returns key/value pairs
+when that is the consumer's required shape. Resolve the interface rather than
+hard-coding a time-zone array or bypassing the curated maps.
 
 `MappedTimeZoneSelectListProvider` orders maps by `Name` and then `TimeZoneId`. Consumers receive select-list items and matching key/value data based on the catalog.
 

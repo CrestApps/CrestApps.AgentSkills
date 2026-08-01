@@ -22,7 +22,7 @@ You are an Orchard Core expert. Generate accurate import and export guidance for
 - The base module registers `CsvContentTransferFileFormatProvider` with `text/csv`.
 - The OpenXml module registers `ExcelContentTransferFileFormatProvider` with `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
 - Content types opt in by default. Set their transfer settings to opt out of bulk import or export.
-- Start imports from **Content → Bulk Import** and exports from **Content → Bulk Export**.
+- Start imports from **Content → Import** and exports from **Content → Export**.
 - Download the template for the selected type rather than hand-authoring columns. It reflects active import handlers and their metadata.
 - Imports are queued and processed in batches. Entries can be pending, processing, paused, completed, completed with errors, or failed.
 - Failed rows can be downloaded in the original enabled format. Preserve the header columns before correcting and retrying them.
@@ -60,7 +60,7 @@ You are an Orchard Core expert. Generate accurate import and export guidance for
 
 ### Import content
 
-1. Go to **Content → Bulk Import**.
+1. Go to **Content → Import**.
 2. Select the content type and download its template.
 3. Populate the header columns exactly as the template provides them.
 4. Upload a `.csv` file, or a `.xlsx` file when the OpenXml feature is enabled.
@@ -72,7 +72,7 @@ The import pipeline calls `IContentManager.ValidateAsync()`. A successfully pars
 
 ### Export content
 
-1. Go to **Content → Bulk Export**.
+1. Go to **Content → Export**.
 2. Select a content type and one enabled format.
 3. Select published, latest, or all versions as required.
 4. Optionally filter by created date, modified date, or owner.

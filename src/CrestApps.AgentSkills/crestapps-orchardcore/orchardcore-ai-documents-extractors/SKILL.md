@@ -66,7 +66,7 @@ vector backend.
 |---|---|---|
 | PDF | `.pdf` | Reads text page by page. |
 | Word | `.docx` | Reads paragraphs from the main document body. |
-| Excel | `.xlsx` | Reads rows and cells, including shared strings, inline strings, numeric values, and booleans. |
+| Excel | `.xlsx` | Reads rows and cells into the tabular workspace; it is a tabular, non-embeddable document. |
 | PowerPoint | `.pptx` | Reads text elements across slides. |
 
 The following legacy binary formats are not supported:
@@ -83,8 +83,8 @@ formats supported by the base document pipeline do not require either feature.
 1. The user uploads an allowed document through Chat Interactions, Profiles, or Chat Sessions.
 2. AI Documents selects a registered reader matching the document type.
 3. The PDF or OpenXml processor extracts plain text.
-4. The core pipeline stores chunks and generates embeddings when a configured index requires them.
-5. Azure AI Search or Elasticsearch indexes chunks for filtered vector retrieval.
+4. For embeddable documents, the core pipeline stores chunks and generates embeddings when a configured index requires them.
+5. Azure AI Search or Elasticsearch indexes embeddable chunks for filtered vector retrieval. CSV and Excel are instead queried through the conversation's tabular-data tools.
 
 Enabling these modules after files already failed extraction does not automatically
 repair earlier uploads. Re-upload or reprocess them using the normal document workflow.
@@ -103,7 +103,7 @@ documents or preprocessing where answer quality depends on layout.
 ### OpenXml guidance
 
 Word extraction targets paragraphs in the main body. Excel extraction is row-based and
-separates cells with tabs. PowerPoint extraction covers text elements on slides.
+loads cells into the tabular workspace for tabular-data tools. PowerPoint extraction covers text elements on slides.
 Embedded images, macros, complex charts, and visual formatting are not semantic text
 and should not be assumed to become RAG context.
 
@@ -127,7 +127,7 @@ package that was not deployed with the application.
 | PDF upload has no extracted context | Enable the PDF feature, confirm the file contains selectable text, then re-upload or reprocess it. |
 | Word, Excel, or PowerPoint file is unsupported | Enable the OpenXml feature and use `.docx`, `.xlsx`, or `.pptx`, not a legacy binary format. |
 | Scanned PDF has empty text | PdfPig is not OCR. Use OCR before processing image-only pages. |
-| Spreadsheet answers miss labels | Verify labels are actual cell values and test the row and tab-oriented extracted text. |
+| Spreadsheet answers miss labels | Verify labels are actual cell values, then inspect the tabular workspace metadata and query the table with tabular-data tools. |
 | Presentation answer misses visual content | Only text elements are extracted; put critical content in text or add a dedicated extraction process. |
 | Extraction succeeds but queries find nothing | Configure an embedding deployment and an active Azure AI Search or Elasticsearch document index. |
 | Feature is enabled but no reader runs | Verify the deployed package, exact feature ID, detected MIME type, and that the upload reaches an AI Documents context. |
@@ -153,4 +153,4 @@ Before enabling the extractors for users:
    than silently producing empty RAG context.
 5. Test deletion and re-upload flows to ensure stale chunks from an earlier document
    version cannot affect new responses.
-6. Test an indexing failure separately from extraction to identify whether the issue
+6. Test an indexing failure separately from extraction to identify whether the issue is in file ingestion, embedding generation, or the selected index backend.

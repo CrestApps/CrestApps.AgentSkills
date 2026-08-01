@@ -99,10 +99,10 @@ Saved API tokens and client secrets are protected with the tenant data-protectio
 
 | Environment | Base URL |
 |---|---|
-| Production | `https://dialpad.com` |
-| Sandbox | `https://sandbox.dialpad.com` |
+| Production | `https://dialpad.com/api/v2/` |
+| Sandbox | `https://sandbox.dialpad.com/api/v2/` |
 
-The REST API base is fixed by the selected environment. Do not add a tenant-level arbitrary base URL setting.
+The selected environment supplies the default REST API base. `DialPadSettings.ApiBaseUrl` is an optional tenant-level override; when it is empty, the provider uses the selected environment's default.
 
 ## API-Key Authentication
 

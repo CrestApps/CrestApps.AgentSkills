@@ -50,7 +50,7 @@ Register it with the existing completion pipeline:
 builder.Services.AddScoped<IAICompletionContextBuilderHandler, TenantCompletionContextHandler>();
 ```
 
-`AICompletionContextBuildingContext` exposes the source `Resource` and mutable `Context`. Use `context.GetResource<T>()` when the handler applies only to a known source type.
+`AICompletionContextBuildingContext` exposes the source `Resource` and mutable `Context`. Pattern-match `Resource` when a handler applies only to a known source type, for example `if (context.Resource is AIProfile profile) { ... }`.
 
 ### Orchestration Context Handler
 
@@ -101,4 +101,3 @@ var orchestrationContext = await orchestrationContextBuilder.BuildAsync(
 ```
 
 Use the caller configuration delegate for a one-request adjustment. Use a handler for reusable policy.
-

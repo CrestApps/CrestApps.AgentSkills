@@ -19,9 +19,9 @@ pipeline.
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Omnichannel.Sms` in the web/startup project.
-- Enable the exact feature ID `CrestApps.OrchardCore.Omnichannel.Sms`; it
-  depends on the AI base feature, AI Chat feature, Omnichannel Management, and
-  `OrchardCore.Sms`.
+- Enable the exact feature ID `CrestApps.OrchardCore.Omnichannel.Sms`; its
+  manifest depends on the AI base feature, dependency-only AI Chat Core,
+  Omnichannel Management, and `OrchardCore.Sms`.
 - The SMS feature supplies `SmsOmnichannelProcessor` as an
   `IOmnichannelProcessor` for the `SMS` channel and registers
   `SmsOmnichannelEventHandler` as an `IOmnichannelEventHandler`.
@@ -46,7 +46,7 @@ pipeline.
 | NuGet package | `CrestApps.OrchardCore.Omnichannel.Sms` |
 | SMS feature | `CrestApps.OrchardCore.Omnichannel.Sms` |
 | Required AI feature | `CrestApps.OrchardCore.AI` |
-| Required chat feature | `CrestApps.OrchardCore.AI.Chat` |
+| Required chat dependency | `CrestApps.OrchardCore.AI.Chat.Core` activated by the SMS feature |
 | Required management feature | `CrestApps.OrchardCore.Omnichannel.Managements` |
 | Required platform feature | `OrchardCore.Sms` |
 
@@ -57,7 +57,6 @@ pipeline.
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.Omnichannel",
         "CrestApps.OrchardCore.Omnichannel.Managements",
         "OrchardCore.Sms",
@@ -79,8 +78,8 @@ Configure the management layer first:
 4. Set the subject flow's interaction type to `Automated` and its channel to
    `SMS`.
 5. Select the SMS channel endpoint and configure the flow's AI settings.
-6. Ensure the selected campaign has a resolvable chat deployment before loading
-   automated activities.
+6. Ensure the selected chat profile has a resolvable chat deployment before
+   loading automated activities.
 7. Create activities through the Interaction Center or an activity batch.
 
 The management background task invokes `SmsOmnichannelProcessor` for scheduled
@@ -92,14 +91,15 @@ channel, an absent processor, or an activity outside the processor's channel.
 `SmsOmnichannelProcessor.StartAsync`:
 
 1. Finds or creates an `AIChatSession` for the activity.
-2. Creates a system prompt from the selected campaign's system message for a
-   new session.
-3. Renders the campaign's initial outbound Liquid pattern with `Contact`,
-   `Campaign`, and `Session`.
+2. Resolves the configured chat profile and creates a session when one is not
+   already linked to the activity.
+3. Renders that profile's required initial-prompt pattern with `Activity`,
+   `Contact`, `FlowSettings`, `Profile`, `Session`, and, when available,
+   `Campaign`.
 4. Sends the rendered text through `ISmsService`.
 5. Uses the matching `OmnichannelChannelEndpoint` value as the SMS `From`
    address when one is selected.
-6. Stores the assistant prompt and sets the activity to
+6. Stores the assistant prompt, saves the session, and sets the activity to
    `AwaitingCustomerAnswer` after a successful send.
 
 The initial pattern must render nonempty content. Treat a render failure or SMS
@@ -135,10 +135,12 @@ is `SmsReceived` and whose channel is `SMS`.
 
 1. It resolves the channel endpoint from the service address.
 2. It finds the automated SMS activity by endpoint and customer address.
-3. It appends the customer message as an AI chat user prompt.
-4. It resolves the campaign's chat deployment and requests a completion.
-5. It sends the generated assistant text through `ISmsService`.
-6. It appends the assistant prompt and changes the activity status to
+3. It sets the activity to `AwaitingAgentResponse`, then checks configured
+   opt-out keywords before invoking AI.
+4. It appends the customer message as an AI chat user prompt.
+5. It resolves the selected chat profile and deployment, then requests a completion.
+6. It sends the generated assistant text through `ISmsService`.
+7. It appends the assistant prompt and changes the activity status to
    `AwaitingCustomerAnswer`.
 
 If no channel endpoint, matching activity, campaign, AI session, or deployment

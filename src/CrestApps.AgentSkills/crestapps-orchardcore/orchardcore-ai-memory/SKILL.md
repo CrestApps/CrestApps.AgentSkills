@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-memory
-description: Skill for configuring persistent, user-scoped AI Memory in Orchard Core using the CrestApps AI Memory module. Covers memory indexing backends (Azure AI Search and Elasticsearch), memory tools, preemptive memory retrieval, and per-profile memory settings. Use this skill when requests mention Orchard Core AI Memory, Persistent User Memory, Memory Indexing, AI Memory Settings, Enable User Memory on a Profile, Memory Index Profiles, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, CrestApps.OrchardCore.AI.Memory.Elasticsearch, DefaultAIMemoryStore, AIMemoryIndexingService, IAIMemoryStore, IMemoryVectorSearchService.
+description: Skill for configuring persistent, user-scoped AI Memory in Orchard Core using the CrestApps AI Memory module. Covers memory indexing backends (Azure AI Search and Elasticsearch), memory tools, preemptive memory retrieval, and per-profile memory settings. Use this skill when requests mention Orchard Core AI Memory, Persistent User Memory, Memory Indexing, AI Memory Settings, Enable User Memory on a Profile, Memory Index Profiles, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, CrestApps.OrchardCore.AI.Memory.Elasticsearch, YesSqlAIMemoryStore, AIMemoryIndexingService, IAIMemoryStore, IMemoryVectorSearchService.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -39,20 +39,20 @@ When user memory is enabled for a profile and the user is authenticated, four sy
 
 | Tool | Description |
 |------|-------------|
-| Save User Memory | Create or update a named memory entry for the current user |
-| Search User Memories | Semantic vector search across the current user's saved memories |
-| List User Memories | Enumerate the current user's existing memories |
-| Remove User Memory | Remove a saved memory entry when it should be forgotten |
+| `save_user_memory` | Create or update a named memory entry for the current user |
+| `search_user_memories` | Semantic vector search across the current user's saved memories |
+| `list_user_memories` | Enumerate the current user's existing memories |
+| `remove_user_memory` | Remove a saved memory entry when it should be forgotten |
 
-The orchestration prompt instructs the model to call Save User Memory in the same turn before claiming it will remember durable facts. Memory tools are only force-included for requests where user memory is enabled for the current authenticated user.
+The orchestration prompt instructs the model to call `save_user_memory` in the same turn before claiming it will remember durable facts. Memory tools are only force-included for requests where user memory is enabled for the current authenticated user.
 
 ### How Memory Works
 
 1. The user shares a durable preference or fact during a conversation.
-2. The AI calls the **Save User Memory** tool with a stable `name`, a semantic `description`, and the `content`.
+2. The AI calls `save_user_memory` with a stable `name`, a semantic `description`, and the `content`.
 3. The entry is persisted in the tenant store and indexed into the configured master memory index with an embedding vector.
 4. On subsequent conversations, if preemptive retrieval is enabled, matching memories are injected into the system prompt as private background context before the model answers.
-5. The **Search User Memories** tool remains available for follow-up lookups when the initial memory context is not enough.
+5. `search_user_memories` remains available for follow-up lookups when the initial memory context is not enough.
 
 ### Enabling AI Memory with Azure AI Search
 
@@ -106,7 +106,7 @@ Preemptive memory retrieval is controlled separately under **Settings → Artifi
 
 ### Enabling User Memory on an AI Profile
 
-AI Profiles expose **Enable User Memory** in the **Interactions** card of the profile editor.
+AI Profiles expose **Enable User Memory** in the **Knowledge** card of the profile editor.
 
 - Default is **disabled**
 - Scope is per profile
@@ -194,7 +194,7 @@ Chat Interactions add a site setting under **Settings → Artificial Intelligenc
 
 | Service | Description |
 |---------|-------------|
-| `IAIMemoryStore` | Memory record persistence abstraction (implemented by `DefaultAIMemoryStore` using YesSql) |
+| `IAIMemoryStore` | Memory record persistence abstraction implemented by `YesSqlAIMemoryStore` |
 | `AIMemoryIndexingService` | Generates embeddings and indexes memory entries via `IDocumentIndexManager` |
 | `IMemoryVectorSearchService` | Provider-specific vector search (keyed by provider name) |
 | `AIMemoryOptionsConfiguration` | Reads `AIMemorySettings` from site settings into `AIMemoryOptions` |
@@ -203,13 +203,13 @@ Chat Interactions add a site setting under **Settings → Artificial Intelligenc
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `MemoryId` | Keyword / Filterable | Unique memory entry identifier |
-| `UserId` | Keyword / Filterable | Owning user identifier |
-| `Name` | Text / Searchable | Stable memory name for lookup and update |
-| `Description` | Text / Searchable | Semantic description used for search embeddings |
-| `Content` | Text / Searchable | The memory content value |
-| `UpdatedUtc` | Date / Sortable | Last update timestamp |
-| `Embedding` | Vector | Embedding vector for semantic search |
+| `memoryId` | Keyword / Filterable | Unique memory entry identifier |
+| `userId` | Keyword / Filterable | Owning user identifier |
+| `name` | Text / Searchable | Stable memory name for lookup and update |
+| `description` | Text / Searchable | Semantic description used for search embeddings |
+| `content` | Text / Searchable | The memory content value |
+| `updatedUtc` | Date / Sortable | Last update timestamp |
+| `embedding` | Vector | Embedding vector for semantic search |
 
 ### Clearing User Memory
 

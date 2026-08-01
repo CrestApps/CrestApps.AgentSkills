@@ -39,8 +39,10 @@ if (!oDataValidator.IsValidFilter(filter))
 }
 ```
 
-Storage providers that stage writes implement `IStoreCommitter`. Add `AddCrestAppsStoreCommitterFilter()` after `AddControllersWithViews()`, use `StoreCommitterEndpointFilter` with Minimal API groups, or enable the SignalR overload on `ISignalRServerBuilder`. The default `NoOpStoreCommitter` allows hosts without staged storage to use the shared pipeline.
+Storage providers that stage writes implement `IStoreCommitter`. Add `AddCrestAppsStoreCommitterFilter()` after `AddControllersWithViews()`, add `StoreCommitterEndpointFilter` to Minimal API endpoints or groups, or call `AddCrestAppsStoreCommitterFilter()` on the `ISignalRServerBuilder`. The AI-suite `AddSignalR(addStoreCommitterFilter: true)` overload applies the SignalR filter while registering SignalR.
+
+Do not depend on `NoOpStoreCommitter`: it is internal and `AddCrestAppsCore(...)` does not register it. Register a first-party store package or your own `IStoreCommitter` before adding a commit filter.
 
 ## Infrastructure Utilities
 
-Use `DataSourceConstants` and `DocumentIndexConstants` instead of duplicated provider strings. `RedactedSecret` represents values that must not appear in logs or UI output. `DictionaryExtensions` provides shared dictionary helpers. `DataProtectionHelper` is the core helper for protected-data operations. `ExtensibleEntityJsonOptionsInitializer` configures extensible-entity JSON options at host startup.
+Use `DataSourceConstants.ColumnNames` for fields in data-source RAG chunks and `DocumentIndexConstants.ColumnNames` for fields in uploaded AI-document chunks; they are different index schemas, not provider keys. `RedactedSecret` represents values that must not appear in logs or UI output. `DictionaryExtensions` provides shared dictionary helpers. `DataProtectionHelper` is the core helper for protected-data operations. `ExtensibleEntityJsonOptionsInitializer` configures extensible-entity JSON options at host startup.

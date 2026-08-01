@@ -63,7 +63,7 @@ Enable exactly the provider features that the tenant can configure. The framewor
 |---|---|
 | `IPhoneNumberVerificationProvider` | Calls an external provider and returns `PhoneNumberVerificationResult` |
 | `IPhoneNumberVerificationManager` | Resolves the selected provider, runs verification, and invokes lifecycle handlers |
-| `PhoneNumberVerificationProviderOptions` | Holds provider descriptors and enabled provider registrations |
+| `PhoneNumberVerificationProviderOptions` | Holds registered provider descriptors keyed by provider key |
 | `PhoneNumberVerificationPart` | Persists normalized verification data on a content item |
 | `PhoneNumberVerificationPartExtensions` | Reads and updates the part and serialized result |
 | `IPhoneNumberVerificationHandler` | Receives verification lifecycle notifications |
@@ -110,8 +110,9 @@ The module maintains `PhoneNumberVerificationPartIndex` for common reporting and
 Resolve `IPhoneNumberVerificationManager`, call `VerifyAsync`, then update the part using the extension method:
 
 ```csharp
-using CrestApps.OrchardCore.PhoneNumbers;
 using CrestApps.OrchardCore.PhoneNumbers.Core.Models;
+using CrestApps.OrchardCore.PhoneNumbers.Core.Services;
+using OrchardCore.ContentManagement;
 
 namespace MyCompany.OrchardCore.Contacts;
 
@@ -145,7 +146,11 @@ Use `contentItem.TryGet<PhoneNumberVerificationPart>(out var part)` to check whe
 
 ## Result and Status Semantics
 
-`PhoneNumberVerificationResult` unifies external responses. It includes phone and normalized values, validity and reachability, line-type flags, country and location data, carrier, time zone, risk data, provider reference, raw response, metadata, and a normalized `PhoneNumberVerificationStatus`.
+`PhoneNumberVerificationResult` is the abstraction returned by
+`IPhoneNumberVerificationProvider`. `IPhoneNumberVerificationManager.VerifyAsync`
+accepts a phone-number string, an optional provider key, and a cancellation
+token. It selects the configured or default provider; providers do not select
+themselves.
 
 | Outcome | Correct behavior |
 |---|---|
@@ -206,7 +211,11 @@ services.AddPhoneNumberVerificationProvider<MyPhoneNumberVerificationProvider>(
     });
 ```
 
-Add `AddSiteDisplayDriver<MyProviderSettingsDisplayDriver>()` when the provider has tenant settings. Keep provider-key and keyed-service registration identical.
+Use the provider registration overload that includes a settings type when the
+provider has tenant settings. It adds the keyed provider and an
+`IPhoneNumberVerificationProviderConfiguration` that determines whether that
+provider is selectable. Keep the provider key and keyed-service registration
+identical.
 
 ## Troubleshooting
 

@@ -18,7 +18,7 @@ You are an Orchard Core expert. Use the CrestApps Roles module when a content it
 - Install `CrestApps.OrchardCore.Roles` in the web or startup project.
 - Enable the exact `CrestApps.OrchardCore.Roles` feature. Its manifest depends on `OrchardCore.Roles`.
 - The reusable part name is `RolePickerPart`; its stored value property is `RoleNames`.
-- Use `RolePickerPartSettings` on the content-type part attachment, not on an unrelated field definition.
+- Use `RolePickerPartSettings` only on a `RolePickerPart` content-type attachment, not on the reusable part definition or an unrelated field definition.
 - Set `AllowSelectMultiple` to `false` for a single role. The display driver validates that at most one role was submitted.
 - Set `Required` to `true` only when the item cannot be meaningful without a selected role.
 - Populate `ExcludedRoles` for built-in or sensitive roles that should never be selectable in this context.
@@ -138,23 +138,6 @@ With CrestApps Recipes enabled, the content-definition schema recognizes `RolePi
   "steps": [
     {
       "name": "ContentDefinition",
-      "ContentParts": [
-        {
-          "Name": "RolePickerPart",
-          "Settings": {
-            "RolePickerPartSettings": {
-              "Required": true,
-              "AllowSelectMultiple": true,
-              "ExcludedRoles": [
-                "Anonymous",
-                "Authenticated"
-              ],
-              "Hint": "Select allowed roles."
-            }
-          },
-          "ContentPartFieldDefinitionRecords": []
-        }
-      ],
       "ContentTypes": [
         {
           "Name": "Product",

@@ -48,11 +48,11 @@ Use the matching builder extension only for enabled features:
 | `CrestAppsMcpClientBuilder` or `CrestAppsMcpServerBuilder` | `.AddYesSqlStores()` |
 | `CrestAppsAIToolInstancesBuilder` | `.AddYesSqlStores()` |
 
-For lower-level composition, use `AddCoreAIServicesStoresYesSql`, `AddCoreAIProfileTemplateStoresYesSql`, `AddCoreAIChatSessionStoresYesSql`, `AddCoreAIDocumentProcessingStoresYesSql`, `AddCoreAIDataSourceStoresYesSql`, `AddCoreAIMemoryStoresYesSql`, `AddCoreIndexingStoresYesSql`, `AddCoreAIA2AClientStoresYesSql`, `AddCoreAIMcpClientStoresYesSql`, `AddCoreAIMcpServerStoresYesSql`, or `AddCoreAIToolInstanceStoresYesSql`.
+For lower-level composition, use `AddCoreAIServicesStoresYesSql`, `AddCoreAIToolInstanceStoresYesSql`, `AddCoreAIProfileTemplateStoresYesSql`, `AddCoreAIA2AClientStoresYesSql`, `AddCoreAIMcpClientStoresYesSql`, `AddCoreAIMcpServerStoresYesSql`, `AddCoreAIChatSessionStoresYesSql`, `AddCoreAIChatSessionBaseStoresYesSql`, `AddCoreAIChatSessionMetricsStoresYesSql`, `AddCoreAICompletionUsageStoresYesSql`, `AddCoreAIChatSessionExtractedDataStoresYesSql`, `AddCoreAIDocumentProcessingStoresYesSql`, `AddCoreAIDataSourceStoresYesSql`, `AddCoreAIMemoryStoresYesSql`, `AddCoreAIChatInteractionStoresYesSql`, or `AddCoreIndexingStoresYesSql`.
 
 ## Store and Index Inventory
 
-The implementation contains `YesSqlAIProfileStore`, `YesSqlAIChatSessionManager`, `YesSqlAIChatSessionStore`, `YesSqlAIChatSessionPromptStore`, `YesSqlAIChatSessionEventStore`, `YesSqlAIChatSessionExtractedDataStore`, `YesSqlAICompletionUsageStore`, `YesSqlChatInteractionPromptStore`, `YesSqlAIDocumentStore`, `YesSqlAIDocumentChunkStore`, `YesSqlAIDataSourceStore`, `YesSqlAIMemoryStore`, and `YesSqlSearchIndexProfileStore`.
+`AddCoreAIServicesStoresYesSql()` registers `YesSqlAIProfileStore` and named-source bindings for provider connections and deployments. The feature-specific methods register `YesSqlAIChatSessionManager`, `YesSqlAIChatSessionStore`, `YesSqlAIChatSessionPromptStore`, `YesSqlAIChatSessionEventStore`, `YesSqlAIChatSessionExtractedDataStore`, `YesSqlAICompletionUsageStore`, `YesSqlChatInteractionPromptStore`, `YesSqlAIDocumentStore`, `YesSqlAIDocumentChunkStore`, `YesSqlAIDataSourceStore`, `YesSqlAIMemoryStore`, and `YesSqlSearchIndexProfileStore` as needed.
 
 Catalog helpers are `DocumentCatalog<T, TIndex>`, `NamedDocumentCatalog<T, TIndex>`, `SourceDocumentCatalog<T, TIndex>`, and `NamedSourceDocumentCatalog<T, TIndex>`. Use the corresponding `AddYesSql*DocumentCatalog` or `AddYesSql*BindingSource` extension only when implementing a custom model and its index.
 
@@ -62,14 +62,4 @@ The built-in index families are `A2AConnection`, `AIProfile`, `AIProfileTemplate
 
 ## Schema Initialization
 
-The `IStore` is initialized during DI resolution. Initialize application-specific schema before handling requests when the host requires it:
-
-```csharp
-var app = builder.Build();
-
-await app.Services.InitializeYesSqlSchemaAsync();
-
-await app.RunAsync();
-```
-
-`InitializeYesSqlSchemaAsync()` is a sample-host extension, not a generic package API. Custom hosts must provision their own YesSql schema according to their selected database dialect and migration strategy.
+The `IStore` is created and initialized when DI first resolves it. Unlike EntityCore, `CrestApps.Core.Data.YesSql` does not provide a package-level `InitializeYesSqlSchemaAsync()` extension. The sample hosts define that helper themselves. Custom hosts must provision their selected YesSql dialect and schema according to their own migration strategy before handling requests.

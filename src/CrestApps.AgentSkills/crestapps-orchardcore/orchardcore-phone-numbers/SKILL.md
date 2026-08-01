@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-numbers
-description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, region lookup, and time-zone lookup services. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumberVerificationsConstants, and TryFormatToE164.
+description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, region lookup, and time-zone lookup services. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, and TryFormatToE164.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -154,7 +154,7 @@ Normalize and validate `NormalizedPhoneNumber` before a record is saved. Do not 
 
 | Feature | How it uses Phone Numbers |
 |---|---|
-| `CrestApps.OrchardCore.PhoneNumbers.Verifications` | Stores and revalidates provider verification results on content items |
+| `CrestApps.OrchardCore.PhoneNumbers.Verifications` | Stores and revalidates provider verification results on content items; see `orchardcore-phone-number-verifications` |
 | `CrestApps.OrchardCore.DncRegistry` | Normalizes imports and checks do-not-call records |
 | `CrestApps.OrchardCore.TimeZones` | Provides friendly editor labels for IANA zones, not phone-number discovery |
 | Telephony providers | Should use canonical values when placing calls |

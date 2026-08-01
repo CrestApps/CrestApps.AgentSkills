@@ -71,13 +71,13 @@ after memory data exists requires a new compatible index and a planned reindex.
 
 | Field | Mapping |
 |---|---|
-| `MemoryId` | Text, key, filterable |
-| `UserId` | Text, filterable |
-| `Name` | Text, searchable, filterable |
-| `Description` | Text, searchable |
-| `Content` | Text, searchable |
-| `UpdatedUtc` | DateTime, filterable, sortable |
-| `Embedding` | Searchable vector using the `default` HNSW profile |
+| `memoryId` | Text, key, filterable |
+| `userId` | Text, filterable |
+| `name` | Text, searchable, filterable |
+| `description` | Text, searchable |
+| `content` | Text, searchable |
+| `updatedUtc` | DateTime, filterable, sortable |
+| `embedding` | Searchable vector using the `default` HNSW profile |
 
 The index-profile handler keeps a `default` vector profile and `default-hnsw`
 algorithm configuration. It calculates dimensions from the selected deployment,
@@ -87,17 +87,17 @@ profile is loaded or saved.
 ### User-scoped vector retrieval
 
 `AzureAISearchMemoryVectorSearchService` sends a `VectorizedQuery` against
-`Embedding` and requires:
+`embedding` and requires:
 
 ```text
-UserId eq '<current authenticated user ID>'
+userId eq '<current authenticated user ID>'
 ```
 
 It selects memory ID, name, description, content, and updated time; drops results
 without content; orders by score descending; and takes at most `topN`. Azure request
 failures and unexpected errors are logged and return no results.
 
-Never remove the `UserId` filter from a custom implementation. Semantic similarity
+Never remove the `userId` filter from a custom implementation. Semantic similarity
 alone is not authorization and could expose memory belonging to another user.
 
 ### Memory retrieval flow
@@ -118,7 +118,7 @@ alone is not authorization and could expose memory belonging to another user.
 | Memory tool returns nothing | Confirm an authenticated identity, an active memory index profile, saved memory records, and a valid embedding configuration. |
 | Index edit duplicates mappings | Reopen and save it. The handler normalizes managed duplicates while retaining custom fields. |
 | Search fails | Check Azure endpoint, credentials, network rules, index availability, and vector dimensions. |
-| Memories appear cross-user | Treat this as an authorization defect. Verify the active user ID and preserve the mandatory `UserId` filter. |
+| Memories appear cross-user | Treat this as an authorization defect. Verify the active user ID and preserve the mandatory `userId` filter. |
 
 ### Security and operations
 
@@ -142,7 +142,7 @@ of manually editing provider metadata:
 
 Custom fields are retained, but they must not reuse the seven managed memory field
 names. Keep custom data and memory authorization rules separate from the mandatory
-`UserId` filter.
+`userId` filter.
 
 ### Index migration checklist
 

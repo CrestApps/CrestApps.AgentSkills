@@ -1,42 +1,37 @@
 ---
 name: orchardcore-ai-prompting
-description: Skill for creating and managing AI prompting assets in Orchard Core. Covers prompt templates via admin UI and markdown files, the AI Prompting feature, template sources, and applying templates when creating AI Profiles. Use this skill when requests mention Orchard Core AI Prompting, Prompt Templates, Enabling AI Prompting, Creating Templates via Markdown Files, Profile Templates, SystemMessage Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Prompting, OrchardCore.Entities, INamedCatalogManager, AIProfilePostSessionSettings, AIProfileDataExtractionSettings, DisplayDriver, MyCustomTemplateDriver, IDisplayResult, BuildEditorContext. It also helps with Profile Templates, SystemMessage Templates, Markdown Template Format (Profile Source), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for using CrestApps AI prompt files and Orchard Core AI profile templates. Covers feature-aware prompt discovery, AIProfileTemplate sources, module and App_Data profile paths, prompt selection, and template rendering. Use this skill when requests mention Orchard Core AI Prompting, prompt templates, profile templates, Templates/Prompts, Templates/Profiles, AITemplates, AIProfileTemplate, SourceCatalogEntry, or INamedSourceCatalogManager.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "1.0"
+  version: "2.0"
 ---
 
 # Orchard Core AI Prompting
 
-## Overview
+## Choose the correct template surface
 
-The AI Prompting feature provides reusable prompt templates that can serve as profile templates or system message templates. They can include system messages, model parameters, connection settings, tools, agents, data sources, documents, and more.
+Use **prompt files** for reusable rendered instructions, and use **AI profile
+templates** for reusable Orchard-managed profile defaults. They are related but
+are not interchangeable.
 
-### Template Sources
+| Need | Use |
+|---|---|
+| Reuse a Liquid-rendered prompt in a profile, interaction, or script | A prompt file discovered by `CrestApps.OrchardCore.AI.Prompting` |
+| Prepopulate a new AI profile with provider, deployment, capability, and chat settings | An `AIProfileTemplate` with `Source = Profile` |
+| Maintain a reusable system-message template in the AI template catalog | An `AIProfileTemplate` with `Source = SystemPrompt` |
 
-| Source | Description |
-|--------|-------------|
-| `Profile` | Pre-fills AI Profile settings when creating new profiles. Users can select from a dropdown and click "Apply". |
-| `SystemMessage` | Provides reusable system message prompts that can be rendered using the `render_ai_template` Liquid tag. |
+`AIProfileTemplate` is a `SourceCatalogEntry`. Its Orchard manager is
+`INamedSourceCatalogManager<AIProfileTemplate>`, not
+`INamedCatalogManager<AIProfileTemplate>`. Recipes that import one must supply
+the `Name`, `DisplayText`, and `Source` fields. The `Name` plus `Source` pair
+identifies an existing entry when `ItemId` is absent.
 
-Templates can be defined in two ways:
-1. **Admin UI (runtime)** — stored in the database, full CRUD support
-2. **Markdown files (code)** — placed in `AITemplates/Profiles/` or `AITemplates/SystemMessages/` folders within modules, read-only at runtime
+## Enable the right feature
 
-### Guidelines
-- AI Prompting extends `CatalogItem` and uses the `INamedCatalogManager<AIProfileTemplate>` pattern.
-- Templates are source-independent — the same template works with any AI provider.
-- Database templates take precedence over file-based templates with the same name.
-- Template properties are read with `Entity.TryGet<T>(out var value)` and written with `Put<T>()` (not `GetSettings/AlterSettings`).
-- Profile-type templates: when applied, `Properties` are copied to both `profile.Properties` and `profile.Settings`.
-- SystemMessage templates: rendered at runtime using `render_ai_template` Liquid tag.
-- Profile types supported: `Chat`, `Utility`, `TemplatePrompt`, `Agent`.
-- Agent templates must include `Description` and `AgentMetadata` with availability setting.
-
-### Enabling AI Prompting
-
-Enable the dedicated AI Prompting feature:
+Enable `CrestApps.OrchardCore.AI.Prompting` when editors need to select prompt
+files in AI profiles, profile templates, or chat interactions. The base AI
+feature owns the `AIProfileTemplate` catalog and its Templates screen.
 
 ```json
 {
@@ -46,161 +41,92 @@ Enable the dedicated AI Prompting feature:
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Prompting"
-      ]
+      ],
+      "disable": []
     }
   ]
 }
 ```
 
-## Creating Templates via Markdown Files
+The prompting feature replaces the default template service with an
+Orchard-aware service. It filters module prompt files by the active tenant's
+enabled features and de-duplicates template IDs case-insensitively.
 
-### Profile Templates
+## Author prompt files
 
-Place `.md` files in your module's `AITemplates/Profiles/` directory. The file name (without extension) becomes the template's technical name.
+Put prompt files in an Orchard module at:
 
-### SystemMessage Templates
-
-Place `.md` files in your module's `AITemplates/SystemMessages/` directory. These are rendered using the `render_ai_template` Liquid tag.
-
-### Markdown Template Format (Profile Source)
-
-```markdown
----
-Title: Customer Support Bot
-Description: Template for customer support chatbots
-Category: Customer Service
-IsListable: true
-ProfileType: Chat
-ChatDeploymentName: gpt-4o
-UtilityDeploymentName: gpt-4o-mini
-OrchestratorName: default
-WelcomeMessage: Hello! How can I help you today?
-TitleType: Generated
-Temperature: 0.7
-TopP: 0.9
-FrequencyPenalty: 0.0
-PresencePenalty: 0.0
-MaxOutputTokens: 800
-PastMessagesCount: 10
-ToolNames: web-search, knowledge-base
-AgentNames: research-agent
----
-
-You are a professional customer support agent.
-Your goal is to help customers resolve issues efficiently.
-Always be polite and empathetic.
+```text
+Templates/Prompts/
 ```
 
-The body after the front matter becomes the `SystemMessage`.
+The module provider reads assets below that directory. A root-level prompt is
+associated with the module's default feature. A prompt in a first-level
+subdirectory is associated with the feature whose ID is that subdirectory
+name, so it is available only while that feature is enabled.
 
-### Markdown Template Format (SystemMessage Source)
+For example, a module can include:
 
-```markdown
----
-Title: Agent Availability Info
-Description: Provides the LLM with information about available agents
-Category: System
-IsListable: false
----
-
-The following agents are available to assist you:
-{% for agent in tools %}
-{% if agent.Source == "Agent" %}
-- **{{ agent.Name }}**: {{ agent.Description }}
-{% endif %}
-{% endfor %}
+```text
+Templates/Prompts/customer-support.md
+Templates/Prompts/MyCompany.OrchardCore.Support/agent-handoff.md
 ```
 
-### Front Matter Properties
+Use a supported template parser format and give every prompt a stable
+file-based ID. The ID is the file name without its extension. Do not depend on
+a runtime `AIProfileTemplate` record to resolve a prompt-file ID.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `Title` | string | Display name for the template |
-| `Description` | string | Description of what the template does |
-| `Category` | string | Grouping category for the dropdown |
-| `IsListable` | bool | Whether the template appears in the selection dropdown |
-| `ProfileType` | string | `Chat`, `Utility`, `TemplatePrompt`, or `Agent` |
-| `ChatDeploymentName` | string | Chat deployment technical name to pre-select for generated profiles |
-| `UtilityDeploymentName` | string | Utility deployment technical name to pre-select for generated profiles |
-| `OrchestratorName` | string | Orchestrator name (default: `default`) |
-| `WelcomeMessage` | string | Initial greeting shown to users (Chat profiles only) |
-| `TitleType` | string | `InitialPrompt` or `Generated` |
-| `PromptTemplate` | string | Liquid template for TemplatePrompt profiles |
-| `PromptSubject` | string | Subject for the prompt |
-| `Temperature` | float | Controls randomness (0.0 to 2.0) |
-| `TopP` | float | Nucleus sampling threshold |
-| `FrequencyPenalty` | float | Reduces frequent token repetition |
-| `PresencePenalty` | float | Encourages topic diversity |
-| `MaxOutputTokens` | int | Maximum tokens in response |
-| `PastMessagesCount` | int | Number of history messages to include |
-| `ToolNames` | string | Comma-separated list of AI tool names |
-| `AgentNames` | string | Comma-separated list of agent profile names |
+When `CrestApps.OrchardCore.AI` and `OrchardCore.Recipes.Core` are enabled,
+Orchard scripting can render a discovered prompt file:
 
-### Using render_ai_template Liquid Tag
-
-The `render_ai_template` tag renders a SystemMessage template by ID, optionally passing variables:
-
-```liquid
-{% render_ai_template "template-id" %}
+```javascript
+renderAITemplate("customer-support-intro", {
+  audience: "support agents"
+})
 ```
 
-With variables:
+The optional second argument is an object of variables for the Liquid context.
 
-```liquid
-{% render_ai_template "agent-availability" tools %}
-```
+## Author profile-template files
 
-This passes the `tools` variable from the current scope to the rendered template. Variables are inherited from the parent scope.
+Profile-template discovery is owned by the base AI module, not by the
+Prompting feature. The supported paths differ by source:
 
-### Example: Composing Templates
+| Source | Path |
+|---|---|
+| Embedded Orchard module asset | `Templates/Profiles/` |
+| Global application data | `App_Data/AITemplates/Profiles/` |
+| Tenant application data | `App_Data/Sites/{TenantName}/AITemplates/Profiles/` |
 
-```liquid
-You are an AI assistant with access to various tools and agents.
+Module profile files are read as module assets. Application-data profile files
+are read from the global and active tenant folders. Do not substitute
+`App_Data/Templates/Profiles` or `AITemplates/SystemMessages`; those are not
+the Orchard providers' profile-template paths.
 
-{% if hasAgents %}
-{% render_ai_template "agent-availability" tools %}
-{% endif %}
+The file name without its extension is the profile template ID. Keep the front
+matter and body compatible with the shared CrestApps.Core profile-template
+parser. For a runtime-managed template, use **Artificial Intelligence →
+Templates** instead of creating a prompt file.
 
-Always follow the user's instructions carefully.
-```
+## Use templates in Orchard editors
 
-## Creating Agent Templates
+After the relevant features are enabled:
 
-Agent templates help users quickly create agent profiles:
+- AI profile editors can select discovered prompt files.
+- Chat interaction editors can select discovered prompt files.
+- Profile-source AI profile templates can select discovered prompt files.
+- The base AI Templates screen manages `AIProfileTemplate` entries and applies
+  profile-source templates while creating a profile.
 
-```json
-{
-  "steps": [
-    {
-      "name": "AIProfileTemplate",
-      "Templates": [
-        {
-          "Name": "research-agent",
-          "DisplayText": "Research Agent",
-          "Description": "Template for creating a research agent that can gather and summarize information.",
-          "Category": "Agents",
-          "IsListable": true,
-          "ProfileType": "Agent",
-          "SystemMessage": "You are a research assistant. Gather information from available tools, verify facts, and provide comprehensive answers with sources.",
-          "Temperature": 0.3,
-          "MaxOutputTokens": 4096,
-          "ToolNames": ["web-search"],
-          "AgentNames": [],
-          "Properties": {
-            "AgentMetadata": {
-              "Availability": "OnDemand"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
+Profile templates can carry profile defaults such as deployments, orchestrator
+metadata, tools, agents, and prompting selections. They do not replace the
+provider connection and deployment setup. Configure that separately before
+creating a profile from a template.
 
-## Creating Templates via Recipes
+## Import a runtime profile template
 
-### Profile Template Recipe
+Use the AI profile template recipe step for catalog entries. Keep it in the
+recipe root and set the source explicitly:
 
 ```json
 {
@@ -210,23 +136,9 @@ Agent templates help users quickly create agent profiles:
       "Templates": [
         {
           "Name": "customer-support",
-          "DisplayText": "Customer Support Bot",
-          "Description": "Template for customer support chatbots",
-          "Category": "Customer Service",
-          "IsListable": true,
-          "ProfileType": "Chat",
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
-          "OrchestratorName": "default",
-          "SystemMessage": "You are a professional customer support agent.",
-          "WelcomeMessage": "Hello! How can I help you today?",
-          "TitleType": "Generated",
-          "Temperature": 0.7,
-          "TopP": 0.9,
-          "MaxOutputTokens": 800,
-          "PastMessagesCount": 10,
-          "ToolNames": ["web-search", "knowledge-base"],
-          "AgentNames": ["research-agent"],
+          "DisplayText": "Customer Support",
+          "Source": "Profile",
+          "Description": "Defaults for a customer support AI profile.",
           "Properties": {}
         }
       ]
@@ -235,191 +147,24 @@ Agent templates help users quickly create agent profiles:
 }
 ```
 
-### Recipe with Post-Session, Data Extraction & Conversion Goals
+Use `Source = SystemPrompt` only for a runtime system-prompt catalog entry.
+Do not represent a `Templates/Prompts` file as a profile-template record just
+to render it.
 
-Templates store all settings in `Properties` (not `Settings`). Here is a full recipe with post-session tasks, data extraction entries, and conversion goals:
+## Troubleshooting
 
-```json
-{
-  "steps": [
-    {
-      "name": "AIProfileTemplate",
-      "Templates": [
-        {
-          "Name": "support-analytics",
-          "DisplayText": "Support with Analytics",
-          "Description": "Support template with full data processing and metrics.",
-          "Category": "Customer Service",
-          "ProfileType": "Chat",
-          "SystemMessage": "You are a customer support agent.",
-          "AgentNames": [],
-          "Properties": {
-            "AIProfilePostSessionSettings": {
-              "EnablePostSessionProcessing": true,
-              "ToolNames": [],
-              "PostSessionTasks": [
-                {
-                  "Name": "sentiment",
-                  "Type": "PredefinedOptions",
-                  "Instructions": "Classify the overall sentiment of the conversation.",
-                  "AllowMultipleValues": false,
-                  "Options": [
-                    { "Value": "positive", "Description": "Customer was happy." },
-                    { "Value": "neutral", "Description": "No strong emotion." },
-                    { "Value": "negative", "Description": "Customer was frustrated." }
-                  ]
-                },
-                {
-                  "Name": "summary",
-                  "Type": "Semantic",
-                  "Instructions": "Write a concise summary of the conversation.",
-                  "AllowMultipleValues": false,
-                  "Options": []
-                }
-              ]
-            },
-            "AIProfileDataExtractionSettings": {
-              "EnableDataExtraction": true,
-              "ExtractionCheckInterval": 1,
-              "SessionInactivityTimeoutInMinutes": 30,
-              "DataExtractionEntries": [
-                {
-                  "Name": "customer_name",
-                  "Description": "The customer's full name.",
-                  "AllowMultipleValues": false,
-                  "IsUpdatable": true
-                },
-                {
-                  "Name": "issue_category",
-                  "Description": "The category of the issue.",
-                  "AllowMultipleValues": false,
-                  "IsUpdatable": true
-                }
-              ]
-            },
-            "AnalyticsMetadata": {
-              "EnableSessionMetrics": true,
-              "EnableAIResolutionDetection": true,
-              "EnableConversionMetrics": true,
-              "ConversionGoals": [
-                {
-                  "Name": "issue_resolved",
-                  "Description": "The customer's issue was fully resolved.",
-                  "MinScore": 0,
-                  "MaxScore": 10
-                },
-                {
-                  "Name": "customer_satisfaction",
-                  "Description": "The customer expressed satisfaction.",
-                  "MinScore": 0,
-                  "MaxScore": 10
-                }
-              ]
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
+| Symptom | Check |
+|---|---|
+| A prompt is not selectable | Verify its module asset is below `Templates/Prompts/` and its owning feature is enabled. |
+| A profile file is ignored | Use `Templates/Profiles/` for a module, or an `App_Data/AITemplates/Profiles/` path for application data. |
+| A recipe creates a duplicate template | Supply `Source` and keep the `Name` unique for that source. |
+| A prompt cannot render in scripting | Enable the base AI and `OrchardCore.Recipes.Core` features and use the prompt file ID. |
 
-### Named Entry Merge Behavior
+## Related skills
 
-When re-importing templates via recipe, named entries (PostSessionTasks, DataExtractionEntries, ConversionGoals) are merged by their `Name` field:
-
-| Scenario | Result |
-|----------|--------|
-| Entry with same name exists | Updated with incoming values |
-| Entry is new (name not found) | Added to the list |
-| Existing entry not in import | Preserved (not deleted) |
-
-Entry names must be unique within each list and contain only alphanumeric characters and underscores.
-
-## Exporting Templates via Deployment
-
-AI Templates can be exported using the deployment plan system. The deployment step `AIProfileTemplate` exports all or specific templates.
-
-## Creating a Display Driver for AIProfileTemplate
-
-To extend the template editor with custom tabs (like documents, capabilities, etc.), create a `DisplayDriver<AIProfileTemplate>`:
-
-```csharp
-public sealed class MyCustomTemplateDriver : DisplayDriver<AIProfileTemplate>
-{
-    public override IDisplayResult Edit(AIProfileTemplate template, BuildEditorContext context)
-    {
-        return Initialize<MyViewModel>("MyShape_Edit", model =>
-        {
-            if (!template.TryGet<MyMetadata>(out var metadata))
-            {
-                metadata = new MyMetadata();
-            }
-
-            model.SomeSetting = metadata.SomeSetting;
-        }).Location("Content:10#MyTab;8");
-    }
-
-    public override async Task<IDisplayResult> UpdateAsync(
-        AIProfileTemplate template,
-        UpdateEditorContext context)
-    {
-        var model = new MyViewModel();
-
-        await context.Updater.TryUpdateModelAsync(model, Prefix);
-
-        template.Put(new MyMetadata
-        {
-            SomeSetting = model.SomeSetting,
-        });
-
-        return await EditAsync(template, context);
-    }
-}
-```
-
-Register the driver in Startup:
-
-```csharp
-services.AddDisplayDriver<AIProfileTemplate, MyCustomTemplateDriver>();
-```
-
-### Placement Format Reference
-
-When specifying `.Location()` for display drivers, use the format:
-
-```
-Zone:ItemPosition#TabName;TabGroupPosition
-```
-
-- `:N` after zone = item order WITHIN the tab (lower number = first)
-- `;N` after tab name = tab order among other tabs (lower number = first)
-- **CRITICAL**: Use `;` (semicolon) after tab name, NOT `:` (colon). Using `:` makes the number part of the tab name.
-
-Examples:
-- `Content:3#Capabilities;8` — item at position 3 within the "Capabilities" tab, tab at position 8
-- `Content:5#Data Processing & Metrics;10` — item at position 5 within the "Data Processing & Metrics" tab, tab at position 10
-
-### Important Notes
-
-- Template drivers use `template.TryGet<T>(out var value)` for reads and `Put<T>()` for writes from `OrchardCore.Entities` (not `GetSettings/AlterSettings`).
-- Template drivers can reuse the same ViewModels and shape names as AI Profile drivers.
-- When applying a template, `Properties` are copied to both `profile.Properties` and `profile.Settings`.
-- Templates support document uploads — documents are cloned when applying a template to a new profile.
-- All template settings (post-session, data extraction, analytics) live in `template.Properties`.
-
-### Where Template Settings Live vs AI Profile Settings
-
-| Settings Type | On AIProfileTemplate | On AIProfile |
-|---|---|---|
-| `AIProfilePostSessionSettings` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
-| `AIProfileDataExtractionSettings` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Settings` via `GetSettings/AlterSettings` |
-| `AnalyticsMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
-| `AIProfileMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
-| `AgentMetadata` | `template.Properties` via `TryGet<T>(out var value)/Put<T>()` | `profile.Properties` via `TryGet<T>(out var value)/Put<T>()` |
-
-## Security
-
-- AI Template management requires the `ManageAIProfileTemplates` permission.
-- Templates do not store API keys or sensitive connection details.
-- Templates reference connections by name, not by credentials.
+- For provider connections and deployments that a profile template references,
+  use `orchardcore-ai-providers`.
+- For selecting prompt-backed behavior in workflow completions, use
+  `orchardcore-ai-workflows`.
+- For tools selected by a profile or profile template, use
+  `orchardcore-ai-tools`.

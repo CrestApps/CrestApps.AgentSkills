@@ -22,7 +22,7 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 );
 ```
 
-`AddCorePostgreSQLServices(...)` is the lower-level equivalent. It configures `PostgreSQLConnectionOptions`, `IPostgreSQLClientFactory`, and provider-keyed services using `PostgreSQLConstants.ProviderName`.
+`AddCorePostgreSQLServices(...)` only registers `PostgreSQLConnectionOptions`, `IPostgreSQLClientFactory`, and provider-keyed indexing primitives. It does not add AI document, data-source, or memory support. For lower-level composition, call the matching `AddCorePostgreSQLAIDocumentSource()`, `AddCorePostgreSQLAIDataSource()`, and/or `AddCorePostgreSQLAIMemorySource()` methods after registering the primitive services.
 
 ## Configuration
 
@@ -37,13 +37,13 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 }
 ```
 
-Use PostgreSQL with the `vector` extension available. `PostgreSQLConnectionOptions` contains `ConnectionString` and `IndexPrefix`; protect the connection string through secrets or managed configuration.
+Use PostgreSQL with the `vector` extension available. `PostgreSQLConnectionOptions` contains `ConnectionString` and `IndexPrefix`. The prefix is applied to framework-managed index table names. Protect the connection string through secrets or managed configuration.
 
 ## What Each AI Option Adds
 
-- `AddAIDocuments()` registers the `AIDocuments` source, document index-profile handler, and keyed `IVectorSearchService`.
-- `AddAIDataSources()` registers the `DataSource` source, shared RAG synchronization, the `PostgreSQL` `IAIDataSourceSourceHandler`, and data-source index-profile handler.
-- `AddAIMemory()` registers the `AIMemory` source, memory index-profile handler, and keyed `IMemoryVectorSearchService`.
+- `AddAIDocuments()` registers an `AIDocuments` index-profile source, its profile handler, and keyed `IVectorSearchService`.
+- `AddAIDataSources()` registers a `DataSource` index-profile source, shared RAG synchronization, and a keyed `PostgreSQLAIDataSourceSourceHandler`.
+- `AddAIMemory()` registers an `AIMemory` index-profile source, its profile handler, and keyed `IMemoryVectorSearchService`.
 
 Provider primitives register keyed `IDataSourceContentManager`, `IDataSourceDocumentReader`, `IODataFilterTranslator`, `ISearchIndexManager`, and `ISearchDocumentManager`. Retrieve them with the PostgreSQL provider key.
 

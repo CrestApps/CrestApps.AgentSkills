@@ -29,10 +29,10 @@ connection metadata, deployment-safe credential handling, and URI patterns.
 
 ### Protocol comparison
 
-| Source | Feature ID | URI | Default port | Authentication |
+| Source | Feature ID | URI | Port | Authentication |
 |---|---|---|---|---|
-| FTP/FTPS | `CrestApps.OrchardCore.AI.Mcp.Resources.Ftp` | `ftp://{itemId}/{path}` | 21 or 990 for implicit FTPS | Username and password |
-| SFTP | `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` | `sftp://{itemId}/{path}` | 22 | Password or private key |
+| FTP/FTPS | `CrestApps.OrchardCore.AI.Mcp.Resources.Ftp` | `ftp://{itemId}/{path}` | Configured per resource | Username and password |
+| SFTP | `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` | `sftp://{itemId}/{path}` | Configured per resource | Password or private key |
 
 FTP/FTPS uses FluentFTP. SFTP uses SSH.NET. SFTP is SSH-based and is not FTP with a
 different port; choose the module matching the server protocol.

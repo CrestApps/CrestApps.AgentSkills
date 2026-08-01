@@ -16,7 +16,8 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Telephony` in the web/startup project.
-- Enable `CrestApps.OrchardCore.Telephony` for services, settings, the hub, and call-history persistence.
+- Enable `CrestApps.OrchardCore.Telephony` for provider resolution, services, the hub, and call-history persistence.
+- Enable `CrestApps.OrchardCore.Telephony.Admin` for the Telephony settings screen and administration menu.
 - The core feature depends on `OrchardCore.Users` and `CrestApps.OrchardCore.SignalR`.
 - Enable `CrestApps.OrchardCore.Telephony.SoftPhone` only when the floating widget is needed.
 - Select a default provider only after that provider feature is enabled and configured.
@@ -33,7 +34,8 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
 
 | Feature | Feature ID | Purpose |
 |---|---|---|
-| Telephony | `CrestApps.OrchardCore.Telephony` | Provider resolver, services, settings, SignalR hub, OAuth routes, and interaction history |
+| Telephony | `CrestApps.OrchardCore.Telephony` | Provider resolver, services, SignalR hub, OAuth routes, interaction history, and recording-store infrastructure |
+| Telephony Administration | `CrestApps.OrchardCore.Telephony.Admin` | Provider settings screen and administration menu |
 | Telephony Soft Phone | `CrestApps.OrchardCore.Telephony.SoftPhone` | Floating soft phone on the admin, front end, or both |
 
 ### Enable the Features
@@ -45,6 +47,7 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.Telephony",
+        "CrestApps.OrchardCore.Telephony.Admin",
         "CrestApps.OrchardCore.Telephony.SoftPhone"
       ],
       "disable": []
@@ -73,24 +76,28 @@ The core registrations include `DefaultTelephonyService`, `DefaultTelephonyProvi
 
 ### Call Operations
 
-`ITelephonyProvider` contains these operations:
+`ITelephonyProvider` identifies the provider and its advertised capabilities.
+It does not contain all operations. Implement the matching capability
+interfaces only for operations a provider can execute:
 
-| Intent | Contract method |
+| Intent | Capability contract and method |
 |---|---|
-| Start a call | `DialAsync(DialRequest)` |
-| End a call | `HangupAsync(CallReference)` |
-| Pause and continue | `HoldAsync(CallReference)` and `ResumeAsync(CallReference)` |
-| Control local audio | `MuteAsync(CallReference)` and `UnmuteAsync(CallReference)` |
-| Transfer or conference | `TransferAsync(TransferRequest)` and `MergeAsync(MergeRequest)` |
-| Send DTMF | `SendDigitsAsync(SendDigitsRequest)` |
-| Handle an incoming call | `AnswerAsync(CallReference)` and `RejectAsync(CallReference)` |
-| Initialize a client | `GetClientCredentialsAsync()` |
+| Start or end a call | `ITelephonyCallControlProvider` with `DialAsync` and `HangupAsync` |
+| Pause and continue | `ITelephonyHoldProvider` with `HoldAsync` and `ResumeAsync` |
+| Control local audio | `ITelephonyMuteProvider` with `MuteAsync` and `UnmuteAsync` |
+| Blind transfer or conference | `ITelephonyTransferProvider` or `ITelephonyConferenceProvider` |
+| Send DTMF | `ITelephonyDtmfProvider.SendDigitsAsync` |
+| Handle an incoming call | `ITelephonyInboundCallProvider` |
+| Initialize a browser client | `ITelephonySoftPhoneCredentialsProvider.GetClientCredentialsAsync` |
 
 Expose supported operations in `TelephonyCapabilities`. The widget hides controls that are not represented by the provider capability flags.
 
 ## Configure a Provider
 
-Enable a provider feature and configure it under **Settings → Communication → Telephony**. The core Telephony tab selects the default enabled provider and configures soft-phone placement. A provider module adds its own tab through a site display driver.
+Enable the Telephony Administration feature, then enable a provider feature and
+configure it under **Settings → Communication → Telephony**. The Soft Phone
+tab selects the default enabled provider and configures widget placement. A
+provider module adds its own tab through a site display driver.
 
 The default provider lives in `TelephonySettings.DefaultProviderName`. When the sole configured provider is enabled it becomes the default automatically. Disabling the selected provider clears the default.
 
@@ -147,7 +154,7 @@ using Microsoft.Extensions.Localization;
 
 namespace MyCompany.OrchardCore.MyTelephony;
 
-public sealed class MyTelephonyProvider : ITelephonyProvider
+public sealed class MyTelephonyProvider : ITelephonyProvider, ITelephonyCallControlProvider
 {
     public LocalizedString Name => new("MyTelephony", "My Telephony");
 
@@ -160,18 +167,15 @@ public sealed class MyTelephonyProvider : ITelephonyProvider
     }
 
     public Task<TelephonyResult> HangupAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    public Task<TelephonyResult> HoldAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> ResumeAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> MuteAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> UnmuteAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> TransferAsync(TransferRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> MergeAsync(MergeRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> SendDigitsAsync(SendDigitsRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> AnswerAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyResult> RejectAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<TelephonyClientCredentials> GetClientCredentialsAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 ```
+
+Add only `ITelephonyHoldProvider`, `ITelephonyMuteProvider`,
+`ITelephonyTransferProvider`, `ITelephonyConferenceProvider`,
+`ITelephonyDtmfProvider`, `ITelephonyInboundCallProvider`, or
+`ITelephonySoftPhoneCredentialsProvider` when the provider implements the
+associated operation. Keep `TelephonyCapabilities` aligned with those
+implemented contracts; the service fails closed when either is absent.
 
 Register provider availability through `TelephonyProviderOptions`. Read the tenant settings in an `IConfigureOptions<TelephonyProviderOptions>` implementation and add a `TelephonyProviderTypeOptions` only when the provider is enabled:
 
@@ -192,7 +196,7 @@ Prefer explicit error results from provider operations. A `TelephonyResult` allo
 
 | Symptom | Check |
 |---|---|
-| Widget says Not Ready | Ensure a provider is enabled and selected as `DefaultProviderName` |
+| Widget says Not Ready | Ensure a provider is enabled, selected as `DefaultProviderName`, and exposes the required capability contracts |
 | Widget never renders | Enable `CrestApps.OrchardCore.Telephony.SoftPhone`, select an admin or front-end surface, and grant use permission |
 | OAuth callback fails | Verify the callback URL, tenant prefix, client credentials, and provider OAuth settings |
 | Controls are missing | Confirm the provider reports the matching `TelephonyCapabilities` flags |

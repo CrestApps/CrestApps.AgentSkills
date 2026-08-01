@@ -35,7 +35,7 @@ You are an Orchard Core expert. Generate workflow configurations and extension c
 | Feature | Feature ID | Purpose |
 |---|---|---|
 | AI Services | `CrestApps.OrchardCore.AI` | AI profiles, deployments, completion tasks, and workflow event activities |
-| AI Chat Services | `CrestApps.OrchardCore.AI.Chat.Core` | Chat-session services required by chat lifecycle processing |
+| AI Chat Services | `CrestApps.OrchardCore.AI.Chat.Core` | Dependency feature activated by an enabled chat capability |
 | Orchard Core Workflows | `OrchardCore.Workflows` | Workflow runtime and activity registration |
 
 ### Install and Enable
@@ -53,7 +53,6 @@ dotnet add package CrestApps.OrchardCore.AI
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat.Core",
         "OrchardCore.Workflows"
       ],
       "disable": []
@@ -62,7 +61,7 @@ dotnet add package CrestApps.OrchardCore.AI
 }
 ```
 
-`CrestApps.OrchardCore.AI.Chat.Core` is an enabled-by-dependency feature. Enable an appropriate chat feature that depends on it, such as `CrestApps.OrchardCore.AI.Chat`, if the workflow also reacts to live profile chat sessions.
+`CrestApps.OrchardCore.AI.Chat.Core` is dependency-only. Do not enable it directly in a recipe. Enable an appropriate public chat feature, such as `CrestApps.OrchardCore.AI.Chat`, only when the workflow also reacts to live profile chat sessions.
 
 ### AI Completion Using Profile
 
