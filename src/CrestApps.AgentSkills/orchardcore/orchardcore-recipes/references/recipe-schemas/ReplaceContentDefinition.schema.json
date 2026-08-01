@@ -76,34 +76,26 @@
               "properties": {
                 "PartName": {
                   "type": "string",
-                  "anyOf": [
-                    {
-                      "enum": [
-                        "AliasPart",
-                        "AuditTrailPart",
-                        "AutoroutePart",
-                        "BagPart",
-                        "CommonPart",
-                        "ContainedPart",
-                        "FlowPart",
-                        "HtmlBodyPart",
-                        "HtmlMenuItemPart",
-                        "LayerMetadata",
-                        "ListPart",
-                        "MarkdownBodyPart",
-                        "PreviewPart",
-                        "PublishLaterPart",
-                        "SeoMetaPart",
-                        "TitlePart",
-                        "WidgetsListPart"
-                      ]
-                    },
-                    {
-                      "type": "string",
-                      "pattern": "^(?!.*Field$).\u002B"
-                    }
+                  "examples": [
+                    "AliasPart",
+                    "AuditTrailPart",
+                    "AutoroutePart",
+                    "BagPart",
+                    "CommonPart",
+                    "ContainedPart",
+                    "FlowPart",
+                    "HtmlBodyPart",
+                    "HtmlMenuItemPart",
+                    "LayerMetadata",
+                    "ListPart",
+                    "MarkdownBodyPart",
+                    "PreviewPart",
+                    "PublishLaterPart",
+                    "SeoMetaPart",
+                    "TitlePart",
+                    "WidgetsListPart"
                   ],
-                  "description": "Attached part type name. Known part names are enumerated when available."
+                  "description": "Attached part type name. Known part names are surfaced as suggestions, but any custom part name is allowed."
                 },
                 "Name": {
                   "type": "string",

@@ -59,7 +59,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "enum": [
+            "examples": [
               "A2AConnection",
               "AdminMenu",
               "AdminTemplates",
@@ -2654,34 +2654,26 @@
                           "properties": {
                             "PartName": {
                               "type": "string",
-                              "anyOf": [
-                                {
-                                  "enum": [
-                                    "AliasPart",
-                                    "AuditTrailPart",
-                                    "AutoroutePart",
-                                    "BagPart",
-                                    "CommonPart",
-                                    "ContainedPart",
-                                    "FlowPart",
-                                    "HtmlBodyPart",
-                                    "HtmlMenuItemPart",
-                                    "LayerMetadata",
-                                    "ListPart",
-                                    "MarkdownBodyPart",
-                                    "PreviewPart",
-                                    "PublishLaterPart",
-                                    "SeoMetaPart",
-                                    "TitlePart",
-                                    "WidgetsListPart"
-                                  ]
-                                },
-                                {
-                                  "type": "string",
-                                  "pattern": "^(?!.*Field$).\u002B"
-                                }
+                              "examples": [
+                                "AliasPart",
+                                "AuditTrailPart",
+                                "AutoroutePart",
+                                "BagPart",
+                                "CommonPart",
+                                "ContainedPart",
+                                "FlowPart",
+                                "HtmlBodyPart",
+                                "HtmlMenuItemPart",
+                                "LayerMetadata",
+                                "ListPart",
+                                "MarkdownBodyPart",
+                                "PreviewPart",
+                                "PublishLaterPart",
+                                "SeoMetaPart",
+                                "TitlePart",
+                                "WidgetsListPart"
                               ],
-                              "description": "Attached part type name. Known part names are enumerated when available."
+                              "description": "Attached part type name. Known part names are surfaced as suggestions, but any custom part name is allowed."
                             },
                             "Name": {
                               "type": "string",
@@ -8236,34 +8228,26 @@
                           "properties": {
                             "PartName": {
                               "type": "string",
-                              "anyOf": [
-                                {
-                                  "enum": [
-                                    "AliasPart",
-                                    "AuditTrailPart",
-                                    "AutoroutePart",
-                                    "BagPart",
-                                    "CommonPart",
-                                    "ContainedPart",
-                                    "FlowPart",
-                                    "HtmlBodyPart",
-                                    "HtmlMenuItemPart",
-                                    "LayerMetadata",
-                                    "ListPart",
-                                    "MarkdownBodyPart",
-                                    "PreviewPart",
-                                    "PublishLaterPart",
-                                    "SeoMetaPart",
-                                    "TitlePart",
-                                    "WidgetsListPart"
-                                  ]
-                                },
-                                {
-                                  "type": "string",
-                                  "pattern": "^(?!.*Field$).\u002B"
-                                }
+                              "examples": [
+                                "AliasPart",
+                                "AuditTrailPart",
+                                "AutoroutePart",
+                                "BagPart",
+                                "CommonPart",
+                                "ContainedPart",
+                                "FlowPart",
+                                "HtmlBodyPart",
+                                "HtmlMenuItemPart",
+                                "LayerMetadata",
+                                "ListPart",
+                                "MarkdownBodyPart",
+                                "PreviewPart",
+                                "PublishLaterPart",
+                                "SeoMetaPart",
+                                "TitlePart",
+                                "WidgetsListPart"
                               ],
-                              "description": "Attached part type name. Known part names are enumerated when available."
+                              "description": "Attached part type name. Known part names are surfaced as suggestions, but any custom part name is allowed."
                             },
                             "Name": {
                               "type": "string",
@@ -10359,7 +10343,16 @@
                     "properties": {
                       "Name": {
                         "type": "string",
-                        "description": "Role name."
+                        "examples": [
+                          "Administrator",
+                          "Anonymous",
+                          "Authenticated",
+                          "Author",
+                          "Contributor",
+                          "Editor",
+                          "Moderator"
+                        ],
+                        "description": "Role name. Existing roles are surfaced as suggestions, but any role name is allowed, including new roles to create."
                       },
                       "Description": {
                         "type": "string",
@@ -13052,7 +13045,7 @@
                             },
                             "Name": {
                               "type": "string",
-                              "enum": [
+                              "examples": [
                                 "AIChatSessionAllFieldsExtractedEvent",
                                 "AIChatSessionClosedEvent",
                                 "AIChatSessionFieldExtractedEvent",
@@ -13166,7 +13159,7 @@
                               "then": {
                                 "properties": {
                                   "Name": {
-                                    "enum": [
+                                    "examples": [
                                       "AIChatSessionAllFieldsExtractedEvent",
                                       "AIChatSessionClosedEvent",
                                       "AIChatSessionFieldExtractedEvent",

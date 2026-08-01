@@ -50,7 +50,7 @@
                 },
                 "Name": {
                   "type": "string",
-                  "enum": [
+                  "examples": [
                     "AIChatSessionAllFieldsExtractedEvent",
                     "AIChatSessionClosedEvent",
                     "AIChatSessionFieldExtractedEvent",
@@ -164,7 +164,7 @@
                   "then": {
                     "properties": {
                       "Name": {
-                        "enum": [
+                        "examples": [
                           "AIChatSessionAllFieldsExtractedEvent",
                           "AIChatSessionClosedEvent",
                           "AIChatSessionFieldExtractedEvent",

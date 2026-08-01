@@ -13,7 +13,16 @@
         "properties": {
           "Name": {
             "type": "string",
-            "description": "Role name."
+            "examples": [
+              "Administrator",
+              "Anonymous",
+              "Authenticated",
+              "Author",
+              "Contributor",
+              "Editor",
+              "Moderator"
+            ],
+            "description": "Role name. Existing roles are surfaced as suggestions, but any role name is allowed, including new roles to create."
           },
           "Description": {
             "type": "string",
