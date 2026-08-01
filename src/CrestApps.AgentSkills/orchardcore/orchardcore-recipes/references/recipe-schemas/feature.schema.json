@@ -10,7 +10,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
+        "examples": [
           "CrestApps.OrchardCore.AI",
           "CrestApps.OrchardCore.AI.A2A",
           "CrestApps.OrchardCore.AI.A2A.Host",
@@ -258,7 +258,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
+        "examples": [
           "CrestApps.OrchardCore.AI",
           "CrestApps.OrchardCore.AI.A2A",
           "CrestApps.OrchardCore.AI.A2A.Host",

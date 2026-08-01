@@ -22,7 +22,7 @@
               "properties": {
                 "Name": {
                   "type": "string",
-                  "description": "Activity type name. Start activities must be events; non-start activities must be tasks."
+                  "description": "Activity type name. Well-known activities are surfaced as suggestions, but any custom or third-party activity name is allowed. Start activities are typically events; non-start activities are typically tasks."
                 },
                 "IsStart": {
                   "type": "boolean",
@@ -60,8 +60,32 @@
               "then": {
                 "properties": {
                   "Name": {
-                    "enum": [
-                      "HttpRequestEvent"
+                    "type": "string",
+                    "examples": [
+                      "AIChatSessionAllFieldsExtractedEvent",
+                      "AIChatSessionClosedEvent",
+                      "AIChatSessionFieldExtractedEvent",
+                      "AIChatSessionPostProcessedEvent",
+                      "ContentCreatedEvent",
+                      "ContentDeletedEvent",
+                      "ContentDraftSavedEvent",
+                      "ContentPublishedEvent",
+                      "ContentUnpublishedEvent",
+                      "ContentUpdatedEvent",
+                      "ContentVersionedEvent",
+                      "HttpRequestEvent",
+                      "HttpRequestFilterEvent",
+                      "SignalEvent",
+                      "TimerEvent",
+                      "UserConfirmedEvent",
+                      "UserCreatedEvent",
+                      "UserDeletedEvent",
+                      "UserDisabledEvent",
+                      "UserEnabledEvent",
+                      "UserLoggedInEvent",
+                      "UserTaskEvent",
+                      "UserUpdatedEvent",
+                      "WorkflowFaultEvent"
                     ]
                   }
                 }
@@ -69,8 +93,55 @@
               "else": {
                 "properties": {
                   "Name": {
-                    "enum": [
-                      "NotifyTask"
+                    "type": "string",
+                    "examples": [
+                      "AddModelValidationErrorTask",
+                      "AICompletionFromProfileTask",
+                      "AICompletionWithConfigTask",
+                      "AssignUserRoleTask",
+                      "BindModelStateTask",
+                      "CommitTransactionTask",
+                      "CorrelateTask",
+                      "CreateContentTask",
+                      "CreateTenantTask",
+                      "DeleteContentTask",
+                      "DisableTenantTask",
+                      "EmailTask",
+                      "EnableTenantTask",
+                      "ForEachTask",
+                      "ForkTask",
+                      "ForLoopTask",
+                      "GetUsersByRoleTask",
+                      "HttpRedirectTask",
+                      "HttpRedirectToFormLocationTask",
+                      "HttpRequestTask",
+                      "HttpResponseTask",
+                      "IfElseTask",
+                      "JoinTask",
+                      "LiquidTask",
+                      "LogTask",
+                      "NotifyContentOwnerTask",
+                      "NotifyTask",
+                      "NotifyUserTask",
+                      "PublishContentTask",
+                      "RegisterUserTask",
+                      "RetrieveContentTask",
+                      "ScriptTask",
+                      "SetOutputTask",
+                      "SetPropertyTask",
+                      "SetupTenantTask",
+                      "SmsTask",
+                      "UnassignUserRoleTask",
+                      "UnpublishContentTask",
+                      "UpdateContentTask",
+                      "UpdateTwitterStatusTask",
+                      "ValidateAntiforgeryTokenTask",
+                      "ValidateFormFieldTask",
+                      "ValidateFormTask",
+                      "ValidateReCaptchaTask",
+                      "ValidateUserTask",
+                      "WhileLoopTask",
+                      "WriteLineTask"
                     ]
                   }
                 }

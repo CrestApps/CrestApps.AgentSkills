@@ -1015,7 +1015,7 @@
               "properties": {
                 "FieldName": {
                   "type": "string",
-                  "enum": [
+                  "examples": [
                     "BooleanField",
                     "ContentPickerField",
                     "DateField",
@@ -1034,7 +1034,7 @@
                     "UserPickerField",
                     "YoutubeField"
                   ],
-                  "description": "Field type name. Known Orchard field types are enumerated from the current tenant."
+                  "description": "Field type name. Known Orchard field types are surfaced as suggestions, but any custom field type name is allowed."
                 },
                 "Name": {
                   "type": "string",

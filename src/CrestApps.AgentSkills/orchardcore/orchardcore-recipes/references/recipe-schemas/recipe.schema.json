@@ -3584,7 +3584,7 @@
                           "properties": {
                             "FieldName": {
                               "type": "string",
-                              "enum": [
+                              "examples": [
                                 "BooleanField",
                                 "ContentPickerField",
                                 "DateField",
@@ -3603,7 +3603,7 @@
                                 "UserPickerField",
                                 "YoutubeField"
                               ],
-                              "description": "Field type name. Known Orchard field types are enumerated from the current tenant."
+                              "description": "Field type name. Known Orchard field types are surfaced as suggestions, but any custom field type name is allowed."
                             },
                             "Name": {
                               "type": "string",
@@ -5906,7 +5906,7 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": [
+                    "examples": [
                       "CrestApps.OrchardCore.AI",
                       "CrestApps.OrchardCore.AI.A2A",
                       "CrestApps.OrchardCore.AI.A2A.Host",
@@ -6154,7 +6154,7 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": [
+                    "examples": [
                       "CrestApps.OrchardCore.AI",
                       "CrestApps.OrchardCore.AI.A2A",
                       "CrestApps.OrchardCore.AI.A2A.Host",
@@ -8106,7 +8106,7 @@
                       },
                       "name": {
                         "type": "string",
-                        "enum": [],
+                        "examples": [],
                         "description": "Name of the non-startup recipe to execute."
                       }
                     },
@@ -9154,7 +9154,7 @@
                           "properties": {
                             "FieldName": {
                               "type": "string",
-                              "enum": [
+                              "examples": [
                                 "BooleanField",
                                 "ContentPickerField",
                                 "DateField",
@@ -9173,7 +9173,7 @@
                                 "UserPickerField",
                                 "YoutubeField"
                               ],
-                              "description": "Field type name. Known Orchard field types are enumerated from the current tenant."
+                              "description": "Field type name. Known Orchard field types are surfaced as suggestions, but any custom field type name is allowed."
                             },
                             "Name": {
                               "type": "string",
@@ -10348,13 +10348,175 @@
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "enum": [
+                          "examples": [
+                            "AccessA2AHost",
+                            "AccessAITool",
+                            "AccessAdminDashboard",
+                            "AccessAdminPanel",
+                            "AccessAnyAITool",
+                            "AccessContentApi",
+                            "AccessMcpServer",
+                            "ApiViewContent",
+                            "ApplyTheme",
+                            "AssignRoleToUsers",
+                            "ClearAIMemory",
+                            "ClearAIMemoryForOthers",
+                            "CloneContent",
+                            "CloneOwnContent",
+                            "DeleteAllChatSessions",
+                            "DeleteChatInteraction",
+                            "DeleteChatSession",
+                            "DeleteContent",
+                            "DeleteContentTransferEntries",
+                            "DeleteOwnChatInteraction",
+                            "DeleteOwnContent",
+                            "DeleteUsers",
+                            "DemoAPIAccess",
+                            "DisableTwoFactorAuthenticationForUsers",
+                            "EditChatInteractions",
                             "EditContent",
+                            "EditContentOwner",
+                            "EditContentTypes",
+                            "EditOwnChatInteractions",
+                            "EditOwnContent",
+                            "EditUsers",
+                            "ExecuteApiAll",
+                            "ExecuteGraphQL",
+                            "ExecuteGraphQLMutations",
+                            "ExecuteWorkflows",
+                            "Export",
+                            "ExportChatAnalytics",
+                            "ExportContentFromFile",
+                            "ExportRemoteInstances",
+                            "Import",
+                            "ImportContentFromFile",
+                            "ListChatInteractions",
+                            "ListChatInteractionsForOthers",
+                            "ListContent",
+                            "ListContentTransferEntries",
+                            "ListUsers",
+                            "LocalizeContent",
+                            "LocalizeOwnContent",
+                            "ManageA2AConnections",
+                            "ManageAIDataSources",
+                            "ManageAIDeployments",
+                            "ManageAIProfileTemplates",
+                            "ManageAIProfiles",
+                            "ManageAdminDashboard",
+                            "ManageAdminMenu",
+                            "ManageAdminSettings",
+                            "ManageAdminTemplates",
+                            "ManageApplications",
+                            "ManageAssetCache",
+                            "ManageAttachedMediaFieldsFolder",
+                            "ManageAvatarSettings",
+                            "ManageAzureAISearchISettings",
+                            "ManageBackgroundTasks",
+                            "ManageChatInteractionSettings",
+                            "ManageClaudeSettings",
+                            "ManageClientSettings",
+                            "ManageContentCulturePicker",
+                            "ManageContentVersionPruningSettings",
+                            "ManageCopilotSettings",
+                            "ManageCorsSettings",
+                            "ManageCultures",
+                            "ManageDeploymentPlan",
+                            "ManageDisplaySettings",
+                            "ManageDncRegistrySettings",
+                            "ManageElasticIndexes",
+                            "ManageEmailSettings",
+                            "ManageFacebookApp",
+                            "ManageFacebookPixel",
+                            "ManageFeatures",
+                            "ManageGitHubAuthentication",
+                            "ManageGoogleAnalytics",
+                            "ManageGoogleAuthentication",
+                            "ManageGoogleTagManager",
+                            "ManageHttps",
+                            "ManageIndexes",
+                            "ManageLayers",
+                            "ManageLocalization",
+                            "ManageLuceneIndexes",
+                            "ManageMcpConnections",
+                            "ManageMcpPrompts",
+                            "ManageMcpResources",
+                            "ManageMediaContent",
+                            "ManageMediaFolder",
+                            "ManageMediaProfiles",
+                            "ManageMenu",
+                            "ManageMicrosoftAuthentication",
+                            "ManageNotifications",
+                            "ManageOthersMediaContent",
+                            "ManageOwnMediaContent",
+                            "ManageOwnUserInformation",
+                            "ManageOwnUserProfile",
+                            "ManagePhoneNumberVerificationSettings",
+                            "ManagePlacements",
+                            "ManageProviderConnections",
+                            "ManageQueries",
+                            "ManageRateLimits",
+                            "ManageReCaptchaSettings",
+                            "ManageRecipes",
+                            "ManageRemoteClients",
+                            "ManageRemoteInstances",
+                            "ManageResourceSettings",
+                            "ManageReverseProxySettings",
+                            "ManageRoles",
+                            "ManageScopes",
+                            "ManageSearchSettings",
+                            "ManageSecurityHeadersSettings",
+                            "ManageSeoSettings",
+                            "ManageServerSettings",
+                            "ManageSettings",
+                            "ManageShortcodeTemplates",
+                            "ManageSitemaps",
+                            "ManageSmsSettings",
+                            "ManageSqlQueries",
+                            "ManageTaxonomy",
+                            "ManageTelephonySettings",
+                            "ManageTemplates",
+                            "ManageTenantFeatureProfiles",
+                            "ManageTenants",
+                            "ManageTranslations",
+                            "ManageTwitter",
+                            "ManageTwitterSignin",
+                            "ManageUrlRewritingRules",
+                            "ManageUsers",
+                            "ManageValidationSettings",
+                            "ManageWorkflowSettings",
+                            "ManageWorkflows",
+                            "PreviewContent",
+                            "PreviewOwnContent",
+                            "PublishContent",
+                            "PublishOwnContent",
+                            "QueryAnyAIProfile",
+                            "QueryElasticsearchApi",
+                            "QueryLuceneApi",
+                            "QuerySearchIndex",
+                            "RunPhoneNumberVerificationsReport",
+                            "SetHomepage",
+                            "SiteOwner",
+                            "UseTelephonySoftPhone",
+                            "VerifyPhoneNumbers",
+                            "ViewAdminMenuAll",
+                            "ViewAmazonS3MediaOptions",
+                            "ViewAzureMediaOptions",
+                            "ViewChatAnalytics",
                             "ViewContent",
-                            "ViewMediaContent"
+                            "ViewContentTypes",
+                            "ViewDynamicTranslations",
+                            "ViewMediaContent",
+                            "ViewMediaOptions",
+                            "ViewMiniProfilerOnBackEnd",
+                            "ViewMiniProfilerOnFrontEnd",
+                            "ViewOthersMediaContent",
+                            "ViewOwnContent",
+                            "ViewOwnMediaContent",
+                            "ViewRoles",
+                            "ViewRootMediaContent"
                           ]
                         },
-                        "description": "Permissions assigned to the role."
+                        "description": "Permissions assigned to the role. Well-known permissions are surfaced as suggestions, but any valid permission name is allowed, including dynamic per-content-type permissions (for example, \u0027EditContent_Article\u0027) and permissions provided by third-party modules."
                       },
                       "PermissionBehavior": {
                         "type": "string",
@@ -12394,7 +12556,7 @@
                 },
                 "site": {
                   "type": "string",
-                  "enum": [
+                  "examples": [
                     "SafeMode",
                     "TheAdmin",
                     "TheAgencyTheme",
@@ -12406,7 +12568,7 @@
                 },
                 "admin": {
                   "type": "string",
-                  "enum": [
+                  "examples": [
                     "SafeMode",
                     "TheAdmin",
                     "TheAgencyTheme",
@@ -12765,7 +12927,7 @@
                           "properties": {
                             "Name": {
                               "type": "string",
-                              "description": "Activity type name. Start activities must be events; non-start activities must be tasks."
+                              "description": "Activity type name. Well-known activities are surfaced as suggestions, but any custom or third-party activity name is allowed. Start activities are typically events; non-start activities are typically tasks."
                             },
                             "IsStart": {
                               "type": "boolean",
@@ -12803,8 +12965,32 @@
                           "then": {
                             "properties": {
                               "Name": {
-                                "enum": [
-                                  "HttpRequestEvent"
+                                "type": "string",
+                                "examples": [
+                                  "AIChatSessionAllFieldsExtractedEvent",
+                                  "AIChatSessionClosedEvent",
+                                  "AIChatSessionFieldExtractedEvent",
+                                  "AIChatSessionPostProcessedEvent",
+                                  "ContentCreatedEvent",
+                                  "ContentDeletedEvent",
+                                  "ContentDraftSavedEvent",
+                                  "ContentPublishedEvent",
+                                  "ContentUnpublishedEvent",
+                                  "ContentUpdatedEvent",
+                                  "ContentVersionedEvent",
+                                  "HttpRequestEvent",
+                                  "HttpRequestFilterEvent",
+                                  "SignalEvent",
+                                  "TimerEvent",
+                                  "UserConfirmedEvent",
+                                  "UserCreatedEvent",
+                                  "UserDeletedEvent",
+                                  "UserDisabledEvent",
+                                  "UserEnabledEvent",
+                                  "UserLoggedInEvent",
+                                  "UserTaskEvent",
+                                  "UserUpdatedEvent",
+                                  "WorkflowFaultEvent"
                                 ]
                               }
                             }
@@ -12812,8 +12998,55 @@
                           "else": {
                             "properties": {
                               "Name": {
-                                "enum": [
-                                  "NotifyTask"
+                                "type": "string",
+                                "examples": [
+                                  "AddModelValidationErrorTask",
+                                  "AICompletionFromProfileTask",
+                                  "AICompletionWithConfigTask",
+                                  "AssignUserRoleTask",
+                                  "BindModelStateTask",
+                                  "CommitTransactionTask",
+                                  "CorrelateTask",
+                                  "CreateContentTask",
+                                  "CreateTenantTask",
+                                  "DeleteContentTask",
+                                  "DisableTenantTask",
+                                  "EmailTask",
+                                  "EnableTenantTask",
+                                  "ForEachTask",
+                                  "ForkTask",
+                                  "ForLoopTask",
+                                  "GetUsersByRoleTask",
+                                  "HttpRedirectTask",
+                                  "HttpRedirectToFormLocationTask",
+                                  "HttpRequestTask",
+                                  "HttpResponseTask",
+                                  "IfElseTask",
+                                  "JoinTask",
+                                  "LiquidTask",
+                                  "LogTask",
+                                  "NotifyContentOwnerTask",
+                                  "NotifyTask",
+                                  "NotifyUserTask",
+                                  "PublishContentTask",
+                                  "RegisterUserTask",
+                                  "RetrieveContentTask",
+                                  "ScriptTask",
+                                  "SetOutputTask",
+                                  "SetPropertyTask",
+                                  "SetupTenantTask",
+                                  "SmsTask",
+                                  "UnassignUserRoleTask",
+                                  "UnpublishContentTask",
+                                  "UpdateContentTask",
+                                  "UpdateTwitterStatusTask",
+                                  "ValidateAntiforgeryTokenTask",
+                                  "ValidateFormFieldTask",
+                                  "ValidateFormTask",
+                                  "ValidateReCaptchaTask",
+                                  "ValidateUserTask",
+                                  "WhileLoopTask",
+                                  "WriteLineTask"
                                 ]
                               }
                             }
