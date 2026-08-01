@@ -1,6 +1,10 @@
 ---
 name: orchardcore-azure-ai-search
 description: Skill for configuring Azure AI Search in Orchard Core. Covers Azure AI Search setup, index creation and management, recipe steps for index operations, search module integration, custom data indexing, frontend search configuration, and Azure-specific search settings. Use this skill when requests mention Orchard Core Azure AI Search, Configure Azure AI Search, Enabling Azure AI Search Features, Azure AI Search Connection Configuration, Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AzureAI, OrchardCore.OrchardCore_AzureAISearch, OrchardCore.Search, OrchardCore.Indexing. It also helps with Creating an Azure AI Search Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Azure AI Search Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Azure AI Search - Prompt Templates
@@ -227,7 +231,7 @@ public sealed class Startup : StartupBase
 
 For custom index field mapping, implement `IIndexProfileHandler` and populate `AzureAISearchIndexMetadata` with `IndexMappings` in the `CreatingAsync` and `UpdatingAsync` methods. Use `IndexProfileHandlerBase` to simplify the implementation.
 
-To capture custom UI data related to your source, implement `DisplayDriver<IndexEntity>`.
+To capture custom UI data related to your source, implement `DisplayDriver<IndexProfile>`.
 
 ### Frontend Search Integration
 

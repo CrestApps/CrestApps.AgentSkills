@@ -181,10 +181,7 @@ namespace OrchardCore.OpenSearch.Products;
 
 public sealed class ProductIndexNameProvider : IIndexNameProvider
 {
-    public Task<string> GetIndexNameAsync(IndexProfile indexProfile)
-    {
-        return Task.FromResult(indexProfile.IndexName);
-    }
+    public string GetFullIndexName(string name) => name;
 }
 ```
 
