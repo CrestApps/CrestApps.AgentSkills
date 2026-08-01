@@ -507,20 +507,9 @@ Wrappers surround a shape's output with additional markup.
 
 You can enable HTML comments around rendered shapes to trace which template produced each fragment. This is useful during development for identifying which Razor or Liquid template is responsible for a specific piece of output.
 
-Enable during startup:
-
-```csharp
-services
-    .AddOrchardCms()
-    .AddShapeDebugInformation();
-```
-
-Or configure via options:
-
-```csharp
-services.Configure<ShapeRenderingOptions>(options =>
-    options.WriteShapeDebugInformation = true);
-```
+Enable **Write shape debug information** in the tenant's
+**Settings → Debugging** editor. Orchard Core applies that setting to
+`ShapeRenderingOptions`; no service-registration extension is required.
 
 When enabled, each rendered shape is wrapped with comments like:
 

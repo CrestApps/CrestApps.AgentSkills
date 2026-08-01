@@ -107,6 +107,7 @@ Media is still served by the Orchard Core web site. The Media Cache module fetch
 
 - Enable the `OrchardCore.Media.Azure.ImageSharpImageCache` feature to store resized images in Azure Blob Storage.
 - This replaces the default `PhysicalFileSystemCache` that stores resized images in `App_Data`.
+- The ImageSharp cache maps `BasePath` to its cache folder, so use it to keep image-cache blobs in a separate hierarchy within the container.
 - Useful for ephemeral file systems (e.g., container hosting, clean deployments).
 - Reduces pressure on local disk IO, beneficial for environments like Azure App Services with throttled local storage.
 - Cache files are only removed per tenant when using a separate container per tenant.

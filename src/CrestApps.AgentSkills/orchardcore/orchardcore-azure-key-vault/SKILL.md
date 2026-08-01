@@ -27,7 +27,7 @@ You are an Orchard Core expert. Wire Azure Key Vault as a configuration source s
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="OrchardCore.Configuration.KeyVault" Version="2.*" />
+  <PackageReference Include="OrchardCore.Configuration.KeyVault" Version="3.*" />
 </ItemGroup>
 ```
 

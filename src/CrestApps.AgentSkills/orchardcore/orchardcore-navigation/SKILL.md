@@ -1,6 +1,6 @@
 ---
 name: orchardcore-navigation
-description: Skill for creating and managing navigation menus in Orchard Core. Covers menu creation, navigation providers, admin menus, breadcrumbs, and menu content types. Use this skill when requests mention Orchard Core Navigation, Create Navigation and Menus, Enabling Navigation Features, Custom Admin Navigation Provider, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Menu, OrchardCore.Navigation, OrchardCore.AdminMenu, INavigationProvider, IStringLocalizer, NavigationBuilder, IServiceCollection, MenuPart, MenuItemsListPart, LinkMenuItemPart, ContentMenuItemPart, LinkMenuItem. It also helps with navigation examples, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), Rendering Menu in Liquid Template, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and managing navigation menus in Orchard Core. Covers menu creation, navigation providers, admin menus, and menu content types. Use this skill when requests mention Orchard Core Navigation, Create Navigation and Menus, Enabling Navigation Features, Custom Admin Navigation Provider, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Menu, OrchardCore.Navigation, OrchardCore.AdminMenu, INavigationProvider, IStringLocalizer, NavigationBuilder, IServiceCollection, MenuPart, MenuItemsListPart, LinkMenuItemPart, ContentMenuItemPart, LinkMenuItem. It also helps with navigation examples, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), Rendering Menu in Liquid Template, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -111,24 +111,24 @@ public sealed class Startup : StartupBase
               {
                 "ContentType": "LinkMenuItem",
                 "ContentItemId": "menu-home",
+                "DisplayText": "Home",
                 "LinkMenuItemPart": {
-                  "Name": "Home",
                   "Url": "~/"
                 }
               },
               {
                 "ContentType": "LinkMenuItem",
                 "ContentItemId": "menu-about",
+                "DisplayText": "About",
                 "LinkMenuItemPart": {
-                  "Name": "About",
                   "Url": "~/about"
                 }
               },
               {
                 "ContentType": "LinkMenuItem",
                 "ContentItemId": "menu-contact",
+                "DisplayText": "Contact",
                 "LinkMenuItemPart": {
-                  "Name": "Contact",
                   "Url": "~/contact"
                 }
               }
@@ -144,15 +144,7 @@ public sealed class Startup : StartupBase
 ### Rendering Menu in Liquid Template
 
 ```liquid
-{% shape "Menu", alias: "main-menu" %}
-```
-
-### Rendering Breadcrumbs
-
-Enable `OrchardCore.Menu` for breadcrumb support:
-
-```liquid
-{% zone "Breadcrumbs" %}
+{% shape "Menu", alias: "alias:main-menu" %}
 ```
 
 ### Content Menu Item
@@ -170,3 +162,8 @@ To add a content item as a menu item:
   }
 }
 ```
+
+## Related skills
+
+- Use `orchardcore-menus` for built-in menu item types, shape alternates, and direct menu rendering.
+- Use `orchardcore-admin-menu` for the admin-configurable `OrchardCore.AdminMenu` node tree, which is a separate feature from code-first `INavigationProvider` registration.

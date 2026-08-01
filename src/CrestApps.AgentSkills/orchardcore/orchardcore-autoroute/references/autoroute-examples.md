@@ -62,9 +62,7 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-## Example 2: Blog with Hierarchical Container URLs
-
-This example creates a Blog container that routes its contained BlogPost items under the blog's URL path. A Blog at `/tech-blog` with a post titled "Getting Started" produces `/tech-blog/getting-started`.
+## Example 2: Blog Container and BlogPost Definitions
 
 ### Recipe
 
@@ -103,8 +101,7 @@ This example creates a Blog container that routes its contained BlogPost items u
                 },
                 "AutoroutePartSettings": {
                   "AllowCustomPath": true,
-                  "Pattern": "{{ ContentItem | display_text | slugify }}",
-                  "AllowRouteContainedItems": true
+                  "Pattern": "{{ ContentItem | display_text | slugify }}"
                 }
               }
             },
@@ -314,9 +311,7 @@ public sealed class AutorouteContentResolver
 }
 ```
 
-## Example 6: BagPart Container with Routable Contained Items
-
-This example uses BagPart to hold FAQ items as contained content, each receiving its own URL under the parent FAQ page's path.
+## Example 6: BagPart Container
 
 ### Migration
 
@@ -345,8 +340,7 @@ public sealed class Migrations : DataMigration
                 .WithSettings(new AutoroutePartSettings
                 {
                     AllowCustomPath = true,
-                    Pattern = "{{ ContentItem | display_text | slugify }}",
-                    AllowRouteContainedItems = true
+                    Pattern = "{{ ContentItem | display_text | slugify }}"
                 })
             )
             .WithPart("BagPart", part => part
@@ -363,15 +357,8 @@ public sealed class Migrations : DataMigration
             .WithPart("TitlePart", part => part
                 .WithPosition("0")
             )
-            .WithPart("AutoroutePart", part => part
-                .WithPosition("1")
-                .WithSettings(new AutoroutePartSettings
-                {
-                    Pattern = "{{ ContentItem | display_text | slugify }}"
-                })
-            )
             .WithPart("FaqItem", part => part
-                .WithPosition("2")
+                .WithPosition("1")
             )
         );
 
@@ -389,4 +376,4 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-A FAQ page at `/frequently-asked-questions` with an FAQ item titled "How do I reset my password" generates the URL `/frequently-asked-questions/how-do-i-reset-my-password`.
+BagPart items are embedded in the parent and are edited with the FAQ page.

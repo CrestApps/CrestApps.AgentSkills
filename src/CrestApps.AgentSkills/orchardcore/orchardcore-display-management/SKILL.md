@@ -289,20 +289,14 @@ public sealed class MyShapeTableProvider : IShapeTableProvider
 
 You can instruct Orchard Core to write HTML comments around rendered shapes. This makes it easier to identify which Razor or Liquid template produced a specific fragment in the page output.
 
-Enable during startup:
-
-```csharp
-services
-    .AddOrchardCms()
-    .AddShapeDebugInformation();
-```
-
-Or enable directly through options:
+Enable directly through options:
 
 ```csharp
 services.Configure<ShapeRenderingOptions>(options =>
     options.WriteShapeDebugInformation = true);
 ```
+
+When `OrchardCore.Settings` is enabled, the site's debug settings configure the same `ShapeRenderingOptions.WriteShapeDebugInformation` value.
 
 When enabled, rendered shapes are wrapped with HTML comments:
 

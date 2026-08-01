@@ -50,7 +50,7 @@ settings display driver.
 
 ## Configure Per Tenant
 
-Navigate to **Configuration → Settings → Communication → SMS** and configure
+Navigate to **Settings → Communication → SMS** and configure
 Azure Communication Services. `AzureSmsSettings` contains:
 
 | Property | Description |

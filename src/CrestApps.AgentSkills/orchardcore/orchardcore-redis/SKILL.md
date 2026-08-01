@@ -213,7 +213,7 @@ public sealed class ImportService
 
     public async Task RunImportAsync()
     {
-        (var locker, var locked) = await _distributedLock.TryAcquireLockAsync(
+        var (locker, locked) = await _distributedLock.TryAcquireLockAsync(
             "IMPORT_LOCK",
             TimeSpan.FromMinutes(5),
             TimeSpan.FromSeconds(30));

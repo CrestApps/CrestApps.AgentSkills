@@ -312,12 +312,19 @@ namespace MyModule;
 [Feature("MyModule.CustomLuceneIndex")]
 public sealed class Startup : StartupBase
 {
+    private readonly IStringLocalizer<Startup> _localizer;
+
+    public Startup(IStringLocalizer<Startup> localizer)
+    {
+        _localizer = localizer;
+    }
+
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddLuceneIndexingSource("CustomSource", o =>
         {
-            o.DisplayName = S["Custom Source"];
-            o.Description = S["Create a Lucene index based on a custom data source."];
+            o.DisplayName = _localizer["Custom Source"];
+            o.Description = _localizer["Create a Lucene index based on a custom data source."];
         });
     }
 }

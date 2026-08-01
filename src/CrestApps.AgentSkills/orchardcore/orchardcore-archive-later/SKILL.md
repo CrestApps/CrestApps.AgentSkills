@@ -102,20 +102,6 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-### The ArchiveLaterPart Model
-
-```csharp
-using OrchardCore.ContentManagement;
-
-namespace OrchardCore.ArchiveLater.Models;
-
-// ScheduledArchiveUtc is null when no archive is scheduled.
-public class ArchiveLaterPart : ContentPart
-{
-    public DateTime? ScheduledArchiveUtc { get; set; }
-}
-```
-
 ### Reading or Setting the Schedule in Code
 
 ```csharp

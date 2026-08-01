@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate secure configuration and code for the O
 
 - Enable the `OrchardCore.Cors` feature. The module has no declared feature dependencies.
 - The module calls `app.UseCors()` at Orchard Core's CORS pipeline order and configures ASP.NET Core `CorsOptions` from tenant site settings.
-- Configure policies from **Configuration → Settings → Security → CORS**. The feature requires the `ManageCorsSettings` permission.
+- Configure policies from **Settings → Security → Cross-Origin Resource Sharing**. When legacy navigation is enabled, use **Configuration → Settings → CORS**. The feature requires the `ManageCorsSettings` permission.
 - Each `CorsPolicySetting` has a name, origin, header, method, credentials, default-policy, and exposed-header settings.
 - `CorsOptionsConfiguration` rejects a policy that combines `AllowAnyOrigin` and `AllowCredentials`; this is unsafe and invalid in ASP.NET Core.
 - Use exact trusted origins when credentials are allowed. Do not use wildcard origins for authenticated browser requests.
@@ -45,7 +45,7 @@ You are an Orchard Core expert. Generate secure configuration and code for the O
 
 ### Configuring Policies in the Admin
 
-Create a policy under **Settings → Security → CORS** and configure:
+Create a policy under **Settings → Security → Cross-Origin Resource Sharing** and configure:
 
 | Setting | Guidance |
 |---|---|

@@ -171,12 +171,12 @@ The module adds helpers to `IOrchardHelper`. Pass either `featured-backpack` or 
 @using OrchardCore.ContentManagement
 
 @{
-    ContentItem product = await Orchard.GetContentItemByAliasAsync("featured-backpack");
+    ContentItem? product = await Orchard.GetContentItemByAliasAsync("featured-backpack");
 }
 
 @if (product is not null)
 {
-    <a asp-route="Product" asp-route-contentItemId="@product.ContentItemId">@product.DisplayText</a>
+    <span>@product.DisplayText</span>
 }
 ```
 
@@ -207,7 +207,7 @@ public sealed class ProductAliasLookup
         _session = session;
     }
 
-    public async Task<string> FindContentItemIdAsync(string alias)
+    public async Task<string?> FindContentItemIdAsync(string alias)
     {
         if (string.IsNullOrWhiteSpace(alias))
         {

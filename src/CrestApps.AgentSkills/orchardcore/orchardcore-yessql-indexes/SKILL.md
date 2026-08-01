@@ -36,7 +36,7 @@ You are an Orchard Core expert. Generate code for custom YesSql indexes that fol
 
 ### Recommended Placement
 
-`	ext
+```text
 src/Core/{{FeatureName}}.Core/
   Indexes/
     {{LookupName}}Index.cs
@@ -44,11 +44,11 @@ src/Modules/{{FeatureName}}/
   Migrations/
     {{FeatureName}}Migrations.cs
   Startup.cs
-`
+```
 
 ### Simple Lookup Index
 
-`csharp
+```csharp
 using OrchardCore.ContentManagement;
 using YesSql.Indexes;
 
@@ -91,11 +91,11 @@ public sealed class ClubTeamsIndexProvider : IndexProvider<ContentItem>
             });
     }
 }
-`
+```
 
 ### One-to-Many Index with Multiple Rows Per Content Item
 
-`csharp
+```csharp
 using OrchardCore.ContentManagement;
 using YesSql.Indexes;
 
@@ -140,11 +140,11 @@ public sealed class DrillsIndexProvider : IndexProvider<ContentItem>
             });
     }
 }
-`
+```
 
 ### Migration Example
 
-`csharp
+```csharp
 using CrestApps.Sports.Calendar.Indexes;
 using OrchardCore.Data.Migration;
 
@@ -175,11 +175,11 @@ internal sealed class SportEventMigrations : DataMigration
         return 2;
     }
 }
-`
+```
 
 ### DocumentId and Enum Pattern
 
-`csharp
+```csharp
 public enum SportEventStatus
 {
     Draft,
@@ -199,11 +199,11 @@ await SchemaBuilder.CreateMapIndexTableAsync<SportEventPartIndex>(table => table
     .Column<string>("ContentItemId", column => column.WithLength(26))
     .Column<SportEventStatus>("Status")
 );
-`
+```
 
 ### Startup Registration
 
-`csharp
+```csharp
 using CrestApps.Sports.Core.Indexes;
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Modules;
@@ -218,11 +218,11 @@ public sealed class Startup : StartupBase
         services.AddIndexProvider<DrillsIndexProvider>();
     }
 }
-`
+```
 
 ### Querying with QueryIndex
 
-`csharp
+```csharp
 using CrestApps.Sports.Core.Indexes;
 using YesSql;
 
@@ -244,7 +244,7 @@ public sealed class SportsContentService
         return rows.Select(x => x.DrillContentItemId);
     }
 }
-`
+```
 
 ### Best Practices
 

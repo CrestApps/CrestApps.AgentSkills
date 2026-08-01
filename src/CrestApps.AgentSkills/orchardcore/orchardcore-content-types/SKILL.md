@@ -21,6 +21,8 @@ You are an Orchard Core expert. Generate code and configuration for creating a c
 - Use `CommonPart` conventions (owner, created/modified dates) where appropriate.
 - Attach `ListPart` if the content type should act as a container.
 - Use content part and field settings to configure editors and display modes.
+- Use the asynchronous `IContentDefinitionManager` APIs such as `AlterTypeDefinitionAsync` and `AlterPartDefinitionAsync`.
+- Define fields on a content part, then attach that part to a content type. Fields cannot be attached directly to a type definition.
 
 ### Migration Pattern
 

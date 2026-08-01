@@ -95,19 +95,7 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-#### Step 2: Register Services in Startup
-
-```csharp
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddContentPart<UserProfile>();
-    }
-}
-```
-
-After creation, each custom user settings section appears as a tab when editing a user under _Access Control → Users_.
+After creation, each custom user settings section appears as a tab when editing a user under _Access Control → Users_. This field-only definition does not require a CLR `UserProfile` part or `AddContentPart` registration.
 
 ### Creating via Recipe
 

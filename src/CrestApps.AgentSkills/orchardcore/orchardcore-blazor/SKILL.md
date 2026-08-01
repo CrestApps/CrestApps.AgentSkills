@@ -82,7 +82,7 @@ The Razor class library must include a `FrameworkReference` to `Microsoft.AspNet
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.ContentManagement" Version="2.2.1" />
+    <PackageReference Include="OrchardCore.ContentManagement" Version="3.*" />
   </ItemGroup>
 
 </Project>

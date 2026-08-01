@@ -223,7 +223,7 @@ public sealed class MyData { }
 
 **Generated code not found:**
 1. Rebuild the project
-2. Check `obj/Debug/net10.0/generated/` for generated files
+2. Check `obj/<Configuration>/<TargetFramework>/generated/` for generated files
 3. Restart Visual Studio if needed
 
 **Do not manually cast to `INamedEnumerable`:**

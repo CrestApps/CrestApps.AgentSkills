@@ -1,6 +1,6 @@
 ---
 name: orchardcore-email-azure
-description: Skill for configuring Azure Communication Services email delivery in Orchard Core. Covers AzureEmailSettings, AzureEmailOptions, AzureEmailProvider, DefaultAzureEmailProvider, provider selection, recipes, and configuration overrides while using base Email abstractions. Use this skill when requests mention Orchard Core Azure Email, Azure Communication Services Email, AzureEmailSettings, AzureEmailProvider, DefaultAzureEmailOptions, ACS email provider, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Email.Azure, OrchardCore.Email, OrchardCore.Email.Azure.Models, OrchardCore.Email.Azure.Services, IEmailProvider, ISmtpService, AddEmailProviderOptionsConfiguration, and AzureEmailSettingsDisplayDriver. It also helps with tenant settings, verified senders, configuration-backed defaults, and the source-backed patterns captured in this skill.
+description: Skill for configuring Azure Communication Services email delivery in Orchard Core. Covers AzureEmailSettings, AzureEmailOptions, AzureEmailProvider, DefaultAzureEmailProvider, provider selection, recipes, IEmailService, and configuration overrides. Use this skill when requests mention Orchard Core Azure Email, Azure Communication Services Email, AzureEmailSettings, AzureEmailProvider, DefaultAzureEmailOptions, ACS email provider, or closely related Orchard Core implementation setup extension or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,24 +9,18 @@ metadata:
 
 # Orchard Core Azure Communication Services Email
 
-`OrchardCore.Email.Azure` supplies Azure Communication Services delivery for
-the base `OrchardCore.Email` provider system. It registers site settings and
-the provider options configuration. Application code should use the base Email
-abstractions so SMTP and Azure providers remain interchangeable.
+`OrchardCore.Email.Azure` provides Azure Communication Services delivery on top
+of the provider-neutral `OrchardCore.Email` API.
 
-## Guidelines
+- The tenant provider is `AzureEmailProvider`, technical name `Azure`.
+- The configuration-backed provider is `DefaultAzureEmailProvider`, technical
+  name `DefaultAzure`.
+- Application code sends through `IEmailService` and can therefore remain
+  independent of the chosen provider.
 
-- Enable `OrchardCore.Email` before `OrchardCore.Email.Azure`.
-- Select an enabled email provider after configuring it.
-- The tenant-configured provider is `AzureEmailProvider` with technical name `Azure`.
-- `DefaultAzureEmailProvider` uses configuration-backed `DefaultAzureEmailOptions`.
-- Use a verified Azure Communication Services sender address as `DefaultSender`.
-- Keep ACS connection strings out of recipes committed to source control.
-- Bind production secrets from a secure configuration provider.
-- An Azure provider configuration requires both `DefaultSender` and `ConnectionString`.
-- All recipe JSON uses the root `{ "steps": [...] }` format.
-
-## Enable the Provider
+Enable the features, configure a verified sender and connection string under
+**Settings → Communication → Email**, then select `Azure` as the default when
+multiple providers are enabled.
 
 ```json
 {
@@ -36,118 +30,55 @@ abstractions so SMTP and Azure providers remain interchangeable.
       "enable": [
         "OrchardCore.Email",
         "OrchardCore.Email.Azure"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-## Configure Per Tenant
-
-Navigate to **Configuration → Settings → Email** and configure Azure
-Communication Services. `AzureEmailSettings` contains:
-
-| Property | Description |
-|---|---|
-| `IsEnabled` | Enables this tenant provider. |
-| `DefaultSender` | Verified ACS sender address. |
-| `ConnectionString` | Azure Communication Services connection string. |
-
-Use a Settings recipe when secure recipe delivery is available:
-
-```json
-{
-  "steps": [
+      ]
+    },
     {
       "name": "Settings",
       "AzureEmailSettings": {
         "IsEnabled": true,
         "DefaultSender": "DoNotReply@your-domain.azurecomm.net",
-        "ConnectionString": "endpoint=https://your-resource.communication.azure.com/;accesskey=your-key"
+        "ConnectionString": "supply-from-a-secure-source"
+      },
+      "EmailSettings": {
+        "DefaultProviderName": "Azure"
       }
     }
   ]
 }
 ```
 
-## Configure the Default Provider
-
-The module binds `DefaultAzureEmailOptions` from
-`OrchardCore_Email_AzureCommunicationServices`. It also binds the older
-`OrchardCore_Email_Azure` section for compatibility. Prefer the current name:
-
-```json
-{
-  "OrchardCore_Email_AzureCommunicationServices": {
-    "DefaultSender": "DoNotReply@your-domain.azurecomm.net",
-    "ConnectionString": "endpoint=https://your-resource.communication.azure.com/;accesskey=your-key"
-  }
-}
-```
-
-The options configuration sets `IsEnabled` only when both required values are
-present. This provider is useful when every tenant shares centrally managed ACS
-credentials; use tenant settings when tenants require separate accounts.
-
-## Send Using the Base Email Abstractions
-
-Keep application services provider-neutral:
+`DefaultAzureEmailOptions` binds
+`OrchardCore_Email_AzureCommunicationServices`; it creates `DefaultAzure`
+when its sender and connection string are valid. Keep ACS connection strings
+out of committed recipes.
 
 ```csharp
 using OrchardCore.Email;
+using OrchardCore.Infrastructure;
 
 namespace MyModule;
 
 public sealed class WelcomeEmailService
 {
-    private readonly ISmtpService _smtpService;
+    private readonly IEmailService _emailService;
 
-    public WelcomeEmailService(ISmtpService smtpService)
+    public WelcomeEmailService(IEmailService emailService)
     {
-        _smtpService = smtpService;
+        _emailService = emailService;
     }
 
-    public Task<SmtpResult> SendAsync(string recipient)
+    public Task<Result> SendAsync(string recipient)
     {
-        return _smtpService.SendAsync(new MailMessage
+        return _emailService.SendAsync(new MailMessage
         {
             To = recipient,
             Subject = "Welcome",
-            Body = "Welcome to the site.",
+            TextBody = "Welcome to the site.",
         });
     }
 }
 ```
 
-Provider selection and credentials belong in configuration, not in this
-service. Inspect the result and application logs when delivery fails.
-
-## Operational Checks
-
-Verify that the sender domain is provisioned in Azure, the connection string
-belongs to the intended ACS resource, and the selected Orchard provider is
-enabled. Test delivery to a controlled mailbox before enabling workflows or
-user notifications that might generate large volumes of messages.
-
-## Provider Model
-
-The Azure module registers an email provider options configuration and an
-`AzureEmailSettingsDisplayDriver`. The display driver makes tenant settings
-available in the Email settings UI, while `AzureEmailOptionsConfiguration`
-turns those settings into an enabled provider entry. This separation lets the
-base Email module choose among enabled providers without application code
-knowing where the credentials came from.
-
-When an app needs a fixed default for all tenants, the
-`DefaultAzureEmailProvider` is a safer operational choice than copying the same
-connection string into every tenant. When independent tenants own their Azure
-resources, configure the regular `AzureEmailProvider` per tenant instead.
-
-## Sender and Recipient Constraints
-
-Azure validates the sender against the configured Communication Services
-resource. A successful Orchard provider selection does not guarantee that an
-unverified sender or restricted destination will be accepted. Confirm domain
-verification, sender identities, quota, and any Azure subscription restrictions
-before adding email delivery to high-volume workflows.
+Use **Tools → Testing → Email Test** to test an enabled provider. Confirm the
+sender identity, service restrictions, and quota in Azure before production
+use.

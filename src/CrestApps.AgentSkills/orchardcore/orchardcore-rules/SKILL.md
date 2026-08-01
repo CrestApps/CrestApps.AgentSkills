@@ -21,7 +21,7 @@ serialization, and composable all/any groups.
 - Use `Condition` as the base type for a custom condition.
 - Implement `IConditionEvaluator` with `ValueTask<bool> EvaluateAsync(Condition condition)`.
 - Register standard conditions through `AddRuleCondition`; do not use obsolete `AddCondition`.
-- Use `AddRule` when a condition has a display driver but does not need a condition factory.
+- Use `AddRule` when a condition has a display driver and the default condition factory is sufficient.
 - Register polymorphic JSON information through the provided registration extensions.
 - Keep evaluators scoped because a rule can require request-scoped services or a scripting engine.
 - Use a display driver to expose a condition in the rule builder UI.
@@ -114,8 +114,9 @@ public sealed class RequestHeaderConditionEvaluator : IConditionEvaluator
 ## Register a Builder Condition
 
 `AddRuleCondition` adds the condition to `ConditionOptions`, registers the
-scoped evaluator and singleton factory, and registers derived JSON type
-metadata. Implement `IConditionFactory` to create the builder model:
+scoped evaluator and default singleton factory, and registers derived JSON type
+metadata. Supply a third generic type argument only when a custom
+`IConditionFactory` is needed:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
@@ -130,15 +131,13 @@ public sealed class Startup : StartupBase
     {
         services.AddRuleCondition<
             RequestHeaderCondition,
-            RequestHeaderConditionEvaluator,
-            RequestHeaderConditionFactory>();
+            RequestHeaderConditionEvaluator>();
     }
 }
 ```
 
-When the condition needs editor UI, register its `DisplayDriver<Condition>` and
-the factory in the same module. Keep view models unsealed because they bind
-form values.
+When the condition needs editor UI, register its `DisplayDriver<Condition>` in
+the same module. Keep view models unsealed because they bind form values.
 
 ## Use Rules with Layers
 
@@ -147,4 +146,3 @@ the built-in URL, culture, role, and authentication conditions for common
 targeting. Add a custom rule condition only when the selection is reusable and
 needs the builder UI; simple one-off dynamic values can instead be handled by
 the supported scripting condition.
-

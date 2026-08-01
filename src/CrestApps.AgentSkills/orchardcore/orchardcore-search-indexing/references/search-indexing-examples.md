@@ -1,24 +1,32 @@
 # Search & Indexing Examples
 
-## Example 1: Lucene Search Index Recipe
+## Example 1: Lucene Search Index Profile Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "lucene-index",
-      "Indices": [
+      "name": "CreateOrUpdateIndexProfile",
+      "indexes": [
         {
-          "Search": {
-            "AnalyzerName": "standardanalyzer",
-            "IndexLatest": false,
-            "IndexedContentTypes": [
-              "Article",
-              "BlogPost",
-              "Page"
-            ],
-            "Culture": "",
-            "StoreSourceData": false
+          "Name": "Search",
+          "IndexName": "search",
+          "ProviderName": "Lucene",
+          "Type": "Content",
+          "Properties": {
+            "ContentIndexMetadata": {
+              "IndexLatest": false,
+              "IndexedContentTypes": [
+                "Article",
+                "BlogPost",
+                "Page"
+              ],
+              "Culture": "any"
+            },
+            "LuceneIndexMetadata": {
+              "AnalyzerName": "standardanalyzer",
+              "StoreSourceData": false
+            }
           }
         }
       ]
