@@ -49,6 +49,21 @@ app.AddChatApiEndpoints()
 
 ### Built-in Document Tools
 
-- `SearchDocumentsTool`
-- `ReadDocumentTool`
-- `ReadTabularDataTool`
+**Document retrieval**
+
+- `SearchDocumentsTool` — semantic/keyword search across ingested documents.
+- `ReadDocumentTool` — reads the full text of an ingested document.
+- `GetDocumentMetadataTool` — returns stored metadata for a document.
+- `InspectImageTool` — inspects/describes an image document.
+
+**Tabular data (spreadsheets/CSV)**
+
+- `ListTabularDataTool` — lists available tables/sheets in a tabular document.
+- `QueryTabularDataTool` — queries rows from a tabular document.
+- `ExecuteTabularCommandTool` — runs a command/transformation over tabular data.
+- `FillEmptyTabularCellsTool` — fills empty cells in tabular data.
+- `ExportTabularDataTool` — exports tabular data to a file.
+
+**File generation**
+
+- `GenerateFileTool` — generates a downloadable file from AI output.
