@@ -31,7 +31,7 @@ Creating a project with custom modules added:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
   </ItemGroup>
 
   <ItemGroup>

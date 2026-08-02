@@ -22,7 +22,7 @@ You are an Orchard Core expert. Generate code and configuration for managing con
 - Content items support versioning when the content type is configured as `Versionable`.
 - Always call `await ISession.SaveChangesAsync()` or let the request pipeline flush changes when modifying content outside of `IContentManager`.
 - Use `IContentHandler` to hook into lifecycle events such as creating, publishing, and removing content.
-- Enable `OrchardCore.ContentManagement` feature to access content management APIs.
+- Enable `OrchardCore.Contents` for the content-management UI and API endpoints. Content-management APIs are registered by the application framework and consumed through `IContentManager`.
 
 ### Content Item Lifecycle
 
@@ -267,9 +267,9 @@ Common handler methods include:
 - `RemovingAsync` / `RemovedAsync` - Before and after a content item is removed.
 - `LoadingAsync` / `LoadedAsync` - When a content item is loaded from the store.
 
-### Content Item Import/Export via Recipes
+### Content Item Import via Recipes
 
-Use the `content` recipe step to import or export content items:
+Use the `content` recipe step to import content items. Use a deployment plan when exporting content.
 
 ```json
 {
@@ -309,6 +309,7 @@ Use the `content` recipe step to import or export content items:
 - `ContentPart` extends `ContentElement` and represents a composable unit attached to a content type (e.g., `TitlePart`, `AutoroutePart`).
 - `ContentField` extends `ContentElement` and represents a data field within a part (e.g., `TextField`, `HtmlField`, `NumericField`).
 - Custom parts and fields can be created by inheriting from `ContentPart` or `ContentField` respectively.
+- A same-name key such as `BlogPost` in a content item's JSON can be the synthetic part that holds fields attached directly to the type definition. It is not a CLR `ContentPart` unless the application defines and registers one.
 
 ```csharp
 public sealed class {{PartName}} : ContentPart

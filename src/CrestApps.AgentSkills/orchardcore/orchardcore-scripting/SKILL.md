@@ -12,7 +12,7 @@ You are an Orchard Core expert. Generate code and configuration for scripting, J
 ### Guidelines
 
 - The scripting module provides `IScriptingManager` for evaluating scripts in different languages.
-- The default JavaScript engine uses the `js:` prefix and is powered by Jint (Esprima.NET).
+- The default JavaScript engine uses the `js:` prefix and is powered by Jint.
 - Scripts are prefixed with the engine identifier (e.g., `js:`, `file:`).
 - Global methods are available across all scripting engines unless engine-specific.
 - Use `IGlobalMethodProvider` to register custom global methods as singletons.
@@ -90,15 +90,17 @@ public sealed class ScriptEvaluationService
 | `html(string)` | Decodes a string from HTML encoding |
 | `gzip(string)` | Decodes a string from gzip/base64 encoding |
 | `protect(purpose, value)` | Protects a value using ASP.NET Core Data Protection with the given purpose string |
+| `encrypt(value)` | Encrypts a value and returns Base64 ciphertext |
+| `decrypt(value)` | Decrypts Base64 ciphertext and returns an empty string if it cannot be decrypted |
 
 #### Content Functions (`OrchardCore.Contents`)
 
 | Function | Description |
 |---|---|
-| `newContentItem(contentTypeName)` | Creates a new ContentItem instance (not persisted) |
-| `createContentItem(contentTypeName, publish, properties)` | Creates, persists, and optionally publishes a ContentItem |
-| `updateContentItem(contentItem, properties)` | Updates an existing ContentItem with properties |
-| `deleteContentItem(contentItem)` | Deletes an existing ContentItem |
+| `newContentItemAsync(contentTypeName)` | Creates a new ContentItem instance (not persisted) |
+| `createContentItemAsync(contentTypeName, publish, properties)` | Creates, persists, and optionally publishes a ContentItem |
+| `updateContentItemAsync(contentItem, properties)` | Updates an existing ContentItem with properties |
+| `deleteContentItemAsync(contentItem)` | Deletes an existing ContentItem |
 | `getUrlPrefix(path)` | Prefixes a path with the tenant URL prefix |
 
 #### Layer Rule Functions (`OrchardCore.Layers`)
@@ -115,7 +117,7 @@ public sealed class ScriptEvaluationService
 
 | Function | Description |
 |---|---|
-| `executeQuery(name, parameters)` | Executes a named query and returns results |
+| `executeQueryAsync(name, parameters)` | Executes a named query and returns results |
 
 #### HTTP Functions (`OrchardCore.Workflows.Http`)
 
@@ -123,11 +125,11 @@ public sealed class ScriptEvaluationService
 |---|---|
 | `httpContext()` | Returns the current `HttpContext` |
 | `queryString(name)` | Returns query string value(s) by name |
-| `responseWrite(text)` | Writes text directly to the HTTP response |
+| `responseWriteAsync(text)` | Writes text directly to the HTTP response |
 | `absoluteUrl(relativePath)` | Converts a relative path to an absolute URL |
-| `readBody()` | Returns the raw HTTP request body |
+| `readBodyAsync()` | Returns the raw HTTP request body |
 | `requestForm(name)` | Returns form field value(s) by name |
-| `deserializeRequestData()` | Deserializes JSON or form request data to a dictionary |
+| `deserializeRequestDataAsync()` | Deserializes JSON or form request data to a dictionary |
 
 #### Recipe Functions (`OrchardCore.Recipes`)
 

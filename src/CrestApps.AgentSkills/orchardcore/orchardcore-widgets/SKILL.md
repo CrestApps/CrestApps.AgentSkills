@@ -1,6 +1,6 @@
 ---
 name: orchardcore-widgets
-description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, and widget placement configuration. Use this skill when requests mention Orchard Core Widgets, Create and Manage Widgets, Enabling Widget Features, Creating a Widget Content Type, Layer Configuration via Recipe, Layer Rule Expressions, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.Flows, FlowPart, DataMigration, IContentDefinitionManager, WithPart, WithField, LayerRule, HtmlWidget, LiquidWidget, MenuWidget. It also helps with widget examples, Layer Configuration via Recipe, Layer Rule Expressions, Placing Widgets in Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, and widget placement configuration. Use this skill when requests mention Orchard Core Widgets, Create and Manage Widgets, Enabling Widget Features, Creating a Widget Content Type, Layer Configuration via Recipe, Layer Rule Expressions, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.Flows, FlowPart, DataMigration, IContentDefinitionManager, WithPart, WithField, LayerRule, Paragraph, RawHtml, Blockquote, Image, Container. It also helps with widget examples, Layer Configuration via Recipe, Layer Rule Expressions, Placing Widgets in Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 ---
 
 # Orchard Core Widgets - Prompt Templates
@@ -99,8 +99,8 @@ public sealed class Migrations : DataMigration
           "LayerRule": {
             "Conditions": [
               {
-                "Name": "UrlCondition",
-                "Value": "^/$"
+                "Name": "HomepageCondition",
+                "Value": true
               }
             ]
           },
@@ -134,6 +134,7 @@ Common layer rule conditions:
 - `RoleCondition` - Visible for specific roles.
 - `CultureCondition` - Visible for specific cultures.
 - `BooleanCondition` - Always true/false.
+- `HomepageCondition` - Visible when the request targets the homepage.
 - `JavascriptCondition` - Custom JavaScript expression.
 
 ### Placing Widgets in Zones
@@ -229,12 +230,15 @@ To hide or move the whole `WidgetsListPart` editor row in the admin UI:
 
 If the part is attached as a named part, replace `WidgetsListPart` with the part name.
 
-### Common Built-in Widget Types
+### Built-in Widget Content Types
 
-- `HtmlWidget` - Renders custom HTML content.
-- `LiquidWidget` - Renders Liquid template content.
-- `MenuWidget` - Renders a menu.
-- `ContainerWidget` - Contains other widgets in a layout.
+The Blog and Agency recipes provide these widget content types:
+
+- `Paragraph`
+- `RawHtml`
+- `Blockquote`
+- `Image`
+- `Container`
 
 ### Widget Best Practices
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-background-tasks
-description: Skill for creating background tasks and scheduled jobs in Orchard Core. Covers IBackgroundTask implementation, scheduling configuration, and background service patterns. Use this skill when requests mention Orchard Core Background Tasks, Create Background Tasks, Basic Background Task, Background Task with Service Dependencies, Registering a Background Task, Enabling Background Tasks Feature, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.BackgroundTasks, OrchardCore.ContentManagement, IBackgroundTask, ILogger, IServiceProvider, GetRequiredService, IContentManager, ISession, ContentItemIndex, IServiceCollection, Startup.cs, AddBackgroundTask<T>(). It also helps with background tasks examples, Registering a Background Task, Enabling Background Tasks Feature, Common Cron Schedule Expressions, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating background tasks and scheduled jobs in Orchard Core. Covers IBackgroundTask implementation, scheduling configuration, and background service patterns. Use this skill when requests mention Orchard Core Background Tasks, Create Background Tasks, Basic Background Task, Background Task with Service Dependencies, Registering a Background Task, Enabling Background Tasks Feature, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.BackgroundTasks, OrchardCore.ContentManagement, IBackgroundTask, ILogger, IServiceProvider, GetRequiredService, IContentManager, ISession, ContentItemIndex, IServiceCollection, Startup.cs, AddSingleton. It also helps with background tasks examples, Registering a Background Task, Enabling Background Tasks Feature, Common Cron Schedule Expressions, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ You are an Orchard Core expert. Generate background task implementations for Orc
 ### Guidelines
 
 - Background tasks implement `IBackgroundTask` and run on a schedule.
-- Tasks are registered in `Startup.cs` using `AddBackgroundTask<T>()`.
+- Tasks are registered in `Startup.cs` as `IBackgroundTask` singletons.
 - The schedule is configured using `SetSchedule()` with cron expressions or `TimeSpan`.
 - Background tasks run in the context of the tenant's service scope.
 - Use `ILogger` for logging task execution and errors.
@@ -110,7 +110,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddBackgroundTask<{{TaskName}}>();
+        services.AddSingleton<IBackgroundTask, {{TaskName}}>();
     }
 }
 ```

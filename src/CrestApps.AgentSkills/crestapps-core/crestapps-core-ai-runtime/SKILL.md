@@ -23,6 +23,7 @@ You are a CrestApps.Core expert. Generate code and configuration for the provide
 ```csharp
 builder.Services
     .AddCoreAIServices()
+    .AddCoreAIOrchestration()
     .AddCoreAIOpenAI();
 ```
 
@@ -49,17 +50,41 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 ### Example Completion Service
 
 ```csharp
-public sealed class QuestionService(IAICompletionService completionService)
+using CrestApps.Core.AI.Completions;
+using CrestApps.Core.AI.Deployments;
+using CrestApps.Core.AI.Models;
+using Microsoft.Extensions.AI;
+
+public sealed class QuestionService(
+    IAICompletionService completionService,
+    IAICompletionContextBuilder completionContextBuilder,
+    IAIDeploymentManager deploymentManager)
 {
-    public async Task<string> AskAsync(AIDeployment deployment, string question)
+    public async Task<string> AskAsync(
+        string question,
+        CancellationToken cancellationToken = default)
     {
+        var deployment = await deploymentManager.ResolveOrDefaultAsync(
+            AIDeploymentPurpose.Chat,
+            cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("No chat deployment is configured.");
+
+        var completionContext = await completionContextBuilder.BuildAsync(
+            deployment,
+            cancellationToken: cancellationToken);
+
         var messages = new List<ChatMessage>
         {
             new(ChatRole.System, "You are a helpful assistant."),
             new(ChatRole.User, question),
         };
 
-        var response = await completionService.CompleteAsync(deployment, messages);
+        var response = await completionService.CompleteAsync(
+            deployment,
+            messages,
+            completionContext,
+            cancellationToken);
+
         return response.Text;
     }
 }

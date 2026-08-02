@@ -132,7 +132,7 @@ The `list_items` filter loads published content items for a given content item o
 Load by content item ID:
 
 ```liquid
-{% assign blogPosts = "4abcdef123456" | list_items %}
+{% assign blogPosts = "4j42fxryjcpqkkacmg6cwz3pr5" | list_items %}
 {% for post in blogPosts %}
     <h2>{{ post.DisplayText }}</h2>
 {% endfor %}
@@ -217,7 +217,7 @@ Every content item contained in a list has a `ContainedPart` with indexable prop
       "name": "Content",
       "data": [
         {
-          "ContentItemId": "[js:uuid()]",
+          "ContentItemId": "4j42fxryjcpqkkacmg6cwz3pr5",
           "ContentType": "Blog",
           "DisplayText": "My Blog",
           "Latest": true,
@@ -242,7 +242,7 @@ Every content item contained in a list has a `ContainedPart` with indexable prop
             "Html": "<p>Welcome to my first blog post!</p>"
           },
           "ContainedPart": {
-            "ListContentItemId": "{{blog-content-item-id}}",
+            "ListContentItemId": "4j42fxryjcpqkkacmg6cwz3pr5",
             "Order": 0
           }
         }

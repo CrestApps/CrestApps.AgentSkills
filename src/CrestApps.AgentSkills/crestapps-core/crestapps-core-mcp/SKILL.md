@@ -1,50 +1,69 @@
 ---
 name: crestapps-core-mcp
-description: Skill for MCP client and server integration, transports, prompts, resources, and resource type handlers in CrestApps.Core.
+description: Skill for CrestApps.Core MCP client and server registration, SDK transports, handlers, prompts, and resources.
 ---
 
 # CrestApps.Core MCP - Prompt Templates
 
 ## Add MCP Support
 
-You are a CrestApps.Core expert. Generate code and guidance for Model Context Protocol integration in CrestApps.Core.
+Use CrestApps MCP client support to consume remote servers. Use the server support to expose CrestApps tools, prompts, and catalog-managed resources through an MCP C# SDK server.
 
-### Guidelines
+`AddMcpClient()` registers the CrestApps client services with SSE and StdIO transport providers. `AddMcpServer(...)` registers CrestApps prompt and resource services, but an HTTP server also needs the MCP SDK server, its transport, and an endpoint mapping.
 
-- Use MCP client support to consume remote tool servers.
-- Use MCP server support to expose local tools, prompts, and resources to external clients.
-- Use SSE for remote HTTP MCP servers and StdIO for local processes.
-- Add custom resource type handlers when the host must expose domain-specific content as MCP resources.
+## HTTP MCP Server
 
-### Client Registration
+The following combines the CrestApps server services with the pinned MCP SDK HTTP transport. `WithCrestAppsHandlers()` supplies the CrestApps tool, prompt, and resource protocol handlers.
 
 ```csharp
 builder.Services.AddCrestAppsCore(crestApps => crestApps
     .AddAISuite(ai => ai
-        .AddOpenAI()
-        .AddMcpClient()
-    )
-);
-```
-
-### Server Registration
-
-```csharp
-builder.Services.AddCrestAppsCore(crestApps => crestApps
-    .AddAISuite(ai => ai
-        .AddOpenAI()
         .AddMcpServer(mcpServer => mcpServer
-            .AddYesSqlStores()
-            .AddFtpResources()
-        )
+            .AddYesSqlStores())
+    )
+);
+
+_ = builder.Services.AddMcpServer(options =>
+{
+    options.ServerInfo = new()
+    {
+        Name = "My MCP Server",
+        Version = "1.0",
+    };
+})
+.WithHttpTransport()
+.WithCrestAppsHandlers();
+
+var app = builder.Build();
+
+app.MapMcp("mcp");
+```
+
+`AddMcpServer(...)` in the first registration is the CrestApps builder call. `builder.Services.AddMcpServer()` and `app.MapMcp(...)` are MCP SDK calls. Use both for an HTTP server. The server endpoint above is `/mcp`; apply authorization or other host middleware before exposing it publicly.
+
+## Client Registration
+
+```csharp
+builder.Services.AddCrestAppsCore(crestApps => crestApps
+    .AddAISuite(ai => ai
+        .AddMcpClient(mcpClient => mcpClient
+            .AddYesSqlStores())
     )
 );
 ```
 
-### Custom Resource Type Example
+Use SSE transport for a remote HTTP MCP server. The default client registration also includes StdIO transport for a local process. Register only the connection and store features that the host needs.
+
+## Custom Resource Types
+
+`AddCoreAIMcpResourceType<THandler>()` registers the type in `McpOptions`, registers the handler as scoped, and makes the handler available both through `IEnumerable<IMcpResourceTypeHandler>` and as a keyed service. The resource's `Source` selects that keyed handler at read time.
+
+For raw service registration, add the CrestApps server services before the resource type:
 
 ```csharp
 builder.Services
     .AddCoreAIMcpServer()
-    .AddMcpResourceType<MyDatabaseResourceHandler>("database");
+    .AddCoreAIMcpResourceType<MyDatabaseResourceHandler>("database");
 ```
+
+`MyDatabaseResourceHandler` must implement `IMcpResourceTypeHandler`. A catalog-managed resource needs a URI in its `Resource` property and a `Source` value of `database`. URI templates are listed as MCP resource templates; fixed URIs are listed as resources.

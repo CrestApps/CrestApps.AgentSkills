@@ -16,6 +16,7 @@ You are a CrestApps.Core expert. Generate code and guidance for document ingesti
 - Add Markdown normalization explicitly when Markdig-backed normalization is needed.
 - Provide stores on the document-processing builder.
 - Use `AddReferenceDownloads()` plus `AddDownloadAIDocumentEndpoint()` when citations should become downloadable links.
+- `AddChatApiEndpoints()` is internal MVC and Blazor sample-host composition. Custom hosts should map `AddDownloadAIDocumentEndpoint()` directly and add their own chat and upload endpoints as needed.
 
 ### Builder Registration
 
@@ -35,9 +36,10 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
     .AddEntityCoreSqliteDataStore("Data Source=app.db")
 );
 
-app.AddChatApiEndpoints()
-    .AddDownloadAIDocumentEndpoint();
+app.AddDownloadAIDocumentEndpoint();
 ```
+
+`AddDownloadAIDocumentEndpoint()` maps `GET ai/documents/{documentId}/download` and authorizes access to the referenced document. It is the shared document endpoint; the sample hosts' chat endpoints are not required to register it.
 
 ### Built-in Reader Coverage
 
@@ -49,6 +51,21 @@ app.AddChatApiEndpoints()
 
 ### Built-in Document Tools
 
-- `SearchDocumentsTool`
-- `ReadDocumentTool`
-- `ReadTabularDataTool`
+**Document retrieval**
+
+- `SearchDocumentsTool` — semantic/keyword search across ingested documents.
+- `ReadDocumentTool` — reads the full text of an ingested document.
+- `GetDocumentMetadataTool` — returns stored metadata for a document.
+- `InspectImageTool` — inspects/describes an image document.
+
+**Tabular data (spreadsheets/CSV)**
+
+- `ListTabularDataTool` — lists available tables/sheets in a tabular document.
+- `QueryTabularDataTool` — queries rows from a tabular document.
+- `ExecuteTabularCommandTool` — runs a command/transformation over tabular data.
+- `FillEmptyTabularCellsTool` — fills empty cells in tabular data.
+- `ExportTabularDataTool` — exports tabular data to a file.
+
+**File generation**
+
+- `GenerateFileTool` — generates a downloadable file from AI output.

@@ -113,9 +113,10 @@ Configure whether the culture picker sets a cookie and whether `ContentRequestCu
     {
       "name": "settings",
       "ContentCulturePickerSettings": {
-        "SetCookie": true
+        "SetCookie": true,
+        "RedirectToHomepage": false
       },
-      "ContentRequestCultureProvider": {
+      "ContentRequestCultureProviderSettings": {
         "SetCookie": true
       }
     }
@@ -142,8 +143,8 @@ Configure the culture picker cookie lifetime (in days) via `appsettings.json`:
 The `ContentCulturePicker` determines the redirect URL using these rules in order:
 
 1. If the current content item has a related localization for the selected culture, redirect to that item.
-2. Otherwise, if a HomePage is configured, find and redirect to its localization for the selected culture.
-3. Otherwise, redirect to the current page.
+2. Otherwise, if `RedirectToHomepage` is enabled, try the selected culture's home-page localization.
+3. Otherwise, remain on the supplied return URL.
 
 ### Liquid Filters
 

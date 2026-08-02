@@ -57,7 +57,7 @@ using OrchardCore.DisplayManagement.Manifest;
         </div>
     </footer>
 
-    {% resources type: "FooterScript" %}
+    {% resources type: "FootScript" %}
 </body>
 </html>
 ```
@@ -178,13 +178,21 @@ A `placement.json` that customizes how Article content type is rendered:
 ## Example 8: Resource Manifest
 
 ```csharp
+using Microsoft.Extensions.Options;
 using OrchardCore.ResourceManagement;
 
-public sealed class ResourceManifest : IResourceManifestProvider
+public sealed class ResourceManagementOptionsConfiguration : IConfigureOptions<ResourceManagementOptions>
 {
-    public void BuildManifests(IResourceManifestBuilder builder)
+    private static readonly ResourceManifest _manifest = CreateManifest();
+
+    public void Configure(ResourceManagementOptions options)
     {
-        var manifest = builder.Add();
+        options.ResourceManifests.Add(_manifest);
+    }
+
+    private static ResourceManifest CreateManifest()
+    {
+        var manifest = new ResourceManifest();
 
         manifest
             .DefineStyle("CrestApps.BlogTheme")
@@ -196,6 +204,23 @@ public sealed class ResourceManifest : IResourceManifestProvider
             .DefineScript("CrestApps.BlogTheme")
             .SetUrl("~/CrestApps.BlogTheme/js/site.min.js", "~/CrestApps.BlogTheme/js/site.js")
             .SetDependencies("jquery");
+
+        return manifest;
+    }
+}
+```
+
+Register the configuration in the theme startup:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Modules;
+
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddResourceConfiguration<ResourceManagementOptionsConfiguration>();
     }
 }
 ```

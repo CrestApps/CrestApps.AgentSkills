@@ -11,8 +11,8 @@ You are an Orchard Core expert. Generate code and configuration for accessing co
 
 ### Guidelines
 
-- The `OrchardCore.Contents` module provides REST API, GraphQL, Liquid, and Razor helpers for content access.
-- REST API endpoints require authentication via OAuth 2 (OpenId Authorization Server and Token Validation features).
+- The `OrchardCore.Contents` module owns the REST endpoints and the `AccessContentApi` permission. GraphQL requires `OrchardCore.Apis.GraphQL`; Liquid and Razor helpers are separate display-management integrations.
+- REST API endpoints use the `Api` authentication scheme. Configure an API authentication provider, such as OpenID token validation, for that scheme.
 - Create a dedicated API user with appropriate permissions for API calls.
 - GraphQL queries are available when the `OrchardCore.Apis.GraphQL` feature is enabled.
 - Use Liquid `Content` object to load content items by alias, slug, ID, or version ID.
@@ -91,6 +91,17 @@ Delete a content item by ID.
 | `contentItemId` | path     | Yes      | string | The content item ID to delete   |
 
 **Response:** `200 OK` on success.
+
+### REST API Permission Matrix
+
+Every endpoint requires `AccessContentApi`. It also checks content permissions:
+
+| Endpoint | Additional permission |
+|---|---|
+| `GET /api/content/{contentItemId}` | `ViewContent` on the item |
+| `POST /api/content` for a new item | `PublishContent` on the new item |
+| `POST /api/content` for an existing item | `EditContent` on the item |
+| `DELETE /api/content/{contentItemId}` | `DeleteContent` on the item |
 
 ### Authentication for REST API
 

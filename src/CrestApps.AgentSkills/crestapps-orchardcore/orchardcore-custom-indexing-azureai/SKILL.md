@@ -73,7 +73,10 @@ public sealed class CustomerInsightIndexProfileMetadata
 }
 ```
 
-This mirrors `AIMemoryIndexProfileMetadata`, which stores embedding provider, connection, and deployment details so the indexing service can generate vectors.
+Current CrestApps AI index profiles read embedding selection through
+`IndexProfileEmbeddingMetadataAccessor`. Do not couple a new module to the
+legacy `AIMemoryIndexProfileMetadata` key. Store custom metadata only for
+settings the shared embedding metadata does not already represent.
 
 ### 3. Register the Azure AI Search source
 
@@ -175,10 +178,12 @@ public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfi
         metadata.IndexMappings.Add(new AzureAISearchIndexMap
         {
             AzureFieldKey = "Embedding",
-            Type = DocumentIndex.Types.Number,
+            Type = DocumentIndex.Types.Vector,
+            IsSearchable = true,
             VectorInfo = new AzureAISearchIndexMapVectorInfo
             {
                 Dimensions = 1536,
+                VectorSearchConfiguration = "default",
             },
         });
 
@@ -253,7 +258,10 @@ This is the same improvement used in CrestApps AI Memory so every create, update
 
 ### 8. Support re-sync when the profile changes
 
-Use `IndexProfileHandlerBase.SynchronizedAsync(...)` to rebuild all documents for the affected profile IDs.
+Override `SynchronizedAsync(IndexProfileSynchronizedContext)` in the shared
+index-profile handler and call the module's indexing service to rebuild the
+affected profile ID. AI Memory uses this pattern to call
+`SyncByIndexProfileIdsAsync`.
 
 That is especially important when:
 
@@ -266,16 +274,11 @@ That is especially important when:
 - use `AzureAISearchIndexMetadata`
 - create one `AzureAISearchIndexMap` per field
 - set `IsKey = true` for the stable document ID field
-- use `VectorInfo.Dimensions` for embedding fields
+- use `DocumentIndex.Types.Vector` and `VectorInfo.Dimensions` for embedding fields
 - mark searchable text fields with `IsSearchable = true`
 - mark sortable/filterable fields explicitly
 
 ## Choosing between Orchard indexing service styles
-
-### Use `NamedIndexingService` when
-
-- the module already fits Orchard's named indexing-task abstraction
-- you are coordinating a named provider pipeline with minimal custom orchestration
 
 ### Use a custom indexing service when
 
@@ -290,6 +293,9 @@ That is especially important when:
 - `CrestApps.OrchardCore.AI.Memory`
 - `CrestApps.OrchardCore.AI.Memory.AzureAI`
 - `CrestApps.OrchardCore.AI.Memory.Elasticsearch`
+
+For the Elasticsearch variant of this pattern, use the sibling
+`orchardcore-custom-indexing-elasticsearch` skill.
 
 Follow that separation when generating code:
 

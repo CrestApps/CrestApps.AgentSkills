@@ -61,7 +61,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddBackgroundTask<DraftCleanupTask>();
+        services.AddSingleton<IBackgroundTask, DraftCleanupTask>();
     }
 }
 ```

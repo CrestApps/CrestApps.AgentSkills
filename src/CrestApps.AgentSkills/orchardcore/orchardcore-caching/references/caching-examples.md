@@ -7,9 +7,10 @@ A shape that caches featured products and invalidates when any Product content i
 ### Shape Template (Razor)
 
 ```html
-<cache expires-after="TimeSpan.FromMinutes(20)"
-       vary-by-query="category"
-       vary-by-user="true">
+<dynamic-cache cache-id="featured-products"
+               vary-by="query:category user"
+               dependencies="contenttype:Product"
+               expires-after="00:20:00">
     <div class="featured-products">
         @foreach (var product in Model.Products)
         {
@@ -19,13 +20,13 @@ A shape that caches featured products and invalidates when any Product content i
             </div>
         }
     </div>
-</cache>
+</dynamic-cache>
 ```
 
 ### Shape Template (Liquid)
 
 ```liquid
-{% cache "featured-products", after: "00:20:00", vary_by: Request.QueryString["category"] %}
+{% cache "featured-products", vary_by: "query:category", dependencies: "contenttype:Product", expires_after: "00:20:00" %}
     <div class="featured-products">
         {% for product in Model.Products %}
             <div class="product-card">
@@ -37,7 +38,7 @@ A shape that caches featured products and invalidates when any Product content i
 {% endcache %}
 ```
 
-### Display Driver with Cache Dependencies
+### Display Driver with Cache Tags
 
 ```csharp
 using OrchardCore.DisplayManagement.Handlers;
@@ -50,7 +51,7 @@ public sealed class FeaturedProductsDisplayDriver : DisplayDriver<FeaturedProduc
         return View("FeaturedProducts", model)
             .Location("Content", "Content:5")
             .Cache("featured-products", cache => cache
-                .AddDependency("contenttype:Product")
+                .AddTag("contenttype:Product")
                 .AddContext("query")
                 .WithExpiryAfter(TimeSpan.FromMinutes(20))
                 .WithExpirySliding(TimeSpan.FromMinutes(5))
@@ -59,7 +60,7 @@ public sealed class FeaturedProductsDisplayDriver : DisplayDriver<FeaturedProduc
 }
 ```
 
-## Example 2: Content Event Handler with Cache Invalidation
+## Example 2: Content Event Handler with Cache Tag Invalidation
 
 Automatically invalidate caches when content is published or removed.
 
@@ -69,11 +70,11 @@ using OrchardCore.Environment.Cache;
 
 public sealed class ProductCacheInvalidationHandler : ContentHandlerBase
 {
-    private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
-    public ProductCacheInvalidationHandler(ISignal signal)
+    public ProductCacheInvalidationHandler(ITagCache tagCache)
     {
-        _signal = signal;
+        _tagCache = tagCache;
     }
 
     public override Task PublishedAsync(PublishContentContext context)
@@ -90,8 +91,7 @@ public sealed class ProductCacheInvalidationHandler : ContentHandlerBase
     {
         if (string.Equals(contentType, "Product", StringComparison.OrdinalIgnoreCase))
         {
-            await _signal.SignalTokenAsync("productcatalog");
-            await _signal.SignalTokenAsync("featured-products");
+            await _tagCache.RemoveTagAsync("contenttype:Product");
         }
     }
 }
@@ -180,20 +180,20 @@ using OrchardCore.Environment.Cache;
 public sealed class NavigationCacheService
 {
     private readonly IDynamicCacheService _dynamicCacheService;
-    private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
     public NavigationCacheService(
         IDynamicCacheService dynamicCacheService,
-        ISignal signal)
+        ITagCache tagCache)
     {
         _dynamicCacheService = dynamicCacheService;
-        _signal = signal;
+        _tagCache = tagCache;
     }
 
     public async Task<string?> GetCachedNavigationAsync()
     {
         var context = new CacheContext("main-navigation")
-            .AddDependency("contenttype:Menu")
+            .AddTag("contenttype:Menu")
             .AddContext("user")
             .WithExpiryAfter(TimeSpan.FromHours(1));
 
@@ -203,7 +203,7 @@ public sealed class NavigationCacheService
     public async Task SetCachedNavigationAsync(string html)
     {
         var context = new CacheContext("main-navigation")
-            .AddDependency("contenttype:Menu")
+            .AddTag("contenttype:Menu")
             .AddContext("user")
             .WithExpiryAfter(TimeSpan.FromHours(1));
 
@@ -212,7 +212,7 @@ public sealed class NavigationCacheService
 
     public async Task InvalidateNavigationCacheAsync()
     {
-        await _signal.SignalTokenAsync("contenttype:Menu");
+        await _tagCache.RemoveTagAsync("contenttype:Menu");
     }
 }
 ```
@@ -326,27 +326,27 @@ Configure the Redis connection in `appsettings.json`:
 
 When `OrchardCore.Redis.Cache` is enabled, it replaces the default in-memory distributed cache with Redis, allowing all `IDistributedCache` consumers and dynamic cache entries to be shared across multiple application instances.
 
-## Example 7: Combining Vary-By Attributes in Razor Cache Tag Helper
+## Example 7: Razor Dynamic Cache Variations
 
 ```html
 <!-- Cache a user-specific dashboard widget -->
-<cache expires-after="TimeSpan.FromMinutes(5)"
-       vary-by-user="true"
-       vary-by-route="area,controller,action"
-       vary-by-cookie=".AspNetCore.Culture">
+<dynamic-cache cache-id="dashboard-widget"
+               vary-by="user route"
+               expires-after="00:05:00">
     @await Component.InvokeAsync("DashboardWidget")
-</cache>
+</dynamic-cache>
 
 <!-- Cache a public page fragment with query and header variation -->
-<cache expires-sliding="TimeSpan.FromMinutes(30)"
-       vary-by-query="page,sort,filter"
-       vary-by-header="Accept-Language">
+<dynamic-cache cache-id="search-results"
+               vary-by="query:page query:sort query:filter"
+               expires-sliding="00:30:00">
     @await DisplayAsync(Model.SearchResults)
-</cache>
+</dynamic-cache>
 
 <!-- Cache with a custom composite key -->
-<cache expires-after="TimeSpan.FromHours(1)"
-       vary-by="@($"{Model.TenantName}-{Model.CategoryId}")">
+<dynamic-cache cache-id="category-products"
+               vary-by="@($"{Model.TenantName}-{Model.CategoryId}")"
+               expires-after="01:00:00">
     @await DisplayAsync(Model.CategoryProducts)
-</cache>
+</dynamic-cache>
 ```

@@ -102,7 +102,6 @@ public sealed class CustomAdminNode : AdminNode
 
     public string IconClass { get; set; }
 
-    public string[] PermissionNames { get; set; } = [];
 }
 ```
 

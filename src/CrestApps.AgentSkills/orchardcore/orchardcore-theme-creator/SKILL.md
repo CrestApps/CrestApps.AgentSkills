@@ -15,7 +15,7 @@ This skill guides you through creating new Orchard Core themes following project
 
 - OrchardCore repository (working directory)
 - .NET SDK 10.0+ installed
-- Node.js 22.x and Yarn 4.x (for asset compilation)
+- Node.js 22.x and Yarn 4.x only when the theme includes optional asset compilation
 
 ## Theme Creation Workflow
 

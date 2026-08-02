@@ -40,8 +40,7 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
-          "IsDefault": true
+          "Purpose": "Chat"
         }
       ]
     },
@@ -74,7 +73,7 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Local",
+        "CrestApps.OrchardCore.AI.Mcp.Stdio",
         "CrestApps.OrchardCore.OpenAI"
       ]
     },
@@ -112,7 +111,7 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Local",
+        "CrestApps.OrchardCore.AI.Mcp.Stdio",
         "CrestApps.OrchardCore.OpenAI"
       ]
     },
@@ -176,10 +175,12 @@ Enable MCP Server alongside the AI Agent module to expose Orchard Core managemen
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "ApiKey",
-        "ApiKey": "your-long-secure-random-api-key"
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "your-long-secure-random-api-key"
+        }
       }
     }
   }
@@ -189,7 +190,7 @@ Enable MCP Server alongside the AI Agent module to expose Orchard Core managemen
 Store the API key securely:
 
 ```bash
-dotnet user-secrets set "OrchardCore:CrestApps_AI:McpServer:ApiKey" "your-long-secure-random-api-key"
+dotnet user-secrets set "OrchardCore:CrestApps:AI:McpServer:ApiKey" "your-long-secure-random-api-key"
 ```
 
 ## MCP Server Configuration: OpenId Authentication
@@ -197,10 +198,12 @@ dotnet user-secrets set "OrchardCore:CrestApps_AI:McpServer:ApiKey" "your-long-s
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "OpenId",
-        "RequireAccessPermission": true
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "OpenId",
+          "RequireAccessPermission": true
+        }
       }
     }
   }
@@ -221,8 +224,8 @@ Configure VS Code's MCP client to connect to your Orchard Core instance:
   "mcpServers": {
     "orchard-core-site": {
       "transport": {
-        "type": "sse",
-        "url": "https://your-orchard-site.com/mcp/sse",
+        "type": "http",
+        "url": "https://your-orchard-site.com/mcp",
         "headers": {
           "Authorization": "ApiKey your-secure-api-key"
         }
@@ -250,11 +253,14 @@ public sealed class Startup : StartupBase
 
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddMcpResourceType<ApiEndpointResourceHandler>("api", entry =>
+        services.AddCoreAIMcpResourceType<ApiEndpointResourceHandler>("api", entry =>
         {
             entry.DisplayName = S["API Endpoint"];
             entry.Description = S["Fetch data from REST API endpoints."];
-            entry.UriPatterns = ["api://{itemId}/{path}"];
+            entry.SupportedVariables =
+            [
+                new McpResourceVariable("path") { Description = S["The API resource path."] },
+            ];
         });
     }
 }
@@ -276,6 +282,7 @@ public sealed class ApiEndpointResourceHandler : IMcpResourceTypeHandler
 
     public async Task<ReadResourceResult> ReadAsync(
         McpResource resource,
+        IReadOnlyDictionary<string, string> variables,
         CancellationToken cancellationToken)
     {
         var uri = new Uri(resource.Resource.Uri);
@@ -317,10 +324,10 @@ public sealed class ApiEndpointResourceHandler : IMcpResourceTypeHandler
           }
         },
         {
-          "Source": "content",
+          "Source": "content-type",
           "DisplayText": "Blog Articles",
           "Resource": {
-            "Uri": "content://blog-articles/BlogPost/list",
+            "Uri": "content-type://blog-articles/BlogPost",
             "Name": "blog-articles",
             "Description": "List of all blog articles",
             "MimeType": "application/json"
@@ -330,56 +337,4 @@ public sealed class ApiEndpointResourceHandler : IMcpResourceTypeHandler
     }
   ]
 }
-```
-
-## Extending Content Resources with a Custom Strategy
-
-```csharp
-public sealed class SearchContentResourceStrategy : IContentResourceStrategyProvider
-{
-    private readonly IContentManager _contentManager;
-
-    public SearchContentResourceStrategy(IContentManager contentManager)
-    {
-        _contentManager = contentManager;
-    }
-
-    public string[] UriPatterns => ["content://{itemId}/{contentType}/search"];
-
-    public bool CanHandle(Uri uri)
-    {
-        return uri.Segments.Length >= 4 &&
-               uri.Segments[^1].TrimEnd('/') == "search";
-    }
-
-    public async Task<ReadResourceResult> ReadAsync(
-        McpResource resource,
-        Uri uri,
-        CancellationToken cancellationToken)
-    {
-        var contentType = uri.Segments[2].TrimEnd('/');
-
-        var items = await _contentManager
-            .Query(contentType)
-            .ListAsync();
-
-        var json = JsonSerializer.Serialize(items);
-
-        return new ReadResourceResult
-        {
-            Contents = [new TextResourceContents
-            {
-                Text = json,
-                MimeType = "application/json",
-                Uri = resource.Resource.Uri,
-            }],
-        };
-    }
-}
-```
-
-Register in `Startup.cs`:
-
-```csharp
-services.AddContentResourceStrategy<SearchContentResourceStrategy>();
 ```

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-parts
-description: Skill for adding and configuring built-in content parts in Orchard Core. Covers every built-in content part with all available settings, migration code patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, OrchardCore.Markdown, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common built-in Orchard Core content parts. Covers selected settings, migration patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, OrchardCore.Markdown, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 ## Add and Configure Content Parts
 
-You are an Orchard Core expert. Generate migration code and recipes for attaching and configuring built-in content parts.
+You are an Orchard Core expert. Generate migration code and recipes for attaching common built-in content parts.
 
 ### Guidelines
 
@@ -51,6 +51,7 @@ Provides a title/display text for a content item. Feature: `OrchardCore.Title`.
 | `Options` | TitlePartOptions | `Editable` | Title behavior: `Editable`, `GeneratedDisabled`, `GeneratedHidden`, `EditableRequired`. |
 | `Pattern` | string | `""` | Liquid pattern to generate the title (used with `GeneratedDisabled` or `GeneratedHidden`). |
 | `RenderTitle` | bool | `true` | Whether to render the title in the content shape. |
+| `Placeholder` | string | `""` | Placeholder for the title editor. |
 
 ### TitlePart Migration
 
@@ -194,6 +195,7 @@ Makes a content type a container for other content items. Feature: `OrchardCore.
 | `EnableOrdering` | bool | `false` | Whether to allow manual ordering. |
 | `ContainedContentTypes` | string[] | `[]` | Content types that can be contained. |
 | `ShowHeader` | bool | `true` | Whether to show the list header. |
+| `ShowFullPager` | bool | `false` | Whether to render the full pager. |
 
 ### ListPart Migration
 
@@ -223,6 +225,8 @@ Enables a content type to contain a flow of widget content items. Feature: `Orch
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `ContainedContentTypes` | string[] | `[]` | Content types that can be added to the flow. |
+| `CollapseContainedItems` | bool | `false` | Whether contained editors start collapsed. |
+| `DefaultAlignment` | FlowAlignment? | `null` | Default alignment for new flow items. |
 
 ### FlowPart Migration
 
@@ -250,6 +254,8 @@ A container part allowing nested content items within a content item. Feature: `
 |---|---|---|---|
 | `ContainedContentTypes` | string[] | `[]` | Content types that can be added to the bag. |
 | `DisplayType` | string | `"Detail"` | Display type for rendering bag items. |
+| `ContainedStereotypes` | string[] | `[]` | Stereotypes allowed in the bag. |
+| `CollapseContainedItems` | bool | `false` | Whether contained editors start collapsed. |
 
 ### BagPart Migration
 
@@ -357,6 +363,16 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{TaxonomyType}}", typ
 
 Provides SEO metadata (meta title, description, etc.). Feature: `OrchardCore.Seo`.
 
+### SeoMetaPart Settings
+
+| Setting | Type | Default |
+|---|---|---|
+| `DisplayKeywords` | bool | `false` |
+| `DisplayCustomMetaTags` | bool | `false` |
+| `DisplayOpenGraph` | bool | `false` |
+| `DisplayTwitter` | bool | `false` |
+| `DisplayGoogleSchema` | bool | `false` |
+
 ### SeoMetaPart Migration
 
 ```csharp
@@ -421,7 +437,7 @@ Modules that provide custom parts from external sources (community or third-part
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
     <!-- Orchard Core base -->
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
 
     <!-- Third-party modules must be added to the web project -->
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
@@ -437,3 +453,5 @@ For local project references to third-party modules:
   <ProjectReference Include="../ThirdParty.Module/ThirdParty.Module.csproj" />
 </ItemGroup>
 ```
+
+For field settings and editor choices, see `orchardcore-content-fields`. For routing options, see `orchardcore-autoroute`.

@@ -1,30 +1,17 @@
 ---
 name: orchardcore-localization
-description: Skill for configuring localization and multi-language support in Orchard Core. Covers culture settings, content localization, PO file translations, and localization configuration. Use this skill when requests mention Orchard Core Localization, Configure Localization and Multi-Language Support, Enabling Localization Features, Localization Settings via Recipe, PO File Format, PO File Location Convention, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Localization, OrchardCore.ContentLocalization, IStringLocalizer, LocalizationSettings, IActionResult, IViewLocalizer, LocalizationPart, AlterTypeDefinition, WithPart, IStringLocalizer<T>. It also helps with localization examples, PO File Format, PO File Location Convention, Using Localization in C# Code, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring localization and multi-language support in Orchard Core. Covers culture settings, content localization, PO file contexts and discovery locations, IStringLocalizer, the Liquid t filter, and the admin culture picker. Use this skill when requests mention Orchard Core Localization, Configure Localization and Multi-Language Support, Enabling Localization Features, Localization Settings via Recipe, PO File Format, PO File Location Convention, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Localization - Prompt Templates
+# Orchard Core Localization
 
-## Configure Localization and Multi-Language Support
-
-You are an Orchard Core expert. Generate localization configuration for multi-language Orchard Core sites.
-
-### Guidelines
-
-- Enable `OrchardCore.Localization` for basic localization support.
-- Enable `OrchardCore.ContentLocalization` for content item translation.
-- PO files (`.po`) are used for string translations.
-- Place PO files in the module's `Localization/` folder.
-- Use `IStringLocalizer<T>` in C# code for localizable strings.
-- Use `{% t %}` tag in Liquid templates for translations.
-- Content localization links translated content items together.
-- Culture picker allows users to switch between languages.
-
-### Enabling Localization Features
+Use `OrchardCore.Localization` for UI localization and
+`OrchardCore.ContentLocalization` for translated content items. Configure the
+default and supported cultures in the site settings UI or with a root recipe:
 
 ```json
 {
@@ -34,151 +21,75 @@ You are an Orchard Core expert. Generate localization configuration for multi-la
       "enable": [
         "OrchardCore.Localization",
         "OrchardCore.ContentLocalization",
-        "OrchardCore.ContentLocalization.ContentCulturePicker"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Localization Settings via Recipe
-
-```json
-{
-  "steps": [
+        "OrchardCore.Localization.AdminCulturePicker"
+      ]
+    },
     {
       "name": "Settings",
       "LocalizationSettings": {
-        "DefaultCulture": "{{DefaultCulture}}",
-        "SupportedCultures": [
-          "{{Culture1}}",
-          "{{Culture2}}",
-          "{{Culture3}}"
-        ]
+        "DefaultCulture": "en-US",
+        "SupportedCultures": ["en-US", "fr-FR"],
+        "FallBackToParentCulture": true
       }
     }
   ]
 }
 ```
 
-### PO File Format
+The localization module uses these settings to configure request
+localization. Do not invent an `OrchardCore_Localization_CultureProvider`
+configuration section.
 
-Place PO files in `Localization/{culture}.po` (e.g., `Localization/fr.po`):
+## UI Strings
 
-```po
-# French translations
-msgid "Hello"
-msgstr "Bonjour"
-
-msgid "Welcome to {0}"
-msgstr "Bienvenue à {0}"
-
-msgid "Blog Post"
-msgstr "Article de blog"
-
-# Context-specific translation
-msgctxt "MyModule"
-msgid "Title"
-msgstr "Titre"
-```
-
-### PO File Location Convention
-
-```
-MyModule/
-├── Localization/
-│   ├── fr.po
-│   ├── es.po
-│   ├── de.po
-│   └── ja.po
-```
-
-### Using Localization in C# Code
+Use the localizer typed to the class that owns the string:
 
 ```csharp
-using Microsoft.Extensions.Localization;
+private readonly IStringLocalizer<MyController> _localizer;
 
-public sealed class MyController : Controller
+public MyController(IStringLocalizer<MyController> localizer)
 {
-    private readonly IStringLocalizer S;
-
-    public MyController(IStringLocalizer<MyController> localizer)
-    {
-        S = localizer;
-    }
-
-    public IActionResult Index()
-    {
-        ViewData["Title"] = S["Welcome to my site"];
-        ViewData["Message"] = S["Hello, {0}!", User.Identity.Name];
-        return View();
-    }
+    _localizer = localizer;
 }
 ```
 
-### Using Localization in Views (Razor)
-
-```cshtml
-@inject IViewLocalizer Localizer
-
-<h1>@Localizer["Welcome"]</h1>
-<p>@Localizer["This site has {0} articles.", articleCount]</p>
-```
-
-### Using Localization in Liquid
+In Liquid, use the `t` filter:
 
 ```liquid
-{% t "Welcome to our site" %}
-{% t "Hello, {0}!" User.Identity.Name %}
+{{ "Welcome to our site" | t }}
+{{ "Hello {0}!" | t: User.Identity.Name }}
 ```
 
-### Content Localization
+## PO Contexts and Locations
 
-Content localization connects translated versions of the same content item:
+The PO `msgctxt` must exactly match the localizer scope:
 
-```csharp
-// Add LocalizationPart to a content type
-_contentDefinitionManager.AlterTypeDefinition("Article", type => type
-    .WithPart("LocalizationPart")
-);
-```
-
-### Culture Picker Widget
-
-Add the culture picker to your layout:
-
-```liquid
-{% shape "ContentCulturePicker" %}
-```
-
-### Configuring Request Culture Providers
-
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_Localization_CultureProvider": {
-      "CookieName": ".AspNetCore.Culture",
-      "UseUserOverrideCulture": true
-    }
-  }
-}
-```
-
-### Date and Number Formatting
-
-Localized date formatting in Liquid:
-
-```liquid
-{{ Model.ContentItem.PublishedUtc | local | date: "%x" }}
-{{ Model.ContentItem.PublishedUtc | local | date: "%B %d, %Y" }}
-```
-
-### Plural Forms in PO Files
+- `{Namespace}.{Class}` for `IStringLocalizer<T>`
+- `{Namespace}.{ViewPath}` for a Razor view
 
 ```po
-msgid "One item"
-msgid_plural "{0} items"
-msgstr[0] "Un élément"
-msgstr[1] "{0} éléments"
+msgctxt "MyModule.Controllers.HomeController"
+msgid "Welcome to our site"
+msgstr "Bienvenue sur notre site"
+
+msgctxt "MyModule.Views.Home.Index"
+msgid "Read more"
+msgstr "Lire la suite"
 ```
+
+For `fr-CA`, the provider checks these locations in order:
+
+1. `{Extension}/Localization/fr-CA.po`
+2. `/Localization/fr-CA.po`
+3. `App_Data/Sites/{tenant}/Localization/fr-CA.po`
+4. `/Localization/{ExtensionId}/fr-CA.po`
+5. `/Localization/{ExtensionId}-fr-CA.po`
+6. `/Localization/fr-CA/{ExtensionId}.po`, then each `.po` in that culture folder
+
+## Content and Admin Culture Pickers
+
+`LocalizationPart` links translations with `LocalizationSet` and stores each
+item's `Culture`. The content culture picker is a separate content-localization
+feature. `OrchardCore.Localization.AdminCulturePicker` instead adds a navbar
+shape in the admin area when more than one supported culture is configured; it
+uses the admin culture cookie provider and does not render a front-end picker.
