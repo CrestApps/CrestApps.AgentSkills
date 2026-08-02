@@ -25,7 +25,7 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - Register migrations in `Startup.cs` using `services.AddScoped<IDataMigration, Migrations>()`.
 - `IContentDefinitionManager` is used to define content types and parts.
 - `SchemaBuilder` is used to create and alter YesSql index tables.
-- Use literal column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()`; do not use `nameof(...)` for YesSql migration column names.
+- Use stable column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()`. A string literal is clearest for a persisted schema; use `nameof(...)` only when the member name is intentionally the persisted column name.
 - `MapIndex` tables already get a `DocumentId` column from YesSql. Never declare or alter that column manually in the migration.
 - If an index needs access to the YesSql document id, expose `public long DocumentId { get; set; }` on the `MapIndex` type and let YesSql populate it.
 - Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.

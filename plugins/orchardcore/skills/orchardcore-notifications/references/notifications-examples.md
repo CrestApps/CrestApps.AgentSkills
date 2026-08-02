@@ -1,29 +1,30 @@
 # Notification Examples
 
-## Example 1: Notify Admins on Content Submission
+## Example 1: Notify Administrators on Content Submission
 
-Send a notification to all administrators when a new content item is submitted for review.
-
-### Content Event Handler
+Use `UserManager<IUser>` to resolve role members, then send a
+`NotificationMessage` to each recipient.
 
 ```csharp
+using Microsoft.AspNetCore.Identity;
 using OrchardCore.ContentManagement.Handlers;
 using OrchardCore.Notifications;
-using OrchardCore.Users.Services;
+using OrchardCore.Notifications.Models;
+using OrchardCore.Users;
 
 public sealed class ContentReviewNotificationHandler : ContentHandlerBase
 {
     private readonly INotificationService _notificationService;
-    private readonly IUserService _userService;
+    private readonly UserManager<IUser> _userManager;
     private readonly IStringLocalizer S;
 
     public ContentReviewNotificationHandler(
         INotificationService notificationService,
-        IUserService userService,
+        UserManager<IUser> userManager,
         IStringLocalizer<ContentReviewNotificationHandler> stringLocalizer)
     {
         _notificationService = notificationService;
-        _userService = userService;
+        _userManager = userManager;
         S = stringLocalizer;
     }
 
@@ -34,23 +35,22 @@ public sealed class ContentReviewNotificationHandler : ContentHandlerBase
             return;
         }
 
-        var notification = new Notification
-        {
-            Summary = S["New blog post submitted: {0}", context.ContentItem.DisplayText],
-            Body = S["A new blog post has been submitted and is ready for review."],
-        };
+        var administrators = await _userManager.GetUsersInRoleAsync("Administrator");
 
-        var admins = await _userService.GetUsersInRoleAsync("Administrator");
-
-        foreach (var admin in admins)
+        foreach (var administrator in administrators)
         {
-            await _notificationService.SendAsync(admin, notification);
+            await _notificationService.SendAsync(administrator, new NotificationMessage
+            {
+                Subject = S["Content submitted for review"],
+                Summary = S["New blog post: {0}", context.ContentItem.DisplayText],
+                TextBody = S["A new blog post is ready for review."],
+            });
         }
     }
 }
 ```
 
-### Registration
+Register the content handler:
 
 ```csharp
 using OrchardCore.ContentManagement.Handlers;
@@ -65,235 +65,126 @@ public sealed class Startup : StartupBase
 }
 ```
 
-## Example 2: Scheduled Notification Digest
+## Example 2: Reporting Partial Delivery
 
-A background task that sends a daily digest notification summarizing activity.
-
-### Background Task
-
-```csharp
-using OrchardCore.BackgroundTasks;
-using OrchardCore.Notifications;
-using OrchardCore.Users.Services;
-
-[BackgroundTask(
-    Schedule = "0 8 * * *",
-    Description = "Sends a daily activity digest notification to editors.")]
-public sealed class DailyDigestNotificationTask : IBackgroundTask
-{
-    private readonly INotificationService _notificationService;
-    private readonly IUserService _userService;
-    private readonly ISession _session;
-
-    public DailyDigestNotificationTask(
-        INotificationService notificationService,
-        IUserService userService,
-        ISession session)
-    {
-        _notificationService = notificationService;
-        _userService = userService;
-        _session = session;
-    }
-
-    public async Task DoWorkAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
-    {
-        var yesterday = DateTime.UtcNow.AddDays(-1);
-
-        var recentCount = await _session.Query<ContentItem>()
-            .Where(ci => ci.CreatedUtc >= yesterday)
-            .CountAsync();
-
-        if (recentCount == 0)
-        {
-            return;
-        }
-
-        var notification = new Notification
-        {
-            Summary = $"Daily Digest: {recentCount} new items published yesterday",
-            Body = $"There were {recentCount} content items published in the last 24 hours.",
-        };
-
-        var editors = await _userService.GetUsersInRoleAsync("Editor");
-
-        foreach (var editor in editors)
-        {
-            await _notificationService.SendAsync(editor, notification);
-        }
-    }
-}
-```
-
-## Example 3: Notification with Email Delivery
-
-Configure notifications to also be delivered via email by enabling the email notification method.
-
-### Enabling Email Notifications via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Notifications",
-        "OrchardCore.Notifications.Email",
-        "OrchardCore.Email.Smtp"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Sending a Notification with Email Fallback
+`NotificationSendResult` represents the combined outcome from the notification
+methods available for the recipient.
 
 ```csharp
 using OrchardCore.Notifications;
+using OrchardCore.Notifications.Models;
 
 public sealed class OrderNotificationSender
 {
     private readonly INotificationService _notificationService;
-    private readonly IStringLocalizer S;
 
-    public OrderNotificationSender(
-        INotificationService notificationService,
-        IStringLocalizer<OrderNotificationSender> stringLocalizer)
+    public OrderNotificationSender(INotificationService notificationService)
     {
         _notificationService = notificationService;
-        S = stringLocalizer;
     }
 
-    public async Task NotifyOrderCompletedAsync(IUser customer, string orderId)
+    public async Task<bool> NotifyOrderCompletedAsync(object recipient, string orderId)
     {
-        var notification = new Notification
+        var result = await _notificationService.SendAsync(recipient, new NotificationMessage
         {
-            Summary = S["Order {0} has been completed", orderId],
-            Body = S["Your order has been processed and shipped. Thank you for your purchase."],
-        };
+            Subject = $"Order {orderId} completed",
+            Summary = $"Order {orderId} has been completed",
+            TextBody = "Your order has been processed and shipped.",
+        });
 
-        // The notification will be delivered through all enabled methods
-        // (in-app and email if OrchardCore.Notifications.Email is enabled).
-        await _notificationService.SendAsync(customer, notification);
+        return result.Status is NotificationSendStatus.Success or
+            NotificationSendStatus.PartiallySuccessful;
     }
 }
 ```
 
-## Example 4: Custom Notification Controller
+## Example 3: Custom Delivery Method
 
-An admin controller that lets administrators send targeted notifications.
-
-### Controller
+This provider records an audit event and returns the `Result` required by
+`INotificationMethodProvider`.
 
 ```csharp
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using OrchardCore.Admin;
+using Microsoft.Extensions.Localization;
+using OrchardCore.Infrastructure;
 using OrchardCore.Notifications;
-using OrchardCore.Users.Services;
 
-[Admin]
-public sealed class NotificationAdminController : Controller
+public sealed class AuditNotificationMethodProvider : INotificationMethodProvider
 {
-    private readonly INotificationService _notificationService;
-    private readonly IUserService _userService;
-    private readonly IAuthorizationService _authorizationService;
-    private readonly IStringLocalizer S;
+    private readonly ILogger _logger;
 
-    public NotificationAdminController(
-        INotificationService notificationService,
-        IUserService userService,
-        IAuthorizationService authorizationService,
-        IStringLocalizer<NotificationAdminController> stringLocalizer)
+    public AuditNotificationMethodProvider(ILogger<AuditNotificationMethodProvider> logger)
     {
-        _notificationService = notificationService;
-        _userService = userService;
-        _authorizationService = authorizationService;
-        S = stringLocalizer;
+        _logger = logger;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Send(string userName, string summary, string body)
+    public string Method => "Audit";
+
+    public LocalizedString Name => new("Audit notification");
+
+    public Task<Result> SendAsync(
+        object notify,
+        INotificationMessage message,
+        CancellationToken cancellationToken = default)
     {
-        if (!await _authorizationService.AuthorizeAsync(
-            User,
-            NotificationPermissions.ManageNotifications))
-        {
-            return Forbid();
-        }
+        _logger.LogInformation(
+            "Notification '{Subject}' sent to {RecipientType}.",
+            message.Subject,
+            notify.GetType().Name);
 
-        var targetUser = await _userService.GetUserByNameAsync(userName);
-
-        if (targetUser == null)
-        {
-            ModelState.AddModelError(nameof(userName), S["User not found."]);
-            return BadRequest(ModelState);
-        }
-
-        var notification = new Notification
-        {
-            Summary = summary,
-            Body = body,
-        };
-
-        await _notificationService.SendAsync(targetUser, notification);
-
-        return Ok();
+        return Task.FromResult(Result.Success());
     }
 }
 ```
 
-## Example 5: Notification Workflow Integration
+## Example 4: Tracking a Delivery Method Event
 
-A workflow that triggers a notification when a content approval event occurs.
+```csharp
+using OrchardCore.Notifications;
+using OrchardCore.Notifications.Services;
 
-### Workflow Structure
+public sealed class DeliveryEvents : NotificationEventsHandler
+{
+    private readonly ILogger _logger;
 
+    public DeliveryEvents(ILogger<DeliveryEvents> logger)
+    {
+        _logger = logger;
+    }
+
+    public override Task FailedAsync(
+        INotificationMethodProvider provider,
+        NotificationContext context,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning(
+            "Method '{Method}' failed to send notification '{NotificationId}'.",
+            provider.Method,
+            context.Notification.NotificationId);
+
+        return Task.CompletedTask;
+    }
+}
 ```
-ContentPublishedEvent (Article) → CustomNotifyTask (notify author) → LogTask (log result)
-```
 
-### Workflow Activity Registration
+Register the event handler and method provider as scoped tenant services:
 
 ```csharp
 using OrchardCore.Modules;
-using OrchardCore.Workflows.Activities;
+using OrchardCore.Notifications;
 
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddActivity<CustomNotifyTask, CustomNotifyTaskDisplayDriver>();
+        services.AddScoped<INotificationEvents, DeliveryEvents>();
+        services.AddScoped<INotificationMethodProvider, AuditNotificationMethodProvider>();
     }
 }
 ```
 
-### Workflow Activity Display Driver
+## Example 5: Built-In Workflow Tasks
 
-```csharp
-using OrchardCore.Workflows.Display;
-
-public sealed class CustomNotifyTaskDisplayDriver : ActivityDisplayDriver<CustomNotifyTask>
-{
-    public override IDisplayResult Edit(CustomNotifyTask activity)
-    {
-        return Initialize<CustomNotifyTaskViewModel>("CustomNotifyTask_Edit", model =>
-        {
-            model.UserName = activity.UserName;
-            model.NotificationSummary = activity.NotificationSummary;
-        }).Location("Content");
-    }
-
-    public override async Task<IDisplayResult> UpdateAsync(
-        CustomNotifyTask activity,
-        IUpdateModel updater)
-    {
-        var model = new CustomNotifyTaskViewModel();
-        await updater.TryUpdateModelAsync(model, Prefix);
-        activity.UserName = model.UserName;
-        activity.NotificationSummary = model.NotificationSummary;
-
-        return Edit(activity);
-    }
-}
-```
+Enable `OrchardCore.Notifications` and `OrchardCore.Workflows`, then add the
+built-in **Notify User** task to a workflow. It is implemented by
+`NotifyUserTask`; do not duplicate it with a custom activity when its
+user-name, subject, and message fields meet the workflow requirement.

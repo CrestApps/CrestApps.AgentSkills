@@ -60,7 +60,7 @@ public sealed class Program
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.Application.Cms.Core.Targets" Version="2.2.1" />
+    <PackageReference Include="OrchardCore.Application.Cms.Core.Targets" Version="3.*" />
   </ItemGroup>
 
 </Project>

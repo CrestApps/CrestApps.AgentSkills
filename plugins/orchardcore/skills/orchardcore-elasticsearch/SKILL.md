@@ -1,6 +1,10 @@
 ---
 name: orchardcore-elasticsearch
 description: Skill for configuring Elasticsearch in Orchard Core. Covers Elasticsearch setup and Docker deployment, connection configuration, analyzers and token filters, index creation recipe steps, query types, comparison with Lucene, field mapping, custom data indexing, and Elasticsearch-specific configuration options. Use this skill when requests mention Orchard Core Elasticsearch, Configure Elasticsearch, Enabling Elasticsearch Features, Elasticsearch Connection Configuration, Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules. It also helps with Docker Deployment, Creating an Elasticsearch Index Profile (Recommended), Legacy Index Creation (Obsolete), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Elasticsearch - Prompt Templates
@@ -206,6 +210,7 @@ Then restart WSL: `wsl --shutdown`
 {
   "steps": [
     {
+      "name": "Queries",
       "Source": "Elasticsearch",
       "Name": "RecentBlogPosts",
       "Index": "Search",

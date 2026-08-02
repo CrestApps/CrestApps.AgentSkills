@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate code and queries for spatial data inclu
 - Use `geo_distance` queries for precise radius-based filtering using the Haversine formula.
 - Combine `geo_bounding_box` with `geo_distance` for optimal performance on large datasets — the bounding box pre-filters records before the more expensive distance calculation runs.
 - Distance values are "as the crow flies" (straight-line) because the earth is round.
-- Lucene field names follow the pattern `{ContentType}.{FieldName}` (e.g., `BlogPost.Location`).
+- Lucene field names follow the pattern `{PartName}.{FieldName}` (e.g., `StorePart.Location`).
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -59,8 +59,8 @@ Add a `GeoPointField` named `Location` to a content type via recipe:
           },
           "ContentTypePartDefinitionRecords": [
             {
-              "PartName": "Store",
-              "Name": "Store",
+              "PartName": "StorePart",
+              "Name": "StorePart",
               "Settings": {}
             }
           ]
@@ -68,7 +68,7 @@ Add a `GeoPointField` named `Location` to a content type via recipe:
       ],
       "ContentParts": [
         {
-          "Name": "Store",
+          "Name": "StorePart",
           "Settings": {},
           "ContentPartFieldDefinitionRecords": [
             {
@@ -112,7 +112,7 @@ Example: Find all `Store` content items with a `Location` field within a boundin
             },
             "filter": {
                 "geo_bounding_box": {
-                    "Store.Location": {
+                    "StorePart.Location": {
                         "top_left": {
                             "lat": -33,
                             "lon": 137
@@ -149,7 +149,7 @@ Example: Find all `Store` content items within 200km of a point:
             "filter": {
                 "geo_distance": {
                     "distance": "200km",
-                    "Store.Location": {
+                    "StorePart.Location": {
                         "lat": -34,
                         "lon": 138
                     }
@@ -189,7 +189,7 @@ For large datasets, combine `geo_bounding_box` with `geo_distance` for optimal p
                         "filter": {
                             "geo_distance": {
                                 "distance": "200km",
-                                "Store.Location": {
+                                "StorePart.Location": {
                                     "lat": -33,
                                     "lon": 137
                                 }
@@ -200,7 +200,7 @@ For large datasets, combine `geo_bounding_box` with `geo_distance` for optimal p
             ],
             "filter": {
                 "geo_bounding_box": {
-                    "Store.Location": {
+                    "StorePart.Location": {
                         "top_left": {
                             "lat": -31,
                             "lon": 135

@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-orchestration
-description: Skill for the default CrestApps.Core orchestration pipeline, tool calling, progressive scoping, retrieval, and streaming responses.
+description: Skill for the default CrestApps.Core orchestration pipeline, tool calling, threshold-based scoping, retrieval, and streaming responses.
 ---
 
 # CrestApps.Core Orchestration - Prompt Templates
@@ -13,8 +13,8 @@ You are a CrestApps.Core expert. Generate code and guidance for the default orch
 
 - Use the default orchestrator when the host needs tool calling, retrieval, streaming, and response routing in one pipeline.
 - Register orchestration through `AddAISuite(...)` or `AddCoreAIOrchestration()`.
-- Inject `IOrchestrator` for the active orchestrator and `IOrchestratorResolver` when the host chooses among named orchestrators.
-- Let the orchestrator handle progressive tool scoping instead of manually injecting very large tool sets.
+- Inject `IOrchestratorResolver` and call `Resolve(name)` to obtain the configured orchestrator. Resolution falls back to the configured default when the name is empty or unknown.
+- Let the orchestrator handle threshold-based tool scoping instead of manually injecting very large tool sets.
 
 ### Raw Registration
 
@@ -48,14 +48,14 @@ public sealed class ChatService(IOrchestrator orchestrator)
 | Service | Purpose |
 |---|---|
 | `IOrchestrator` | Main agentic execution loop |
-| `IOrchestratorResolver` | Resolve named orchestrators |
+| `IOrchestratorResolver` | Resolve a named orchestrator with fallback to the configured default |
 | `IToolRegistry` | Merge tools from all providers |
-| `IAIToolsService` | Tool metadata and access control |
+| `IAIToolsService` | Resolve a registered keyed `AITool` by name |
 | `IOrchestrationContextBuilder` | Build orchestration context through handlers |
 
 ### Default Scoping Guidance
 
-- No scoping overhead below the configured threshold.
-- Token-based relevance scoping for medium tool counts.
-- LLM planning for very large tool sets or MCP-heavy catalogs.
-- Let planning failures degrade gracefully to token-based scoping.
+- At or below `ScopingThreshold`, all configured tools are passed through.
+- Above that threshold, non-MCP catalogs at or below `PlanningThreshold` use relevance scoring without an LLM planning call.
+- MCP tools or a count above `PlanningThreshold` trigger an LLM planning phase followed by relevance scoring.
+- If planning fails, the orchestrator still scopes by the user message and recent conversation context.

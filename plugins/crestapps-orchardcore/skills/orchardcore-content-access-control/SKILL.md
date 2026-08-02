@@ -137,7 +137,7 @@ public sealed class Startup : StartupBase
 
 | Task | How |
 |------|-----|
-| Install the package | `dotnet add reference CrestApps.OrchardCore.ContentAccessControl` in the web project |
+| Install the package | `dotnet add package CrestApps.OrchardCore.ContentAccessControl` in the web/startup project |
 | Enable the feature | Recipe step with `"enable": ["CrestApps.OrchardCore.ContentAccessControl"]` |
 | Attach role picker to a content type | Add `RolePickerPart` via content type editor or recipe |
 | Turn on restriction | Check "Restrict content?" in the `RolePickerPart` settings or set `IsContentRestricted` to `true` in the recipe |

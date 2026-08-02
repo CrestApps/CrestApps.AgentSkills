@@ -15,6 +15,7 @@ You are a CrestApps.Core expert. Generate code and guidance for storage registra
 - Register the data store first, then add per-feature stores.
 - Keep storage registration close to the feature that needs it so required stores stay explicit.
 - Do not assume one global storage registration covers every feature automatically.
+- YesSql requires an explicit backing store: call `AddYesSqlDataStore(configuration => configuration.UseSqLite(...))` (or another YesSql provider) to create the `IStore`, just as Entity Framework Core requires `AddEntityCoreSqliteDataStore(...)`. The per-feature `AddYesSqlStores()` calls do not create the store by themselves.
 
 ### Entity Framework Core Example
 
@@ -50,6 +51,9 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
             .AddPdf()
         )
         .AddAIMemory(memory => memory.AddYesSqlStores())
+    )
+    .AddYesSqlDataStore(configuration => configuration
+        .UseSqLite("Data Source=App_Data\\crestapps.db;Cache=Shared")
     )
 );
 ```

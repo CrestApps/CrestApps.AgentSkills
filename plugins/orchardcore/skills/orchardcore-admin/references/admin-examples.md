@@ -204,7 +204,7 @@ This example demonstrates a navigation provider that registers items across mult
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-public sealed class AdminMenu : INavigationProvider
+public sealed class AdminMenu : AdminNavigationProvider
 {
     private readonly IStringLocalizer S;
 
@@ -213,17 +213,12 @@ public sealed class AdminMenu : INavigationProvider
         S = localizer;
     }
 
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
-        if (!NavigationHelper.IsAdminMenu(name))
-        {
-            return ValueTask.CompletedTask;
-        }
-
         builder
-            .Add(S["Content Management"], NavigationConstants.AdminMenuContentManagementPosition, content => content
-                .AddClass("content-management")
-                .Id("contentmanagement")
+            .Add(S["Content"], NavigationConstants.AdminMenuContentPosition, content => content
+                .AddClass("content")
+                .Id("content")
                 .Add(S["Announcements"], S["Announcements"].PrefixPosition(), announcements => announcements
                     .Permission(Permissions.ManageAnnouncements)
                     .Action("Index", "Announcement", new { area = "MyModule" })
@@ -303,19 +298,26 @@ This example shows a dashboard widget that queries data and displays it in a car
 
 ```csharp
 using OrchardCore.Admin;
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Display.ContentDisplay;
+using OrchardCore.ContentManagement.Display.Models;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
 
-public sealed class ContentStatsDashboardWidgetDriver : DisplayDriver<DashboardCard>
+public sealed class ContentStatsPart : ContentPart
+{
+}
+
+public sealed class ContentStatsPartDisplayDriver : ContentPartDisplayDriver<ContentStatsPart>
 {
     private readonly IContentStatisticsService _statisticsService;
 
-    public ContentStatsDashboardWidgetDriver(IContentStatisticsService statisticsService)
+    public ContentStatsPartDisplayDriver(IContentStatisticsService statisticsService)
     {
         _statisticsService = statisticsService;
     }
 
-    public override IDisplayResult Display(DashboardCard model, BuildDisplayContext context)
+    public override IDisplayResult Display(ContentStatsPart part, BuildPartDisplayContext context)
     {
         return Initialize<ContentStatsViewModel>("ContentStatsDashboard", async viewModel =>
         {
@@ -366,6 +368,7 @@ This example injects a maintenance notification banner into the admin `Messages`
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OrchardCore.Admin;
+using OrchardCore.ContentManagement;
 using OrchardCore.DisplayManagement;
 using OrchardCore.DisplayManagement.Layout;
 using OrchardCore.Settings;
@@ -420,7 +423,9 @@ This ties all admin components together in a single module startup:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc;
 using OrchardCore.Admin;
+using OrchardCore.ContentManagement;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.Modules;
 using OrchardCore.Navigation;
@@ -433,8 +438,9 @@ public sealed class Startup : StartupBase
     {
         services.AddNavigationProvider<AdminMenu>();
         services.AddDisplayDriver<ISite, NotificationSettingsDisplayDriver>();
-        services.AddDisplayDriver<DashboardCard, ContentStatsDashboardWidgetDriver>();
-        services.AddMvcFilter<MaintenanceBannerAdminFilter>();
+        services.AddContentPart<ContentStatsPart>()
+            .UseDisplayDriver<ContentStatsPartDisplayDriver>();
+        services.Configure<MvcOptions>(options => options.Filters.Add<MaintenanceBannerAdminFilter>());
     }
 }
 ```
@@ -450,7 +456,6 @@ Use the following recipe to configure admin panel preferences when provisioning 
             "name": "settings",
             "AdminSettings": {
                 "DisplayMenuFilter": true,
-                "DisplayDarkMode": true,
                 "DisplayThemeToggler": true
             }
         }

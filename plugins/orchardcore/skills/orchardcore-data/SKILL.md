@@ -234,19 +234,3 @@ public sealed class AdminController : Controller
     // $"{_tablePrefix}MyCustomTable"
 }
 ```
-
-### Enabling the Data Feature
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Data"
-      ],
-      "disable": []
-    }
-  ]
-}
-```

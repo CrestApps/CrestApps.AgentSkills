@@ -206,61 +206,19 @@ Use the `GoogleSchema` field on a content item to provide structured data:
 
 ## Robots.txt
 
-Orchard Core does not provide a built-in robots.txt editor. Serve a `robots.txt` file using one of these approaches:
+`OrchardCore.Seo` provides a built-in dynamic `robots.txt` editor at
+**Settings → Search → Search Engine Optimization → Robots**. It configures the
+`RobotsSettings` site-settings object:
 
-### Static File Approach
+| Property | Purpose |
+|---|---|
+| `AllowAllAgents` | Writes `User-agent: *`. |
+| `DisallowAdmin` | Adds a `Disallow` rule for the configured admin URL prefix. |
+| `AdditionalRules` | Appends additional robots directives verbatim. |
 
-Place a `robots.txt` file in the `wwwroot` folder of the web project:
-
-```
-User-agent: *
-Allow: /
-Sitemap: https://{{YourDomain}}/sitemap.xml
-```
-
-### Middleware Approach
-
-```csharp
-public sealed class RobotsTxtMiddleware
-{
-    private readonly RequestDelegate _next;
-
-    public RobotsTxtMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        if (context.Request.Path.StartsWithSegments("/robots.txt"))
-        {
-            context.Response.ContentType = "text/plain";
-            var siteUrl = $"{context.Request.Scheme}://{context.Request.Host}";
-            await context.Response.WriteAsync(
-                $"""
-                User-agent: *
-                Allow: /
-                Sitemap: {siteUrl}/sitemap.xml
-                """);
-            return;
-        }
-
-        await _next(context);
-    }
-}
-```
-
-Register the middleware in `Startup`:
-
-```csharp
-public sealed class Startup : StartupBase
-{
-    public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
-    {
-        app.UseMiddleware<RobotsTxtMiddleware>();
-    }
-}
-```
+A physical `robots.txt` file takes precedence over the settings-generated
+response. When Sitemaps is also enabled, its sitemap URLs are contributed by
+the sitemap robots provider.
 
 ## Sitemap Configuration
 

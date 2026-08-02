@@ -85,7 +85,7 @@ public sealed class Migrations : DataMigration
 Named BagParts allow multiple containers on a single content type, each restricted to specific child content types:
 
 ```csharp
-public sealed class Migrations : DataMigation
+public sealed class Migrations : DataMigration
 {
     private readonly IContentDefinitionManager _contentDefinitionManager;
 

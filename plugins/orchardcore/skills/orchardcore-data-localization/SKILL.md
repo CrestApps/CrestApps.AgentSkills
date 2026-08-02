@@ -70,6 +70,8 @@ Default role assignments:
 | Content Type Provider | `Content Types` | Display names of all content types |
 | Content Field Provider | `Content Fields` | Display names of all content fields |
 | Permissions Provider | `Permissions` | Descriptions of all non-template permissions |
+| Admin Menu Provider | `Admin Menus:{MenuName}` | Custom admin-menu and admin-node text for a named menu |
+| Search Provider | `Search` | The site's localized search placeholder text |
 
 ### Creating a Custom Localization Data Provider
 

@@ -19,6 +19,10 @@
             "type": "string",
             "description": "Human-readable name for the data source."
           },
+          "Source": {
+            "type": "string",
+            "description": "Optional data source type. When omitted, the import defaults to SearchIndexProfile for backward compatibility."
+          },
           "SourceIndexProfileName": {
             "type": "string",
             "description": "Index profile that provides the raw source documents to ingest."

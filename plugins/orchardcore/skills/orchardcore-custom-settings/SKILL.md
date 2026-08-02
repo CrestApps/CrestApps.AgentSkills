@@ -88,8 +88,43 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentPart<{{SettingsPartName}}>();
+        services.AddContentPart<{{SettingsPartName}}>()
+            .UseDisplayDriver<{{SettingsPartName}}DisplayDriver>();
     }
+}
+```
+
+Registering a typed part only supplies its CLR model. Add a display driver when its CLR properties need an editor:
+
+```csharp
+public sealed class {{SettingsPartName}}DisplayDriver
+    : ContentPartDisplayDriver<{{SettingsPartName}}>
+{
+    public override IDisplayResult Edit({{SettingsPartName}} part, BuildPartEditorContext context)
+        => Initialize<{{SettingsPartName}}ViewModel>("{{SettingsPartName}}_Edit", model =>
+        {
+            model.{{PropertyName}} = part.{{PropertyName}};
+            model.{{BoolPropertyName}} = part.{{BoolPropertyName}};
+        });
+
+    public override async Task<IDisplayResult> UpdateAsync(
+        {{SettingsPartName}} part,
+        UpdatePartEditorContext context)
+    {
+        var model = new {{SettingsPartName}}ViewModel();
+        await context.Updater.TryUpdateModelAsync(model, Prefix);
+
+        part.{{PropertyName}} = model.{{PropertyName}};
+        part.{{BoolPropertyName}} = model.{{BoolPropertyName}};
+
+        return Edit(part, context);
+    }
+}
+
+public class {{SettingsPartName}}ViewModel
+{
+    public string {{PropertyName}} { get; set; }
+    public bool {{BoolPropertyName}} { get; set; }
 }
 ```
 

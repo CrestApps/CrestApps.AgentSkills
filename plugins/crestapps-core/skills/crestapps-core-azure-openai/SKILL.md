@@ -26,11 +26,20 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 );
 ```
 
-### Raw Registration
+### Provider-Only Registration
+
+`AddCoreAIAzureOpenAI()` adds only the Azure OpenAI provider registrations. Use it alone only when the application has already registered the core AI services it needs.
+
+```csharp
+builder.Services.AddCoreAIAzureOpenAI();
+```
+
+For a normal application composition that resolves deployments or uses orchestration, register the core and orchestration services as well:
 
 ```csharp
 builder.Services
     .AddCoreAIServices()
+    .AddCoreAIOrchestration()
     .AddCoreAIAzureOpenAI();
 ```
 
@@ -51,6 +60,7 @@ builder.Services
       "Deployments": [
         {
           "Name": "gpt-4o",
+          "ClientName": "Azure",
           "ConnectionName": "azure-primary",
           "ModelName": "gpt-4o",
           "Type": "Chat"

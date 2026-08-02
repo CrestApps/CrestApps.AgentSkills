@@ -145,9 +145,18 @@ public sealed class CustomAuditTrailEventHandler : AuditTrailEventHandlerBase
 {
     public override Task CreateAsync(AuditTrailCreateContext context)
     {
-        // Add custom data to the audit trail event context.
+        if (context is AuditTrailCreateContext<CustomAuditEvent> customContext)
+        {
+            customContext.AuditTrailEventItem.Action = "Created";
+        }
+
         return Task.CompletedTask;
     }
+}
+
+public sealed class CustomAuditEvent
+{
+    public string Action { get; set; }
 }
 ```
 
@@ -155,6 +164,7 @@ public sealed class CustomAuditTrailEventHandler : AuditTrailEventHandlerBase
 
 ```csharp
 using OrchardCore.AuditTrail.Services;
+using MyModule.AuditTrail;
 
 namespace MyModule.Services;
 
@@ -173,12 +183,13 @@ public sealed class MyService
 
         // Record the audit trail event.
         await _auditTrailManager.RecordEventAsync(
-            new AuditTrailContext(
+            new AuditTrailContext<CustomAuditEvent>(
                 name: "CustomAction",
                 category: "MyModule",
                 correlationId: "{{CorrelationId}}",
                 userId: "{{UserId}}",
-                userName: "{{UserName}}"
+                userName: "{{UserName}}",
+                auditTrailEventItem: new CustomAuditEvent()
             )
         );
     }

@@ -9,7 +9,9 @@ metadata:
 
 # Orchard Core Module Creator
 
-This skill guides you through creating new Orchard Core modules following project conventions.
+This skill is for contributing a module to the Orchard Core source repository.
+For a module owned by an application that consumes Orchard Core packages, use
+the `orchardcore-modules` skill instead.
 
 ## Prerequisites
 

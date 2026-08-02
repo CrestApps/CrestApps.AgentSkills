@@ -180,7 +180,6 @@ Set available zone names in **Design > Settings > Zones** in the admin. Common z
           "Latest": true,
           "Published": true,
           "LayerMetadata": {
-            "Title": "Footer Copyright",
             "Layer": "Always",
             "Zone": "Footer",
             "Position": 10

@@ -43,7 +43,7 @@
     <style asp-name="MyTheme"></style>
     <resources type="HeadLink" />
     <resources type="HeadScript" />
-    <resources type="StyleSheet" />
+    <resources type="Stylesheet" />
 </head>
 <body>
     <header>
@@ -91,27 +91,38 @@
         </footer>
     }
 
-    <resources type="FooterScript" />
+    <resources type="FootScript" />
 </body>
 </html>
 ```
 
-### ResourceManifest.cs
+### ResourceManagementOptionsConfiguration.cs
 
 ```csharp
-public sealed class ResourceManifest : IResourceManifestProvider
-{
-    public void BuildManifests(IResourceManifestBuilder builder)
-    {
-        var manifest = builder.Add();
+using Microsoft.Extensions.Options;
+using OrchardCore.ResourceManagement;
 
-        manifest.DefineStyle("MyTheme")
+public sealed class ResourceManagementOptionsConfiguration
+    : IConfigureOptions<ResourceManagementOptions>
+{
+    private static readonly ResourceManifest _manifest;
+
+    static ResourceManagementOptionsConfiguration()
+    {
+        _manifest = new ResourceManifest();
+
+        _manifest.DefineStyle("MyTheme")
             .SetUrl("~/MyTheme/css/site.min.css", "~/MyTheme/css/site.css");
 
-        manifest.DefineScript("MyTheme")
+        _manifest.DefineScript("MyTheme")
             .SetUrl("~/MyTheme/js/site.min.js", "~/MyTheme/js/site.js")
             .SetDependencies("jQuery")
             .SetPosition("Foot");
+    }
+
+    public void Configure(ResourceManagementOptions options)
+    {
+        options.ResourceManifests.Add(_manifest);
     }
 }
 ```
@@ -123,7 +134,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddResourceManifest<ResourceManifest>();
+        services.AddResourceConfiguration<ResourceManagementOptionsConfiguration>();
     }
 }
 ```

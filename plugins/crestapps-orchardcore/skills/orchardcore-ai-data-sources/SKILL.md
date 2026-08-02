@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for co
 - AI Data Sources provide knowledge base indexing and RAG search capabilities for AI profiles in Orchard Core.
 - A data source maps a **source index** (e.g., Lucene, Elasticsearch, Azure AI Search content index) to an **AI knowledge base index** that stores chunked, embedded documents for vector search.
 - The indexing pipeline reads documents from the source index, generates embeddings via a configured embedding deployment, chunks content, and writes vector documents into the knowledge base index.
-- Supported vector search backends are Azure AI Search and Elasticsearch. Install the matching backend module for your environment.
+- Supported knowledge-base index backends are Azure AI Search and Elasticsearch. Source documents can also be read from a PostgreSQL table with the PostgreSQL source module.
 - The `DataSourceAlignmentBackgroundTask` runs daily at 2 AM to keep knowledge base indexes aligned with their mapped data sources.
 - Content item changes (create, update, publish, unpublish, remove) are automatically tracked and queued for re-indexing via `DataSourceContentHandler`.
 - Data source configuration (source index, knowledge base index, field mappings) is locked after initial creation and cannot be changed.
@@ -33,6 +33,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for co
 | AI Data Sources (Core) | `CrestApps.OrchardCore.AI.DataSources` | Core data source management, indexing pipeline, and RAG search |
 | AI Data Sources - Azure AI Search | `CrestApps.OrchardCore.AI.DataSources.AzureAI` | Azure AI Search backend for embeddings, vector search, and indexing |
 | AI Data Sources - Elasticsearch | `CrestApps.OrchardCore.AI.DataSources.Elasticsearch` | Elasticsearch backend for embeddings, vector search, and indexing |
+| AI Data Sources - PostgreSQL | `CrestApps.OrchardCore.AI.DataSources.PostgreSQL` | Reads source documents from a PostgreSQL table using explicit connection settings |
 
 ### NuGet Packages
 
@@ -41,6 +42,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for co
 | `CrestApps.OrchardCore.AI.DataSources` | Core data source management and RAG search |
 | `CrestApps.OrchardCore.AI.DataSources.AzureAI` | Azure AI Search support for data source embeddings and vector search |
 | `CrestApps.OrchardCore.AI.DataSources.Elasticsearch` | Elasticsearch support for data source embeddings and vector search |
+| `CrestApps.OrchardCore.AI.DataSources.PostgreSQL` | PostgreSQL source support |
 
 Install the core package plus at least one backend package in your web/startup project.
 
@@ -81,6 +83,29 @@ Install the core package plus at least one backend package in your web/startup p
   ]
 }
 ```
+
+### Using a PostgreSQL Source
+
+Enable `CrestApps.OrchardCore.AI.DataSources.PostgreSQL` alongside the core data-source feature and one knowledge-base index backend:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "CrestApps.OrchardCore.AI",
+        "CrestApps.OrchardCore.AI.DataSources",
+        "CrestApps.OrchardCore.AI.DataSources.PostgreSQL",
+        "CrestApps.OrchardCore.AI.DataSources.AzureAI"
+      ],
+      "disable": []
+    }
+  ]
+}
+```
+
+In the data-source editor, select **PostgreSQL**, provide the protected connection string and table name, then choose the AI knowledge-base index. Configure optional key, title, and content column names. The PostgreSQL source defaults its key column to `id`; when no content column is selected, it serializes the row as document content.
 
 ## How Data Sources Work
 
@@ -152,6 +177,7 @@ After creation, the source index, knowledge base index, and field mappings are l
         {
           "ItemId": "my-data-source-id",
           "DisplayText": "My Knowledge Base",
+          "Source": "SearchIndexProfile",
           "SourceIndexProfileName": "content-index",
           "AIKnowledgeBaseIndexProfileName": "kb-vector-index",
           "KeyFieldName": "ContentItemId",
@@ -181,7 +207,7 @@ After creating or modifying source content, you can trigger a manual re-index:
 3. Select a **Data Source** from the dropdown.
 4. Configure retrieval parameters:
    - **Strictness** — How closely results must match (1–5).
-   - **Top N Documents** — Maximum number of documents to retrieve (1–20).
+   - **Top N Documents** — Maximum number of documents to retrieve (3–20).
    - **In Scope** — When enabled, restricts AI responses to only the retrieved context.
    - **Filter** — Optional OData filter expression for additional result filtering.
 5. Click **Save**.
@@ -226,7 +252,7 @@ After creating or modifying source content, you can trigger a manual re-index:
 
 ### Embedding Deployment
 
-Each knowledge base index profile requires an embedding deployment. When creating or editing a knowledge base index profile of type `DataSourceConstants.IndexingTaskType`, you select the embedding deployment from available deployments that support `AIDeploymentType.Embedding`.
+Each knowledge base index profile requires an embedding deployment. When creating or editing a knowledge base index profile, select a deployment that supports `AIDeploymentPurpose.Embedding`.
 
 ### Configuring Default RAG Settings
 
@@ -234,7 +260,7 @@ Default strictness and top-N documents can be configured in site settings:
 
 1. Navigate to **Configuration → Settings → AI**.
 2. Find the **Data Sources** section.
-3. Set **Default Strictness** (1–5) and **Default Top N Documents** (1–20).
+3. Set **Default Strictness** (1–5) and **Default Top N Documents** (3–20).
 4. Click **Save**.
 
 These defaults are applied when a profile does not specify its own values.

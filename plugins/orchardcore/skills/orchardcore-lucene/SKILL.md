@@ -1,6 +1,10 @@
 ---
 name: orchardcore-lucene
-description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Search.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Lucene Search - Prompt Templates
@@ -19,7 +23,7 @@ You are an Orchard Core expert. Generate code and configuration for Lucene-based
 - Lucene queries use Elasticsearch Query DSL syntax.
 - Supported query types: `bool`, `match`, `match_all`, `match_phrase`, `term`, `terms`, `wildcard`, `prefix`, `fuzzy`, `range`, `regexp`, `query_string`, `simple_query_string`, `geo_distance`, `geo_bounding_box`.
 - Text fields with a `.keyword` suffix are automatically stored in the index (max 256 chars) for term-level queries.
-- Enable `OrchardCore.Lucene.Worker` only when running the same tenant on multiple instances (farm) with a file system index.
+- Enable `OrchardCore.Search.Lucene.Worker` only when running the same tenant on multiple instances (farm) with a file system index.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -178,6 +182,7 @@ To rebuild all indices:
 {
   "steps": [
     {
+      "name": "Queries",
       "Source": "Lucene",
       "Name": "RecentBlogPosts",
       "Index": "Search",
@@ -288,7 +293,7 @@ Same parameters as `api/lucene/content`.
 
 ### Lucene Worker
 
-Enable `OrchardCore.Lucene.Worker` to synchronize the local file system index across multiple instances. This creates a background task that keeps indexes in sync in a farm scenario.
+Enable `OrchardCore.Search.Lucene.Worker` to synchronize the local file system index across multiple instances. This creates a background task that keeps indexes in sync in a farm scenario.
 
 Do **not** enable the Worker if:
 - You are running a single instance.
@@ -307,12 +312,19 @@ namespace MyModule;
 [Feature("MyModule.CustomLuceneIndex")]
 public sealed class Startup : StartupBase
 {
+    private readonly IStringLocalizer<Startup> _localizer;
+
+    public Startup(IStringLocalizer<Startup> localizer)
+    {
+        _localizer = localizer;
+    }
+
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddLuceneIndexingSource("CustomSource", o =>
         {
-            o.DisplayName = S["Custom Source"];
-            o.Description = S["Create a Lucene index based on a custom data source."];
+            o.DisplayName = _localizer["Custom Source"];
+            o.Description = _localizer["Create a Lucene index based on a custom data source."];
         });
     }
 }
