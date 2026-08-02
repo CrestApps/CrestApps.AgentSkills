@@ -268,18 +268,17 @@ Do not use `@Url.Content("~/...")` for application links in Orchard Core views.
 
 ## Admin Menu Registration
 
-Admin menu items should prefer inheriting from `NamedNavigationProvider` for the admin menu, rather than implementing `INavigationProvider` directly. Each provider contributes entries to the admin sidebar navigation.
+Admin menu items can inherit from `AdminNavigationProvider`, which scopes a provider to the admin menu. Each provider contributes entries to the admin sidebar navigation. This code-first sidebar registration is distinct from the `OrchardCore.AdminMenu` content-type feature (admin-configurable node tree); see `orchardcore-admin-menu` for that feature.
 
 ```csharp
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-internal sealed class AdminMenu : NamedNavigationProvider
+internal sealed class AdminMenu : AdminNavigationProvider
 {
     private readonly IStringLocalizer S;
 
     public AdminMenu(IStringLocalizer<AdminMenu> localizer)
-        : base(NavigationConstants.AdminId)
     {
         S = localizer;
     }
@@ -287,9 +286,9 @@ internal sealed class AdminMenu : NamedNavigationProvider
     protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
         builder
-            .Add(S["Content Management"], content => content
-                .AddClass("content-management")
-                .Id("contentmanagement")
+            .Add(S["Content"], NavigationConstants.AdminMenuContentPosition, content => content
+                .AddClass("content")
+                .Id("content")
                 .Add(S["Taxonomies"], S["Taxonomies"].PrefixPosition(), taxonomies => taxonomies
                     .Permission(Permissions.ManageTaxonomies)
                     .Action("Index", "Admin", new { area = "MyModule" })
@@ -302,7 +301,7 @@ internal sealed class AdminMenu : NamedNavigationProvider
 }
 ```
 
-Use `INavigationProvider` directly only as a secondary option when you genuinely need to handle multiple menu names or custom routing logic that does not fit the named-provider pattern.
+Use `INavigationProvider` directly only when a provider must contribute to multiple named menus or needs custom routing logic.
 
 Register the provider in `Startup.cs`:
 
@@ -355,7 +354,7 @@ The Orchard Core admin sidebar uses these top-level groups:
 
 | Group | Purpose |
 |-------|---------|
-| `Content Management` | Content items, taxonomies, media |
+| `Content` | Content items, taxonomies, media |
 | `Settings` | Site settings and configuration pages |
 | `Tools` | Non-settings admin utilities (cache, import/export) |
 | `Access Control` | Users, Roles, and permissions |
@@ -451,22 +450,28 @@ Use the `<zone>` tag helper to inject content into these zones from any admin vi
 
 ## Dashboard Widgets
 
-Dashboard widgets appear on the admin dashboard landing page. To create a dashboard widget, implement a shape and register it with the dashboard zone.
+Dashboard widgets are content items whose content type has the `DashboardWidget` stereotype. `OrchardCore.AdminDashboard` automatically attaches `DashboardPart`, which stores the widget position, width, and height. See `orchardcore-admin-dashboard` for widget sizing, layout configuration, and recipe-driven widget content types.
 
-### Creating a Dashboard Widget Shape
+### Creating a Dashboard Widget Content Type
 
-First, define a display driver for the widget:
+Attach a custom part to a dashboard-widget type and render that part with a content-part driver:
 
 ```csharp
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Display.ContentDisplay;
+using OrchardCore.ContentManagement.Display.Models;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
-using OrchardCore.Admin;
 
-public sealed class RecentActivityWidgetDisplayDriver : DisplayDriver<DashboardCard>
+public sealed class RecentActivityPart : ContentPart
 {
-    public override IDisplayResult Display(DashboardCard model, BuildDisplayContext context)
+}
+
+public sealed class RecentActivityPartDisplayDriver : ContentPartDisplayDriver<RecentActivityPart>
+{
+    public override IDisplayResult Display(RecentActivityPart part, BuildPartDisplayContext context)
     {
-        return View("RecentActivityWidget", model)
+        return View("RecentActivityPart", part)
             .Location("DetailAdmin", "Content:5");
     }
 }
@@ -475,7 +480,8 @@ public sealed class RecentActivityWidgetDisplayDriver : DisplayDriver<DashboardC
 Register the driver in `Startup.cs`:
 
 ```csharp
-services.AddDisplayDriver<DashboardCard, RecentActivityWidgetDisplayDriver>();
+services.AddContentPart<RecentActivityPart>()
+    .UseDisplayDriver<RecentActivityPartDisplayDriver>();
 ```
 
 ### Dashboard Widget View
@@ -516,47 +522,67 @@ Create a shape override for the admin header branding by defining a `Header.csht
 
 ### Injecting Custom Admin Styles
 
-Use a resource manifest to add custom CSS to the admin panel:
+Define a resource manifest with `IConfigureOptions<ResourceManagementOptions>`:
 
 ```csharp
+using Microsoft.Extensions.Options;
 using OrchardCore.ResourceManagement;
 
-public sealed class ResourceManifest : IResourceManifestProvider
+public sealed class ResourceManagementOptionsConfiguration
+    : IConfigureOptions<ResourceManagementOptions>
 {
-    public void BuildManifests(IResourceManifestBuilder builder)
+    public void Configure(ResourceManagementOptions options)
     {
-        var manifest = builder.Add();
+        var manifest = new ResourceManifest();
 
         manifest
             .DefineStyle("MyModule.AdminStyles")
             .SetUrl("~/MyModule/css/admin-custom.min.css", "~/MyModule/css/admin-custom.css");
+
+        options.ResourceManifests.Add(manifest);
     }
 }
 ```
 
-Then register a resource filter to include the styles on admin pages:
+Require the resource from an admin result filter:
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
+using OrchardCore.Admin;
 using OrchardCore.ResourceManagement;
 
-[RequireFeatures("OrchardCore.Admin")]
-public sealed class Startup : StartupBase
+public sealed class AdminResourceFilter : IAsyncResultFilter
 {
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddResourceConfiguration<AdminResourceFilter>();
-    }
-}
+    private readonly IResourceManager _resourceManager;
 
-public sealed class AdminResourceFilter : IResourceFilterProvider
-{
-    public void AddResourceFilter(ResourceFilterBuilder builder)
+    public AdminResourceFilter(IResourceManager resourceManager)
     {
-        builder
-            .WhenAdmin()
-            .IncludeStyle("MyModule.AdminStyles");
+        _resourceManager = resourceManager;
+    }
+
+    public async Task OnResultExecutionAsync(
+        ResultExecutingContext context,
+        ResultExecutionDelegate next)
+    {
+        if (context.Result is ViewResult && AdminAttribute.IsApplied(context.HttpContext))
+        {
+            _resourceManager.RequireStyle("MyModule.AdminStyles");
+        }
+
+        await next();
     }
 }
+```
+
+Register the options configuration and MVC filter:
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+
+services.AddTransient<IConfigureOptions<ResourceManagementOptions>, ResourceManagementOptionsConfiguration>();
+services.Configure<MvcOptions>(options => options.Filters.Add<AdminResourceFilter>());
 ```
 
 ## Admin Settings Pages
@@ -711,7 +737,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddMvcFilter<AdminBannerFilter>();
+        services.Configure<MvcOptions>(options => options.Filters.Add<AdminBannerFilter>());
     }
 }
 ```
@@ -727,7 +753,6 @@ Use recipes to configure admin-related settings during site setup or tenant init
             "name": "settings",
             "AdminSettings": {
                 "DisplayMenuFilter": true,
-                "DisplayDarkMode": true,
                 "DisplayThemeToggler": true
             }
         }

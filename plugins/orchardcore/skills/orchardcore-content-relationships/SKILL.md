@@ -17,7 +17,8 @@ You are an Orchard Core expert. Guide the selection and implementation of conten
 - `ListPart` stores child items **independently** but linked to a parent (separate URLs, separate editing).
 - `ContentPickerField` creates **references** between independently managed items (many-to-many).
 - `Taxonomies` provide **categorization** with hierarchical terms and indirect many-to-many relationships.
-- Each relationship type has a corresponding index table for efficient database querying.
+- Query relationship data through the index supplied by its owning feature when one exists; add a custom `MapIndex` only for fields and relationship projections your application filters or sorts frequently.
+- Enable the owning feature before defining its relationship: `OrchardCore.Flows` for `BagPart` and `FlowPart`, `OrchardCore.Lists` for `ListPart`, `OrchardCore.ContentFields` for `ContentPickerField`, and `OrchardCore.Taxonomies` for taxonomy fields.
 - All C# classes must use the `sealed` modifier.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 

@@ -26,13 +26,12 @@ Mark migration methods `static` only when they do not use injected services, inh
 
 ## Example 1: Complete Module Migration
 
-A migration for an Event content type with custom part, fields, and index:
+A migration for an Event content type with a custom part and fields:
 
 ```csharp
 using OrchardCore.ContentManagement.Metadata;
 using OrchardCore.ContentManagement.Metadata.Settings;
 using OrchardCore.Data.Migration;
-using YesSql.Sql;
 
 public sealed class Migrations : DataMigration
 {
@@ -89,21 +88,6 @@ public sealed class Migrations : DataMigration
             .WithPart("HtmlBodyPart", part => part.WithPosition("3"))
         );
 
-        // Create the index table
-        await SchemaBuilder.CreateMapIndexTableAsync<EventPartIndex>(table => table
-            .Column<string>("ContentItemId", col => col.WithLength(26))
-            .Column<string>("Location", col => col.WithLength(256))
-            .Column<DateTime>("StartDate")
-            .Column<DateTime>("EndDate")
-            .Column<bool>("Published")
-        );
-
-        await SchemaBuilder.AlterIndexTableAsync<EventPartIndex>(table => table
-            .CreateIndex("IDX_EventPartIndex_StartDate",
-                "StartDate",
-                "Published")
-        );
-
         return 1;
     }
 
@@ -126,17 +110,13 @@ public sealed class Migrations : DataMigration
 ## Example 2: Startup Registration
 
 ```csharp
-using OrchardCore.ContentManagement;
 using OrchardCore.Data.Migration;
-using YesSql.Indexes;
 
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentPart<EventPart>();
         services.AddScoped<IDataMigration, Migrations>();
-        services.AddIndexProvider<EventPartIndexProvider>();
     }
 }
 ```

@@ -221,64 +221,18 @@ A sitemap index that combines content and product sitemaps under a single entry 
 }
 ```
 
-## Example 5: Dynamic Robots.txt Middleware with Tenant Support
+## Example 5: Built-In Robots Settings
 
-A middleware that generates robots.txt content and references the sitemap URL dynamically:
+Use the built-in editor at **Settings → Search → Search Engine Optimization →
+Robots** rather than registering custom middleware. The editor configures:
 
-```csharp
-using Microsoft.AspNetCore.Http;
-using OrchardCore.Settings;
+- `AllowAllAgents` to emit `User-agent: *`.
+- `DisallowAdmin` to add the current admin path as a disallow rule.
+- `AdditionalRules` to append custom directives.
 
-public sealed class RobotsTxtMiddleware
-{
-    private readonly RequestDelegate _next;
-
-    public RobotsTxtMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        if (!context.Request.Path.StartsWithSegments("/robots.txt"))
-        {
-            await _next(context);
-            return;
-        }
-
-        var siteService = context.RequestServices.GetRequiredService<ISiteService>();
-        var siteSettings = await siteService.GetSiteSettingsAsync();
-        var baseUrl = siteSettings.BaseUrl.TrimEnd('/');
-
-        context.Response.ContentType = "text/plain";
-        await context.Response.WriteAsync(
-            $"""
-            User-agent: *
-            Allow: /
-            Disallow: /admin/
-            Disallow: /api/
-
-            Sitemap: {baseUrl}/sitemap.xml
-            """);
-    }
-}
-```
-
-Register it in Startup:
-
-```csharp
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
-using OrchardCore.Modules;
-
-public sealed class Startup : StartupBase
-{
-    public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
-    {
-        app.UseMiddleware<RobotsTxtMiddleware>();
-    }
-}
-```
+A physical `robots.txt` file overrides the generated response. With
+`OrchardCore.Sitemaps` enabled, sitemap URLs are added through the built-in
+robots provider.
 
 ## Example 6: Organization JSON-LD Structured Data
 

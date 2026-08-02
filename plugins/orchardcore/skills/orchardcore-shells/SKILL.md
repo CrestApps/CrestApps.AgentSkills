@@ -29,7 +29,7 @@ You are an Orchard Core expert. Generate configuration and code for Azure Blob s
 Add the `OrchardCore.Shells.Azure` package to the web project:
 
 ```xml
-<PackageReference Include="OrchardCore.Shells.Azure" Version="2.*" />
+<PackageReference Include="OrchardCore.Shells.Azure" Version="3.*" />
 ```
 
 #### Configuration in appsettings.json

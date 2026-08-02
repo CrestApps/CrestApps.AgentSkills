@@ -101,16 +101,16 @@ The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions`
 
 **Best practice**: Use profiles or environment variables instead of embedding credentials directly in configuration files.
 
-## S3 Bucket Security Policies
+## S3 Bucket Access
 
 ### Guidelines
 
 - Buckets created with `CreateBucket: true` are created without ACLs for security.
-- If creating a bucket manually, enable ACLs and configure public access settings.
-- To make media files publicly accessible, add an S3 bucket policy.
-- For manually created buckets, block all public access and use a bucket policy for read access.
+- **Private bucket (recommended)**: Media is served through Orchard Core, so the application identity needs bucket access but the bucket does not need public reads.
+- **Public bucket**: Use only when clients or a CDN must retrieve media directly from S3. Configure an explicit read policy and review the effect of public-access-block settings.
+- Do not combine a public read policy with a public-access block that prevents public policies from taking effect.
 
-### Public Read Bucket Policy
+### Public Read Bucket Policy (Direct S3 Delivery Only)
 
 ```json
 {
@@ -126,13 +126,6 @@ The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions`
   ]
 }
 ```
-
-### Manual Bucket ACL Setup
-
-1. Open your bucket in the AWS Console.
-2. Go to the **Permissions** tab.
-3. Edit **Block public access** and tick "Block all public access".
-4. Add the bucket policy above to grant read access to media files.
 
 ## Multi-Tenant Bucket Templating
 

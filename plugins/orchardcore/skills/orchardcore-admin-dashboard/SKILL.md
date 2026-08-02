@@ -14,11 +14,11 @@ You are an Orchard Core expert. Generate admin dashboard widgets, content types,
 - Enable `OrchardCore.AdminDashboard` for admin dashboard widget support.
 - Dashboard widgets are content items with the `DashboardWidget` stereotype.
 - To create a widget content type, set its stereotype to `DashboardWidget`.
-- Each widget supports `Position`, `Width` (1–6), and `Height` (1–6) settings.
-- Width and Height values represent fractions of the screen (1 = 1/6 screen, 6 = full screen).
+- `DashboardPart` is added automatically to every `DashboardWidget` type and stores `Position`, `Width`, and `Height`.
+- Width and Height are unconstrained `double` grid-span values; the responsive dashboard layout determines how they render.
 - `ManageAdminDashboard` permission is required to manage (add/edit/remove) widgets.
 - `AccessAdminDashboard` permission is required for users without `ManageAdminDashboard` to view the dashboard.
-- Users also need `ViewContent` permission to see widget content.
+- Users with only `AccessAdminDashboard` also need `ViewContent` or the applicable per-content-type view permission to see a widget.
 - Customize widget appearance with templates named `DashboardWidget-{ContentType}.DetailAdmin.cshtml`.
 - Always seal classes.
 
@@ -43,8 +43,8 @@ You are an Orchard Core expert. Generate admin dashboard widgets, content types,
 | Property | Type | Range | Description |
 |----------|------|-------|-------------|
 | `Position` | Numeric | Any | Controls the widget's order on the page. Lower values appear first. |
-| `Width` | Integer | 1–6 | Widget width as a fraction of screen width. 1 = 1/6, 6 = full width. |
-| `Height` | Integer | 1–6 | Widget height as a fraction of screen height. 1 = 1/6, 6 = full height. |
+| `Width` | Double | Any | Grid-column span used by the responsive dashboard layout. The default is `1.0`; Orchard Core does not enforce a fixed range. |
+| `Height` | Double | Any | Grid-row span used by the responsive dashboard layout. The default is `1.0`; Orchard Core does not enforce a fixed range. |
 
 ### Creating a Dashboard Widget Content Type via Recipe
 
@@ -204,8 +204,8 @@ Create a template named `DashboardWidget-{{ContentType}}.DetailAdmin.cshtml` whe
 | Permission | Description |
 |------------|-------------|
 | `ManageAdminDashboard` | Add, edit, and remove dashboard widgets. Includes dashboard access. |
-| `AccessAdminDashboard` | View the admin dashboard (required for users without `ManageAdminDashboard`). |
-| `ViewContent` | Required to see the widget content on the dashboard. |
+| `AccessAdminDashboard` | View the admin dashboard when the user does not manage it. |
+| `ViewContent` | Required, with `AccessAdminDashboard`, unless a per-content-type view permission grants access. |
 
 ### Dashboard Widget with Custom Part via Migration
 

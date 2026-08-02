@@ -46,7 +46,7 @@ dotnet new web -n {{ProjectName}}
 cd {{ProjectName}}
 
 # Add the Orchard Core CMS package
-dotnet add package OrchardCore.Application.Cms.Targets --version 2.*
+dotnet add package OrchardCore.Application.Cms.Targets --version 3.*
 ```
 
 ### Program.cs Configuration
@@ -101,7 +101,7 @@ Add NuGet packages for the modules you need. **All modules** — whether from Or
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
 
     <!-- Third-party modules are also added to the web project -->
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />

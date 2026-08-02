@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-indexing
-description: Skill for configuring search and indexing in Orchard Core. Covers Lucene indexing, Elasticsearch integration, search settings, index definitions, and search queries. Use this skill when requests mention Orchard Core Search & Indexing, Configure Search and Indexing, Enabling Search Features, Lucene Index Configuration via Recipe, Elasticsearch Configuration, Elasticsearch Index via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Elasticsearch, OrchardCore.Search, OrchardCore.Indexing, SearchService, LuceneQueryService, LuceneIndexManager, IEnumerable, LuceneQueryContext, MyPartIndexHandler, ContentPartIndexHandler, MyPart. It also helps with search indexing examples, Elasticsearch Configuration, Elasticsearch Index via Recipe, Lucene Queries via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring search and indexing in Orchard Core. Covers unified IndexProfile definitions, Lucene, Elasticsearch, and Azure AI Search providers, search settings, index lifecycle recipes, and search queries. Use this skill when requests mention Orchard Core Search and Indexing, Configure Search and Indexing, Enabling Search Features, Index Profile Recipe, Elasticsearch Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Elasticsearch, OrchardCore.AzureAI, OrchardCore.Search, OrchardCore.Indexing, IIndexProfileManager, ISearchService, ContentPartIndexHandler, and IContentPartIndexHandler. It also helps with Index Profile recipes, provider selection, Lucene Queries via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,11 +15,11 @@ You are an Orchard Core expert. Generate search and indexing configurations for 
 
 ### Guidelines
 
-- Orchard Core supports Lucene and Elasticsearch as search providers.
-- Enable `OrchardCore.Lucene` or `OrchardCore.Elasticsearch` as needed.
+- Orchard Core uses a unified `IndexProfile` for Lucene, Elasticsearch, and Azure AI Search indexes.
+- Enable the required provider feature such as `OrchardCore.Lucene`, `OrchardCore.Elasticsearch`, or `OrchardCore.AzureAI`.
 - Lucene indexes are stored on the local file system.
 - Elasticsearch requires an external Elasticsearch cluster.
-- Create indexes that specify which content types and fields to index.
+- Create indexes with the provider-agnostic `CreateOrUpdateIndexProfile` step.
 - Use queries to search indexed content programmatically or via Liquid.
 - Content indexing is triggered automatically when content is published or updated.
 - Rebuild indexes after changing index definitions.
@@ -42,24 +42,32 @@ You are an Orchard Core expert. Generate search and indexing configurations for 
 }
 ```
 
-### Lucene Index Configuration via Recipe
+### Lucene Index Profile via Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "lucene-index",
-      "Indices": [
+      "name": "CreateOrUpdateIndexProfile",
+      "indexes": [
         {
-          "Search": {
-            "AnalyzerName": "standardanalyzer",
-            "IndexLatest": false,
-            "IndexedContentTypes": [
-              "Article",
-              "BlogPost"
-            ],
-            "Culture": "",
-            "StoreSourceData": false
+          "Name": "Search",
+          "IndexName": "search",
+          "ProviderName": "Lucene",
+          "Type": "Content",
+          "Properties": {
+            "ContentIndexMetadata": {
+              "IndexLatest": false,
+              "IndexedContentTypes": [
+                "Article",
+                "BlogPost"
+              ],
+              "Culture": "any"
+            },
+            "LuceneIndexMetadata": {
+              "AnalyzerName": "standardanalyzer",
+              "StoreSourceData": false
+            }
           }
         }
       ]
@@ -74,34 +82,40 @@ Configure in `appsettings.json`:
 
 ```json
 {
-  "OrchardCore": {
-    "OrchardCore_Elasticsearch": {
-      "Url": "https://localhost:9200",
-      "Ports": [9200],
-      "ConnectionType": "SingleNodeConnectionPool"
-    }
+  "OrchardCore_Elasticsearch": {
+    "Url": "https://localhost:9200",
+    "Ports": [9200],
+    "ConnectionType": "SingleNodeConnectionPool"
   }
 }
 ```
 
-### Elasticsearch Index via Recipe
+### Elasticsearch Index Profile via Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "elasticsearch-index",
-      "Indices": [
+      "name": "CreateOrUpdateIndexProfile",
+      "indexes": [
         {
-          "Search": {
-            "AnalyzerName": "standard",
-            "IndexLatest": false,
-            "IndexedContentTypes": [
-              "Article",
-              "BlogPost"
-            ],
-            "Culture": "",
-            "StoreSourceData": false
+          "Name": "Search",
+          "IndexName": "search",
+          "ProviderName": "Elasticsearch",
+          "Type": "Content",
+          "Properties": {
+            "ContentIndexMetadata": {
+              "IndexLatest": false,
+              "IndexedContentTypes": [
+                "Article",
+                "BlogPost"
+              ],
+              "Culture": "any"
+            },
+            "ElasticsearchIndexMetadata": {
+              "AnalyzerName": "standard",
+              "StoreSourceData": false
+            }
           }
         }
       ]
@@ -147,33 +161,33 @@ Configure in `appsettings.json`:
 ### Programmatic Search Queries
 
 ```csharp
-using OrchardCore.Lucene;
+using OrchardCore.Indexing;
+using OrchardCore.Search.Abstractions;
 
 public sealed class SearchService
 {
-    private readonly LuceneQueryService _queryService;
-    private readonly LuceneIndexManager _indexManager;
+    private readonly IIndexProfileManager _indexProfileManager;
+    private readonly IEnumerable<ISearchService> _searchServices;
 
     public SearchService(
-        LuceneQueryService queryService,
-        LuceneIndexManager indexManager)
+        IIndexProfileManager indexProfileManager,
+        IEnumerable<ISearchService> searchServices)
     {
-        _queryService = queryService;
-        _indexManager = indexManager;
+        _indexProfileManager = indexProfileManager;
+        _searchServices = searchServices;
     }
 
-    public async Task<IEnumerable<string>> SearchAsync(string query)
+    public async Task<IList<string>> SearchAsync(string query)
     {
-        var results = await _queryService.SearchAsync(
-            new LuceneQueryContext
-            {
-                IndexName = "Search",
-                DefaultSearchFields = new[] { "Content.ContentItem.FullText" }
-            },
-            query);
+        var indexProfile = await _indexProfileManager.FindByNameAsync("Search")
+            ?? throw new InvalidOperationException("The Search index profile does not exist.");
 
-        return results.TopDocs.ScoreDocs
-            .Select(hit => hit.Doc.ToString());
+        var searchService = _searchServices.Single(service =>
+            string.Equals(service.Name, indexProfile.ProviderName, StringComparison.OrdinalIgnoreCase));
+
+        var result = await searchService.SearchAsync(indexProfile, query, 0, 10);
+
+        return result.ContentItemIds;
     }
 }
 ```
@@ -221,9 +235,9 @@ public sealed class Startup : StartupBase
     {
       "name": "Settings",
       "SearchSettings": {
-        "ProviderName": "Lucene",
+        "DefaultIndexProfileName": "Search",
         "Placeholder": "Search...",
-        "PageSize": 10
+        "PageTitle": "Search"
       }
     }
   ]

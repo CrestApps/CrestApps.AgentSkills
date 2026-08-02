@@ -16,6 +16,9 @@ This skill guides you through testing Orchard Core CMS features using browser au
 - OrchardCore repository (working directory)
 - .NET SDK 10.0+ installed
 - `playwright-cli` skill available
+- If `playwright-cli` is unavailable, install it globally with `npm install -g @playwright/cli@latest`.
+
+> **Warning:** This installs the latest global CLI version. The existing `playwright-cli` commands in this skill remain valid.
 
 ## Core Workflow
 

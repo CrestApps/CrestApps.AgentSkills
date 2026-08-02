@@ -1,6 +1,10 @@
 ---
 name: orchardcore-indexing
 description: Skill for understanding the Orchard Core indexing infrastructure. Covers the indexing abstraction layer, content item indexing pipeline, custom indexing sources, recipe steps for index management, index reset and rebuild operations, and indexing UI configuration. Use this skill when requests mention Orchard Core Indexing Infrastructure, Configure Indexing Infrastructure, Enabling the Indexing Module, Index Profile Architecture, Creating an Index Profile via Recipe, Content Index Metadata Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, ResetIndex, RebuildIndex, ArticlesIndex, BlogPostsIndex, IIndexManager. It also helps with Creating an Index Profile via Recipe, Content Index Metadata Properties, Reset Index Step, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Indexing Infrastructure - Prompt Templates
@@ -13,7 +17,7 @@ You are an Orchard Core expert. Generate code and configuration for the Orchard 
 
 - Enable `OrchardCore.Indexing` as the core indexing module that provides the abstraction layer for all index providers.
 - The indexing module is provider-agnostic and supports Lucene, Elasticsearch, and Azure AI Search.
-- The module maintains an append-only log of indexing tasks (Update or Deletion) using a cursor-based interface.
+- The module maintains an append-only log of indexing tasks (Update or Delete) using a cursor-based interface.
 - Content item indexing is a consumer of the core indexing infrastructure, not a hard requirement.
 - Custom data sources (REST APIs, databases, in-memory structures) can be indexed alongside content items.
 - Use the `CreateOrUpdateIndexProfile` recipe step to create or update index profiles.
@@ -160,7 +164,7 @@ To rebuild all indices:
 
 To index data beyond content items, implement three interfaces and register the source.
 
-**1. Implement `IIndexManager`** — Controls how indexing tasks are managed:
+**1. Implement `IIndexManager`** — Creates, rebuilds, and deletes provider indexes:
 
 ```csharp
 using OrchardCore.Indexing;
@@ -169,38 +173,50 @@ namespace MyModule;
 
 public sealed class ProductIndexManager : IIndexManager
 {
-    public Task<long> GetLastTaskIdAsync()
-    {
-        // Return the last processed task ID for cursor-based tracking.
-        throw new NotImplementedException();
-    }
+    public Task<bool> CreateAsync(IndexProfile indexProfile)
+        => throw new NotImplementedException();
 
-    public Task<IEnumerable<IndexingTask>> GetIndexingTasksAsync(long afterTaskId, int count)
-    {
-        // Return indexing tasks (Update/Deletion) after the given cursor.
-        throw new NotImplementedException();
-    }
+    public Task<bool> RebuildAsync(IndexProfile indexProfile)
+        => throw new NotImplementedException();
+
+    public Task<bool> DeleteAsync(IndexProfile indexProfile)
+        => throw new NotImplementedException();
+
+    public Task<bool> ExistsAsync(string indexFullName)
+        => throw new NotImplementedException();
 }
 ```
 
-**2. Implement `IIndexDocumentManager`** — Converts entities into indexable documents:
+**2. Implement `IDocumentIndexManager`** — Writes documents and tracks the task cursor:
 
 ```csharp
 using OrchardCore.Indexing;
 
 namespace MyModule;
 
-public sealed class ProductDocumentIndexManager : IIndexDocumentManager
+public sealed class ProductDocumentIndexManager : IDocumentIndexManager
 {
-    public Task<IEnumerable<DocumentIndex>> GetDocumentsAsync(IEnumerable<string> documentIds)
-    {
-        // Convert document IDs into indexable documents.
-        throw new NotImplementedException();
-    }
+    public Task<bool> AddOrUpdateDocumentsAsync(IndexProfile indexProfile, IEnumerable<DocumentIndex> documents)
+        => throw new NotImplementedException();
+
+    public Task<bool> DeleteDocumentsAsync(IndexProfile indexProfile, IEnumerable<string> documentIds)
+        => throw new NotImplementedException();
+
+    public Task<bool> DeleteAllDocumentsAsync(IndexProfile indexProfile)
+        => throw new NotImplementedException();
+
+    public Task<long> GetLastTaskIdAsync(IndexProfile indexProfile)
+        => throw new NotImplementedException();
+
+    public Task SetLastTaskIdAsync(IndexProfile indexProfile, long lastTaskId)
+        => throw new NotImplementedException();
+
+    public IContentIndexSettings GetContentIndexSettings()
+        => throw new NotImplementedException();
 }
 ```
 
-**3. Implement `IIndexNameProvider`** — Provides names for index profiles:
+**3. Implement `IIndexNameProvider`** — Provides physical names for profiles:
 
 ```csharp
 using OrchardCore.Indexing;
@@ -209,11 +225,7 @@ namespace MyModule;
 
 public sealed class ProductIndexNameProvider : IIndexNameProvider
 {
-    public Task<string> GetIndexNameAsync(IndexProfile indexProfile)
-    {
-        // Return the physical index name for the given profile.
-        return Task.FromResult(indexProfile.IndexName);
-    }
+    public string GetFullIndexName(string name) => name;
 }
 ```
 
@@ -221,12 +233,20 @@ public sealed class ProductIndexNameProvider : IIndexNameProvider
 
 ```csharp
 using OrchardCore.Modules;
+using Microsoft.Extensions.Localization;
 
 namespace MyModule;
 
 [Feature("MyModule.ProductIndex")]
 public sealed class Startup : StartupBase
 {
+    private readonly IStringLocalizer S;
+
+    public Startup(IStringLocalizer<Startup> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddIndexingSource<ProductIndexManager, ProductDocumentIndexManager, ProductIndexNameProvider>(

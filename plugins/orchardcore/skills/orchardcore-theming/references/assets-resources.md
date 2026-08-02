@@ -4,16 +4,24 @@ How to register and require scripts/styles via Orchard Core's resource manager.
 
 ## Define Resources in a Manifest
 
-Create a class implementing `IResourceManifestProvider` in a module or theme:
+Create an `IConfigureOptions<ResourceManagementOptions>` implementation in a module or theme:
 
 ```csharp
+using Microsoft.Extensions.Options;
 using OrchardCore.ResourceManagement;
 
-internal sealed class ResourceManifest : IResourceManifestProvider
+internal sealed class ResourceManagementOptionsConfiguration : IConfigureOptions<ResourceManagementOptions>
 {
-    public void BuildManifests(IResourceManifestBuilder builder)
+    private static readonly ResourceManifest _manifest = CreateManifest();
+
+    public void Configure(ResourceManagementOptions options)
     {
-        var manifest = builder.Add();
+        options.ResourceManifests.Add(_manifest);
+    }
+
+    private static ResourceManifest CreateManifest()
+    {
+        var manifest = new ResourceManifest();
 
         manifest
             .DefineStyle("MyTheme")
@@ -25,6 +33,23 @@ internal sealed class ResourceManifest : IResourceManifestProvider
             .DefineScript("MyTheme")
             .SetUrl("~/MyTheme/js/site.min.js", "~/MyTheme/js/site.js")
             .SetDependencies("jquery");
+
+        return manifest;
+    }
+}
+```
+
+Register the configuration in the module or theme startup:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Modules;
+
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddResourceConfiguration<ResourceManagementOptionsConfiguration>();
     }
 }
 ```
@@ -54,7 +79,7 @@ Placement options: `at="Head"` or `at="Foot"` controls rendering location.
 {% style src: "~/MyTheme/css/site.css" %}
 {% script src: "~/MyTheme/js/site.js" at: "Foot" %}
 {% resources type: "Stylesheet" %}
-{% resources type: "FooterScript" %}
+{% resources type: "FootScript" %}
 ```
 
 For simple cases in Liquid, link static assets directly:
@@ -84,9 +109,14 @@ Prefer using these names in `asp-name`/`depends-on` instead of adding CDN links 
 
 ## Injecting Resources for Admin Pages
 
-Use a resource filter to include styles/scripts on admin pages:
+Use an MVC result filter to include resources only on full admin views:
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Admin;
+using OrchardCore.Modules;
 using OrchardCore.ResourceManagement;
 
 [RequireFeatures("OrchardCore.Admin")]
@@ -94,17 +124,30 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddResourceConfiguration<AdminResourceFilter>();
+        services.Configure<MvcOptions>(options =>
+        {
+            options.Filters.Add<AdminResourceFilter>();
+        });
     }
 }
 
-public sealed class AdminResourceFilter : IResourceFilterProvider
+public sealed class AdminResourceFilter : IAsyncResultFilter
 {
-    public void AddResourceFilter(ResourceFilterBuilder builder)
+    private readonly IResourceManager _resourceManager;
+
+    public AdminResourceFilter(IResourceManager resourceManager)
     {
-        builder
-            .WhenAdmin()
-            .IncludeStyle("MyModule.AdminStyles");
+        _resourceManager = resourceManager;
+    }
+
+    public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
+    {
+        if (context.IsViewOrPageResult() && AdminAttribute.IsApplied(context.HttpContext))
+        {
+            _resourceManager.RegisterResource("style", "MyModule.AdminStyles");
+        }
+
+        await next.Invoke();
     }
 }
 ```

@@ -50,9 +50,10 @@ builder.Services
       "Deployments": [
         {
           "Name": "gpt-4.1",
+          "ClientName": "OpenAI",
           "ConnectionName": "primary-openai",
           "ModelName": "gpt-4.1",
-          "Type": "Chat"
+          "Purpose": "Chat"
         }
       ]
     }

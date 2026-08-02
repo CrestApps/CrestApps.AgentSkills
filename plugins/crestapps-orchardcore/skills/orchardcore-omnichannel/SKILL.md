@@ -15,11 +15,11 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 ### Guidelines
 
-- The CrestApps Omnichannel module (`CrestApps.OrchardCore.Omnichannel`) provides a unified multi-channel communication layer supporting SMS, email, phone, and chat channels.
+- The base Omnichannel feature (`CrestApps.OrchardCore.Omnichannel`) provides shared message storage, contact communication-preference indexing, and communication contracts. It does not itself send SMS or email, place calls, expose an activity UI, or implement channel routing.
 - The Managements feature (`CrestApps.OrchardCore.Omnichannel.Managements`) adds an admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints under the **Interaction Center** menu.
 - The SMS feature (`CrestApps.OrchardCore.Omnichannel.Sms`) enables AI-powered SMS automation. It integrates with the AI Chat module to run AI-driven conversations over SMS using Twilio webhooks.
-- The Event Grid feature (`CrestApps.OrchardCore.Omnichannel.EventGrid`) receives inbound messages from Azure Event Grid via a webhook endpoint, validated with a SAS key or AAD bearer token.
-- The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) provides integration points for Azure Communication Services.
+- The Event Grid feature (`CrestApps.OrchardCore.Omnichannel.EventGrid`) receives inbound events through a webhook endpoint. Prefer Microsoft Entra bearer-token delivery; a configured `aeg-sas-key` is a supported shared-secret alternative.
+- The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) only declares the dependency bridge to Orchard Core Azure Email and SMS features. It does not add an Omnichannel channel processor or its own ACS settings and routing implementation.
 - Omnichannel domain data (messages, activities, batches, AI chat sessions) is stored in a dedicated `Omnichannel` YesSql collection.
 - Communication preferences (`DoNotCall`, `DoNotSms`, `DoNotEmail`, `DoNotChat`) are tracked per contact with UTC timestamps.
 - The SMS module validates inbound Twilio requests using HMAC-SHA1 signature verification against the Twilio AuthToken.
@@ -31,8 +31,8 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 | Feature | Feature ID | Description |
 |---------|-----------|-------------|
-| Omnichannel | `CrestApps.OrchardCore.Omnichannel` | Base omnichannel layer with message indexing and contact communication preferences |
-| Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Azure Communication Services integration for multi-channel messaging |
+| Omnichannel | `CrestApps.OrchardCore.Omnichannel` | Shared message storage, preferences, indexes, and contracts |
+| Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Dependency bridge for Orchard Core Azure Email and SMS features; not an Omnichannel processor |
 | Azure Event Grid | `CrestApps.OrchardCore.Omnichannel.EventGrid` | Webhook endpoint for receiving inbound messages from Azure Event Grid |
 | Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints |
 | SMS Automation | `CrestApps.OrchardCore.Omnichannel.Sms` | AI-powered SMS channel automation via Twilio with AI chat session integration |
@@ -50,7 +50,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 The omnichannel system supports the following communication channels:
 
-- **SMS** - Text messaging via Twilio or Azure Communication Services
+- **SMS** - Text messaging via Twilio; the Azure Communication Services feature is currently a placeholder and does not yet provide ACS SMS wiring
 - **Email** - Email communication with contact email tracking
 - **Phone** - Voice call tracking with do-not-call preferences
 - **Chat** - Chat messaging with do-not-chat preferences
@@ -59,7 +59,7 @@ The omnichannel system supports the following communication channels:
 
 | Content Type / Part | Stereotype | Description |
 |---------------------|-----------|-------------|
-| `OmnichannelContactPart` | — | Attachable part that marks a content item as an omnichannel contact |
+| `OmnichannelContactPart` | Content part | Attachable contact part; it is not a content-type stereotype |
 | `PhoneNumber` | `ContactMethod` | Contact method with Number, Extension, and Type fields |
 | `EmailAddress` | `ContactMethod` | Contact method with an Email field |
 | `PhoneNumberInfoPart` | — | Reusable part with phone number, extension, and type fields |
@@ -145,7 +145,7 @@ Configure Event Grid webhook authentication in your shell configuration (`appset
 }
 ```
 
-The webhook endpoint is available at `POST Omnichannel/webhook/AzureEventGrid`. It validates requests using either a SAS key (`aeg-sas-key` header) or an AAD bearer token.
+The webhook endpoint is available at `POST Omnichannel/webhook/AzureEventGrid`. Prefer Entra bearer-token delivery by configuring `AADIssuer`, `AADAudience`, and `AADMetadataAddress`; it also accepts a configured SAS key in the `aeg-sas-key` header.
 
 ### Webhook Endpoints
 
@@ -185,18 +185,6 @@ The Managements feature adds an **Interaction Center** menu in the admin dashboa
 - The **Manage Flow** screen stores disposition-driven **Subject Actions** for that subject.
 - Subjects with no actions show a **Missing flow** badge in the Subject Flows list.
 - When the AI feature is enabled, automated subject flows expose a chat AI profile selector plus subject goal and initial outbound prompt pattern fields.
-
-### Workflow Integration
-
-The Managements feature provides workflow tasks and events for automation:
-
-**Workflow Events:**
-- `CompletedActivityEvent` - Fires when an activity is completed, providing Activity, Contact, Subject, and Disposition data.
-
-**Workflow Tasks:**
-- `TryAgainActivityTask` - Creates a retry activity with configurable max attempts, urgency level, and schedule delay.
-- `NewActivityTask` - Creates a new activity for a different subject; the new activity resolves campaign and channel behavior from the target subject flow.
-- `SetContactCommunicationPreferenceActivityTask` - Updates a contact's DoNotCall, DoNotSms, DoNotEmail, or DoNotChat preferences.
 
 ### Permissions
 

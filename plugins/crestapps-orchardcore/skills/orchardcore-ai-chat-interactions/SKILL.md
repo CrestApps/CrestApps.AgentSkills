@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-interactions
-description: Skill for configuring AI Chat Interactions in Orchard Core with CrestApps modules. Covers ad-hoc chat sessions, intent-based prompt routing, document upload with RAG support, image and chart generation, and custom processing strategies. Use it for CrestApps.OrchardCore.AI.Chat.Interactions, CrestApps.OrchardCore.AI.Documents.ChatInteractions, current AI data sources, and related Orchard Core setup, extension, or troubleshooting work.
+description: Skill for configuring AI Chat Interactions in Orchard Core with CrestApps modules. Covers ad-hoc chat sessions, document upload with RAG support, deployment settings, system tools for image and chart generation, and SignalR chat methods. Use it for CrestApps.OrchardCore.AI.Chat.Interactions, CrestApps.OrchardCore.AI.Documents.ChatInteractions, current AI data sources, and related Orchard Core setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 ## Configure AI Chat Interactions
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding ad-hoc AI chat interactions with document upload, RAG, and intent-based prompt routing to an Orchard Core application using CrestApps modules.
+You are an Orchard Core expert. Generate code, configuration, and recipes for adding ad-hoc AI chat interactions with document upload and RAG to an Orchard Core application using CrestApps modules.
 
 ### Guidelines
 - The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
@@ -20,10 +20,9 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 - Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
 - The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
 - All chat messages are persisted and sessions can be resumed later.
-- Prompt routing uses intent detection to classify user prompts and route them to specialized processing strategies.
-- Intent detection can use a dedicated lightweight AI model or fall back to keyword-based detection.
 - The AI Documents modules add document upload with RAG (Retrieval Augmented Generation) support.
 - Document-aware chat interactions should use `CrestApps.OrchardCore.AI.Documents.ChatInteractions` plus a current data-source module such as `CrestApps.OrchardCore.AI.DataSources.AzureAI` or `CrestApps.OrchardCore.AI.DataSources.Elasticsearch`.
+- Image and chart generation are orchestration system tools (`generate_image` and `generate_chart`), not interaction intents. Image generation requires a deployment with the `Image` purpose.
 - Install CrestApps packages in the web/startup project.
 - Always secure API keys using user secrets or environment variables.
 
@@ -54,19 +53,9 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 
 Chat interactions are authored as ad-hoc sessions rather than predefined AI profiles. In current guidance, the interaction chooses deployments directly and does not require a profile `Source` in authoring recipes or prompts.
 
-### Built-in Intents
-
-The AI Chat Interactions module ships with default intents for image and chart generation:
-
-| Intent | Description | Example Prompts |
-|--------|-------------|-----------------|
-| `GenerateImage` | Generate an image from a text description | "Generate an image of a sunset", "Create a picture of a cat" |
-| `GenerateImageWithHistory` | Generate an image using conversation context | "Based on the above, draw a diagram" |
-| `GenerateChart` | Generate a chart or graph specification | "Create a bar chart of sales data", "Draw a pie chart" |
-
 ### Configuring Image Generation
 
-To enable image generation, create a typed deployment with `Type: Image`, or define an Image deployment in `appsettings.json`.
+To enable image generation, create a deployment with `Purpose: Image`. The orchestration system tool `generate_image` resolves that deployment. The `generate_chart` system tool creates a Chart.js configuration and does not require an image deployment.
 
 **Via Admin UI:** Navigate to **Artificial Intelligence → Deployments** and create an Image deployment (e.g., `dall-e-3`), then optionally set it as a default Image deployment.
 
@@ -75,51 +64,17 @@ To enable image generation, create a typed deployment with `Type: Image`, or def
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
-          }
-        }
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
+          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
+          { "Name": "dall-e-3", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Image" }
+        ]
       }
     }
   }
 }
 ```
-
-### Configuring Intent Detection Model
-
-Use a lightweight model for intent classification to optimize costs:
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-If no Utility deployment is configured, the system retries deployment resolution using the Chat type as a last resort before falling back to keyword-based intent detection.
 
 ### Enabling Document Upload and RAG
 
@@ -172,80 +127,25 @@ Or for Elasticsearch:
 
 ### Configuring Embedding Model for Documents
 
-Documents require an embedding model for RAG. Create a typed deployment with `Type: Embedding`, or define one in `appsettings.json`:
+Documents require an embedding deployment for RAG. Define it in `appsettings.json` with `Purpose: Embedding`:
 
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "text-embedding-3-small", "Type": "Embedding", "IsDefault": true },
-                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
-          }
-        }
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
+          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
+          { "Name": "text-embedding-3-small", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Embedding" },
+          { "Name": "gpt-4o-mini", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Utility" }
+        ]
       }
     }
   }
 }
 ```
 
-### Supported Document Formats
-
-| Format | Extension | Required Feature |
-|--------|-----------|------------------|
-| PDF | .pdf | `CrestApps.OrchardCore.AI.Chat.Interactions.Pdf` |
-| Word | .docx | `CrestApps.OrchardCore.AI.Chat.Interactions.OpenXml` |
-| Excel | .xlsx | `CrestApps.OrchardCore.AI.Chat.Interactions.OpenXml` |
-| PowerPoint | .pptx | `CrestApps.OrchardCore.AI.Chat.Interactions.OpenXml` |
-| Text | .txt | Built-in |
-| CSV | .csv | Built-in |
-| Markdown | .md | Built-in |
-| JSON | .json | Built-in |
-| XML | .xml | Built-in |
-| HTML | .html, .htm | Built-in |
-| YAML | .yml, .yaml | Built-in |
-
-Legacy Office formats (.doc, .xls, .ppt) are not supported. Convert them to newer formats.
-
-### Document Intent Types
-
-When documents are uploaded, the intent detector routes prompts to specialized strategies:
-
-| Intent | Description | Example Prompts |
-|--------|-------------|-----------------|
-| `DocumentQnA` | Question answering using RAG | "What does this document say about X?" |
-| `SummarizeDocument` | Document summarization | "Summarize this document" |
-| `AnalyzeTabularData` | CSV/Excel data analysis | "Calculate the total sales" |
-| `ExtractStructuredData` | Structured data extraction | "Extract all email addresses" |
-| `CompareDocuments` | Multi-document comparison | "Compare these two documents" |
-| `TransformFormat` | Content reformatting | "Convert to bullet points" |
-| `GeneralChatWithReference` | General chat using document context | Default fallback |
-
-### Adding a Custom Processing Strategy
-
-Register a custom intent and strategy to extend prompt routing:
-
-```csharp
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddPromptProcessingIntent(
-            "TranslateDocument",
-            "The user wants to translate the document content to another language.");
-
-        services.AddPromptProcessingStrategy<TranslateDocumentStrategy>();
-    }
-}
-```
+For file-format, tabular-data, and custom document-processing guidance, use the AI Documents and AI Documents Extractors features. They own extraction and document-specific tools; Chat Interactions only supplies the chat context and upload UI.
 
 ### Enabling PDF and Office Document Support
 
@@ -255,8 +155,8 @@ public sealed class Startup : StartupBase
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Pdf",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.OpenXml"
+        "CrestApps.OrchardCore.AI.Documents.Pdf",
+        "CrestApps.OrchardCore.AI.Documents.OpenXml"
       ],
       "disable": []
     }
@@ -277,7 +177,7 @@ Chat interactions support the same `ChatMode` options as AI profiles, but config
 
 | Mode | Description | Requirements |
 |------|-------------|--------------|
-| `TextOnly` | Standard text-only chat (default) | None |
+| `TextInput` | Standard text-only chat (default) | None |
 | `AudioInput` | Adds microphone button for speech-to-text dictation | `DefaultSpeechToTextDeploymentName` configured |
 | `Conversation` | Two-way voice conversation | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
 
@@ -288,11 +188,14 @@ Unlike AI profiles (configured per profile), chat interactions use a **single si
 | Method | Description |
 |--------|-------------|
 | `SendMessage` | Sends a text message |
+| `LoadInteraction` | Loads an interaction and joins its SignalR group |
+| `SaveSettings` | Persists interaction settings, including selected agents and tools |
 | `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
 | `StartConversation` | Starts a full two-way voice conversation |
 | `SynthesizeSpeech` | Converts text to speech audio |
-| `UpdateAgents` | Updates agent selection for a session |
 | `ClearHistory` | Clears chat history for a session |
+| `HandleNotificationAction` | Dispatches a notification action |
+| `StopConversation` | Cancels the active conversation |
 
 ### Voice Configuration
 

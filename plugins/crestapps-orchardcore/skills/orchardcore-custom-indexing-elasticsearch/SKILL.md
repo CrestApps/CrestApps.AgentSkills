@@ -1,6 +1,6 @@
 ---
 name: orchardcore-custom-indexing-elasticsearch
-description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Elasticsearch, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Elasticsearch, Create a custom Elasticsearch index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing.Core, OrchardCore.Elasticsearch, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Elasticsearch, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Elasticsearch, Create a custom Elasticsearch index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.Elasticsearch, OrchardCore.Indexing.Core, OrchardCore.Elasticsearch, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -226,8 +226,6 @@ Follow the AI Memory pattern:
 - get the keyed `IDocumentIndexManager` for the current provider
 - call `AddOrUpdateDocumentsAsync()` or `DeleteDocumentsAsync()`
 
-Use `NamedIndexingService` only when the problem already fits Orchard's named indexing-task abstraction. If your module owns a custom store and custom document-building process, a dedicated service like `AIMemoryIndexingService` is usually clearer.
-
 ### 7. Trigger indexing from the data lifecycle
 
 Do not call Elasticsearch indexing directly from just one controller or tool.
@@ -241,7 +239,10 @@ That keeps every write path synchronized, including admin pages, tools, backgrou
 
 ### 8. Support full re-sync when an index profile changes
 
-Use `IndexProfileHandlerBase.SynchronizedAsync(...)` to rebuild the external index for the affected profile IDs.
+Override `SynchronizedAsync(IndexProfileSynchronizedContext)` in the shared
+index-profile handler and call the module's indexing service to rebuild the
+affected profile ID. AI Memory uses this pattern to call
+`SyncByIndexProfileIdsAsync`.
 
 This is how CrestApps AI Memory handles changes to index-profile metadata or mapping configuration.
 
@@ -256,12 +257,6 @@ If the index uses embeddings:
 - set `Similarity = DenseVectorSimilarity.Cosine` unless another metric is required
 
 ## Choosing between Orchard indexing service styles
-
-### Use `NamedIndexingService` when
-
-- you already fit Orchard's indexing-task model
-- the main job is coordinating a known named index task
-- the data source already follows Orchard indexing conventions
 
 ### Use a custom service like `AIMemoryIndexingService` when
 
@@ -281,3 +276,6 @@ When generating new code, follow that same separation:
 
 1. shared core module for source records and indexing orchestration
 2. provider module for Elasticsearch-specific mapping and provider registration
+
+For the Azure AI Search mapping counterpart, use the sibling
+`orchardcore-custom-indexing-azureai` skill.

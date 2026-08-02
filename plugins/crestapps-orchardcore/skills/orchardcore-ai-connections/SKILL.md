@@ -21,6 +21,7 @@ You are an Orchard Core expert specializing in CrestApps AI provider connection 
 - Configuration-backed connections (defined in `appsettings.json`) are read-only in the admin UI.
 - Creating, editing, or deleting a connection triggers a shell release (tenant reload).
 - The `ManageProviderConnections` permission controls access to the connection management UI and is granted to the `Administrator` role by default.
+- For configuration-backed Ollama connections, use a flat `Endpoint` property on the connection entry rather than a nested metadata object.
 - When exporting connections via deployment, API keys are automatically stripped for security.
 
 ### Feature IDs
@@ -145,7 +146,7 @@ Use the `AIProviderConnections` recipe step to provision connections. The step m
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "default-openai",
           "DisplayText": "Default OpenAI Connection",
@@ -170,7 +171,7 @@ Use the `AIProviderConnections` recipe step to provision connections. The step m
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "default-azure-openai",
           "DisplayText": "Default Azure OpenAI Connection",
@@ -196,7 +197,7 @@ Use the `AIProviderConnections` recipe step to provision connections. The step m
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "azure-openai-mi",
           "DisplayText": "Azure OpenAI with Managed Identity",
@@ -222,7 +223,7 @@ Use the `AIProviderConnections` recipe step to provision connections. The step m
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "default-github-models",
           "DisplayText": "GitHub Models Connection",
@@ -248,15 +249,13 @@ Use the `AIProviderConnections` recipe step to provision connections. The step m
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "default-ollama",
           "DisplayText": "Local Ollama Connection",
           "Source": "Ollama",
           "Properties": {
-            "OllamaConnectionMetadata": {
-              "Endpoint": "http://localhost:11434"
-            }
+            "Endpoint": "http://localhost:11434"
           }
         }
       ]
@@ -279,7 +278,7 @@ Use the `AIProviderConnectionDeploymentStep` deployment step to include provider
   "steps": [
     {
       "name": "AIProviderConnections",
-      "Connections": [
+      "connections": [
         {
           "Name": "default-openai",
           "DisplayText": "Default OpenAI Connection",

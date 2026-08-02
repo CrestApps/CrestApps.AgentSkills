@@ -11,6 +11,7 @@ You are an Orchard Core expert. Generate code and configuration for registering 
 
 ### Guidelines
 
+- **Package requirement:** To use the resource tag helpers (`<script asp-name>`, `<style asp-name>`, `<resources>`, `<link>`, `<meta>`), the `IResourceManager` API, or `IConfigureOptions<ResourceManagementOptions>`, the consuming project **must reference the `OrchardCore.ResourceManagement` NuGet package**. OrchardCore modules and themes (which target `OrchardCore.Module.Targets` / `OrchardCore.Theme.Targets`) usually get it transitively, but standalone MVC, decoupled, or headless projects must add the `<PackageReference Include="OrchardCore.ResourceManagement" />` explicitly. The `@addTagHelper *, OrchardCore.ResourceManagement` directive and the `at="Foot"`/`at="Head"` script placement resolve from that assembly.
 - The `OrchardCore.Resources` module provides the Resource Manager for declaring, ordering, and rendering scripts and styles.
 - Resources are served from a module or theme's `wwwroot` folder via `StaticFileMiddleware`.
 - Resource paths use the `~/ModuleName/` or `~/ThemeName/` prefix convention (tilde represents tenant base path).

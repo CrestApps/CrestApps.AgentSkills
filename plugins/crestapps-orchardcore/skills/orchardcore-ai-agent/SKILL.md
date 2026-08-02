@@ -109,6 +109,7 @@ Requires `OrchardCore.Contents`.
 | `publishContentItem` | Publishes a draft or previously unpublished content item |
 | `unpublishContentItem` | Unpublishes a currently published content item |
 | `getContentItemById` | Retrieves a specific content item by its ID or type |
+| `getContentItemSchema` | Returns the current content-item JSON schema for one or more Orchard Core content types |
 | `deleteContentItem` | Deletes a content item from the system |
 | `cloneContentItem` | Creates a duplicate of an existing content item |
 | `createOrUpdateContentItem` | Creates a new content item or updates an existing one |
@@ -120,8 +121,8 @@ Requires `OrchardCore.ContentTypes`. The last three tools also require `OrchardC
 
 | Tool Name | Description |
 |-----------|-------------|
-| `getContentTypeDefinition` | Retrieves the definitions of all available content types |
-| `getContentPartDefinition` | Retrieves the definitions of all available content parts |
+| `getContentTypeDefinition` | Retrieves a content type definition |
+| `getContentPartDefinition` | Retrieves a content part definition |
 | `listContentTypesDefinitions` | Lists available content type definitions |
 | `listContentPartsDefinitions` | Lists available content part definitions |
 | `listContentFieldDefinitions` | Lists available content field definitions |
@@ -272,4 +273,3 @@ With tenant tools enabled, requests like "Create a new tenant called marketing-s
 - All tools respect Orchard Core's permission system. Users can only perform actions they are authorized for.
 - Tools run in the context of the authenticated user's permissions.
 - Use AI profile tool selectability to limit which operations are exposed.
-- Audit trail integration captures tool invocations when the Audit Trail feature is enabled.

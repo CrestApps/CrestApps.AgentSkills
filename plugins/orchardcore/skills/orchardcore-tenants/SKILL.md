@@ -98,7 +98,7 @@ After setup, navigate to **Configuration > Tenants** in the admin panel to creat
 
 ```bash
 # Create a tenant using the REST API
-curl -X POST https://localhost:5001/api/tenants \
+curl -X POST https://localhost:5001/api/tenants/create \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {{token}}" \
   -d '{

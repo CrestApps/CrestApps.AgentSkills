@@ -11,7 +11,10 @@ metadata:
 
 ## Create a Module
 
-You are an Orchard Core expert. Generate the scaffolding for a new Orchard Core module.
+You are an Orchard Core expert. Generate the scaffolding for a module owned by
+an application that consumes Orchard Core packages. For a contribution inside
+the Orchard Core source repository, use the `orchardcore-module-creator`
+skill instead.
 
 ### Guidelines
 
@@ -32,7 +35,7 @@ Third-party modules are installed by adding NuGet packages or project references
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
     <!-- Orchard Core base -->
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
 
     <!-- Third-party modules must be in the web project -->
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
@@ -103,7 +106,7 @@ namespace {{ModuleName}}
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.Module.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Module.Targets" Version="3.*" />
   </ItemGroup>
 
 </Project>

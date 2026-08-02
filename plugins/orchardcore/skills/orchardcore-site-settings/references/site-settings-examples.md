@@ -179,11 +179,11 @@ public sealed class SocialMediaAdminMenu : INavigationProvider
         S = localizer;
     }
 
-    public Task BuildNavigationAsync(string name, NavigationBuilder builder)
+    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
     {
         if (!NavigationHelper.IsAdminMenu(name))
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         builder
@@ -197,7 +197,7 @@ public sealed class SocialMediaAdminMenu : INavigationProvider
                 )
             );
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 ```
@@ -210,8 +210,8 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddContentPart<SocialMediaSettings>();
-        services.AddScoped<IDisplayDriver<ISite>, SocialMediaSettingsDisplayDriver>();
-        services.AddScoped<INavigationProvider, SocialMediaAdminMenu>();
+        services.AddSiteDisplayDriver<SocialMediaSettingsDisplayDriver>();
+        services.AddNavigationProvider<SocialMediaAdminMenu>();
         services.AddScoped<IPermissionProvider, SocialMediaPermissions>();
     }
 }
