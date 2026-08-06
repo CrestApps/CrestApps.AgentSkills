@@ -2,6 +2,8 @@
 
 **ALWAYS reference these instructions first and fall back to searching only if needed.**
 
+Use ASD-STE100 Simplified Technical English for all responses.
+
 ## Project Overview
 
 CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET applications and Orchard Core projects.
