@@ -10,9 +10,343 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": true
+        "properties": {
+          "$type": {
+            "type": "string",
+            "examples": [
+              "OrchardCore.Sitemaps.Models.Sitemap, OrchardCore.Sitemaps.Abstractions",
+              "OrchardCore.Sitemaps.Models.SitemapIndex, OrchardCore.Sitemaps"
+            ],
+            "description": "The polymorphic sitemap type discriminator. Use \u0027OrchardCore.Sitemaps.Models.Sitemap, OrchardCore.Sitemaps.Abstractions\u0027 for a standard sitemap or \u0027OrchardCore.Sitemaps.Models.SitemapIndex, OrchardCore.Sitemaps\u0027 for a sitemap index."
+          },
+          "SitemapId": {
+            "type": "string",
+            "description": "A stable unique identifier for the sitemap. When omitted, one is generated when the recipe runs."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The sitemap name."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the sitemap is included in routing. Defaults to true."
+          },
+          "Path": {
+            "type": "string",
+            "description": "The public path the sitemap is served from, for example sitemap.xml."
+          },
+          "SitemapSources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "$type": {
+                  "type": "string",
+                  "examples": [
+                    "OrchardCore.Sitemaps.Models.ContentTypesSitemapSource, OrchardCore.Sitemaps.Abstractions",
+                    "OrchardCore.Sitemaps.Models.CustomPathSitemapSource, OrchardCore.Sitemaps.Abstractions",
+                    "OrchardCore.Sitemaps.Models.SitemapIndexSource, OrchardCore.Sitemaps"
+                  ],
+                  "description": "The polymorphic sitemap source type discriminator, for example OrchardCore.Sitemaps.Models.ContentTypesSitemapSource, OrchardCore.Sitemaps.Abstractions. Required so the source deserializes correctly."
+                },
+                "Id": {
+                  "type": "string",
+                  "description": "A stable unique identifier for the source. When omitted, one is generated when the recipe runs."
+                }
+              },
+              "required": [
+                "$type"
+              ],
+              "additionalProperties": true,
+              "description": "A source that contributes entries to the sitemap.",
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.ContentTypesSitemapSource, OrchardCore.Sitemaps.Abstractions"
+                      }
+                    },
+                    "required": [
+                      "$type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.ContentTypesSitemapSource, OrchardCore.Sitemaps.Abstractions",
+                        "description": "Content Types source. Adds content items to the sitemap, either every indexable content type or a selected list. Fixed \u0027$type\u0027 for the \u0027ContentTypesSitemapSource\u0027 source."
+                      },
+                      "IndexAll": {
+                        "type": "boolean",
+                        "description": "When true, every indexable content type is added to the sitemap. When false, only the content types listed in \u0027ContentTypes\u0027 are added."
+                      },
+                      "LimitItems": {
+                        "type": "boolean",
+                        "description": "When true, the sitemap is limited to a single content type described by \u0027LimitedContentType\u0027."
+                      },
+                      "ChangeFrequency": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Daily",
+                              "Hourly",
+                              "Weekly",
+                              "Monthly",
+                              "Yearly",
+                              "Always",
+                              "Never"
+                            ]
+                          },
+                          {
+                            "type": "integer",
+                            "enum": [
+                              0,
+                              1,
+                              2,
+                              3,
+                              4,
+                              5,
+                              6
+                            ]
+                          }
+                        ],
+                        "description": "The default change frequency reported for the source\u0027s entries. Accepted values: Daily, Hourly, Weekly, Monthly, Yearly, Always, Never."
+                      },
+                      "Priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "description": "The default priority reported for the source\u0027s entries, from 0 to 10, where 10 maps to the highest sitemap priority of 1.0."
+                      },
+                      "ContentTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "ContentTypeName": {
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ],
+                              "description": "The technical name of the content type to add."
+                            },
+                            "ChangeFrequency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "Daily",
+                                    "Hourly",
+                                    "Weekly",
+                                    "Monthly",
+                                    "Yearly",
+                                    "Always",
+                                    "Never"
+                                  ]
+                                },
+                                {
+                                  "type": "integer",
+                                  "enum": [
+                                    0,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    5,
+                                    6
+                                  ]
+                                }
+                              ],
+                              "description": "The change frequency reported for this content type\u0027s entries. Accepted values: Daily, Hourly, Weekly, Monthly, Yearly, Always, Never."
+                            },
+                            "Priority": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10,
+                              "description": "The priority reported for this content type\u0027s entries, from 0 to 10."
+                            }
+                          },
+                          "additionalProperties": true,
+                          "description": "A content type entry contributed to the sitemap."
+                        },
+                        "description": "The content types to add when \u0027IndexAll\u0027 is false."
+                      },
+                      "LimitedContentType": {
+                        "type": "object",
+                        "properties": {
+                          "ContentTypeName": {
+                            "type": "string",
+                            "examples": [
+                              "Article",
+                              "BlogPost",
+                              "Page"
+                            ],
+                            "description": "The technical name of the single content type indexed when \u0027LimitItems\u0027 is true."
+                          },
+                          "ChangeFrequency": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "Daily",
+                                  "Hourly",
+                                  "Weekly",
+                                  "Monthly",
+                                  "Yearly",
+                                  "Always",
+                                  "Never"
+                                ]
+                              },
+                              {
+                                "type": "integer",
+                                "enum": [
+                                  0,
+                                  1,
+                                  2,
+                                  3,
+                                  4,
+                                  5,
+                                  6
+                                ]
+                              }
+                            ],
+                            "description": "The change frequency reported for the limited content type\u0027s entries. Accepted values: Daily, Hourly, Weekly, Monthly, Yearly, Always, Never."
+                          },
+                          "Priority": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10,
+                            "description": "The priority reported for the limited content type\u0027s entries, from 0 to 10."
+                          },
+                          "Skip": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "The number of content items to skip before adding entries."
+                          },
+                          "Take": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "The maximum number of content items to add. A sitemap file supports up to 50,000 entries."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "The single content type indexed when \u0027LimitItems\u0027 is true."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.CustomPathSitemapSource, OrchardCore.Sitemaps.Abstractions"
+                      }
+                    },
+                    "required": [
+                      "$type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.CustomPathSitemapSource, OrchardCore.Sitemaps.Abstractions",
+                        "description": "Custom Path source. Adds a single custom URL to the sitemap. Fixed \u0027$type\u0027 for the \u0027CustomPathSitemapSource\u0027 source."
+                      },
+                      "Path": {
+                        "type": "string",
+                        "description": "The custom URL added to the sitemap."
+                      },
+                      "LastUpdate": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "The last update date reported for the URL, as an ISO 8601 date-time. The system updates this value automatically."
+                      },
+                      "ChangeFrequency": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Daily",
+                              "Hourly",
+                              "Weekly",
+                              "Monthly",
+                              "Yearly",
+                              "Always",
+                              "Never"
+                            ]
+                          },
+                          {
+                            "type": "integer",
+                            "enum": [
+                              0,
+                              1,
+                              2,
+                              3,
+                              4,
+                              5,
+                              6
+                            ]
+                          }
+                        ],
+                        "description": "The change frequency reported for the URL. Accepted values: Daily, Hourly, Weekly, Monthly, Yearly, Always, Never."
+                      },
+                      "Priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10,
+                        "description": "The priority reported for the URL, from 0 to 10, where 10 maps to the highest sitemap priority of 1.0."
+                      }
+                    },
+                    "required": [
+                      "Path"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.SitemapIndexSource, OrchardCore.Sitemaps"
+                      }
+                    },
+                    "required": [
+                      "$type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "$type": {
+                        "const": "OrchardCore.Sitemaps.Models.SitemapIndexSource, OrchardCore.Sitemaps",
+                        "description": "Sitemap Index source. References other sitemaps by their identifier to build a sitemap index. Fixed \u0027$type\u0027 for the \u0027SitemapIndexSource\u0027 source."
+                      },
+                      "ContainedSitemapIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "The identifiers of the sitemaps contained in this index. An empty list contains every sitemap."
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "description": "The sources that contribute entries to the sitemap."
+          }
+        },
+        "required": [
+          "$type"
+        ],
+        "additionalProperties": true,
+        "description": "A sitemap or sitemap index to create or update."
       },
-      "description": "Sitemap content items or sitemap definitions to create or update."
+      "description": "Sitemaps and sitemap indexes to create or update."
     }
   },
   "required": [
