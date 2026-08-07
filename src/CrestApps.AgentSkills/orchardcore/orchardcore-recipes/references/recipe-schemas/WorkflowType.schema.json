@@ -120,8 +120,7 @@
                     "ValidateReCaptchaTask",
                     "ValidateUserTask",
                     "WhileLoopTask",
-                    "WorkflowFaultEvent",
-                    "WriteLineTask"
+                    "WorkflowFaultEvent"
                   ],
                   "description": "Activity type name. Start activities must be events. Events placed elsewhere in the workflow block execution until the matching event is triggered."
                 },
@@ -733,7 +732,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -791,7 +795,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -849,7 +858,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -907,7 +921,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -965,7 +984,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -1023,7 +1047,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -1081,7 +1110,12 @@
                           "ContentTypeFilter": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
                             },
                             "description": "An optional list of content type names to filter on. Leave empty to match any content type. Defaults to []."
                           }
@@ -1211,6 +1245,11 @@
                           },
                           "ContentType": {
                             "type": "string",
+                            "examples": [
+                              "Article",
+                              "BlogPost",
+                              "Page"
+                            ],
                             "description": "The content type name of the item to create."
                           },
                           "Publish": {
@@ -2145,7 +2184,16 @@
                           "Roles": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Administrator",
+                                "Anonymous",
+                                "Authenticated",
+                                "Author",
+                                "Contributor",
+                                "Editor",
+                                "Moderator"
+                              ]
                             },
                             "description": "The roles used to identify users. All users that belong to at least one of the specified roles are included in the result."
                           }
@@ -3936,7 +3984,16 @@
                           "Roles": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Administrator",
+                                "Anonymous",
+                                "Authenticated",
+                                "Author",
+                                "Contributor",
+                                "Editor",
+                                "Moderator"
+                              ]
                             },
                             "description": "The roles to remove from the user."
                           }
@@ -4474,7 +4531,16 @@
                           "Roles": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Administrator",
+                                "Anonymous",
+                                "Authenticated",
+                                "Author",
+                                "Contributor",
+                                "Editor",
+                                "Moderator"
+                              ]
                             },
                             "description": "The roles allowed to perform the actions. Leave empty to allow any role."
                           }
@@ -4733,7 +4799,16 @@
                           "Roles": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "examples": [
+                                "Administrator",
+                                "Anonymous",
+                                "Authenticated",
+                                "Author",
+                                "Contributor",
+                                "Editor",
+                                "Moderator"
+                              ]
                             },
                             "description": "The roles to check. The \u0027InRole\u0027 outcome is triggered if the authenticated user belongs to at least one of these roles."
                           }
