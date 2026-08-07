@@ -8,8 +8,98 @@
     },
     "Placements": {
       "type": "object",
-      "additionalProperties": true,
-      "description": "A dictionary keyed by shape type. Each value is an array of placement objects with \u0027place\u0027 and optional filters."
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "place": {
+              "type": "string",
+              "description": "The placement location, such as \u0027Content:1\u0027, a zone and position, or \u0027-\u0027 to hide the shape."
+            },
+            "displayType": {
+              "type": "string",
+              "description": "The display type the placement applies to, such as Detail, Summary or Edit. Leave it empty to apply to every display type."
+            },
+            "differentiator": {
+              "type": "string",
+              "description": "The differentiator that narrows the placement to a specific named shape, such as a specific field name."
+            },
+            "shape": {
+              "type": "string",
+              "description": "The shape type the placement renders instead of the default shape."
+            },
+            "alternates": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The alternates added to the shape so a template can override its rendering."
+            },
+            "wrappers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The wrapper shapes rendered around the shape."
+            },
+            "contentPart": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "A single content part name to match, such as BodyPart."
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "A set of content part names, any of which matches."
+                }
+              ],
+              "description": "Applies the placement only when the content item has a matching content part. Accepts a single content part or an array of content parts."
+            },
+            "contentType": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "A single content type or stereotype to match, such as Article or Widget*."
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "A set of content types or stereotypes, any of which matches."
+                }
+              ],
+              "description": "Applies the placement only when the shape belongs to a matching content type or stereotype. A trailing \u0027*\u0027 matches by prefix. Accepts a single content type or an array of content types."
+            },
+            "path": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "A single request path to match, such as /about or ~/blog/*."
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "A set of request paths, any of which matches."
+                }
+              ],
+              "description": "Applies the placement only when the current request path matches. A trailing \u0027*\u0027 matches by prefix. Accepts a single path or an array of paths."
+            }
+          },
+          "required": [
+            "place"
+          ],
+          "additionalProperties": true,
+          "description": "A placement node describing where and how a shape is rendered, optionally narrowed by filters."
+        }
+      },
+      "description": "A dictionary keyed by shape type. Each value is an array of placement nodes applied to that shape."
     }
   },
   "required": [

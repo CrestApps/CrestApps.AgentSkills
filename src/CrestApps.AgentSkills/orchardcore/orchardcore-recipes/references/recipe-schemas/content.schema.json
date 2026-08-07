@@ -21,7 +21,12 @@
           },
           "ContentType": {
             "type": "string",
-            "description": "The type of content item."
+            "description": "The type of content item.",
+            "examples": [
+              "Article",
+              "BlogPost",
+              "Page"
+            ]
           },
           "DisplayText": {
             "type": "string",
@@ -59,7 +64,12 @@
         "required": [
           "ContentType"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "allOf": [
+          {},
+          {},
+          {}
+        ]
       },
       "minItems": 1,
       "description": "Content items to import or update. Each item must match the schema for its content type."
