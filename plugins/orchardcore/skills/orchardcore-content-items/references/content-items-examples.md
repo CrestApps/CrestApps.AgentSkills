@@ -277,3 +277,46 @@ public sealed class ContentPublishingService
     }
 }
 ```
+
+`CreatingAsync` and `CreatedAsync` belong to a new item being persisted.
+`UpdatingAsync` and `UpdatedAsync` belong to an existing item being changed.
+Use the corresponding `CreateContentContext` and `UpdateContentContext`.
+
+## Example 6: Validation and Canceled Removal
+
+`ValidateAsync` does not cancel the session. Cancel the session explicitly
+after a mutation when validation fails. `RemoveAsync` returns `false` when a
+removing handler sets `RemoveContentContext.Cancel`.
+
+```csharp
+public sealed class ContentSafetyService
+{
+    private readonly IContentManager _contentManager;
+    private readonly ISession _session;
+
+    public ContentSafetyService(
+        IContentManager contentManager,
+        ISession session)
+    {
+        _contentManager = contentManager;
+        _session = session;
+    }
+
+    public async Task<bool> UpdateAfterValidationAsync(ContentItem contentItem)
+    {
+        await _contentManager.UpdateAsync(contentItem);
+
+        var result = await _contentManager.ValidateAsync(contentItem);
+        if (!result.Succeeded)
+        {
+            await _session.CancelAsync();
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task<bool> RemoveAsync(ContentItem contentItem)
+        => await _contentManager.RemoveAsync(contentItem);
+}
+```

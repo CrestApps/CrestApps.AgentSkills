@@ -96,13 +96,42 @@ Configure all tenants to share the same database from a single configuration blo
     "DatabaseProvider": "SqlConnection",
     "Default": {
       "State": "Uninitialized",
-      "TablePrefix": "Default"
+      "TablePrefix": "Default",
+      "Schema": "dbo"
     }
   }
 }
 ```
 
-> **Note:** Each tenant must use a unique `TablePrefix` when sharing a database. Configure the Default tenant's prefix here; other tenants get their prefix at setup time.
+> **Note:** Each tenant must use a unique `TablePrefix` or `Schema` when sharing a database. Configure the Default tenant's values here; other tenants can receive generated values from the tenant patterns below.
+
+### Tenant Database Prefix and Schema Patterns
+
+The Tenants module can require and generate database isolation values:
+
+```json
+{
+  "OrchardCore": {
+    "OrchardCore_Tenants": {
+      "RequireTablePrefix": true,
+      "TablePrefixPattern": "{{ ShellSettings.Name }}",
+      "SchemaPattern": "dbo"
+    }
+  }
+}
+```
+
+`TablePrefixPattern` and `SchemaPattern` are Fluid templates with
+`ShellSettings` in scope. Generated and manually entered prefixes and schemas
+are validated as SQL identifiers.
+
+When `OrchardCore:DatabaseProvider` is configured, Orchard treats the
+provider as fixed and does not show it as selectable in Setup or Tenants. The
+connection string remains available when the provider requires one. When both
+`OrchardCore:DatabaseProvider` and `OrchardCore:ConnectionString` are
+configured, the connection string is fixed and is not shown for editing.
+Tenant creation may omit a connection string; tenant setup requires one only
+when the selected provider needs it and no saved value exists.
 
 ### Per-Tenant Configuration File
 
