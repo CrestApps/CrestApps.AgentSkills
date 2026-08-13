@@ -262,9 +262,10 @@ public sealed class Startup : StartupBase
 5. The resulting menu items are merged into the standard admin navigation.
 
 Orchard Core 3.0 reorganizes the standard navigation into **Settings**,
-**Tools**, **Design**, and **Access Control** groups. Use the
-`LegacyAdminMenuNavigation` AppContext switch only as a temporary migration
-aid when an application requires the previous layout:
+**Tools**, **Design**, and **Access Control** groups. Do not enable the
+`LegacyAdminMenuNavigation` AppContext switch by default. Mention or use it
+only when the user explicitly requests the previous layout as a temporary
+migration aid:
 
 ```csharp
 AppContext.SetSwitch("LegacyAdminMenuNavigation", true);

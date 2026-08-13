@@ -66,6 +66,11 @@ app.AddDownloadAIDocumentEndpoint();
 - `FillEmptyTabularCellsTool` — fills empty cells in tabular data.
 - `ExportTabularDataTool` — exports tabular data to a file.
 
+The built-in Tabular Data Agent delegates to these tools for analysis,
+calculations, filtering, aggregation, transformations, and exports over
+uploaded tabular files. See `crestapps-core-ai-agents` for the
+`IAIProfileProvider` pattern used by this code-defined system agent.
+
 **File generation**
 
 - `GenerateFileTool` — generates a downloadable file from AI output.
