@@ -110,8 +110,8 @@ The dashboard includes an **Export** action that generates a CSV file with sessi
 
 | Permission | Description |
 |------------|-------------|
-| `ViewChatAnalytics` | View AI Chat Analytics dashboard |
-| `ExportChatAnalytics` | Export AI Chat Analytics data to CSV |
+| `ViewChatAnalytics` | View AI Chat Analytics dashboard, extracted data, usage analytics, and conversion goals |
+| `ExportChatAnalytics` | Export AI Chat Analytics and conversion-goal data to CSV |
 
 Both permissions are granted to the Administrator role by default.
 
@@ -190,10 +190,10 @@ public sealed class AnalyticsProfileMigrations : DataMigration
 
 | Service | Description |
 |---------|-------------|
-| `AIChatSessionEventService` | Core persistence service for recording session events (start, end, latency, tokens, resolution, conversion, ratings) |
-| `AICompletionUsageService` | Aggregates token usage analytics across sessions |
-| `AnalyticsChatSessionHandler` | `IAIChatSessionHandler` that records session start on first user message and tracks response latency |
-| `AIChatSessionEventPostCloseObserver` | Records session end with resolution status and conversion goal results |
+| `IAIChatSessionEventService` | Session-event persistence abstraction implemented by `DefaultAIChatSessionEventService` |
+| `IAICompletionUsageService` | Aggregates completion usage records across sessions |
+| `DefaultAIChatSessionAnalyticsHandler` | `IAIChatSessionHandler` that records analytics events |
+| `AIChatSessionPostCloseProcessor` | Processes closed sessions, including resolution and conversion results |
 
 ### Extending Reports with Custom Display Drivers
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-a2a-host
-description: Skill for configuring the CrestApps A2A Host feature in Orchard Core. Covers exposing Agent AI Profiles as A2A agents, host authentication, agent cards, endpoints, and host settings. Use this skill when requests mention Orchard Core A2A Host, Configure an A2A Host, Feature Overview, Enable the Host Feature, Create Agent Profiles, Host Settings in Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.A2A.Host, CrestApps.OrchardCore.AI, AIProfile, ExposeAgentsAsSkill, agentName, AuthenticationType, OrchardCore:CrestApps_AI:A2AHost, ApiKey. It also helps with Create Agent Profiles, Host Settings in Configuration, Agent Exposure Modes, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring the CrestApps A2A Host feature in Orchard Core. Covers exposing Agent AI Profiles as A2A agents, host authentication, agent cards, endpoints, and host settings. Use this skill when requests mention Orchard Core A2A Host, Configure an A2A Host, Feature Overview, Enable the Host Feature, Create Agent Profiles, Host Settings in Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.A2A.Host, CrestApps.OrchardCore.AI, AIProfile, ExposeAgentsAsSkill, agentName, AuthenticationType, OrchardCore:CrestApps:AI:A2AHost, ApiKey. It also helps with Create Agent Profiles, Host Settings in Configuration, Agent Exposure Modes, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -87,12 +87,13 @@ The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the age
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "A2AHost": {
-        "AuthenticationType": "None",
-        "ApiKey": "your-api-key-here",
-        "RequireAccessPermission": false,
-        "ExposeAgentsAsSkill": false
+    "CrestApps": {
+      "AI": {
+        "A2AHost": {
+          "AuthenticationType": "OpenId",
+          "RequireAccessPermission": true,
+          "ExposeAgentsAsSkill": false
+        }
       }
     }
   }
@@ -126,11 +127,12 @@ Use `ExposeAgentsAsSkill: true` when you want a single combined agent card.
 
 ### Authentication Guidance
 
-The host configuration supports authentication settings through `AuthenticationType` and related options in `OrchardCore:CrestApps_AI:A2AHost`.
+The host configuration supports authentication settings through `AuthenticationType` and related options in `OrchardCore:CrestApps:AI:A2AHost`. Its default authentication type is `OpenId`.
 
 Use these settings as your starting point:
 
-- `AuthenticationType: "None"` for local development only.
+- `AuthenticationType: "OpenId"` is the default and is appropriate when the tenant has an API authentication scheme.
+- `AuthenticationType: "None"` is for local development only.
 - Set `ApiKey` when using API-key-based access.
 - Use `RequireAccessPermission: true` when you want Orchard permission checks enforced for host access.
 
@@ -139,12 +141,14 @@ Use these settings as your starting point:
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "A2AHost": {
-        "AuthenticationType": "ApiKey",
-        "ApiKey": "{{A2AHostApiKey}}",
-        "RequireAccessPermission": true,
-        "ExposeAgentsAsSkill": true
+    "CrestApps": {
+      "AI": {
+        "A2AHost": {
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "{{A2AHostApiKey}}",
+          "RequireAccessPermission": true,
+          "ExposeAgentsAsSkill": true
+        }
       }
     }
   }

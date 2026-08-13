@@ -49,13 +49,20 @@ Configure security headers through settings:
 {
   "steps": [
     {
-      "name": "Settings",
-      "SecurityHeadersSettings": {
-        "ContentSecurityPolicy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
-        "PermissionsPolicy": "camera=(), microphone=(), geolocation=()",
+      "name": "settings",
+      "SecuritySettings": {
+        "ContentSecurityPolicy": {
+          "default-src": "'self'",
+          "script-src": "'self' 'unsafe-inline'",
+          "style-src": "'self' 'unsafe-inline'"
+        },
+        "PermissionsPolicy": {
+          "camera": "()",
+          "microphone": "()",
+          "geolocation": "()"
+        },
         "ReferrerPolicy": "strict-origin-when-cross-origin",
-        "ContentTypeOptions": "nosniff",
-        "XFrameOptions": "SAMEORIGIN"
+        "ContentTypeOptions": "nosniff"
       }
     }
   ]

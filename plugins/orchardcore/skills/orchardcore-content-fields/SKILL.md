@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-fields
-description: Skill for adding and configuring content fields in Orchard Core. Covers every built-in field type with all available settings, editor options, display modes, and migration code patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common Orchard Core content fields. Covers field settings, Liquid rendering, supported editor options, display modes, and migration patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, HtmlFieldSettings, MarkdownFieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 ## Add and Configure Content Fields
 
-You are an Orchard Core expert. Generate migration code and recipes for adding content fields with all available settings.
+You are an Orchard Core expert. Generate migration code and recipes for common content fields and verify feature-specific options against the enabled module.
 
 ### Guidelines
 
@@ -67,6 +67,7 @@ Stores a single text value. Supports multiple editor modes.
 | `CodeMirror` | Code editor with syntax highlighting. |
 | `PredefinedList` | Dropdown or radio buttons from a predefined list. |
 | `Monaco` | Monaco code editor. |
+| `Color` | HTML color editor with an optional alpha value. |
 
 ### TextField Migration
 
@@ -141,6 +142,7 @@ Stores HTML content with optional sanitization.
 | `Hint` | string | `null` | Help text displayed below the field. |
 | `Required` | bool | `false` | Whether the field is required. |
 | `SanitizeHtml` | bool | `true` | Whether to sanitize HTML content. |
+| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering the HTML. |
 
 ### HtmlField Editors
 
@@ -164,6 +166,7 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
         {
             Required = true,
             SanitizeHtml = true,
+            RenderLiquid = false,
             Hint = "Enter HTML content"
         })
     )
@@ -601,6 +604,11 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
 
 References content items by localization set (for multi-lingual content). Provided by `OrchardCore.ContentLocalization`.
 
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `Multiple` | bool | `false` | Whether to allow more than one localization set. |
+| `DisplayedContentTypes` | string[] | `[]` | Content types offered by the picker. |
+
 ### LocalizationSetContentPickerField Migration
 
 ```csharp
@@ -615,6 +623,45 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
 
 ---
 
+## MarkdownField
+
+Stores Markdown on a part field. Enable `OrchardCore.Markdown`.
+
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `SanitizeHtml` | bool | `true` | Sanitizes rendered HTML. |
+| `RenderLiquid` | bool | `false` | Evaluates Liquid before rendering Markdown. |
+
+`SanitizeHtml` and `RenderLiquid` are independent. Sanitization can remain
+enabled while Liquid rendering is disabled, or Liquid can be evaluated before
+the rendered output is sanitized.
+
+Use the default editor or `.WithEditor("Wysiwyg")`; the WYSIWYG editor accepts `MarkdownFieldWysiwygEditorSettings.Options`.
+
+```csharp
+await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part => part
+    .WithField("{{FieldName}}", field => field
+        .OfType("MarkdownField")
+        .WithEditor("Wysiwyg")
+        .WithSettings(new MarkdownFieldSettings
+        {
+            SanitizeHtml = true,
+            RenderLiquid = false,
+        })
+    )
+);
+```
+
+---
+
+## GeoPointField
+
+Stores latitude and longitude. Enable `OrchardCore.Spatial`; its field settings are the common `Hint` and `Required` settings. Use `.WithEditor("Leaflet")` for the built-in map editor.
+
+For related content-part and route configuration, see `orchardcore-content-parts` and `orchardcore-autoroute`.
+
+---
+
 ## Installing Third-Party Field Modules
 
 Modules that provide custom fields from external sources (community or third-party modules) must be installed as NuGet packages in the **web project** (the startup project of the solution):
@@ -623,7 +670,7 @@ Modules that provide custom fields from external sources (community or third-par
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
     <!-- Orchard Core base -->
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
 
     <!-- Third-party modules must be added to the web project -->
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />

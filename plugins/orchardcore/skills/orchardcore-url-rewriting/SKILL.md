@@ -123,8 +123,10 @@ You are an Orchard Core expert. Generate URL rewrite rules, redirect configurati
 ### Custom Rule Source Implementation
 
 ```csharp
+using Microsoft.AspNetCore.Rewrite;
+using Microsoft.Extensions.Localization;
+using OrchardCore.UrlRewriting;
 using OrchardCore.UrlRewriting.Models;
-using OrchardCore.UrlRewriting.Services;
 
 namespace MyModule.UrlRewriting;
 
@@ -132,14 +134,21 @@ public sealed class CustomRuleSource : IUrlRewriteRuleSource
 {
     public const string SourceName = "CustomRule";
 
-    public string Name => SourceName;
-
-    public Task ConfigureAsync(RewriteRule rule, RewriteRuleContext context)
+    public CustomRuleSource(IStringLocalizer<CustomRuleSource> stringLocalizer)
     {
-        // Configure the rule based on custom properties.
-        // Access custom properties from rule.Source.
+        DisplayName = stringLocalizer["Custom rule"];
+        Description = stringLocalizer["Custom URL rewrite rule"];
+    }
 
-        return Task.CompletedTask;
+    public string TechnicalName => SourceName;
+
+    public LocalizedString DisplayName { get; }
+
+    public LocalizedString Description { get; }
+
+    public void Configure(RewriteOptions options, RewriteRule rule)
+    {
+        // Read custom metadata from rule.Properties and add the corresponding ASP.NET Core rewrite rules to options.
     }
 }
 ```
@@ -147,8 +156,10 @@ public sealed class CustomRuleSource : IUrlRewriteRuleSource
 ### Custom Rule Display Driver
 
 ```csharp
+using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
+using OrchardCore.UrlRewriting;
 using OrchardCore.UrlRewriting.Models;
 
 namespace MyModule.UrlRewriting;

@@ -39,7 +39,7 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -47,7 +47,7 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Utility",
+          "Purpose": "Utility",
           "IsDefault": true
         }
       ]
@@ -59,7 +59,6 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "general-assistant",
           "DisplayText": "General Assistant",
           "WelcomeMessage": "Hi! I'm your AI assistant. How can I help?",
-          "FunctionNames": [],
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
@@ -71,7 +70,9 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
               "Temperature": 0.5,
               "MaxTokens": 2048,
               "PastMessagesCount": 10
-            }
+            },
+            "FunctionInvocationMetadata": { "Names": [] },
+            "AgentInvocationMetadata": { "Names": [] }
           }
         }
       ]
@@ -117,7 +118,7 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
           "Name": "gpt-4o",
           "ClientName": "AzureOpenAI",
           "ConnectionName": "azure-default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         }
       ]
@@ -167,7 +168,10 @@ public sealed class SupportChatMigrations : DataMigration
         profile.Name = "support-chat";
         profile.DisplayText = "Support Chat";
         profile.Type = AIProfileType.Chat;
-        profile.FunctionNames = ["lookup_order", "check_inventory"];
+        profile.Put(new FunctionInvocationMetadata
+        {
+            Names = ["lookup_order", "check_inventory"],
+        });
 
         profile.WithSettings(new AIProfileSettings
         {
@@ -206,19 +210,17 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddAITool<LookupOrderFunction>(LookupOrderFunction.TheName, options =>
-        {
-            options.Title = "Order Lookup";
-            options.Description = "Retrieves order details by order ID.";
-            options.Category = "Commerce";
-        });
+        services.AddCoreAITool<LookupOrderFunction>(LookupOrderFunction.TheName)
+            .WithTitle("Order Lookup")
+            .WithDescription("Retrieves order details by order ID.")
+            .WithCategory("Commerce")
+            .Selectable();
 
-        services.AddAITool<CheckInventoryFunction>(CheckInventoryFunction.TheName, options =>
-        {
-            options.Title = "Inventory Checker";
-            options.Description = "Checks product inventory levels.";
-            options.Category = "Commerce";
-        });
+        services.AddCoreAITool<CheckInventoryFunction>(CheckInventoryFunction.TheName)
+            .WithTitle("Inventory Checker")
+            .WithDescription("Checks product inventory levels.")
+            .WithCategory("Commerce")
+            .Selectable();
     }
 }
 ```
@@ -228,25 +230,32 @@ public sealed class Startup : StartupBase
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "DefaultParameters": {
-        "Temperature": 0.5,
-        "MaxOutputTokens": 2048,
-        "TopP": 1,
-        "FrequencyPenalty": 0,
-        "PresencePenalty": 0,
-        "PastMessagesCount": 10
-      },
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true }
-              ]
-            }
+    "CrestApps": {
+      "AI": {
+        "DefaultParameters": {
+          "Temperature": 0.5,
+          "MaxOutputTokens": 2048,
+          "TopP": 1,
+          "FrequencyPenalty": 0,
+          "PresencePenalty": 0,
+          "PastMessagesCount": 10
+        },
+        "Connections": [
+          {
+            "Name": "default",
+            "ClientName": "OpenAI",
+            "Endpoint": "https://api.openai.com/v1",
+            "ApiKey": "Use a secret provider"
           }
-        }
+        ],
+        "Deployments": [
+          {
+            "Name": "gpt-4o",
+            "ClientName": "OpenAI",
+            "ConnectionName": "default",
+            "Purpose": "Chat"
+          }
+        ]
       }
     }
   }
@@ -258,11 +267,11 @@ public sealed class Startup : StartupBase
 Use user secrets during development:
 
 ```bash
-dotnet user-secrets set "OrchardCore:CrestApps_AI:Providers:OpenAI:Connections:default:ApiKey" "sk-your-api-key"
+dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "sk-your-api-key"
 ```
 
 For Azure OpenAI:
 
 ```bash
-dotnet user-secrets set "OrchardCore:CrestApps_AI:Providers:AzureOpenAI:Connections:azure-default:ApiKey" "your-azure-key"
+dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "your-azure-key"
 ```

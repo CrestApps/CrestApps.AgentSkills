@@ -10,10 +10,11 @@
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Documents.AzureAI",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Pdf",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.OpenXml",
-        "OrchardCore.Search.AzureAI",
+        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
+        "CrestApps.OrchardCore.AI.Documents.AzureAI",
+        "CrestApps.OrchardCore.AI.Documents.Pdf",
+        "CrestApps.OrchardCore.AI.Documents.OpenXml",
+        "OrchardCore.AzureAI",
         "CrestApps.OrchardCore.OpenAI"
       ]
     },
@@ -41,7 +42,7 @@
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         }
       ]
@@ -65,9 +66,10 @@ After running this recipe:
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Documents.Elasticsearch",
-        "CrestApps.OrchardCore.AI.Chat.Interactions.Pdf",
-        "OrchardCore.Search.Elasticsearch",
+        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
+        "CrestApps.OrchardCore.AI.Documents.Elasticsearch",
+        "CrestApps.OrchardCore.AI.Documents.Pdf",
+        "OrchardCore.Elasticsearch",
         "CrestApps.OrchardCore.OpenAI"
       ]
     }
@@ -77,99 +79,41 @@ After running this recipe:
 
 ## Configuration: Full Deployment Setup for Chat Interactions
 
-Configure the provider connection and define typed deployments for chat, embeddings, utility/intent detection, and images:
+Configure the provider connection and define deployments for chat, embeddings, utility work, and images:
 
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {}
-          }
-        }
-      },
-      "Deployments": [
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
         {
           "ClientName": "OpenAI",
           "ConnectionName": "default",
           "Name": "gpt-4o",
-          "Type": "Chat",
-          "IsDefault": true
+          "Purpose": "Chat"
         },
         {
           "ClientName": "OpenAI",
           "ConnectionName": "default",
           "Name": "text-embedding-3-small",
-          "Type": "Embedding",
-          "IsDefault": true
+          "Purpose": "Embedding"
         },
         {
           "ClientName": "OpenAI",
           "ConnectionName": "default",
           "Name": "gpt-4o-mini",
-          "Type": "Utility",
-          "IsDefault": true
+          "Purpose": "Utility"
         },
         {
           "ClientName": "OpenAI",
           "ConnectionName": "default",
           "Name": "dall-e-3",
-          "Type": "Image",
-          "IsDefault": true
+          "Purpose": "Image"
         }
-      ]
-    }
-  }
-}
-```
-
-## Implementing a Custom Document Processing Strategy
-
-Create a strategy that translates document content:
-
-```csharp
-using CrestApps.OrchardCore.AI.Chat.Interactions;
-
-public sealed class TranslateDocumentStrategy : IPromptProcessingStrategy
-{
-    public string Intent => "TranslateDocument";
-
-    public async Task<PromptProcessingResult?> ProcessAsync(
-        PromptProcessingContext context,
-        CancellationToken cancellationToken)
-    {
-        if (context.Documents == null || !context.Documents.Any())
-        {
-            return null;
+          ]
         }
-
-        var documentContent = string.Join("\n\n", context.Documents.Select(d => d.Content));
-
-        return new PromptProcessingResult
-        {
-            SystemPrompt = $"Translate the following document content as requested by the user:\n\n{documentContent}",
-        };
-    }
-}
-```
-
-Register the intent and strategy in `Startup.cs`:
-
-```csharp
-using Microsoft.Extensions.DependencyInjection;
-using OrchardCore.Modules;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddPromptProcessingIntent(
-            "TranslateDocument",
-            "The user wants to translate the document content to another language, such as 'translate this to Spanish' or 'convert to French'.");
-
-        services.AddPromptProcessingStrategy<TranslateDocumentStrategy>();
+      }
     }
 }
 ```
@@ -211,16 +155,14 @@ public sealed class Startup : StartupBase
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
-          "IsDefault": true
+          "Purpose": "Chat"
         },
         {
           "ItemId": "openai-image",
           "Name": "dall-e-3",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Image",
-          "IsDefault": true
+          "Purpose": "Image"
         }
       ]
     }
@@ -228,31 +170,10 @@ public sealed class Startup : StartupBase
 }
 ```
 
-Then configure image generation in `appsettings.json`:
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
+The registered `generate_image` system tool uses the Image-purpose deployment; the registered `generate_chart` system tool produces Chart.js configuration from a data description.
 
 ## Storing API Keys Securely
 
 ```bash
-dotnet user-secrets set "OrchardCore:CrestApps_AI:Providers:OpenAI:Connections:default:ApiKey" "sk-your-api-key"
+dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "sk-your-api-key"
 ```

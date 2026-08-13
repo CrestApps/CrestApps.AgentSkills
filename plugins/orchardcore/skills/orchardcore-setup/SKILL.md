@@ -46,7 +46,7 @@ dotnet new web -n {{ProjectName}}
 cd {{ProjectName}}
 
 # Add the Orchard Core CMS package
-dotnet add package OrchardCore.Application.Cms.Targets --version 2.*
+dotnet add package OrchardCore.Application.Cms.Targets --version 3.*
 ```
 
 ### Program.cs Configuration
@@ -101,7 +101,7 @@ Add NuGet packages for the modules you need. **All modules** — whether from Or
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
 
     <!-- Third-party modules are also added to the web project -->
     <PackageReference Include="Lombiq.HelpfulExtensions.OrchardCore" Version="1.*" />
@@ -132,6 +132,13 @@ After running the application, navigate to `/` to access the setup screen:
 4. Provide the **Connection String** (except for Sqlite).
 5. Set an **Admin Username** and **Password**.
 6. Click **Finish Setup**.
+
+If `OrchardCore:DatabaseProvider` is configured, the provider is fixed and
+cannot be changed on the Setup screen. If the provider requires a connection
+string, it remains available unless both `OrchardCore:DatabaseProvider` and
+`OrchardCore:ConnectionString` are configured; in that case the connection
+string is also fixed and is not editable. Setup requires a connection string
+only when the selected provider needs one and no saved value exists.
 
 ### Auto-Setup via Configuration
 

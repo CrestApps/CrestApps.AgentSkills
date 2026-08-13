@@ -44,11 +44,13 @@ The `ContentItemIndex` table is always available for querying content items.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `Id` | `int` | Primary key. |
-| `DocumentId` | `int` | YesSql document ID. |
+| `Id` | `bigint` | Primary key. |
+| `DocumentId` | `bigint` | YesSql document ID. |
 | `ContentItemId` | `nvarchar(26)` | Unique content item identifier. |
+| `ContentItemVersionId` | `nvarchar(26)` | Content item version identifier. |
 | `Published` | `bit` | Whether the item is published. |
 | `Latest` | `bit` | Whether this is the latest version. |
+| `ContentType` | `nvarchar(255)` | Content type name. |
 | `ModifiedUtc` | `datetime` | Last modified date (UTC). |
 | `PublishedUtc` | `datetime` | Publish date (UTC). |
 | `CreatedUtc` | `datetime` | Creation date (UTC). |
@@ -60,8 +62,8 @@ The `ContentItemIndex` table is always available for querying content items.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `Id` | `int` | Primary key. |
-| `DocumentId` | `int` | YesSql document ID. |
+| `Id` | `bigint` | Primary key. |
+| `DocumentId` | `bigint` | YesSql document ID. |
 | `ContentItemId` | `nvarchar(26)` | Unique content item identifier. |
 | `Published` | `bit` | Whether the item is published. |
 | `Latest` | `bit` | Whether this is the latest version. |
@@ -74,8 +76,8 @@ Each field type has a corresponding index table. All share these common columns:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `Id` | `int` | Primary key. |
-| `DocumentId` | `int` | YesSql document ID. |
+| `Id` | `bigint` | Primary key. |
+| `DocumentId` | `bigint` | YesSql document ID. |
 | `ContentItemId` | `nvarchar(26)` | Content item identifier. |
 | `ContentItemVersionId` | `nvarchar(26)` | Content item version identifier. |
 | `ContentType` | `nvarchar(255)` | Content type name. |
@@ -97,8 +99,8 @@ Each field type has a corresponding index table. All share these common columns:
 | `MultiTextFieldIndex` | `Value`, `BigValue` | `nvarchar(766)` / `nvarchar(max)` |
 | `NumericFieldIndex` | `Numeric` | `decimal(19,5)` |
 | `TextFieldIndex` | `Text`, `BigText` | `nvarchar(766)` / `nvarchar(max)` |
-| `TimeFieldIndex` | `Time` | `datetime` |
-| `UserPickerFieldIndex` | `SelectedUserId` | `string` |
+| `TimeFieldIndex` | `Time` | `bigint` (TimeSpan ticks) |
+| `UserPickerFieldIndex` | `SelectedUserId` | `nvarchar(255)` |
 
 ### Querying from C#
 

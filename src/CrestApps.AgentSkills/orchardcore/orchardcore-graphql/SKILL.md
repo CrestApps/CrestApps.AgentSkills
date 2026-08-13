@@ -1,29 +1,19 @@
 ---
 name: orchardcore-graphql
-description: Skill for configuring and using the GraphQL API in Orchard Core. Covers GraphQL queries, custom types, content type querying, and GraphQL schema customization. Use this skill when requests mention Orchard Core GraphQL, Configure and Use GraphQL API, Enabling GraphQL Features, Basic Content Query, Query with Filtering, Query with Pagination, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Apis.GraphQL, OrchardCore.ContentManagement, OrchardCore.Apis, MyPart, MyField, MyPartIndexAliasProvider, IIndexAliasProvider, MyPartIndex, IEnumerable, IServiceCollection, WhereInput. It also helps with graphql examples, Query with Filtering, Query with Pagination, Query Specific Content Item, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring and using the GraphQL API in Orchard Core. Covers GraphQL queries, custom graph types, content querying, IIndexAliasProvider, AddWhereInputIndexPropertyProvider, where filters, and GraphQL permissions. Use this skill when requests mention Orchard Core GraphQL, Configure and Use GraphQL API, Enabling GraphQL Features, Basic Content Query, Query with Filtering, Query with Pagination, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core GraphQL - Prompt Templates
+# Orchard Core GraphQL
 
-## Configure and Use GraphQL API
-
-You are an Orchard Core expert. Generate GraphQL queries and custom type definitions for Orchard Core.
-
-### Guidelines
-
-- Enable `OrchardCore.Apis.GraphQL` to expose a GraphQL endpoint at `/api/graphql`.
-- Content types are automatically exposed as GraphQL types.
-- Use the GraphiQL interface at `/admin/graphql` for query exploration.
-- Custom GraphQL types can extend the schema for custom data.
-- GraphQL queries support filtering, sorting, and pagination.
-- Authentication and authorization apply to GraphQL queries.
-- Use `WhereInput` types for filtering content items.
-
-### Enabling GraphQL Features
+Enable `OrchardCore.Apis.GraphQL` for `/api/graphql`. The endpoint requires
+`ExecuteGraphQL`; mutations additionally require
+`ExecuteGraphQLMutations`. Content access is also limited by the caller's
+content-view permissions. A JWT bearer principal must therefore receive the
+same Orchard permissions through its user or role before it can query content.
 
 ```json
 {
@@ -32,206 +22,81 @@ You are an Orchard Core expert. Generate GraphQL queries and custom type definit
       "name": "Feature",
       "enable": [
         "OrchardCore.Apis.GraphQL"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
 
-### Basic Content Query
+Use GraphiQL in the admin UI to inspect the schema and generated field names.
+Do not embed a fictional Liquid `graphql` tag; execute GraphQL through its
+HTTP endpoint or application code.
 
-```graphql
-{
-  blogPost {
-    contentItemId
-    displayText
-    createdUtc
-    publishedUtc
-    titlePart {
-      title
-    }
-    autoroutePart {
-      path
-    }
-    htmlBodyPart {
-      html
-    }
-  }
-}
-```
+## Graph Types and Where Filters
 
-### Query with Filtering
-
-```graphql
-{
-  blogPost(where: {displayText_contains: "orchard"}) {
-    contentItemId
-    displayText
-    publishedUtc
-  }
-}
-```
-
-### Query with Pagination
-
-```graphql
-{
-  blogPost(first: 10, skip: 0, orderBy: {publishedUtc: DESC}) {
-    contentItemId
-    displayText
-    publishedUtc
-  }
-}
-```
-
-### Query Specific Content Item
-
-```graphql
-{
-  contentItem(contentItemId: "{{ContentItemId}}") {
-    contentItemId
-    contentType
-    displayText
-    publishedUtc
-    ... on BlogPost {
-      titlePart {
-        title
-      }
-      htmlBodyPart {
-        html
-      }
-    }
-  }
-}
-```
-
-### Query Content Items by Status
-
-```graphql
-{
-  blogPost(status: PUBLISHED) {
-    contentItemId
-    displayText
-    publishedUtc
-  }
-}
-
-{
-  blogPost(status: DRAFT) {
-    contentItemId
-    displayText
-    modifiedUtc
-  }
-}
-
-{
-  blogPost(status: LATEST) {
-    contentItemId
-    displayText
-    latest
-    published
-  }
-}
-```
-
-### Custom GraphQL Object Type
+`InputObjectGraphType<T>` models an ordinary input object. It does not
+automatically create predicate suffixes such as `_contains`. For indexed
+content filtering, derive from `WhereInputObjectGraphType<T>` and use its
+filter-field helpers.
 
 ```csharp
 using GraphQL.Types;
-using OrchardCore.Apis.GraphQL;
-using OrchardCore.ContentManagement;
+using Microsoft.Extensions.Localization;
+using OrchardCore.Apis.GraphQL.Queries;
 
-public sealed class MyPartQueryObjectType : ObjectGraphType<MyPart>
+namespace MyModule;
+
+public sealed class ProductWhereInput : WhereInputObjectGraphType<ProductIndex>
 {
-    public MyPartQueryObjectType()
+    public ProductWhereInput(IStringLocalizer<ProductWhereInput> localizer)
+        : base(localizer)
     {
-        Name = "MyPart";
-
-        Field(x => x.MyField)
-            .Description("My custom field.");
-        Field(x => x.MyNumber)
-            .Description("A numeric value.");
+        AddScalarFilterFields<StringGraphType>(
+            fieldName: nameof(ProductIndex.Sku),
+            description: "Product SKU",
+            aliasName: "Product",
+            contentPart: "ProductPart",
+            contentField: "Sku");
     }
 }
 ```
 
-### Custom GraphQL Input Type
+Register a map index with the dedicated extension:
 
 ```csharp
-using GraphQL.Types;
-
-public sealed class MyPartInputObjectType : InputObjectGraphType<MyPart>
-{
-    public MyPartInputObjectType()
-    {
-        Name = "MyPartInput";
-
-        Field(x => x.MyField, nullable: true)
-            .Description("Filter by my custom field.");
-    }
-}
+services.AddWhereInputIndexPropertyProvider<ProductIndex>();
 ```
 
-### Custom GraphQL Filter
+## Index Aliases
+
+`IIndexAliasProvider` is asynchronous in v3:
 
 ```csharp
 using OrchardCore.ContentManagement.GraphQL.Queries;
 
-public sealed class MyPartIndexAliasProvider : IIndexAliasProvider
-{
-    private static readonly IndexAlias[] _aliases = new[]
-    {
-        new IndexAlias
-        {
-            Alias = "myPart",
-            Index = nameof(MyPartIndex),
-            IndexType = typeof(MyPartIndex)
-        }
-    };
+namespace MyModule;
 
-    public IEnumerable<IndexAlias> GetAliases()
+public sealed class ProductIndexAliasProvider : IIndexAliasProvider
+{
+    public ValueTask<IEnumerable<IndexAlias>> GetAliasesAsync()
     {
-        return _aliases;
+        IEnumerable<IndexAlias> aliases =
+        [
+            new IndexAlias
+            {
+                Alias = "Product",
+                Index = nameof(ProductIndex),
+                IndexType = typeof(ProductIndex),
+            },
+        ];
+
+        return ValueTask.FromResult(aliases);
     }
 }
 ```
 
-### Registering Custom GraphQL Types
+Register it with its intended lifetime:
 
 ```csharp
-using OrchardCore.Apis;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddObjectGraphType<MyPart, MyPartQueryObjectType>();
-        services.AddInputObjectGraphType<MyPart, MyPartInputObjectType>();
-        services.AddScoped<IIndexAliasProvider, MyPartIndexAliasProvider>();
-    }
-}
-```
-
-### Querying with Liquid and GraphQL
-
-Execute GraphQL queries from Liquid templates:
-
-```liquid
-{% graphql query: "{ blogPost(first: 5, orderBy: {publishedUtc: DESC}) { displayText, autoroutePart { path } } }" %}
-{% for post in graphql.blogPost %}
-    <a href="{{ post.autoroutePart.path }}">{{ post.displayText }}</a>
-{% endfor %}
-```
-
-### Authentication for GraphQL
-
-GraphQL queries respect Orchard Core permissions. For API access:
-
-```bash
-# Query with API key
-curl -X POST https://example.com/api/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {{token}}" \
-  -d '{"query": "{ blogPost { displayText } }"}'
+services.AddScoped<IIndexAliasProvider, ProductIndexAliasProvider>();
 ```

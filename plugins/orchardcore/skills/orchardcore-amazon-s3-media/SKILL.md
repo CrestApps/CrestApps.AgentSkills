@@ -1,6 +1,6 @@
 ---
 name: orchardcore-amazon-s3-media
-description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers S3 bucket configuration, AWS credentials management and loading order, S3 security policies, multi-tenant bucket templating, local S3 emulator setup with Docker, ImageSharp cache integration, and CDN caching strategy. Use this skill when requests mention Orchard Core Amazon S3 Media Storage, Amazon S3 Media Storage Configuration, Configuration Properties, Basic Configuration (Hosted in AWS), Configuration with Explicit Credentials (Hosted Outside, Configuration with AWS Profile, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media.AmazonS3, ShellSettings, App_Data, BucketName, appsettings.json. It also helps with Configuration with Explicit Credentials (Hosted Outside, Configuration with AWS Profile, AWS Credentials Loading Order, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers bucket setup, AWS credentials, security policies, tenant templating, local S3 emulators, ImageSharp resized-image caches, and CDN use. Use this skill for OrchardCore.Media.AmazonS3, OrchardCore.Media.AmazonS3.ImageSharpImageCache, Amazon S3 Media Storage Configuration, or related implementation, setup, extension, and troubleshooting work. Strong matches include ShellSettings, BucketName, appsettings.json, and AwsImageSharpImageCacheOptions. It also helps with profiles, credential loading, tenant buckets, base folders, emulator settings, recipes, and referenced examples.
 ---
 
 # Orchard Core Amazon S3 Media Storage - Prompt Templates
@@ -101,16 +101,16 @@ The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions`
 
 **Best practice**: Use profiles or environment variables instead of embedding credentials directly in configuration files.
 
-## S3 Bucket Security Policies
+## S3 Bucket Access
 
 ### Guidelines
 
 - Buckets created with `CreateBucket: true` are created without ACLs for security.
-- If creating a bucket manually, enable ACLs and configure public access settings.
-- To make media files publicly accessible, add an S3 bucket policy.
-- For manually created buckets, block all public access and use a bucket policy for read access.
+- **Private bucket (recommended)**: Media is served through Orchard Core, so the application identity needs bucket access but the bucket does not need public reads.
+- **Public bucket**: Use only when clients or a CDN must retrieve media directly from S3. Configure an explicit read policy and review the effect of public-access-block settings.
+- Do not combine a public read policy with a public-access block that prevents public policies from taking effect.
 
-### Public Read Bucket Policy
+### Public Read Bucket Policy (Direct S3 Delivery Only)
 
 ```json
 {
@@ -126,13 +126,6 @@ The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions`
   ]
 }
 ```
-
-### Manual Bucket ACL Setup
-
-1. Open your bucket in the AWS Console.
-2. Go to the **Permissions** tab.
-3. Edit **Block public access** and tick "Block all public access".
-4. Add the bucket policy above to grant read access to media files.
 
 ## Multi-Tenant Bucket Templating
 
@@ -234,7 +227,8 @@ docker run -d -e MODE=IN_MEMORY -p 9444:80 luofuxiang/local-s3:latest
 ### Guidelines
 
 - Enable the `OrchardCore.Media.AmazonS3.ImageSharpImageCache` feature.
-- Replaces the default `PhysicalFileSystemCache` with `AWSS3StorageCache` for resized images.
+- The options type is `AwsImageSharpImageCacheOptions`.
+- Custom startup registration uses the `ImageSharpCache` configure order.
 - Useful for ephemeral file systems (containers, clean deployments).
 - Reduces pressure on local disk IO.
 - Cache files are only removed per tenant when using a separate bucket per tenant.
@@ -256,7 +250,7 @@ docker run -d -e MODE=IN_MEMORY -p 9444:80 luofuxiang/local-s3:latest
       "BasePath": "/cache",
       "CreateBucket": true,
       "RemoveBucket": false,
-      "BucketName": "imagesharp-cache"
+      "BucketName": "media-cache"
     }
   }
 }
@@ -269,3 +263,4 @@ docker run -d -e MODE=IN_MEMORY -p 9444:80 luofuxiang/local-s3:latest
 - The Media Cache will re-fetch assets from S3 on demand when a CDN PoP requests an uncached item.
 - CDN providers clear caches on their own schedules; the S3 source must always remain accessible.
 - The Media Cache feature is automatically enabled with Amazon S3 storage and supports purging via the admin dashboard.
+- Local remote-media files use the `wwwroot/{tenant}/ms-cache` folder.

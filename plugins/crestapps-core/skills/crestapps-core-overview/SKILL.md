@@ -57,8 +57,9 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
         {
           "Name": "gpt-4.1",
           "ClientName": "OpenAI",
+          "ConnectionName": "primary-openai",
           "ModelName": "gpt-4.1",
-          "Type": "Chat"
+          "Purpose": "Chat"
         }
       ]
     }
@@ -73,6 +74,6 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 | Reusable chat UI and sessions | `.AddChatInteractions()` | `CrestApps.Core.AI.Chat` |
 | Uploaded document RAG | `.AddDocumentProcessing(...)` | `CrestApps.Core.AI.Documents` |
 | Protocol interoperability | `.AddMcpClient()` or `.AddMcpServer()` | `CrestApps.Core.AI.Mcp` |
-| Remote agent delegation | `.AddA2AClient()` or `.AddA2AHost()` | `CrestApps.Core.AI.A2A` |
-| Real-time hubs | `.AddCoreSignalR()` | `CrestApps.Core.SignalR` |
+| Remote agent delegation | `.AddA2AClient()` | `CrestApps.Core.AI.A2A` |
+| Real-time hubs | `.AddSignalR()` | `CrestApps.Core.SignalR` |
 | Durable stores | `.AddEntityCoreStores()` or `.AddYesSqlStores()` | `CrestApps.Core.Data.EntityCore` or `CrestApps.Core.Data.YesSql` |

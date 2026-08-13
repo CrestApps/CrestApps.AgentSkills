@@ -20,7 +20,7 @@ You are an Orchard Core expert. Generate code and configuration for user managem
 - Roles group permissions together for easier management.
 - Use `[Authorize]` attributes or `IAuthorizationService` for permission checks.
 - Custom user settings allow extending user profiles with additional fields.
-- Registration and login can be customized through settings and recipes.
+- Registration and login can be customized through the registration and login event interfaces.
 - External authentication providers (Google, Microsoft, etc.) can be added.
 
 ### Enabling User and Role Features
@@ -130,6 +130,69 @@ public sealed class MyController : Controller
 {% endif %}
 ```
 
+The `Administrator` role no longer receives permission claims by default during
+login. Use `has_permission` for permission checks instead of checking a
+permission claim with `has_claim`.
+
+### Registration and Login Extensibility in 3.0
+
+Registration and login customization now use dedicated event contracts:
+
+```csharp
+public sealed class RegistrationEvents : RegistrationFormEventsBase
+{
+    public override Task RegisteringAsync(UserRegisteringContext context)
+    {
+        // Validate or change the registration context.
+        return Task.CompletedTask;
+    }
+}
+```
+
+`IRegistrationFormEvents` includes
+`Task RegisteringAsync(UserRegisteringContext context)`, and
+`RegistrationFormEventsBase` can be used when only selected handlers are
+needed. `ILoginFormEvent` includes
+`Task<IActionResult> ValidatingLoginAsync(IUser user)`.
+
+The `ExternalLogin` action is no longer on the `Account` controller. Custom
+login views must post external-login forms to the corresponding action on
+`ExternalAuthenticationsController`.
+
+### Registration Settings via Recipe
+
+Use the `Settings` recipe step for the registration settings that remain in
+Orchard Core 3.0:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "RegistrationSettings": {
+        "UsersMustValidateEmail": true,
+        "UsersAreModerated": false,
+        "UseSiteTheme": false
+      },
+      "ExternalRegistrationSettings": {
+        "DisableNewRegistrations": false,
+        "NoPassword": false,
+        "NoUsername": false,
+        "NoEmail": false,
+        "UseScriptToGenerateUsername": false,
+        "GenerateUsernameScript": ""
+      }
+    }
+  ]
+}
+```
+
+`ExternalRegistrationSettings` controls users created through external
+authentication. Do not use the removed `UsersCanRegister`,
+`NoPasswordForExternalUsers`, `NoUsernameForExternalUsers`,
+`NoEmailForExternalUsers`, or `UseScriptToGenerateUsername` properties on
+`RegistrationSettings`.
+
 ### Creating Roles via Recipe
 
 ```json
@@ -150,6 +213,22 @@ public sealed class MyController : Controller
     }
   ]
 }
+```
+
+`AssignRoleToUsers` is no longer implicitly granted by `EditUsers`. Add
+`OrchardCore.Users.UsersPermissions.AssignRoleToUsers` to existing roles that
+must assign roles, or use
+`OrchardCore.Users.UsersPermissions.CreateAssignRoleToUsersPermission(roleName)`
+for a role-specific permission.
+
+### Enabling and Disabling Users
+
+User activation is managed from the Users list in 3.0. Use the user service
+methods when changing status programmatically:
+
+```csharp
+await _userService.EnableAsync(user);
+await _userService.DisableAsync(user);
 ```
 
 ### Custom User Settings
@@ -179,25 +258,6 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("UserProfile", part => 
         .WithPosition("1")
     )
 );
-```
-
-### User Registration Settings via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "Settings",
-      "RegistrationSettings": {
-        "UsersCanRegister": "AllowRegistration",
-        "NoPasswordForExternalUsers": false,
-        "NoUsernameForExternalUsers": false,
-        "NoEmailForExternalUsers": false,
-        "UseScriptToGenerateUsername": false
-      }
-    }
-  ]
-}
 ```
 
 ### External Authentication (e.g., Microsoft)

@@ -95,7 +95,7 @@ Use typed deployments to bind chat profiles to specific models:
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -103,7 +103,7 @@ Use typed deployments to bind chat profiles to specific models:
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Utility",
+          "Purpose": "Utility",
           "IsDefault": true
         }
       ]
@@ -124,7 +124,6 @@ Use typed deployments to bind chat profiles to specific models:
           "Name": "customer-support-chat",
           "DisplayText": "Customer Support Chat",
           "WelcomeMessage": "Hello! How can I help you today?",
-          "FunctionNames": [],
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
@@ -139,7 +138,9 @@ Use typed deployments to bind chat profiles to specific models:
               "PresencePenalty": null,
               "MaxTokens": 2048,
               "PastMessagesCount": 10
-            }
+            },
+            "FunctionInvocationMetadata": { "Names": [] },
+            "AgentInvocationMetadata": { "Names": [] }
           }
         }
       ]
@@ -343,12 +344,11 @@ public sealed class LookupOrderFunction : AIFunction
 Register the tool and assign it to a profile:
 
 ```csharp
-services.AddAITool<LookupOrderFunction>(LookupOrderFunction.TheName, options =>
-{
-    options.Title = "Order Lookup";
-    options.Description = "Looks up order details by order ID.";
-    options.Category = "Commerce";
-});
+services.AddCoreAITool<LookupOrderFunction>(LookupOrderFunction.TheName)
+    .WithTitle("Order Lookup")
+    .WithDescription("Looks up order details by order ID.")
+    .WithCategory("Commerce")
+    .Selectable();
 ```
 
 ### Security Best Practices
@@ -365,7 +365,7 @@ Chat profiles support three modes via the `ChatModeProfileSettings`:
 
 | Mode | Description | Requirements |
 |------|-------------|--------------|
-| `TextOnly` | Standard text-only chat (default) | None |
+| `TextInput` | Standard text-only chat (default) | None |
 | `AudioInput` | Adds microphone button for speech-to-text dictation. User types or dictates, then sends manually. | `DefaultSpeechToTextDeploymentName` configured in site settings |
 | `Conversation` | Two-way voice conversation. User speaks → transcript sent automatically → AI responds with text and spoken audio. | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
 
@@ -391,7 +391,7 @@ The `SpeechVoice` model includes: `Id`, `Name`, `Language`, `Gender`, and `Voice
 ### Admin Chat Session UI
 
 Chat profiles are accessible at `/admin/ai-chat/session/{profileId}`. The session view:
-- Supports all three chat modes (TextOnly, AudioInput, Conversation)
+- Supports all three chat modes (TextInput, AudioInput, Conversation)
 - Shows microphone button when `AudioInput` or `Conversation` mode is enabled
 - Shows conversation (headset) button when `Conversation` mode is enabled
 - Streams audio and text simultaneously during conversation mode
@@ -405,9 +405,12 @@ Both the admin widget (`AIChatAdminWidget`) and frontend widget (`Widget-AIChat`
 
 | Method | Description |
 |--------|-------------|
-| `CreateSession` | Creates a new chat session |
-| `SendMessage` | Sends a text message to the AI |
+| `StartSession` | Creates a new chat session for a profile |
+| `LoadSession` | Loads an existing chat session |
+| `SendMessage` | Streams a text-message response for a profile and session |
 | `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
 | `StartConversation` | Starts a full two-way voice conversation |
 | `SynthesizeSpeech` | Converts text to speech audio |
 | `RateMessage` | Rates an assistant message (thumbs up/down) |
+| `HandleNotificationAction` | Dispatches a notification action |
+| `StopConversation` | Cancels the active conversation |

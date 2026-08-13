@@ -22,19 +22,1266 @@
               "properties": {
                 "Type": {
                   "type": "string",
-                  "description": "Deployment step type identifier."
+                  "examples": [
+                    "AllAdminTemplatesDeploymentStep",
+                    "AllContentDeploymentStep",
+                    "AllFeaturesDeploymentStep",
+                    "AllTemplatesDeploymentStep",
+                    "AzureAISearchIndexDeploymentStep",
+                    "AzureAISearchIndexRebuildDeploymentStep",
+                    "AzureAISearchIndexResetDeploymentStep",
+                    "ContentDefinitionDeploymentStep",
+                    "ContentDeploymentStep",
+                    "ContentItemDeploymentStep",
+                    "CustomFileDeploymentStep",
+                    "CustomSettingsDeploymentStep",
+                    "CustomUserSettingsDeploymentStep",
+                    "DeleteContentDefinitionDeploymentStep",
+                    "DeploymentPlanDeploymentStep",
+                    "ElasticsearchIndexDeploymentStep",
+                    "ElasticsearchIndexRebuildDeploymentStep",
+                    "ElasticsearchIndexResetDeploymentStep",
+                    "IndexProfileDeploymentStep",
+                    "JsonRecipeDeploymentStep",
+                    "LuceneIndexDeploymentStep",
+                    "LuceneIndexRebuildDeploymentStep",
+                    "LuceneIndexResetDeploymentStep",
+                    "MediaDeploymentStep",
+                    "QueryBasedContentDeploymentStep",
+                    "RebuildIndexDeploymentStep",
+                    "RecipeFileDeploymentStep",
+                    "ReplaceContentDefinitionDeploymentStep",
+                    "ResetIndexDeploymentStep",
+                    "SiteSettingsDeploymentStep",
+                    "TranslationsDeploymentStep"
+                  ],
+                  "description": "The deployment step type name, which is the step\u0027s CLR type name, for example ContentDeploymentStep. The well known payload of \u0027Step\u0027 depends on this value."
                 },
                 "Step": {
                   "type": "object",
                   "additionalProperties": true,
-                  "description": "Raw deployment step payload passed to the step serializer."
+                  "description": "The deployment step payload. The well known members depend on the value of \u0027Type\u0027. Marker steps that export everything of a kind use an empty object."
                 }
               },
               "required": [
                 "Type",
                 "Step"
               ],
-              "additionalProperties": true
+              "additionalProperties": true,
+              "description": "A deployment step that belongs to the plan.",
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AllAdminTemplatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "All admin templates step. Exports every admin template. Payload for the \u0027AllAdminTemplatesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ExportAsFiles": {
+                            "type": "boolean",
+                            "description": "When true, exports each admin template as a separate file rather than embedding them in the recipe."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AllContentDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "All content step. Exports every content item on the tenant. Payload for the \u0027AllContentDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ExportAsSetupRecipe": {
+                            "type": "boolean",
+                            "description": "When true, exports the content in a form suitable for a setup recipe, resetting owner and identifier information."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AllFeaturesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "All features step. Exports the list of enabled features. Payload for the \u0027AllFeaturesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IgnoreDisabledFeatures": {
+                            "type": "boolean",
+                            "description": "When true, the exported recipe only enables features and does not disable any that are currently off."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AllTemplatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "All templates step. Exports every front end template. Payload for the \u0027AllTemplatesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ExportAsFiles": {
+                            "type": "boolean",
+                            "description": "When true, exports each template as a separate file rather than embedding them in the recipe."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AzureAISearchIndexDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Azure AI Search index settings step. Exports the settings of the selected Azure AI Search indexes. Payload for the \u0027AzureAISearchIndexDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Azure AI Search indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Azure AI Search indexes to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AzureAISearchIndexRebuildDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Azure AI Search index rebuild step. Instructs the target to rebuild the selected Azure AI Search indexes. Payload for the \u0027AzureAISearchIndexRebuildDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Azure AI Search indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "Indices": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Azure AI Search indexes to rebuild."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AzureAISearchIndexResetDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Azure AI Search index reset step. Instructs the target to reset the selected Azure AI Search indexes. Payload for the \u0027AzureAISearchIndexResetDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Azure AI Search indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "Indices": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Azure AI Search indexes to reset."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ContentDefinitionDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Content definitions step. Exports the selected content type and content part definitions. Payload for the \u0027ContentDefinitionDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all content type and content part definitions and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "ContentTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
+                            },
+                            "description": "The technical names of the content type definitions to export."
+                          },
+                          "ContentParts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "AliasPart",
+                                "AuditTrailPart",
+                                "AutoroutePart",
+                                "BagPart",
+                                "CommonPart",
+                                "ContainedPart",
+                                "FlowPart",
+                                "HtmlBodyPart",
+                                "HtmlMenuItemPart",
+                                "LayerMetadata",
+                                "ListPart",
+                                "MarkdownBodyPart",
+                                "PreviewPart",
+                                "PublishLaterPart",
+                                "SeoMetaPart",
+                                "TitlePart",
+                                "WidgetsListPart"
+                              ]
+                            },
+                            "description": "The technical names of the content part definitions to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ContentDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Content step. Exports the content items of the selected content types. Payload for the \u0027ContentDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ContentTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
+                            },
+                            "description": "The technical names of the content types whose items are exported."
+                          },
+                          "ExportAsSetupRecipe": {
+                            "type": "boolean",
+                            "description": "When true, exports the content in a form suitable for a setup recipe, resetting owner and identifier information."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ContentItemDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Content item step. Exports a single content item selected by its identifier. Payload for the \u0027ContentItemDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ContentItemId": {
+                            "type": "string",
+                            "description": "The identifier of the content item to export."
+                          }
+                        },
+                        "required": [
+                          "ContentItemId"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CustomFileDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Custom file step. Adds an arbitrary text file, with the supplied content, to the deployment package. Payload for the \u0027CustomFileDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "FileName": {
+                            "type": "string",
+                            "description": "The name of the file written to the deployment package."
+                          },
+                          "FileContent": {
+                            "type": "string",
+                            "description": "The text content of the file."
+                          }
+                        },
+                        "required": [
+                          "FileName"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CustomSettingsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Custom settings step. Exports the site settings for the selected custom settings types. Payload for the \u0027CustomSettingsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all custom settings types and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "SettingsTypeNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The technical names of the custom settings content types to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CustomUserSettingsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Custom user settings step. Exports the custom user settings for the selected settings types. Payload for the \u0027CustomUserSettingsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all custom user settings types and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "SettingsTypeNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The technical names of the custom user settings content types to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "DeleteContentDefinitionDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Delete content definitions step. Deletes the selected content type and content part definitions on the target. Payload for the \u0027DeleteContentDefinitionDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "ContentTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
+                            },
+                            "description": "The technical names of the content type definitions to delete."
+                          },
+                          "ContentParts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "AliasPart",
+                                "AuditTrailPart",
+                                "AutoroutePart",
+                                "BagPart",
+                                "CommonPart",
+                                "ContainedPart",
+                                "FlowPart",
+                                "HtmlBodyPart",
+                                "HtmlMenuItemPart",
+                                "LayerMetadata",
+                                "ListPart",
+                                "MarkdownBodyPart",
+                                "PreviewPart",
+                                "PublishLaterPart",
+                                "SeoMetaPart",
+                                "TitlePart",
+                                "WidgetsListPart"
+                              ]
+                            },
+                            "description": "The technical names of the content part definitions to delete."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "DeploymentPlanDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Deployment plans step. Exports the selected deployment plans. Payload for the \u0027DeploymentPlanDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all deployment plans and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "DeploymentPlanNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The names of the deployment plans to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ElasticsearchIndexDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Elasticsearch index settings step. Exports the settings of the selected Elasticsearch indexes. Payload for the \u0027ElasticsearchIndexDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Elasticsearch indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Elasticsearch indexes to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ElasticsearchIndexRebuildDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Elasticsearch index rebuild step. Instructs the target to rebuild the selected Elasticsearch indexes. Payload for the \u0027ElasticsearchIndexRebuildDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Elasticsearch indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "Indices": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Elasticsearch indexes to rebuild."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ElasticsearchIndexResetDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Elasticsearch index reset step. Instructs the target to reset the selected Elasticsearch indexes. Payload for the \u0027ElasticsearchIndexResetDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Elasticsearch indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "Indices": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Elasticsearch indexes to reset."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "IndexProfileDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Index profile settings step. Exports the settings of the selected index profiles. Payload for the \u0027IndexProfileDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all index profiles and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the index profiles to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "JsonRecipeDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "JSON recipe step. Adds the supplied raw JSON recipe steps to the deployment package. Payload for the \u0027JsonRecipeDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "Json": {
+                            "type": "string",
+                            "description": "The raw JSON, containing one or more recipe steps, added to the deployment package."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LuceneIndexDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Lucene index settings step. Exports the settings of the selected Lucene indexes. Payload for the \u0027LuceneIndexDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Lucene indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Lucene indexes to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LuceneIndexRebuildDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Lucene index rebuild step. Instructs the target to rebuild the selected Lucene indexes. Payload for the \u0027LuceneIndexRebuildDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Lucene indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Lucene indexes to rebuild."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LuceneIndexResetDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Lucene index reset step. Instructs the target to reset the selected Lucene indexes. Payload for the \u0027LuceneIndexResetDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all Lucene indexes and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the Lucene indexes to reset."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "MediaDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Media step. Exports the selected media files and directories. Payload for the \u0027MediaDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all media files and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "FilePaths": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The paths of the individual media files to export."
+                          },
+                          "DirectoryPaths": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The paths of the media directories to export, including their contents."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "QueryBasedContentDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Query based content step. Exports the content items returned by a named query. Payload for the \u0027QueryBasedContentDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "QueryName": {
+                            "type": "string",
+                            "description": "The name of the query whose returned content items are exported."
+                          },
+                          "QueryParameters": {
+                            "type": "string",
+                            "description": "A JSON object, serialized as a string, holding the parameter values passed to the query."
+                          },
+                          "ExportAsSetupRecipe": {
+                            "type": "boolean",
+                            "description": "When true, exports the content in a form suitable for a setup recipe, resetting owner and identifier information."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "RebuildIndexDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Index rebuild step. Instructs the target to rebuild the selected index profiles. Payload for the \u0027RebuildIndexDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all index profiles and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the index profiles to rebuild."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "RecipeFileDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Recipe metadata step. Writes the recipe metadata, such as name, author and version, into the exported recipe file. Payload for the \u0027RecipeFileDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "RecipeName": {
+                            "type": "string",
+                            "description": "The technical recipe name."
+                          },
+                          "DisplayName": {
+                            "type": "string",
+                            "description": "The human readable recipe name."
+                          },
+                          "Description": {
+                            "type": "string",
+                            "description": "A description explaining what the recipe does."
+                          },
+                          "Author": {
+                            "type": "string",
+                            "description": "The recipe author."
+                          },
+                          "WebSite": {
+                            "type": "string",
+                            "description": "A website URL associated with the recipe."
+                          },
+                          "Version": {
+                            "type": "string",
+                            "description": "The recipe version."
+                          },
+                          "IsSetupRecipe": {
+                            "type": "boolean",
+                            "description": "Whether the recipe can be used to set up a new tenant."
+                          },
+                          "Categories": {
+                            "type": "string",
+                            "description": "A comma separated list of categories the recipe belongs to."
+                          },
+                          "Tags": {
+                            "type": "string",
+                            "description": "A comma separated list of tags describing the recipe."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ReplaceContentDefinitionDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Replace content definitions step. Exports the selected content type and content part definitions so they replace, rather than merge with, the definitions on the target. Payload for the \u0027ReplaceContentDefinitionDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all content type and content part definitions and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "ContentTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "Article",
+                                "BlogPost",
+                                "Page"
+                              ]
+                            },
+                            "description": "The technical names of the content type definitions to export."
+                          },
+                          "ContentParts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "AliasPart",
+                                "AuditTrailPart",
+                                "AutoroutePart",
+                                "BagPart",
+                                "CommonPart",
+                                "ContainedPart",
+                                "FlowPart",
+                                "HtmlBodyPart",
+                                "HtmlMenuItemPart",
+                                "LayerMetadata",
+                                "ListPart",
+                                "MarkdownBodyPart",
+                                "PreviewPart",
+                                "PublishLaterPart",
+                                "SeoMetaPart",
+                                "TitlePart",
+                                "WidgetsListPart"
+                              ]
+                            },
+                            "description": "The technical names of the content part definitions to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ResetIndexDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Index reset step. Instructs the target to reset the selected index profiles. Payload for the \u0027ResetIndexDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all index profiles and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "IndexNames": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "articles",
+                                "blogposts",
+                                "pages"
+                              ]
+                            },
+                            "description": "The names of the index profiles to reset."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "SiteSettingsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Site settings step. Exports the selected sections of the site settings. Payload for the \u0027SiteSettingsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "Settings": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The names of the site settings sections to export, for example BaseUrl or TimeZoneId."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TranslationsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Data translations step. Exports the data localization translations for the selected cultures and categories. Payload for the \u0027TranslationsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all cultures and categories and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "Cultures": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "examples": [
+                                "en",
+                                "en-US",
+                                "fr",
+                                "fr-FR"
+                              ]
+                            },
+                            "description": "The culture codes whose translations are exported, for example fr-FR."
+                          },
+                          "Categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The translation categories to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              ]
             },
             "description": "Deployment steps that belong to the plan."
           }

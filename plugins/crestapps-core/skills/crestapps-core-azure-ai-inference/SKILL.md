@@ -26,11 +26,20 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 );
 ```
 
-### Raw Registration
+### Provider-Only Registration
+
+`AddCoreAIAzureAIInference()` adds only the Azure AI Inference provider registrations. Use it alone only when the application has already registered the core AI services it needs.
+
+```csharp
+builder.Services.AddCoreAIAzureAIInference();
+```
+
+For a normal application composition that resolves deployments or uses orchestration, register the core and orchestration services as well:
 
 ```csharp
 builder.Services
     .AddCoreAIServices()
+    .AddCoreAIOrchestration()
     .AddCoreAIAzureAIInference();
 ```
 
@@ -51,6 +60,7 @@ builder.Services
       "Deployments": [
         {
           "Name": "gpt-4o-mini",
+          "ClientName": "AzureAIInference",
           "ConnectionName": "azure-ai-inference",
           "ModelName": "gpt-4o-mini",
           "Type": "Chat"

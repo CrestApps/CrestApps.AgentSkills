@@ -18,11 +18,15 @@ You are an Orchard Core expert. Generate code and configuration for managing con
 - Content items are the fundamental data units in Orchard Core, composed of parts and fields.
 - Every content item has a `ContentItemId` (stable across versions) and a `ContentItemVersionId` (unique per version).
 - Use `IContentManager` for all content item CRUD operations; do not manipulate the database directly.
+- `ValidateAsync` returns a `ContentValidateResult` and does not cancel the
+  current session. If validation follows a mutation, call
+  `ISession.CancelAsync()` explicitly when the result fails.
+- `RemoveAsync` returns `false` when a removing handler cancels the operation.
 - Content items support draft and published states when the content type is configured as `Draftable`.
 - Content items support versioning when the content type is configured as `Versionable`.
 - Always call `await ISession.SaveChangesAsync()` or let the request pipeline flush changes when modifying content outside of `IContentManager`.
 - Use `IContentHandler` to hook into lifecycle events such as creating, publishing, and removing content.
-- Enable `OrchardCore.ContentManagement` feature to access content management APIs.
+- Enable `OrchardCore.Contents` for the content-management UI and API endpoints. Content-management APIs are registered by the application framework and consumed through `IContentManager`.
 
 ### Content Item Lifecycle
 
@@ -105,8 +109,9 @@ public sealed class {{ServiceName}}
         // Unpublish a published content item (revert to draft).
         await _contentManager.UnpublishAsync(contentItem);
 
-        // Remove (soft-delete) a content item.
-        await _contentManager.RemoveAsync(contentItem);
+        // Remove (soft-delete) a content item. The result is false when a
+        // removing handler cancels the operation.
+        var removed = await _contentManager.RemoveAsync(contentItem);
     }
 }
 ```
@@ -260,16 +265,60 @@ public sealed class Startup : StartupBase
 ```
 
 Common handler methods include:
-- `CreatingAsync` / `CreatedAsync` - Before and after a content item is persisted.
-- `UpdatingAsync` / `UpdatedAsync` - Before and after a content item is updated.
+- `CreatingAsync` / `CreatedAsync` - Before and after a new content item is persisted.
+- `UpdatingAsync` / `UpdatedAsync` - Before and after an existing content item is updated.
 - `PublishingAsync` / `PublishedAsync` - Before and after a content item is published.
 - `UnpublishingAsync` / `UnpublishedAsync` - Before and after a content item is unpublished.
 - `RemovingAsync` / `RemovedAsync` - Before and after a content item is removed.
 - `LoadingAsync` / `LoadedAsync` - When a content item is loaded from the store.
 
-### Content Item Import/Export via Recipes
+`CreatingAsync` and `UpdatingAsync` run before the corresponding persistence
+operation. `CreatedAsync` and `UpdatedAsync` run after it. Use the matching
+context type (`CreateContentContext` or `UpdateContentContext`) and do not
+treat an update as a create operation.
 
-Use the `content` recipe step to import or export content items:
+### Validate and Cancel Explicitly
+
+`ValidateAsync` only invokes validation handlers and returns the result. It no
+longer cancels the session for an invalid item. Cancel a preceding mutation
+explicitly when required:
+
+```csharp
+public sealed class ContentValidationService
+{
+    private readonly IContentManager _contentManager;
+    private readonly ISession _session;
+
+    public ContentValidationService(
+        IContentManager contentManager,
+        ISession session)
+    {
+        _contentManager = contentManager;
+        _session = session;
+    }
+
+    public async Task<bool> UpdateAsync(ContentItem contentItem)
+    {
+        await _contentManager.UpdateAsync(contentItem);
+
+        var result = await _contentManager.ValidateAsync(contentItem);
+        if (!result.Succeeded)
+        {
+            await _session.CancelAsync();
+            return false;
+        }
+
+        return true;
+    }
+}
+```
+
+When a removing handler sets `RemoveContentContext.Cancel`, check the boolean
+returned by `RemoveAsync` to detect the canceled operation.
+
+### Content Item Import via Recipes
+
+Use the `content` recipe step to import content items. Use a deployment plan when exporting content.
 
 ```json
 {
@@ -309,6 +358,7 @@ Use the `content` recipe step to import or export content items:
 - `ContentPart` extends `ContentElement` and represents a composable unit attached to a content type (e.g., `TitlePart`, `AutoroutePart`).
 - `ContentField` extends `ContentElement` and represents a data field within a part (e.g., `TextField`, `HtmlField`, `NumericField`).
 - Custom parts and fields can be created by inheriting from `ContentPart` or `ContentField` respectively.
+- A same-name key such as `BlogPost` in a content item's JSON can be the synthetic part that holds fields attached directly to the type definition. It is not a CLR `ContentPart` unless the application defines and registers one.
 
 ```csharp
 public sealed class {{PartName}} : ContentPart

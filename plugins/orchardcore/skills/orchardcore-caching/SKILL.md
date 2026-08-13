@@ -66,37 +66,29 @@ public sealed class Startup : StartupBase
 
 ### Dynamic Cache (Shape-Level Caching)
 
-`OrchardCore.DynamicCache` caches the rendered HTML output of shapes. Each cached shape tracks dependencies so it can be evicted when related content changes. Dependencies use the format `contentitemid:{id}` or custom signal names.
+`OrchardCore.DynamicCache` caches the rendered HTML output of shapes. Each cached shape tracks dependencies so it can be evicted when related content changes. Dependencies use the format `contentitemid:{id}` or custom signal names. See `orchardcore-dynamic-cache` for full vary-by contexts, nested cache blocks, programmatic caching, and custom cache context providers.
 
 ### Shape Cache Tag Helper (Razor)
 
-Use the `<cache>` tag helper in Razor views to cache rendered shape output with vary-by attributes:
+Use the Dynamic Cache `<dynamic-cache>` tag helper in Razor views:
 
 ```html
-<cache expires-after="TimeSpan.FromMinutes(10)"
-       vary-by-route="area,controller,action"
-       vary-by-query="page">
+<dynamic-cache cache-id="recent-posts"
+               vary-by="route"
+               dependencies="contentitemid:@Model.ContentItem.ContentItemId"
+               expires-after="00:10:00">
     @await DisplayAsync(Model.Content)
-</cache>
+</dynamic-cache>
 ```
 
-Supported vary-by attributes:
-- `vary-by-route` - Vary by route values.
-- `vary-by-query` - Vary by query string parameters.
-- `vary-by-user` - Vary by authenticated user.
-- `vary-by-cookie` - Vary by cookie values.
-- `vary-by-header` - Vary by request headers.
-- `vary-by` - Vary by a custom string key.
-- `expires-after` - Absolute expiration as `TimeSpan`.
-- `expires-sliding` - Sliding expiration as `TimeSpan`.
-- `expires-on` - Absolute expiration as `DateTimeOffset`.
+The tag helper accepts `cache-id`, `vary-by`, `dependencies`, `expires-after`, `expires-sliding`, and `expires-on`. `vary-by` and `dependencies` accept comma- or space-separated values.
 
 ### Liquid Cache Block
 
 In Liquid templates, use the `{% cache %}` tag for shape-level caching:
 
 ```liquid
-{% cache "my-cache-key", after: "00:10:00", vary_by: Request.QueryString["page"] %}
+{% cache "my-cache-key", vary_by: "query:page", expires_after: "00:10:00" %}
     {{ Model.Content | shape_render }}
 {% endcache %}
 ```
@@ -117,7 +109,7 @@ public sealed class RecentPostsDisplayDriver : DisplayDriver<RecentPostsViewMode
         return View("RecentPosts", model)
             .Location("Detail", "Content:5")
             .Cache("recentposts", cache => cache
-                .AddDependency("contenttype:BlogPost")
+                .AddTag("contenttype:BlogPost")
                 .AddContext("user")
                 .WithExpiryAfter(TimeSpan.FromMinutes(15))
             );
@@ -126,14 +118,15 @@ public sealed class RecentPostsDisplayDriver : DisplayDriver<RecentPostsViewMode
 ```
 
 Common `CacheContext` methods:
-- `AddDependency(string)` - Evict when the named dependency signals.
 - `AddContext(string)` - Vary by the named context (e.g., `"user"`, `"route"`).
+- `AddTag(string)` - Associate tags used for invalidation.
+- `WithExpiryOn(DateTimeOffset)` - Set a fixed expiration instant.
 - `WithExpiryAfter(TimeSpan)` - Set absolute expiration.
 - `WithExpirySliding(TimeSpan)` - Set sliding expiration.
 
-### Cache Invalidation with ISignal
+### Cache Signals and Dynamic Cache Tags
 
-`ISignal` triggers cache eviction by signaling a named dependency. Any dynamic cache entry tracking that dependency is purged:
+Use `ISignal.SignalTokenAsync` to invalidate consumers that registered `ISignal.GetToken` for the same key. Dynamic Cache entries use `CacheContext.AddTag` and are invalidated through `ITagCache.RemoveTagAsync`.
 
 ```csharp
 using OrchardCore.Environment.Cache;
@@ -141,20 +134,23 @@ using OrchardCore.Environment.Cache;
 public sealed class ProductService
 {
     private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
-    public ProductService(ISignal signal)
+    public ProductService(ISignal signal, ITagCache tagCache)
     {
         _signal = signal;
+        _tagCache = tagCache;
     }
 
     public async Task InvalidateProductCacheAsync()
     {
         await _signal.SignalTokenAsync("productcatalog");
+        await _tagCache.RemoveTagAsync("productcatalog");
     }
 }
 ```
 
-Shapes or code that depend on `"productcatalog"` are evicted when the signal fires. Content item changes automatically signal `contentitemid:{ContentItemId}` dependencies.
+Use the same `"productcatalog"` key when obtaining the change token. The tag removal invalidates Dynamic Cache entries that called `AddTag("productcatalog")`.
 
 ### Using IDistributedCache
 
@@ -205,14 +201,14 @@ using OrchardCore.DynamicCache;
 public sealed class WidgetCacheManager
 {
     private readonly IDynamicCacheService _dynamicCacheService;
-    private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
     public WidgetCacheManager(
         IDynamicCacheService dynamicCacheService,
-        ISignal signal)
+        ITagCache tagCache)
     {
         _dynamicCacheService = dynamicCacheService;
-        _signal = signal;
+        _tagCache = tagCache;
     }
 
     public async Task<string?> GetCachedWidgetAsync(CacheContext context)
@@ -222,12 +218,13 @@ public sealed class WidgetCacheManager
 
     public async Task SetCachedWidgetAsync(CacheContext context, string htmlContent)
     {
+        context.AddTag("widget-sidebar");
         await _dynamicCacheService.SetCachedValueAsync(context, htmlContent);
     }
 
     public async Task InvalidateWidgetAsync()
     {
-        await _signal.SignalTokenAsync("widget-sidebar");
+        await _tagCache.RemoveTagAsync("widget-sidebar");
     }
 }
 ```
@@ -331,49 +328,52 @@ public sealed class CachedArticleService
 {
     private readonly IContentManager _contentManager;
     private readonly IDistributedCache _distributedCache;
-    private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
     public CachedArticleService(
         IContentManager contentManager,
         IDistributedCache distributedCache,
-        ISignal signal)
+        ITagCache tagCache)
     {
         _contentManager = contentManager;
         _distributedCache = distributedCache;
-        _signal = signal;
+        _tagCache = tagCache;
     }
 
-    public async Task<IEnumerable<ContentItem>> GetPublishedArticlesAsync()
+    public async Task<ContentItem?> GetPublishedArticleAsync(string contentItemId)
     {
-        var cacheKey = "published-articles";
+        var cacheKey = $"published-article:{contentItemId}";
         var cached = await _distributedCache.GetStringAsync(cacheKey);
 
         if (cached is not null)
         {
-            return JsonSerializer.Deserialize<IEnumerable<ContentItem>>(cached)
-                ?? [];
+            return JsonSerializer.Deserialize<ContentItem>(cached);
         }
 
-        var articles = await _contentManager
-            .GetAsync(VersionOptions.Published);
+        var article = await _contentManager.GetAsync(
+            contentItemId,
+            VersionOptions.Published);
 
-        var options = new DistributedCacheEntryOptions
+        if (article is null)
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-        };
+            return null;
+        }
 
         await _distributedCache.SetStringAsync(
             cacheKey,
-            JsonSerializer.Serialize(articles),
-            options);
+            JsonSerializer.Serialize(article),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+            });
 
-        return articles;
+        return article;
     }
 
     public async Task InvalidateArticleCacheAsync()
     {
         await _distributedCache.RemoveAsync("published-articles");
-        await _signal.SignalTokenAsync("contenttype:Article");
+        await _tagCache.RemoveTagAsync("contenttype:Article");
     }
 }
 ```

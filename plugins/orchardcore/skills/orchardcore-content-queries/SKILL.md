@@ -161,8 +161,7 @@ public sealed class Migrations : DataMigration
         await SchemaBuilder.AlterIndexTableAsync<{{PartName}}Index>(table => table
             .CreateIndex("IDX_{{PartName}}Index_{{PropertyName}}",
                 "{{PropertyName}}",
-                "Published"))
-        );
+                "Published"));
 
         return 1;
     }
@@ -227,7 +226,7 @@ public sealed class ContentService
     }
 
     // Get specific version
-    public async Task<ContentItem> GetVersionAsync(string contentItemId, string versionId)
+    public async Task<ContentItem> GetVersionAsync(string versionId)
     {
         return await _contentManager.GetVersionAsync(versionId);
     }
@@ -260,7 +259,7 @@ public sealed class ContentService
 }
 ```
 
-### Querying with SQL Directly (Advanced)
+### Advanced YesSql Queries
 
 For complex queries that can't be expressed with YesSql indexes:
 

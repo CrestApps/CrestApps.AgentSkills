@@ -18,6 +18,7 @@ You are an Orchard Core expert. Generate tenant configurations and multi-tenancy
 - Orchard Core supports multi-tenancy natively through the SaaS module.
 - Each tenant is an isolated site sharing the same application instance.
 - Tenants can have separate databases or share a database with table prefix isolation.
+- Tenants can also share a database by using a separate schema when the provider supports schemas.
 - The `Default` tenant is the main shell that manages other tenants.
 - Enable `OrchardCore.Tenants` on the Default tenant to manage tenants.
 - Tenants can use any setup recipe (Blog, Agency, Blank, custom).
@@ -98,7 +99,7 @@ After setup, navigate to **Configuration > Tenants** in the admin panel to creat
 
 ```bash
 # Create a tenant using the REST API
-curl -X POST https://localhost:5001/api/tenants \
+curl -X POST https://localhost:5001/api/tenants/create \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {{token}}" \
   -d '{
@@ -166,11 +167,43 @@ dotnet run
       "RequestUrlPrefix": "{{UrlPrefix}}",
       "DatabaseProvider": "Sqlite",
       "ConnectionString": "",
-      "TablePrefix": "{{TablePrefix}}"
+      "TablePrefix": "{{TablePrefix}}",
+      "Schema": "{{Schema}}"
     }
   }
 }
 ```
+
+### Tenant Database Prefix and Schema Patterns
+
+Configure database isolation defaults under `OrchardCore_Tenants`. The
+patterns are Fluid templates with `ShellSettings` in scope, and generated
+values are validated as SQL identifiers:
+
+```json
+{
+  "OrchardCore": {
+    "OrchardCore_Tenants": {
+      "RequireTablePrefix": true,
+      "TablePrefixPattern": "{{ ShellSettings.Name }}",
+      "SchemaPattern": "dbo"
+    }
+  }
+}
+```
+
+`TablePrefixPattern` generates each tenant's table prefix and
+`SchemaPattern` generates its schema. A pattern removes the corresponding
+manual field from the tenant UI. Use a unique prefix or schema when tenants
+share a database.
+
+When `OrchardCore:DatabaseProvider` is configured, the provider is fixed and
+is not selectable in the Setup or Tenants UI. The connection string remains
+visible when that provider requires one. When both
+`OrchardCore:DatabaseProvider` and `OrchardCore:ConnectionString` are
+configured, the connection string is fixed as well and is not editable.
+Tenant creation can omit a connection string; setup requires one only when
+the selected provider needs it and the tenant has no saved value.
 
 ### Accessing Tenant Information in Code
 

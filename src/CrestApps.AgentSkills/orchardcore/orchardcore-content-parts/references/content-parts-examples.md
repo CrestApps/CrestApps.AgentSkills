@@ -1,5 +1,9 @@
 # Orchard Core Content Parts Examples
 
+For `HtmlBodyPart` and `MarkdownBodyPart`, `RenderLiquid` is independent from
+`SanitizeHtml`. Set each option for the required templating and output safety
+behavior.
+
 ## Example 1: Blog Content Type with Common Parts
 
 ```csharp
@@ -74,6 +78,11 @@ public sealed class BlogMigrations : DataMigration
             .WithPart("HtmlBodyPart", part => part
                 .WithPosition("2")
                 .WithEditor("Wysiwyg")
+                .WithSettings(new HtmlBodyPartSettings
+                {
+                    SanitizeHtml = true,
+                    RenderLiquid = false
+                })
             )
             .WithPart("SeoMetaPart", part => part
                 .WithPosition("10")
@@ -203,7 +212,8 @@ public sealed class LandingPageMigrations : DataMigration
                                     "Editor": "Wysiwyg"
                                 },
                                 "HtmlBodyPartSettings": {
-                                    "SanitizeHtml": true
+                                    "SanitizeHtml": true,
+                                    "RenderLiquid": false
                                 }
                             }
                         },
@@ -324,7 +334,8 @@ public sealed class NewsArticleMigrations : DataMigration
                 .WithPosition("2")
                 .WithSettings(new MarkdownBodyPartSettings
                 {
-                    SanitizeHtml = true
+                    SanitizeHtml = true,
+                    RenderLiquid = false
                 })
             )
             .WithPart("PublishLaterPart", part => part

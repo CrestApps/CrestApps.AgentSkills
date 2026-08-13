@@ -1,6 +1,6 @@
 ---
 name: orchardcore-theming
-description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings. Use this skill when requests mention Orchard Core Theming, How to Use, Evidence Rules, Reference Cues, Tasks, Create a Theme, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyTheme, OrchardCore.DisplayManagement.Manifest, OrchardCore.DisplayManagement, OrchardCore.Theme.Targets, OrchardCore.IOrchardHelper, OrchardCore.ResourceManagement, ContentDefinition, BagPart, FlowPart, ListPart, IOrchardHelper, IResourceManifestProvider. It also helps with assets resources, placement rules, shape alternates, shape workflow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings. Use this skill when requests mention Orchard Core Theming, How to Use, Evidence Rules, Reference Cues, Tasks, Create a Theme, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyTheme, OrchardCore.DisplayManagement.Manifest, OrchardCore.DisplayManagement, OrchardCore.Theme.Targets, OrchardCore.IOrchardHelper, OrchardCore.ResourceManagement, ContentDefinition, BagPart, FlowPart, ListPart, IConfigureOptions<ResourceManagementOptions>, ResourceManifest. It also helps with assets resources, placement rules, shape alternates, shape workflow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -87,8 +87,8 @@ using OrchardCore.DisplayManagement.Manifest;
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OrchardCore.DisplayManagement" Version="2.*" />
-    <PackageReference Include="OrchardCore.Theme.Targets" Version="2.*" />
+    <PackageReference Include="OrchardCore.DisplayManagement" Version="3.*" />
+    <PackageReference Include="OrchardCore.Theme.Targets" Version="3.*" />
   </ItemGroup>
 
 </Project>
@@ -111,7 +111,7 @@ MyTheme/
 │   └── js/
 │       └── site.js
 ├── placement.json (optional)
-└── ResourceManifest.cs (optional)
+└── ResourceManagementOptionsConfiguration.cs (optional)
 ```
 
 ### _ViewImports for Razor Themes
@@ -149,7 +149,7 @@ If it's missing, it can cause build errors.
 
     {% zone "Footer" %}
 
-    {% resources type: "FooterScript" %}
+    {% resources type: "FootScript" %}
     {% script src: "~/{{ThemeName}}/js/site.js" at: "Foot" %}
 </body>
 </html>
@@ -200,13 +200,21 @@ File naming convention: `__` in shape type maps to `-` in file names; `_DisplayT
 ### Resource Manifest
 
 ```csharp
+using Microsoft.Extensions.Options;
 using OrchardCore.ResourceManagement;
 
-public sealed class ResourceManifest : IResourceManifestProvider
+public sealed class ResourceManagementOptionsConfiguration : IConfigureOptions<ResourceManagementOptions>
 {
-    public void BuildManifests(IResourceManifestBuilder builder)
+    private static readonly ResourceManifest _manifest = CreateManifest();
+
+    public void Configure(ResourceManagementOptions options)
     {
-        var manifest = builder.Add();
+        options.ResourceManifests.Add(_manifest);
+    }
+
+    private static ResourceManifest CreateManifest()
+    {
+        var manifest = new ResourceManifest();
 
         manifest
             .DefineStyle("{{ThemeName}}")
@@ -216,6 +224,23 @@ public sealed class ResourceManifest : IResourceManifestProvider
             .DefineScript("{{ThemeName}}")
             .SetUrl("~/{{ThemeName}}/js/site.min.js", "~/{{ThemeName}}/js/site.js")
             .SetPosition(ResourcePosition.Foot);
+
+        return manifest;
+    }
+}
+```
+
+Register the configuration from the theme or module startup:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Modules;
+
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddResourceConfiguration<ResourceManagementOptionsConfiguration>();
     }
 }
 ```

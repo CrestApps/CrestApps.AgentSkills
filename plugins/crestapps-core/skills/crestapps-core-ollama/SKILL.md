@@ -50,9 +50,10 @@ builder.Services
       "Deployments": [
         {
           "Name": "llama3.1",
+          "ClientName": "Ollama",
           "ConnectionName": "local-ollama",
           "ModelName": "llama3.1",
-          "Type": "Chat"
+          "Purpose": "Chat"
         }
       ]
     }

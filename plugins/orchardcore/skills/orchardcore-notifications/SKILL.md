@@ -1,6 +1,6 @@
 ---
 name: orchardcore-notifications
-description: Skill for managing Orchard Core notifications. Covers INotificationService, notification providers, notification events, push notifications, notification workflow activities, and custom notification handlers. Use this skill when requests mention Orchard Core Notifications, Create and Manage Notifications, Enabling Notifications, Notification Model, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Notifications, OrchardCore.Notifications.Email, OrchardCore.Users.Services, OrchardCore.Modules, OrchardCore.Security.Permissions. It also helps with notifications examples, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, Implementing a Custom Notification Provider, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for managing Orchard Core notifications. Covers notification messages, notification delivery methods, notification lifecycle events, workflow activities, and notification permissions. Use this skill when requests mention Orchard Core Notifications, Create and Manage Notifications, Enabling Notifications, Notification Model, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Notifications, OrchardCore.Notifications.Email, OrchardCore.Users, OrchardCore.Modules, OrchardCore.Security.Permissions. It also helps with notifications examples, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, Implementing a Notification Method Provider, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,20 +11,28 @@ metadata:
 
 ## Create and Manage Notifications
 
-You are an Orchard Core expert. Generate notification implementations, custom providers, and notification handling for Orchard Core.
+Use `INotificationService` to create a persistent notification and dispatch it
+through every delivery method available for the recipient. The service contract
+is `SendAsync(object notify, INotificationMessage message, CancellationToken)`;
+it returns a `NotificationSendResult`.
 
 ### Guidelines
 
-- Enable the `OrchardCore.Notifications` feature before using the notification system.
-- Use `INotificationService` to send notifications programmatically to specific users.
-- Notifications support multiple delivery methods: in-app, email, and push.
-- Implement `INotificationProvider` to create custom notification sources.
-- Use `INotificationEvents` to hook into the notification lifecycle.
-- Notifications appear in the admin dashboard notification center.
-- Each notification has a summary, body, and optional URL for navigation.
-- Target notifications to individual users or groups using permissions.
-- Notifications can be marked as read, dismissed, or left unread.
-- Workflow activities can send notifications as part of automated processes.
+- Enable `OrchardCore.Notifications` before using notification services.
+- Enable `OrchardCore.Notifications.Email` only when email delivery is needed.
+- Send a `NotificationMessage`, not a `Notification`; the service creates the
+  `Notification` entity.
+- Pass the recipient as the `notify` object. Use application users when sending
+  user notifications.
+- Inspect `NotificationSendResult.Status`, counts, and errors when delivery
+  outcomes affect application flow.
+- Implement `INotificationMethodProvider` for a delivery method. Its `SendAsync`
+  returns `Task<Result>`.
+- Derive lifecycle handlers from `NotificationEventsHandler`.
+- The module provides the `ManageNotifications` permission. Do not invent
+  additional notification permissions.
+- `NotifyUserTask` and `NotifyContentOwnerTask` are workflow activities
+  registered when their required features are enabled.
 
 ### Enabling Notifications
 
@@ -43,22 +51,28 @@ You are an Orchard Core expert. Generate notification implementations, custom pr
 }
 ```
 
-### Notification Model
+### Notification and Message Models
 
-A notification contains the following key properties:
+`NotificationMessage` supplies the delivery content:
 
-- `NotificationId` - Unique identifier for the notification.
-- `Summary` - Short text displayed in the notification list.
-- `Body` - Detailed content of the notification (supports HTML).
-- `UserId` - The target user who receives the notification.
-- `CreatedUtc` - Timestamp when the notification was created.
-- `ReadAtUtc` - Timestamp when the notification was read (null if unread).
-- `IsRead` - Indicates whether the notification has been read.
+| Property | Purpose |
+|---|---|
+| `Subject` | Delivery subject, such as an email subject. |
+| `Summary` | Short persistent notification summary. |
+| `TextBody` | Plain-text body. |
+| `HtmlBody` | HTML body when a provider supports it. |
+| `IsHtmlPreferred` | Requests HTML when `HtmlBody` is available. |
+
+The persisted `Notification` entity has `NotificationId`, `Subject`, `Summary`,
+`UserId`, and `CreatedUtc`. The core event handler stores the message text and
+HTML body as notification metadata.
 
 ### Sending Notifications with INotificationService
 
 ```csharp
 using OrchardCore.Notifications;
+using OrchardCore.Notifications.Models;
+using OrchardCore.Users;
 
 public sealed class ContentApprovalHandler
 {
@@ -75,134 +89,138 @@ public sealed class ContentApprovalHandler
 
     public async Task NotifyAuthorAsync(IUser user, string contentItemId)
     {
-        var message = new Notification
+        var result = await _notificationService.SendAsync(user, new NotificationMessage
         {
+            Subject = S["Content approved"],
             Summary = S["Your content has been approved"],
-            Body = S["The content item you submitted has been reviewed and approved."],
-        };
+            TextBody = S["The content item {0} was reviewed and approved.", contentItemId],
+        });
 
-        await _notificationService.SendAsync(user, message);
-    }
-}
-```
-
-### Sending Notifications to Multiple Users
-
-```csharp
-using OrchardCore.Notifications;
-using OrchardCore.Users.Services;
-
-public sealed class BulkNotificationSender
-{
-    private readonly INotificationService _notificationService;
-    private readonly IUserService _userService;
-    private readonly IStringLocalizer S;
-
-    public BulkNotificationSender(
-        INotificationService notificationService,
-        IUserService userService,
-        IStringLocalizer<BulkNotificationSender> stringLocalizer)
-    {
-        _notificationService = notificationService;
-        _userService = userService;
-        S = stringLocalizer;
-    }
-
-    public async Task NotifyEditorsAsync(string contentItemDisplayText)
-    {
-        var message = new Notification
+        if (result.Status is NotificationSendStatus.Failed or NotificationSendStatus.None)
         {
-            Summary = S["New content requires review: {0}", contentItemDisplayText],
-            Body = S["A new content item has been submitted and requires editorial review."],
-        };
-
-        var editors = await _userService.GetUsersInRoleAsync("Editor");
-
-        foreach (var editor in editors)
-        {
-            await _notificationService.SendAsync(editor, message);
+            throw new InvalidOperationException("The notification was not delivered.");
         }
     }
 }
 ```
 
-### Implementing a Custom Notification Provider
+### Sending Notifications to a Role
 
-Implement `INotificationProvider` to define a custom source of notifications.
+Use `UserManager<IUser>.GetUsersInRoleAsync` to find recipients. Each call to
+`INotificationService.SendAsync` creates a notification for one recipient.
 
 ```csharp
+using Microsoft.AspNetCore.Identity;
 using OrchardCore.Notifications;
+using OrchardCore.Notifications.Models;
+using OrchardCore.Users;
 
-public sealed class SystemAlertNotificationProvider : INotificationProvider
+public sealed class BulkNotificationSender
 {
-    private readonly ISession _session;
+    private readonly INotificationService _notificationService;
+    private readonly UserManager<IUser> _userManager;
     private readonly IStringLocalizer S;
 
-    public SystemAlertNotificationProvider(
-        ISession session,
-        IStringLocalizer<SystemAlertNotificationProvider> stringLocalizer)
+    public BulkNotificationSender(
+        INotificationService notificationService,
+        UserManager<IUser> userManager,
+        IStringLocalizer<BulkNotificationSender> stringLocalizer)
     {
-        _session = session;
+        _notificationService = notificationService;
+        _userManager = userManager;
         S = stringLocalizer;
     }
 
-    public async Task<IEnumerable<Notification>> GetNotificationsAsync(
-        string userId,
-        NotificationQueryContext context)
+    public async Task NotifyEditorsAsync(string contentItemDisplayText)
     {
-        // Return custom notifications for the given user.
-        var alerts = await _session.Query<SystemAlert>()
-            .Where(a => a.IsActive)
-            .ListAsync();
+        var editors = await _userManager.GetUsersInRoleAsync("Editor");
 
-        return alerts.Select(alert => new Notification
+        foreach (var editor in editors)
         {
-            Summary = alert.Title,
-            Body = alert.Message,
-            CreatedUtc = alert.CreatedUtc,
-        });
+            await _notificationService.SendAsync(editor, new NotificationMessage
+            {
+                Subject = S["Content requires review"],
+                Summary = S["New content requires review: {0}", contentItemDisplayText],
+                TextBody = S["A new content item was submitted for editorial review."],
+            });
+        }
     }
 }
 ```
 
 ### Handling Notification Events
 
-Use `INotificationEvents` to react to notification lifecycle changes.
+`NotificationEventsHandler` provides virtual lifecycle methods. Override the
+event that corresponds to the information needed by the handler.
 
 ```csharp
 using OrchardCore.Notifications;
+using OrchardCore.Notifications.Services;
 
-public sealed class NotificationEventHandler : NotificationEventsBase
+public sealed class NotificationAuditEvents : NotificationEventsHandler
 {
     private readonly ILogger _logger;
 
-    public NotificationEventHandler(ILogger<NotificationEventHandler> logger)
+    public NotificationAuditEvents(ILogger<NotificationAuditEvents> logger)
     {
         _logger = logger;
     }
 
-    public override Task SentAsync(NotificationContext context)
+    public override Task SentAsync(
+        INotificationMethodProvider provider,
+        NotificationContext context,
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Notification '{Summary}' sent to user '{UserId}'.",
-            context.Notification.Summary,
-            context.NotifyUserId);
-
-        return Task.CompletedTask;
-    }
-
-    public override Task ReadAsync(NotificationContext context)
-    {
-        _logger.LogInformation(
-            "Notification '{NotificationId}' marked as read.",
-            context.Notification.NotificationId);
+            "Notification '{NotificationId}' was sent using '{Method}'.",
+            context.Notification.NotificationId,
+            provider.Method);
 
         return Task.CompletedTask;
     }
 }
 ```
 
-### Registering Notification Services
+### Creating a Notification Method Provider
+
+Implement `INotificationMethodProvider` for a delivery channel. Return
+`Result.Success()` or `Result.Failed(...)` so `INotificationService` can
+aggregate the results from every available method.
+
+```csharp
+using Microsoft.Extensions.Localization;
+using OrchardCore.Infrastructure;
+using OrchardCore.Notifications;
+
+public sealed class AuditNotificationMethodProvider : INotificationMethodProvider
+{
+    private readonly ILogger _logger;
+
+    public AuditNotificationMethodProvider(ILogger<AuditNotificationMethodProvider> logger)
+    {
+        _logger = logger;
+    }
+
+    public string Method => "Audit";
+
+    public LocalizedString Name => new("Audit notification");
+
+    public Task<Result> SendAsync(
+        object notify,
+        INotificationMessage message,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Recorded notification '{Subject}' for {RecipientType}.",
+            message.Subject,
+            notify.GetType().Name);
+
+        return Task.FromResult(Result.Success());
+    }
+}
+```
+
+### Registering Notification Extensions
 
 ```csharp
 using OrchardCore.Modules;
@@ -212,91 +230,35 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<INotificationEvents, NotificationEventHandler>();
-        services.AddScoped<INotificationProvider, SystemAlertNotificationProvider>();
-    }
-}
-```
-
-### Creating a Custom Notification Handler
-
-Handle specific notification types by implementing `INotificationMethodProvider`.
-
-```csharp
-using OrchardCore.Notifications;
-
-public sealed class SmsNotificationMethodProvider : INotificationMethodProvider
-{
-    private readonly ISmsService _smsService;
-
-    public SmsNotificationMethodProvider(ISmsService smsService)
-    {
-        _smsService = smsService;
-    }
-
-    public string Method => "Sms";
-
-    public LocalizedString Name => new("SMS");
-
-    public async Task<bool> TrySendAsync(
-        IUser user,
-        Notification notification,
-        bool isRead,
-        CancellationToken cancellationToken = default)
-    {
-        var phoneNumber = await GetPhoneNumberAsync(user);
-
-        if (string.IsNullOrEmpty(phoneNumber))
-        {
-            return false;
-        }
-
-        await _smsService.SendAsync(phoneNumber, notification.Summary);
-
-        return true;
-    }
-
-    private Task<string> GetPhoneNumberAsync(IUser user)
-    {
-        // Retrieve the phone number from user claims or profile.
-        return Task.FromResult(string.Empty);
+        services.AddScoped<INotificationEvents, NotificationAuditEvents>();
+        services.AddScoped<INotificationMethodProvider, AuditNotificationMethodProvider>();
     }
 }
 ```
 
 ### Notification Permissions
 
-Notifications use permissions to control access:
-
-- `ManageNotifications` - Allows managing all notifications.
-- `ViewOwnNotifications` - Allows a user to view their own notifications.
+`ManageNotifications` is the notification permission exposed by the module.
+Use it to protect administration UI or application operations that manage
+notifications.
 
 ```csharp
 using OrchardCore.Notifications;
-using OrchardCore.Security.Permissions;
 
-public sealed class NotificationPermissionHandler : AuthorizationHandler<PermissionRequirement>
+if (!await authorizationService.AuthorizeAsync(
+    user,
+    NotificationPermissions.ManageNotifications))
 {
-    protected override Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
-        PermissionRequirement requirement)
-    {
-        if (requirement.Permission.Name == NotificationPermissions.ManageNotifications.Name)
-        {
-            if (context.User.IsInRole("Administrator"))
-            {
-                context.Succeed(requirement);
-            }
-        }
-
-        return Task.CompletedTask;
-    }
+    return Forbid();
 }
 ```
 
-### Push Notifications Configuration
+### Notification Workflow Activities
 
-Enable push notifications by configuring the `OrchardCore.Notifications` settings:
+Enable Workflows with Notifications to use the built-in `NotifyUserTask`.
+The activity targets the configured users by name and sends the configured
+subject and message. Enable Contents and Users as well to use
+`NotifyContentOwnerTask`.
 
 ```json
 {
@@ -305,7 +267,7 @@ Enable push notifications by configuring the `OrchardCore.Notifications` setting
       "name": "Feature",
       "enable": [
         "OrchardCore.Notifications",
-        "OrchardCore.Notifications.Push"
+        "OrchardCore.Workflows"
       ],
       "disable": []
     }
@@ -313,134 +275,9 @@ Enable push notifications by configuring the `OrchardCore.Notifications` setting
 }
 ```
 
-Configure push notification options in `appsettings.json`:
+### Administration
 
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_Notifications": {
-      "TotalUnreadNotifications": 10,
-      "AbsoluteExpirationSeconds": 600,
-      "DisableNotificationCenter": false
-    }
-  }
-}
-```
-
-### Notification Workflow Activities
-
-The notifications module provides workflow activities for automation:
-
-- `NotifyUserTask` - Sends a notification to a specific user within a workflow.
-
-```csharp
-using OrchardCore.Notifications.Activities;
-using OrchardCore.Workflows.Activities;
-using OrchardCore.Workflows.Abstractions.Models;
-using OrchardCore.Workflows.Models;
-
-public sealed class CustomNotifyTask : TaskActivity
-{
-    private readonly INotificationService _notificationService;
-    private readonly IUserService _userService;
-
-    public CustomNotifyTask(
-        INotificationService notificationService,
-        IUserService userService,
-        IStringLocalizer<CustomNotifyTask> localizer)
-    {
-        _notificationService = notificationService;
-        _userService = userService;
-        S = localizer;
-    }
-
-    private IStringLocalizer S { get; }
-
-    public override string Name => "CustomNotifyTask";
-
-    public override LocalizedString DisplayText => S["Custom Notify Task"];
-
-    public override LocalizedString Category => S["Notifications"];
-
-    public string UserName { get; set; }
-
-    public string NotificationSummary { get; set; }
-
-    public override IEnumerable<Outcome> GetPossibleOutcomes(
-        WorkflowExecutionContext workflowContext,
-        ActivityContext activityContext)
-    {
-        return Outcomes(S["Notified"], S["Failed"]);
-    }
-
-    public override async Task<ActivityExecutionResult> ExecuteAsync(
-        WorkflowExecutionContext workflowContext,
-        ActivityContext activityContext)
-    {
-        var user = await _userService.GetUserByNameAsync(UserName);
-
-        if (user == null)
-        {
-            return Outcomes("Failed");
-        }
-
-        var message = new Notification
-        {
-            Summary = NotificationSummary,
-        };
-
-        await _notificationService.SendAsync(user, message);
-
-        return Outcomes("Notified");
-    }
-}
-```
-
-### Reading and Managing Notifications
-
-```csharp
-using OrchardCore.Notifications;
-
-public sealed class NotificationManager
-{
-    private readonly INotificationService _notificationService;
-
-    public NotificationManager(INotificationService notificationService)
-    {
-        _notificationService = notificationService;
-    }
-
-    public async Task<IEnumerable<Notification>> GetUnreadNotificationsAsync(string userId)
-    {
-        return await _notificationService.GetNotificationsAsync(
-            userId,
-            isRead: false);
-    }
-
-    public async Task MarkAsReadAsync(string notificationId)
-    {
-        await _notificationService.ReadAsync(notificationId);
-    }
-
-    public async Task DismissNotificationAsync(string notificationId)
-    {
-        await _notificationService.DeleteAsync(notificationId);
-    }
-
-    public async Task<int> GetUnreadCountAsync(string userId)
-    {
-        return await _notificationService.GetUnreadCountAsync(userId);
-    }
-}
-```
-
-### Admin Notification Center
-
-Notifications appear in the Orchard Core admin dashboard. The notification center is accessible from the top navigation bar and displays:
-
-- A bell icon with a badge showing the unread notification count.
-- A dropdown list of recent notifications sorted by date.
-- Options to mark individual notifications as read or dismiss them.
-- A link to the full notifications list page.
-
-Customize the notification center behavior in the admin settings under **Configuration > Notifications**.
+The notification center and notification list are administered through the
+built-in module UI. Notification read state is handled by the module endpoint;
+`INotificationService` exposes delivery only, not read, unread, count, or
+delete operations.

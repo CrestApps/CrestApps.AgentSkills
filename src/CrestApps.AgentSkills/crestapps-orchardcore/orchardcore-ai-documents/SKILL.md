@@ -16,8 +16,9 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 ### Guidelines
 - The AI Documents modules provide document upload, text extraction, chunking, vector indexing, and RAG search for AI conversations.
 - The base feature `CrestApps.OrchardCore.AI.Documents` is `EnabledByDependencyOnly` and is activated automatically when you enable one of the higher-level features.
-- Document processing follows the pipeline Upload → Extract Text → Chunk → Embed → Index → Vector Search.
-- An embedding deployment (e.g., `text-embedding-3-small`) must be configured for chunking and indexing to work.
+- Embeddable documents follow the pipeline Upload → Extract Text → Chunk → Embed → Index → Vector Search.
+- Tabular documents (`.csv` and `.xlsx`) use a tabular workspace and tabular tools instead of embedding and vector indexing.
+- An embedding deployment (e.g., `text-embedding-3-small`) is required only for the embeddable document indexing path.
 - Each indexing backend (Azure AI Search or Elasticsearch) registers a keyed `IVectorSearchService` implementation.
 - Install all CrestApps NuGet packages in the web/startup project.
 - Always secure connection strings and API keys using user secrets or environment variables.
@@ -140,9 +141,10 @@ The document processing pipeline follows these steps:
 1. **Upload** - User uploads a file via the chat interaction, profile, or chat session UI. The file is saved using `IDocumentFileStore` (file system by default, or Azure Blob if configured).
 2. **Extract Text** - The document processor extracts plain text. PDF and OpenXml formats require their respective feature modules.
 3. **Chunk** - Extracted text is split into smaller chunks stored via `IAIDocumentChunkStore`.
-4. **Embed** - Each chunk is sent to the configured embedding deployment (e.g., `text-embedding-3-small`) to generate vector embeddings.
-5. **Index** - Chunks with embeddings are indexed into the configured search backend (Azure AI Search or Elasticsearch) via `AIDocumentsIndexingService`.
-6. **Search** - At query time, the user prompt is embedded and a vector similarity search retrieves relevant chunks to augment the AI response (RAG).
+4. **Embed and Index** - For embeddable documents, chunks are sent to the configured embedding deployment and written to the configured search backend.
+5. **Search** - For indexed documents, a vector similarity search retrieves relevant chunks to augment the AI response (RAG).
+
+CSV and Excel are tabular, non-embeddable inputs. They are loaded into the per-conversation tabular workspace and handled with tabular tools rather than through RAG indexing.
 
 ### Supported Document Formats
 
@@ -158,6 +160,7 @@ The document processing pipeline follows these steps:
 | JSON | .json | Built-in |
 | XML | .xml | Built-in |
 | HTML | .html, .htm | Built-in |
+| Log | .log | Built-in |
 | YAML | .yml, .yaml | Built-in |
 
 Legacy Office formats (.doc, .xls, .ppt) are not supported. Convert them to their modern equivalents first.
@@ -198,7 +201,7 @@ Enable `CrestApps.OrchardCore.AI.Documents.AzureAI`. This registers:
 
 - `AIDocumentAzureAISearchDocumentIndexHandler` as an `IDocumentIndexHandler`
 - `AzureAISearchVectorSearchService` as a keyed `IVectorSearchService`
-- An indexing source named "AI Documents (Azure AI Search)" under `Search → Indexing`
+- An indexing source named **AI Documents (Azure AI Search)** under `Search → Indexing`
 
 #### Elasticsearch
 
@@ -206,7 +209,7 @@ Enable `CrestApps.OrchardCore.AI.Documents.Elasticsearch`. This registers:
 
 - `AIDocumentElasticsearchDocumentIndexHandler` as an `IDocumentIndexHandler`
 - `ElasticsearchVectorSearchService` as a keyed `IVectorSearchService`
-- An indexing source named "AI Documents (Elasticsearch)" under `Search → Indexing`
+- An indexing source named **AI Documents (Elasticsearch)** under `Search → Indexing`
 
 ### Setting Up Document Indexing
 
@@ -222,18 +225,16 @@ Document indexing requires an embedding deployment. Create one via admin UI or d
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "text-embedding-3-small", "Type": "Embedding", "IsDefault": true }
-              ]
-            }
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
+          {
+            "Name": "text-embedding-3-small",
+            "ClientName": "OpenAI",
+            "ConnectionName": "default",
+            "Purpose": "Embedding"
           }
-        }
+        ]
       }
     }
   }
@@ -285,13 +286,17 @@ Implement `IAIChatDocumentEventHandler` to react to document lifecycle events:
 ```csharp
 public sealed class MyDocumentEventHandler : IAIChatDocumentEventHandler
 {
-    public Task DocumentUploadedAsync(AIDocumentEventContext context)
+    public Task UploadedAsync(
+        AIChatDocumentUploadContext context,
+        CancellationToken cancellationToken = default)
     {
         // Runs after a document is uploaded and processed.
         return Task.CompletedTask;
     }
 
-    public Task DocumentRemovedAsync(AIDocumentEventContext context)
+    public Task RemovedAsync(
+        AIChatDocumentRemoveContext context,
+        CancellationToken cancellationToken = default)
     {
         // Runs after a document is removed.
         return Task.CompletedTask;

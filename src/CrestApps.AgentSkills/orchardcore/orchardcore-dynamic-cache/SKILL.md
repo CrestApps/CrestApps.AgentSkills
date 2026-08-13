@@ -7,7 +7,7 @@ description: Skill for configuring dynamic caching in Orchard Core. Covers shape
 
 ## Configure Dynamic Caching
 
-You are an Orchard Core expert. Generate code and configuration for dynamic caching including shape-level caching, tag helpers, Liquid cache blocks, cache contexts, dependencies, variations, invalidation, and performance optimization.
+You are an Orchard Core expert. Generate code and configuration for dynamic caching including shape-level caching, tag helpers, Liquid cache blocks, cache contexts, dependencies, variations, invalidation, and performance optimization. For response compression, distributed cache providers, and cache-control/response headers, see `orchardcore-caching`.
 
 ### Guidelines
 
@@ -15,7 +15,7 @@ You are an Orchard Core expert. Generate code and configuration for dynamic cach
 - Dynamic Cache caches rendered HTML markup at the shape level, not at the page level.
 - Cached sections can be nested; each section can have its own cache policy.
 - Cached values are stored via `IDynamicCache`, backed by `IDistributedCache` (defaults to `IMemoryCache`).
-- If no expiration is set, a default sliding window of one minute is used.
+- The Razor `<dynamic-cache>` tag helper defaults to a 30-second sliding window when no expiration is set. Programmatic and Liquid cache entries use the dynamic-cache service default.
 - Invalidating a child cache block also invalidates all parent blocks.
 - Use `contentitemid:{ContentItemId}` and `alias:{Alias}` dependencies to auto-invalidate when content changes.
 - Create custom dependencies with `ITagCache.RemoveTagAsync()`.
@@ -65,20 +65,20 @@ Create custom dependencies by calling `ITagCache.RemoveTagAsync()` in response t
 
 Contexts are hierarchical. For example, `user` is more specific than `user.roles`. If both are declared, only `user` is used.
 
-### Shape Tag Helper Attributes
+### Dynamic Cache Razor Tag Helper Attributes
 
-| Razor Attribute | Liquid Attribute | Description | Required |
-|-----------------|-----------------|-------------|----------|
-| `cache-id` | `cache_id` | The identifier of the cached shape | Yes |
-| `cache-context` | `cache_context` | Space/comma-separated context values | No |
-| `cache-dependency` | `cache_dependency` | Space/comma-separated dependency values | No |
-| `cache-tag` | `cache_tag` | Space/comma-separated tag values | No |
-| `cache-fixed-duration` | `cache_fixed_duration` | Fixed cache duration (e.g., `"00:05:00"`) | No |
-| `cache-sliding-duration` | `cache_sliding_duration` | Sliding cache duration (e.g., `"00:05:00"`) | No |
+| Razor Attribute | Description | Required |
+|-----------------|-------------|----------|
+| `cache-id` | The identifier of the cached section | Yes |
+| `vary-by` | Space/comma-separated cache contexts | No |
+| `dependencies` | Space/comma-separated invalidation tags | No |
+| `expires-on` | Fixed `DateTimeOffset` expiration | No |
+| `expires-after` | Relative expiration | No |
+| `expires-sliding` | Sliding expiration | No |
 
-### Caching Shapes via Tag Helpers
+### Caching Shapes from Liquid
 
-Cache a shape in Liquid with shape tag helper attributes:
+Liquid `shape` and `contentitem` tags cache a shape with `cache_id`, `cache_context`, `cache_tag`, `cache_fixed_duration`, and `cache_sliding_duration`:
 
 ```liquid
 {% shape "menu", alias: "alias:main-menu", cache_id: "main-menu", cache_fixed_duration: "00:05:00", cache_tag: "alias:main-menu" %}
@@ -105,7 +105,7 @@ public sealed class RecentPostsDisplayDriver : DisplayDriver<RecentPostsWidget>
         return View("RecentPosts", model)
             .Location("Detail", "Content:5")
             .Cache("recentposts", cache => cache
-                .AddDependency("contenttype:BlogPost")
+                .AddTag("contenttype:BlogPost")
                 .AddContext("user")
                 .WithExpiryAfter(TimeSpan.FromMinutes(15))
             );
@@ -117,13 +117,12 @@ public sealed class RecentPostsDisplayDriver : DisplayDriver<RecentPostsWidget>
 
 | Method | Description |
 |--------|-------------|
-| `WithDuration(TimeSpan)` | Cache for a fixed amount of time |
-| `WithSlidingExpiration(TimeSpan)` | Cache with a sliding window |
+| `WithExpiryOn(DateTimeOffset)` | Cache until a fixed point in time |
+| `WithExpiryAfter(TimeSpan)` | Cache for a fixed duration |
+| `WithExpirySliding(TimeSpan)` | Cache with a sliding window |
 | `AddContext(params string[])` | Vary cached content by the specified context values |
 | `RemoveContext(string)` | Remove a context |
-| `AddDependency(params string[])` | Define values that will invalidate the cache entry |
-| `RemoveDependency(string)` | Remove a dependency |
-| `AddTag(string)` | Add a tag for manual invalidation |
+| `AddTag(params string[])` | Add invalidation tags |
 | `RemoveTag(string)` | Remove a tag |
 
 ### Liquid Cache Block
@@ -135,7 +134,7 @@ Use `{% cache %}` blocks in Liquid templates for declarative caching. Blocks can
 | Argument | Description | Required |
 |----------|-------------|----------|
 | `id` (first positional) | The cache block identifier | Yes |
-| `contexts` | Space/comma-separated context values | No |
+| `vary_by` | Space/comma-separated context values | No |
 | `dependencies` | Space/comma-separated dependency values | No |
 | `expires_after` | Fixed duration (e.g., `"00:05:00"`) | No |
 | `expires_sliding` | Sliding duration (e.g., `"00:05:00"`) | No |
@@ -168,7 +167,7 @@ Use `{% cache %}` blocks in Liquid templates for declarative caching. Blocks can
     {% endcache %}
     {% cache "a2", dependencies: "a2", expires_after: "0:0:1" %}
         A2 {{ "now" | date: "%T" }} (1 Second) <br />
-        {% cache "a2a", dependencies: "a2a", contexts: "route", expires_sliding: "0:0:5" %}
+        {% cache "a2a", dependencies: "a2a", vary_by: "route", expires_sliding: "0:0:5" %}
             A2A {{ "now" | date: "%T" }} (5 Seconds) <br />
         {% endcache %}
     {% endcache %}
@@ -194,15 +193,15 @@ Use these Liquid tags to alter the current cache scope from inside a cache block
     {% for item in recentBlogPosts %}
         {{ item | display_text }}
 
-        {% assign cacheDependency = "contentitemid:" | append: Model.ContentItem.ContentItemId %}
+        {% assign cacheDependency = "contentitemid:" | append: item.ContentItemId %}
         {% cache_dependency cacheDependency %}
     {% endfor %}
 {% endcache %}
 ```
 
-### Cache Invalidation with ISignal
+### Cache Signals and Tag Invalidation
 
-Use `ISignal` to programmatically invalidate cached entries by signaling a named dependency:
+Use `ISignal.SignalTokenAsync` for consumers that registered `ISignal.GetToken` for the same key. To invalidate Dynamic Cache entries tagged with `AddTag`, use `ITagCache.RemoveTagAsync`.
 
 ```csharp
 using OrchardCore.Environment.Cache;
@@ -210,20 +209,23 @@ using OrchardCore.Environment.Cache;
 public sealed class ProductService
 {
     private readonly ISignal _signal;
+    private readonly ITagCache _tagCache;
 
-    public ProductService(ISignal signal)
+    public ProductService(ISignal signal, ITagCache tagCache)
     {
         _signal = signal;
+        _tagCache = tagCache;
     }
 
     public async Task InvalidateProductCacheAsync()
     {
         await _signal.SignalTokenAsync("productcatalog");
+        await _tagCache.RemoveTagAsync("productcatalog");
     }
 }
 ```
 
-Any cache entry with a `productcatalog` dependency is evicted when the signal fires. Content item changes automatically signal `contentitemid:{ContentItemId}`.
+The signal API remains useful for signal-token consumers. The tag removal invalidates Dynamic Cache entries that called `AddTag("productcatalog")`.
 
 ### Custom Cache Context Provider
 

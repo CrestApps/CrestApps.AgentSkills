@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-types
-description: Skill for creating, managing, and configuring Orchard Core Content Types. Covers content part definitions, content field definitions, stereotypes, and content type indexing. Use this skill when requests mention Orchard Core Content Types, Create a Content Type, Migration Pattern, Content Field Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with TitlePart, AutoroutePart, CommonPart, ListPart, DataMigration, IContentDefinitionManager, WithPart, WithSettings, AutoroutePartSettings, WithField, TextField, HtmlField. It also helps with content type examples, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating, managing, and configuring Orchard Core Content Types. Covers content definition services, content part definitions, content field definitions, stereotypes, and content type indexing. Use this skill when requests mention Orchard Core Content Types, Create a Content Type, Migration Pattern, Content Field Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with TitlePart, AutoroutePart, CommonPart, ListPart, DataMigration, IContentDefinitionManager, IContentDefinitionService, AlterFieldContext, AlterTypePartContext, WithPart, WithSettings, AutoroutePartSettings, WithField, TextField, HtmlField. It also helps with content type examples, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,6 +21,8 @@ You are an Orchard Core expert. Generate code and configuration for creating a c
 - Use `CommonPart` conventions (owner, created/modified dates) where appropriate.
 - Attach `ListPart` if the content type should act as a container.
 - Use content part and field settings to configure editors and display modes.
+- Use the asynchronous `IContentDefinitionManager` APIs such as `AlterTypeDefinitionAsync` and `AlterPartDefinitionAsync`.
+- Define fields on a content part, then attach that part to a content type. Fields cannot be attached directly to a type definition.
 
 ### Migration Pattern
 
@@ -58,6 +60,37 @@ public sealed class Migrations : DataMigration
         return 1;
     }
 }
+```
+
+### Content Definition Service
+
+`IContentDefinitionService` is in the `OrchardCore.ContentTypes`
+namespace and is provided by `OrchardCore.ContentTypes.Abstractions`. It
+contains reusable content definition operations and accepts
+`AlterFieldContext` and `AlterTypePartContext` for targeted settings changes.
+It does not expose public loading helpers. Use `IContentDefinitionManager`
+when a definition must be loaded or listed.
+
+```csharp
+await contentDefinitionService.AlterFieldAsync(new AlterFieldContext
+{
+    PartName = "ArticlePart",
+    FieldName = "Summary",
+    DisplayName = "Summary",
+    Editor = "Wysiwyg",
+    DisplayMode = "Detail"
+});
+
+await contentDefinitionService.AlterTypePartAsync(new AlterTypePartContext
+{
+    TypeName = "Article",
+    PartDefinition = await contentDefinitionManager.GetPartDefinitionAsync("ArticlePart"),
+    PartName = "ArticlePart",
+    DisplayName = "Article details",
+    Description = "Article-specific settings",
+    Editor = "Default",
+    DisplayMode = "Detail"
+});
 ```
 
 ### Content Field Configuration

@@ -8,7 +8,7 @@
     },
     "site": {
       "type": "string",
-      "enum": [
+      "examples": [
         "SafeMode",
         "TheAdmin",
         "TheAgencyTheme",
@@ -20,7 +20,7 @@
     },
     "admin": {
       "type": "string",
-      "enum": [
+      "examples": [
         "SafeMode",
         "TheAdmin",
         "TheAgencyTheme",

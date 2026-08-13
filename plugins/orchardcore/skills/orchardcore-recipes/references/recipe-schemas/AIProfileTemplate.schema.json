@@ -15,6 +15,10 @@
             "type": "string",
             "description": "Optional unique identifier."
           },
+          "Source": {
+            "type": "string",
+            "description": "Template source identifier. Built-in values are \u0027Profile\u0027 for reusable AI profile templates and \u0027SystemPrompt\u0027 for reusable system prompt templates."
+          },
           "Name": {
             "type": "string",
             "description": "Unique technical name for the template."
@@ -753,6 +757,7 @@
         },
         "required": [
           "Name",
+          "Source",
           "DisplayText"
         ],
         "additionalProperties": true

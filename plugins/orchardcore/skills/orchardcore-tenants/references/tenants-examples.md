@@ -95,3 +95,26 @@ public sealed class TenantBrandingService
     }
 }
 ```
+
+## Example 4: Generated Tenant Database Isolation
+
+Use tenant-aware Fluid patterns to generate a prefix or schema when tenants
+share a database:
+
+```json
+{
+  "OrchardCore": {
+    "OrchardCore_Tenants": {
+      "RequireTablePrefix": true,
+      "TablePrefixPattern": "tenant_{{ ShellSettings.Name }}",
+      "SchemaPattern": "{{ ShellSettings.Name }}"
+    }
+  }
+}
+```
+
+The generated and manually entered values must be valid SQL identifiers.
+When `DatabaseProvider` is configured, the provider cannot be changed in the
+Setup or Tenants UI. If both `DatabaseProvider` and `ConnectionString` are
+configured, the connection string is also fixed. Setup asks for a connection
+string only when the selected provider requires one and no saved value exists.

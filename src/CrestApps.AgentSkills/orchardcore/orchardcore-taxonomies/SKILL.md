@@ -21,7 +21,8 @@ You are an Orchard Core expert. Generate taxonomy definitions, terms, and taxono
 - Use `TaxonomyField` on content types to allow categorization.
 - Taxonomies can be flat (tags) or hierarchical (categories).
 - Terms can have custom content parts and fields.
-- Use `TermPart` for content items that serve as taxonomy terms.
+- `TermPart` is welded automatically onto content items used as taxonomy terms; do not attach it manually.
+- Taxonomy content listings use full pagination in Orchard Core 3.0.
 
 ### Enabling Taxonomy Features
 
@@ -148,15 +149,38 @@ _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
 
 ### Querying by Taxonomy Terms in Liquid
 
-```liquid
-{% assign items = Content | where: "Content.BlogPost.Categories.TermContentItemIds", "contains", termId %}
+Create a SQL query named `ContentItemsByTaxonomyTerm` with **Return Content Items** disabled:
+
+```sql
+SELECT DISTINCT ContentItemId
+FROM TaxonomyIndex
+WHERE TermContentItemId = @termContentItemId:''
+  AND Published = true
 ```
+
+Execute the query, then load its returned content item ids with the `content_item_id` filter:
+
+```liquid
+{% assign rows = Queries.ContentItemsByTaxonomyTerm | query: termContentItemId: termId %}
+{% assign contentItemIds = rows | map: "ContentItemId" %}
+{% assign items = contentItemIds | content_item_id %}
+
+{% for item in items %}
+    {{ item | display_text }}
+{% endfor %}
+```
+
+### Filtering Taxonomy Content Listings
+
+Implement `IContentsTaxonomyListFilter` when a module must add restrictions
+to the query used by a taxonomy term content listing. Keep the filter
+focused on query constraints and let the built-in listing handle paging.
 
 ### Displaying Taxonomy Terms
 
 ```liquid
-{% for termId in Model.ContentItem.Content.BlogPost.Categories.TermContentItemIds %}
-    {% assign term = termId | content_item %}
+{% assign terms = Model.ContentItem.Content.BlogPost.Categories | taxonomy_terms %}
+{% for term in terms %}
     <span class="badge">{{ term.DisplayText }}</span>
 {% endfor %}
 ```
@@ -166,16 +190,15 @@ _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
 Create a custom term type with additional fields:
 
 ```csharp
-_contentDefinitionManager.AlterTypeDefinition("Category", type => type
+await _contentDefinitionManager.AlterTypeDefinitionAsync("Category", type => type
     .DisplayedAs("Category")
-    .Stereotype("Term")
     .WithPart("TitlePart")
     .WithPart("Category", part => part
         .WithPosition("1")
     )
 );
 
-_contentDefinitionManager.AlterPartDefinition("Category", part => part
+await _contentDefinitionManager.AlterPartDefinitionAsync("Category", part => part
     .WithField("Icon", field => field
         .OfType("TextField")
         .WithDisplayName("Icon CSS Class")

@@ -181,6 +181,29 @@
       },
       "additionalProperties": false
     },
+    "AIVisitorIdentityOptions": {
+      "type": "object",
+      "description": "Configuration for anonymous AI chat visitor identity and remote-address handling.",
+      "properties": {
+        "CookieName": {
+          "type": "string",
+          "description": "The cookie name used to persist the anonymous visitor identifier."
+        },
+        "CookieLifetime": {
+          "type": "string",
+          "description": "The visitor cookie lifetime as a .NET TimeSpan string."
+        },
+        "RemoteAddressMode": {
+          "type": "string",
+          "description": "The remote-address storage mode."
+        },
+        "RemoteAddressHashSalt": {
+          "type": "string",
+          "description": "The application-specific salt used when hashing remote addresses."
+        }
+      },
+      "additionalProperties": false
+    },
     "AdminSettings": {
       "type": "object",
       "description": "Configuration for the admin dashboard appearance and behavior.",
@@ -1360,6 +1383,57 @@
         "MetadataAddress": {
           "type": "string",
           "description": "The URI of the OpenID Connect discovery document."
+        }
+      },
+      "additionalProperties": false
+    },
+    "PromptSecurityOptions": {
+      "type": "object",
+      "description": "Configuration for AI chat prompt security and abuse throttling.",
+      "properties": {
+        "MaxPromptLength": {
+          "type": "integer",
+          "description": "The maximum allowed prompt length in characters."
+        },
+        "EnableInjectionDetection": {
+          "type": "boolean",
+          "description": "Whether prompt injection detection is enabled."
+        },
+        "EnableOutputFiltering": {
+          "type": "boolean",
+          "description": "Whether output filtering is enabled."
+        },
+        "EnableSecurityPreamble": {
+          "type": "boolean",
+          "description": "Whether the hardened security preamble is enabled."
+        },
+        "EnableInputDelimiters": {
+          "type": "boolean",
+          "description": "Whether user input delimiters are enabled."
+        },
+        "EnableAuditLogging": {
+          "type": "boolean",
+          "description": "Whether security audit logging is enabled."
+        },
+        "BlockingThreshold": {
+          "type": "string",
+          "description": "The minimum prompt risk level that triggers blocking."
+        },
+        "MaxMessagesPerWindow": {
+          "type": "integer",
+          "description": "The maximum number of messages allowed within the rate-limit window."
+        },
+        "RateLimitWindow": {
+          "type": "string",
+          "description": "The chat message rate-limit window as a .NET TimeSpan string."
+        },
+        "MaxAnonymousSessionsPerWindow": {
+          "type": "integer",
+          "description": "The maximum number of anonymous sessions allowed within the anonymous session-start window."
+        },
+        "AnonymousSessionRateLimitWindow": {
+          "type": "string",
+          "description": "The anonymous session-start rate-limit window as a .NET TimeSpan string."
         }
       },
       "additionalProperties": false

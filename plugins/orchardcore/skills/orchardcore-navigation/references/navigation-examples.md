@@ -15,11 +15,11 @@ public sealed class AdminMenu : INavigationProvider
         S = localizer;
     }
 
-    public Task BuildNavigationAsync(string name, NavigationBuilder builder)
+    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
     {
         if (!string.Equals(name, "admin", StringComparison.OrdinalIgnoreCase))
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         builder
@@ -31,7 +31,7 @@ public sealed class AdminMenu : INavigationProvider
                 )
             );
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 ```
@@ -62,8 +62,8 @@ public sealed class AdminMenu : INavigationProvider
               {
                 "ContentType": "LinkMenuItem",
                 "ContentItemId": "menu-item-home",
+                "DisplayText": "Home",
                 "LinkMenuItemPart": {
-                  "Name": "Home",
                   "Url": "~/"
                 }
               },
@@ -86,8 +86,8 @@ public sealed class AdminMenu : INavigationProvider
               {
                 "ContentType": "LinkMenuItem",
                 "ContentItemId": "menu-item-contact",
+                "DisplayText": "Contact",
                 "LinkMenuItemPart": {
-                  "Name": "Contact",
                   "Url": "~/contact"
                 }
               }

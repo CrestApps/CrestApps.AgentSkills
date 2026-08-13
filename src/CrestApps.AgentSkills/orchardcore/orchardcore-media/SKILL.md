@@ -1,6 +1,6 @@
 ---
 name: orchardcore-media
-description: Skill for managing media in Orchard Core. Covers media library configuration, media profiles, image processing, media field usage, and storage providers. Use this skill when requests mention Orchard Core Media, Configure Media Management, Enabling Media Features, Media Settings Configuration, Azure Blob Storage Configuration, Media Profiles via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media, OrchardCore.Media.Indexing, OrchardCore.Media.Cache, OrchardCore.Media.Processing, MediaField, MyPart, CustomMediaResizingFilter, IMediaEventHandler, MediaCreatingContext, AlterPartDefinition, ArticlePart, WithField. It also helps with media examples, Azure Blob Storage Configuration, Media Profiles via Recipe, Using Media in Liquid Templates, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for managing media in Orchard Core. Covers media library configuration, media profiles, ImageSharp processing, media field usage, storage providers, image caches, and media storage events. Use this skill when requests mention Orchard Core Media, Configure Media Management, Enabling Media Features, Media Settings Configuration, Media Profiles via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Media, OrchardCore.Media.Indexing, OrchardCore.Media.Cache, IMediaEventHandler, MediaPermittedStorageContext, MediaField, IMediaCreatingEventHandler, MediaCreatingContext, AlterPartDefinition, ArticlePart, WithField.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,9 +20,17 @@ You are an Orchard Core expert. Generate configuration and code for managing med
 - Azure Blob Storage and Amazon S3 can be configured as alternative storage providers.
 - Media profiles define image processing pipelines (resize, crop, format conversion).
 - Use `MediaField` on content types to allow users to attach media files.
-- Media processing uses ImageSharp for image transformations.
+- Media processing uses ImageSharp through ImageSharp.Web.
 - Configure allowed file extensions and max file size in media settings.
 - Use media tokens in Liquid templates to generate processed image URLs.
+
+### Image Processing
+
+Image processing uses ImageSharp.Web. Media profiles can resize, crop, and
+convert image formats through the configured ImageSharp pipeline.
+
+The default resized-image cache is stored under
+`wwwroot/{tenant}/is-cache`.
 
 ### Enabling Media Features
 
@@ -122,13 +130,31 @@ Processing modes include:
 ### Custom Media Processing
 
 ```csharp
-using OrchardCore.Media.Processing;
+using OrchardCore.Media.Events;
 
-public sealed class CustomMediaResizingFilter : IMediaEventHandler
+public sealed class CustomMediaResizingFilter : IMediaCreatingEventHandler
 {
-    public Task MediaCreatingAsync(MediaCreatingContext context)
+    public Task<Stream> MediaCreatingAsync(MediaCreatingContext context, Stream creatingStream)
     {
-        // Custom logic before media is created
+        return Task.FromResult(creatingStream);
+    }
+}
+```
+
+### Restrict Permitted Media Storage
+
+Use `IMediaEventHandler.MediaPermittedStorageAsync` to apply a storage limit
+for custom stores or quotas. Call `Constrain` so multiple handlers can safely
+apply the smallest limit:
+
+```csharp
+using OrchardCore.Media.Events;
+
+public sealed class MediaQuotaEventHandler : IMediaEventHandler
+{
+    public Task MediaPermittedStorageAsync(MediaPermittedStorageContext context)
+    {
+        context.Constrain(10 * 1024 * 1024);
         return Task.CompletedTask;
     }
 }

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-email
-description: Guidance for configuring and sending emails in Orchard Core using the OrchardCore.Email module, including SMTP setup, programmatic sending via ISmtpService, Liquid-based email templates, recipe-driven configuration, workflow email activities, and the Azure Communication Services email provider. Use this skill when requests mention OrchardCore.Email Module, Email Providers, Configuring SMTP Settings, Via Admin UI, Via Recipe, Via Configuration Provider, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Email, OrchardCore.Email.Azure, OrchardCore.Email.Smtp, OrchardCore.Modules, OrchardCore.Liquid, OrchardCore.Workflows, OrchardCore.Email.Events, ISmtpService, MailKitSmtpService. It also helps with email examples, Via Recipe, Via Configuration Provider, Configuring Azure Communication Services Email, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Guidance for configuring and sending email in Orchard Core with the OrchardCore.Email module, SMTP or Azure Communication Services providers, IEmailService, MailMessage, Result, Liquid templates, workflow activities, recipes, and provider selection. Use this skill when requests mention OrchardCore.Email Module, Email Providers, Configuring SMTP Settings, Via Admin UI, Via Recipe, Via Configuration Provider, ISmtpService migration, MailKitSmtpService migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,375 +9,185 @@ metadata:
 
 # OrchardCore.Email Module
 
-The `OrchardCore.Email` module provides email functionality for Orchard Core applications. It supports multiple email providers, Liquid-based templates for dynamic content, workflow integration, and both admin UI and recipe-based configuration.
+`OrchardCore.Email` supplies the provider-neutral email API. Enable an email
+provider and configure one enabled provider as the default before application
+code sends mail.
 
-## Email Providers
+| Provider module | Tenant provider technical name | Configuration-backed default |
+|---|---|---|
+| `OrchardCore.Email.Smtp` | `SMTP` | `DefaultSMTP` |
+| `OrchardCore.Email.Azure` | `Azure` | `DefaultAzure` |
 
-Orchard Core ships with built-in support for the following email providers:
+The email settings page is **Settings → Communication → Email**. It lists
+enabled providers and selects `EmailSettings.DefaultProviderName`. Enabling the
+last valid tenant provider selects it automatically; otherwise explicitly
+choose the default. The test page is **Tools → Testing → Email Test** and lets
+an administrator select an enabled provider for the test message.
 
-- **SMTP (MailKit)** — Uses `MailKitSmtpService` to deliver messages through any standard SMTP server.
-- **Azure Communication Services** — Sends email through the Azure Communication Services Email API using the `OrchardCore.Email.Azure` module.
-
-Enable the relevant feature depending on your provider:
-
-- `OrchardCore.Email` — Core email abstractions and admin settings.
-- `OrchardCore.Email.Smtp` — SMTP delivery via MailKit.
-- `OrchardCore.Email.Azure` — Azure Communication Services delivery.
-
-## Configuring SMTP Settings
-
-### Via Admin UI
-
-Navigate to **Configuration → Settings → Email** in the admin dashboard. The SMTP settings section allows you to specify:
-
-| Setting | Description |
-|---|---|
-| Default Sender | The default "From" address for outgoing messages. |
-| Host | The SMTP server hostname (e.g., `smtp.example.com`). |
-| Port | The SMTP port (typically 25, 465, or 587). |
-| Encryption Method | `None`, `SSLTLS`, or `STARTTLS`. |
-| Username | Credentials for SMTP authentication. |
-| Password | Password for SMTP authentication. |
-| Proxy Host / Port | Optional SOCKS proxy settings for environments that route through a proxy. |
-
-### Via Recipe
-
-Configure SMTP settings declaratively using a `Settings` recipe step targeting `SmtpSettings`:
+## Enable and Configure SMTP
 
 ```json
 {
   "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Email",
+        "OrchardCore.Email.Smtp"
+      ]
+    },
     {
       "name": "Settings",
       "SmtpSettings": {
+        "IsEnabled": true,
         "DefaultSender": "noreply@example.com",
         "Host": "smtp.example.com",
         "Port": 587,
-        "EncryptionMethod": "STARTTLS",
         "AutoSelectEncryption": false,
+        "EncryptionMethod": "STARTTLS",
         "RequireCredentials": true,
         "UserName": "smtp-user",
-        "Password": "smtp-password",
-        "ProxyHost": null,
-        "ProxyPort": 0
+        "Password": "use-a-secret-provider",
+        "DeliveryMethod": "Network"
+      },
+      "EmailSettings": {
+        "DefaultProviderName": "SMTP"
       }
     }
   ]
 }
 ```
 
-### Via Configuration Provider
+`OrchardCore_Email_Smtp` configures the `DefaultSMTP` provider. Use the
+settings UI for a tenant-specific `SMTP` provider. Do not commit credentials.
 
-SMTP settings can also be supplied through `appsettings.json` or environment variables using the `OrchardCore_Email_Smtp` configuration section:
-
-```json
-{
-  "OrchardCore_Email_Smtp": {
-    "DefaultSender": "noreply@example.com",
-    "DeliveryMethod": "Network",
-    "Host": "smtp.example.com",
-    "Port": 587,
-    "EncryptionMethod": "STARTTLS",
-    "RequireCredentials": true,
-    "UserName": "smtp-user",
-    "Password": "smtp-password"
-  }
-}
-```
-
-#### Pickup Directory Configuration
-
-When using `DeliveryMethod: "SpecifiedPickupDirectory"`, emails are written to disk instead of being sent over the network. The pickup directory is resolved from two settings:
-
-| Setting | Description |
-|---|---|
-| `PickupDirectoryLocationBase` | The absolute base path where email files are stored. Supports Liquid templating with `{{ AppData }}` and `{{ ShellSettings.Name }}`. Configured only via `appsettings.json` or environment variables (not through the admin UI). Defaults to `{{ AppData }}\Sites\{{ ShellSettings.Name }}\Emails`. |
-| `PickupDirectoryLocation` | A **relative** path within the base directory. Must start with `/` (for the base folder itself) or `/Subfolder` for a subfolder. Full Windows paths (e.g., `C:\Emails`) are **not allowed**. The path must not contain `..`, `~`, `{`, `}`, or other invalid characters, and must not navigate outside the base directory. |
-
-Example configuration:
-
-```json
-{
-  "OrchardCore_Email_Smtp": {
-    "DefaultSender": "noreply@example.com",
-    "DeliveryMethod": "SpecifiedPickupDirectory",
-    "PickupDirectoryLocationBase": "{{ AppData }}\\Sites\\{{ ShellSettings.Name }}\\Emails",
-    "PickupDirectoryLocation": "/"
-  }
-}
-```
-
-To write emails to a subfolder under the base:
-
-```json
-{
-  "OrchardCore_Email_Smtp": {
-    "DeliveryMethod": "SpecifiedPickupDirectory",
-    "PickupDirectoryLocationBase": "{{ AppData }}\\Sites\\{{ ShellSettings.Name }}\\Emails",
-    "PickupDirectoryLocation": "/Outbound/Notifications"
-  }
-}
-```
-
-> **Important**: The `PickupDirectoryLocation` value configured through the admin UI or recipe must be a relative path (e.g., `/` or `/Subfolder`). Absolute paths, drive-qualified paths, and paths containing directory traversal segments are rejected. The directory is automatically created if it does not exist.
-
-## Configuring Azure Communication Services Email
-
-Enable the `OrchardCore.Email.Azure` feature, then configure settings in the admin under **Configuration → Settings → Email → Azure Communication Services**, or via configuration:
-
-```json
-{
-  "OrchardCore_Email_Azure": {
-    "DefaultSender": "DoNotReply@your-azure-domain.azurecomm.net",
-    "ConnectionString": "endpoint=https://your-resource.communication.azure.com/;accesskey=YOUR_ACCESS_KEY"
-  }
-}
-```
-
-Or supply the connection string as a recipe step:
+## Enable and Configure Azure Communication Services
 
 ```json
 {
   "steps": [
     {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Email",
+        "OrchardCore.Email.Azure"
+      ]
+    },
+    {
       "name": "Settings",
       "AzureEmailSettings": {
-        "DefaultSender": "DoNotReply@your-azure-domain.azurecomm.net",
-        "ConnectionString": "endpoint=https://your-resource.communication.azure.com/;accesskey=YOUR_ACCESS_KEY"
+        "IsEnabled": true,
+        "DefaultSender": "DoNotReply@your-domain.azurecomm.net",
+        "ConnectionString": "supply-from-a-secure-source"
+      },
+      "EmailSettings": {
+        "DefaultProviderName": "Azure"
       }
     }
   ]
 }
 ```
 
-## Sending Emails Programmatically
+`OrchardCore_Email_AzureCommunicationServices` configures `DefaultAzure`.
+Use a verified ACS sender and secure configuration for connection strings.
 
-### Using ISmtpService
+## Sending Email Programmatically
 
-Inject `ISmtpService` to send emails from custom code. Build a `MailMessage` and call `SendAsync`:
+Inject `IEmailService`; `ISmtpService`, `SmtpResult`, and
+`MailKitSmtpService` are not the v3 API. Use `HtmlBody` and/or `TextBody`;
+`Body` and `IsHtmlBody` are obsolete.
 
 ```csharp
-using Microsoft.Extensions.Localization;
 using OrchardCore.Email;
+using OrchardCore.Infrastructure;
+
+namespace MyModule;
 
 public sealed class OrderConfirmationService
 {
-    private readonly ISmtpService _smtpService;
-    private readonly IStringLocalizer S;
+    private readonly IEmailService _emailService;
 
-    public OrderConfirmationService(
-        ISmtpService smtpService,
-        IStringLocalizer<OrderConfirmationService> stringLocalizer)
+    public OrderConfirmationService(IEmailService emailService)
     {
-        _smtpService = smtpService;
-        S = stringLocalizer;
+        _emailService = emailService;
     }
 
-    public async Task<SmtpResult> SendOrderConfirmationAsync(
+    public Task<Result> SendAsync(
         string recipientEmail,
-        string orderId)
+        string orderId,
+        CancellationToken cancellationToken = default)
     {
         var message = new MailMessage
         {
             To = recipientEmail,
-            Subject = S["Order Confirmation - {0}", orderId].Value,
-            Body = $"<p>Your order <strong>{orderId}</strong> has been confirmed.</p>",
-            IsHtmlBody = true
+            Subject = $"Order confirmation {orderId}",
+            HtmlBody = $"<p>Your order <strong>{orderId}</strong> has been confirmed.</p>",
+            TextBody = $"Your order {orderId} has been confirmed.",
         };
 
-        return await _smtpService.SendAsync(message);
+        return _emailService.SendAsync(message, cancellationToken: cancellationToken);
     }
 }
 ```
 
-Register the service in your module's `Startup`:
+Pass a provider technical name only when deliberately overriding the configured
+default:
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
-using OrchardCore.Modules;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddScoped<OrderConfirmationService>();
-    }
-}
-```
-
-### Checking the Result
-
-`SmtpResult` indicates whether the send operation succeeded:
-
-```csharp
-var result = await _smtpService.SendAsync(message);
+var result = await _emailService.SendAsync(
+    message,
+    providerName: "SMTP",
+    cancellationToken: cancellationToken);
 
 if (!result.Succeeded)
 {
     foreach (var error in result.Errors)
     {
-        logger.LogError("Email send failed: {Error}", error.Value);
+        logger.LogError("Email send failed: {Error}", error.Message.Value);
     }
 }
 ```
 
-### MailMessage Properties
+`MailMessage` supports `From`, `To`, `Cc`, `Bcc`, `ReplyTo`, `Sender`,
+`Subject`, `HtmlBody`, `TextBody`, and `Attachments`.
 
-The `MailMessage` class exposes these key properties:
+`IEmailService.SendAsync()` and `IEmailProvider.SendAsync()` accept a
+`CancellationToken`. Pass the request token through custom providers and
+event handlers so shutdown and request cancellation can stop delivery.
 
-| Property | Type | Description |
-|---|---|---|
-| `From` | `string` | Sender address. Falls back to `DefaultSender` if empty. |
-| `To` | `string` | Comma-separated list of recipient addresses. |
-| `Cc` | `string` | Comma-separated list of CC addresses. |
-| `Bcc` | `string` | Comma-separated list of BCC addresses. |
-| `ReplyTo` | `string` | Reply-to address. |
-| `Subject` | `string` | Message subject line. |
-| `Body` | `string` | Message body (plain text or HTML). |
-| `IsHtmlBody` | `bool` | When `true`, the body is treated as HTML. |
-| `Attachments` | `List<MailMessageAttachment>` | File attachments. |
+## Liquid Templates
 
-### Sending with Attachments
+Render a Liquid template before assigning it to `HtmlBody`:
 
 ```csharp
-public sealed class ReportEmailService
+var html = await _liquidTemplateManager.RenderStringAsync(
+    "<p>Welcome, {{ UserName }}!</p>",
+    System.Text.Encodings.Web.HtmlEncoder.Default,
+    new { UserName = userName });
+
+await _emailService.SendAsync(new MailMessage
 {
-    private readonly ISmtpService _smtpService;
-
-    public ReportEmailService(ISmtpService smtpService)
-    {
-        _smtpService = smtpService;
-    }
-
-    public async Task<SmtpResult> SendReportAsync(
-        string recipientEmail,
-        string reportName,
-        Stream reportStream)
-    {
-        var message = new MailMessage
-        {
-            To = recipientEmail,
-            Subject = $"Report: {reportName}",
-            Body = "<p>Please find the attached report.</p>",
-            IsHtmlBody = true
-        };
-
-        message.Attachments.Add(new MailMessageAttachment
-        {
-            Filename = $"{reportName}.pdf",
-            Stream = reportStream
-        });
-
-        return await _smtpService.SendAsync(message);
-    }
-}
+    To = recipientEmail,
+    Subject = "Welcome",
+    HtmlBody = html,
+    TextBody = $"Welcome, {userName}!",
+});
 ```
 
-## Liquid Email Templates
+## Email Events
 
-Orchard Core's Liquid integration allows you to build dynamic email bodies. Use `ILiquidTemplateManager` to render templates before sending:
-
-```csharp
-using OrchardCore.Liquid;
-using OrchardCore.Email;
-
-public sealed class TemplatedEmailService
-{
-    private readonly ISmtpService _smtpService;
-    private readonly ILiquidTemplateManager _liquidTemplateManager;
-
-    public TemplatedEmailService(
-        ISmtpService smtpService,
-        ILiquidTemplateManager liquidTemplateManager)
-    {
-        _smtpService = smtpService;
-        _liquidTemplateManager = liquidTemplateManager;
-    }
-
-    public async Task<SmtpResult> SendWelcomeEmailAsync(
-        string recipientEmail,
-        string userName)
-    {
-        var template = @"
-<h1>Welcome, {{ UserName }}!</h1>
-<p>Thank you for registering on our site.</p>
-<p>Your account is now active and ready to use.</p>
-";
-
-        var model = new { UserName = userName };
-        var body = await _liquidTemplateManager.RenderStringAsync(
-            template,
-            System.Text.Encodings.Web.HtmlEncoder.Default,
-            model);
-
-        var message = new MailMessage
-        {
-            To = recipientEmail,
-            Subject = $"Welcome, {userName}!",
-            Body = body,
-            IsHtmlBody = true
-        };
-
-        return await _smtpService.SendAsync(message);
-    }
-}
-```
-
-### Liquid Syntax in Email Templates
-
-Common Liquid constructs for email templates:
-
-- **Variable output**: `{{ Model.PropertyName }}`
-- **Conditionals**: `{% if Model.IsVip %} ... {% endif %}`
-- **Loops**: `{% for item in Model.Items %} ... {% endfor %}`
-- **Filters**: `{{ Model.Date | date: "%B %d, %Y" }}`
-- **Content items**: `{% contentitem id: Model.ContentItemId, assign_model: "item" %}`
-
-## Email Workflow Activities
-
-When the `OrchardCore.Email` feature is enabled alongside `OrchardCore.Workflows`, a **Send Email** activity becomes available in the workflow editor.
-
-### Send Email Activity Properties
-
-| Property | Description |
-|---|---|
-| Sender | The "From" address. Defaults to the configured default sender. |
-| Recipients | Comma-separated recipient addresses. Supports Liquid expressions. |
-| CC | Comma-separated CC addresses. Supports Liquid expressions. |
-| BCC | Comma-separated BCC addresses. Supports Liquid expressions. |
-| Reply-To | Reply-to address. Supports Liquid expressions. |
-| Subject | Email subject. Supports Liquid expressions. |
-| Body | Email body. Supports full Liquid template syntax with HTML. |
-| Is HTML Body | Whether the body should be treated as HTML. |
-
-In workflow Liquid expressions, access the current workflow context with `{{ Workflow }}` and the triggering content item with `{{ ContentItem }}`.
-
-### Example Workflow: Notify Admin on Content Publication
-
-Create a workflow that sends an email when a content item is published:
-
-1. Add a **Content Published Event** as the starting activity.
-2. Connect it to a **Send Email** activity with:
-   - **Recipients**: `admin@example.com`
-   - **Subject**: `Content Published: {{ ContentItem.DisplayText }}`
-   - **Body**:
-     ```
-     <p>The content item <strong>{{ ContentItem.DisplayText }}</strong> of type
-     <em>{{ ContentItem.ContentType }}</em> was published.</p>
-     <p>Published by: {{ Workflow.Input.Owner }}</p>
-     ```
-
-## Email Notification Events
-
-Orchard Core raises email-related events that modules can hook into. Implement `IEmailNotificationEvents` or listen for specific email notification events to customize behavior before or after emails are sent.
-
-### Custom Email Event Handler
+Implement `IEmailServiceEvents`, or derive from `EmailServiceEventsBase`, to
+observe validation and delivery. Event methods receive a cancellation token;
+`ValidatedAsync` and `ValidatingAsync` also receive
+`MailMessageValidationContext`.
 
 ```csharp
 using OrchardCore.Email;
-using OrchardCore.Email.Events;
+using OrchardCore.Email.Services;
 
-public sealed class EmailAuditHandler : IEmailNotificationEvents
+namespace MyModule;
+
+public sealed class EmailAuditHandler : EmailServiceEventsBase
 {
     private readonly ILogger<EmailAuditHandler> _logger;
 
@@ -386,62 +196,28 @@ public sealed class EmailAuditHandler : IEmailNotificationEvents
         _logger = logger;
     }
 
-    public Task SendingAsync(MailMessage message)
+    public override Task SendingAsync(MailMessage message, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Sending email to {Recipients} with subject '{Subject}'.",
-            message.To,
-            message.Subject);
-
+        _logger.LogInformation("Sending email with subject {Subject}.", message.Subject);
         return Task.CompletedTask;
     }
 
-    public Task SentAsync(MailMessage message)
+    public override Task FailedAsync(MailMessage message, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Email sent to {Recipients} successfully.",
-            message.To);
-
-        return Task.CompletedTask;
-    }
-
-    public Task FailedAsync(MailMessage message)
-    {
-        _logger.LogWarning(
-            "Failed to send email to {Recipients}.",
-            message.To);
-
+        _logger.LogWarning("Email delivery failed for subject {Subject}.", message.Subject);
         return Task.CompletedTask;
     }
 }
 ```
 
-Register the handler:
+Register the handler as `IEmailServiceEvents`.
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
-using OrchardCore.Email.Events;
-using OrchardCore.Modules;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddScoped<IEmailNotificationEvents, EmailAuditHandler>();
-    }
-}
+services.AddScoped<IEmailServiceEvents, EmailAuditHandler>();
 ```
 
-## Testing Email Configuration
+## Workflows
 
-Use the admin **Email Test** page at **Configuration → Settings → Email → Test** to send a test message. This validates that SMTP or Azure Communication Services settings are correctly configured.
-
-## Troubleshooting
-
-| Symptom | Possible Cause |
-|---|---|
-| Emails not sent | SMTP feature not enabled or credentials are incorrect. |
-| Authentication failures | Wrong username/password or encryption method mismatch. |
-| Connection timeouts | Firewall blocking SMTP port, or incorrect host/port. |
-| Azure emails rejected | Sender domain not verified in Azure Communication Services. |
-| Liquid variables empty | Model properties not passed to the template correctly. |
+With `OrchardCore.Email` and `OrchardCore.Workflows` enabled, use the **Send
+Email** workflow activity. Its body is rendered as HTML, so provide HTML there
+and keep provider configuration outside the workflow definition.

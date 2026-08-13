@@ -13,6 +13,12 @@
         "properties": {
           "culture": {
             "type": "string",
+            "examples": [
+              "en",
+              "en-US",
+              "fr",
+              "fr-FR"
+            ],
             "description": "Culture name, for example \u0027en-US\u0027 or \u0027fr\u0027."
           },
           "context": {

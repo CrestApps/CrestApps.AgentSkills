@@ -34,7 +34,7 @@ Every Orchard Core theme or module should include a `_ViewImports.cshtml` file a
 - `@inherits OrchardCore.DisplayManagement.Razor.RazorPage<TModel>` gives access to `IOrchardHelper` via `Orchard` and shape display helpers.
 - Add only the `@addTagHelper` lines for assemblies your theme or module actually uses.
 - `@using OrchardCore.DisplayManagement.Razor` is not needed when `@inherits` already references that namespace.
-- For themes, add `@using OrchardCore` to access general extension methods.
+- No `@using OrchardCore` directive is needed to access content helpers from `IOrchardHelper`.
 
 ## _ViewStart.cshtml Conventions
 
@@ -69,7 +69,7 @@ A theme's `Layout.cshtml` renders zones that contain shapes placed by modules an
     <style asp-name="{{ThemeStyleName}}"></style>
     <resources type="HeadLink" />
     <resources type="HeadScript" />
-    <resources type="StyleSheet" />
+    <resources type="Stylesheet" />
 </head>
 <body>
     <zone name="Header" />
@@ -80,7 +80,7 @@ A theme's `Layout.cshtml` renders zones that contain shapes placed by modules an
 
     <zone name="Footer" />
 
-    <resources type="FooterScript" />
+    <resources type="FootScript" />
 </body>
 </html>
 ```
@@ -89,7 +89,7 @@ A theme's `Layout.cshtml` renders zones that contain shapes placed by modules an
 
 - Always call `await RenderBodyAsync()` **before** rendering any zone that wraps it, so the body content registers its resources first.
 - Use `@RenderTitleSegments(Site.SiteName)` to render page title segments separated by the site name.
-- Render resource tags in the correct location: `Meta`, `HeadLink`, `HeadScript`, `StyleSheet` in `<head>`, and `FooterScript` before `</body>`.
+- Render resource tags in the correct location: `Meta`, `HeadLink`, `HeadScript`, `Stylesheet` in `<head>`, and `FootScript` before `</body>`.
 
 ## Shape Tag Helpers
 
@@ -259,8 +259,8 @@ Place these in the layout to output all resources registered by shapes and modul
 <resources type="Meta" />
 <resources type="HeadLink" />
 <resources type="HeadScript" />
-<resources type="StyleSheet" />
-<resources type="FooterScript" />
+<resources type="Stylesheet" />
+<resources type="FootScript" />
 ```
 
 ### Resource Positions
@@ -268,7 +268,7 @@ Place these in the layout to output all resources registered by shapes and modul
 | Position | Description |
 |----------|-------------|
 | `Head` | Rendered in `<head>` via `<resources type="HeadScript" />` |
-| `Foot` | Rendered before `</body>` via `<resources type="FooterScript" />` |
+| `Foot` | Rendered before `</body>` via `<resources type="FootScript" />` |
 
 ## Media Tag Helper
 
@@ -390,6 +390,11 @@ Place these in the layout to output all resources registered by shapes and modul
 
 Access `IOrchardHelper` via the `Orchard` property in Razor views that inherit from `OrchardCore.DisplayManagement.Razor.RazorPage<TModel>`.
 
+In 3.0, content helpers are available without adding `@using OrchardCore`.
+The `ContentRazorHelperExtensions` class was replaced by
+`ContentOrchardHelperExtensions`; extension method usage in Razor views stays
+the same.
+
 ### Get a Content Item by ID
 
 ```cshtml
@@ -463,25 +468,39 @@ Access global site settings via `Site`:
 @await DisplayAsync(shape)
 ```
 
-## Defining a Resource Manifest
+## Defining Named Resources
 
 Register stylesheets and scripts so they can be referenced by name in Razor views.
 
-### Resource Manifest Class
+For the complete resource-management guidance, including CDN and dependency
+configuration, see [Orchard Core Resources](../orchardcore-resources/SKILL.md).
+
+### Resource Configuration Class
 
 ```csharp
-public sealed class ResourceManifest : IResourceManifestProvider
-{
-    public void BuildManifests(IResourceManifestBuilder builder)
-    {
-        var manifest = builder.Add();
+using Microsoft.Extensions.Options;
+using OrchardCore.ResourceManagement;
 
-        manifest.DefineStyle("{{ThemeStyleName}}")
+public sealed class ResourceManagementOptionsConfiguration
+    : IConfigureOptions<ResourceManagementOptions>
+{
+    private static readonly ResourceManifest _manifest;
+
+    static ResourceManagementOptionsConfiguration()
+    {
+        _manifest = new ResourceManifest();
+
+        _manifest.DefineStyle("{{ThemeStyleName}}")
             .SetUrl("~/{{ModuleOrThemeId}}/css/site.min.css", "~/{{ModuleOrThemeId}}/css/site.css");
 
-        manifest.DefineScript("{{ThemeScriptName}}")
+        _manifest.DefineScript("{{ThemeScriptName}}")
             .SetUrl("~/{{ModuleOrThemeId}}/js/site.min.js", "~/{{ModuleOrThemeId}}/js/site.js")
             .SetPosition("Foot");
+    }
+
+    public void Configure(ResourceManagementOptions options)
+    {
+        options.ResourceManifests.Add(_manifest);
     }
 }
 ```
@@ -498,7 +517,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddResourceManifest<ResourceManifest>();
+        services.AddResourceConfiguration<ResourceManagementOptionsConfiguration>();
     }
 }
 ```

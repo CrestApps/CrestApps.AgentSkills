@@ -34,6 +34,10 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
     )
     .AddIndexingServices(indexing => indexing
         .AddEntityCoreStores()
+        .AddAzureAISearch(
+            builder.Configuration.GetSection("CrestApps:AzureAISearch"),
+            search => search
+                .AddAIDataSources())
     )
 );
 ```
@@ -43,3 +47,4 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 - Use documents for uploaded file workflows.
 - Use data sources for durable business indexes.
 - Combine data sources with AI Profiles when retrieval boundaries should be reusable.
+- A metadata store alone does not provide a data-source backend. Register a real backend such as Azure AI Search, Elasticsearch, or PostgreSQL and call that backend's `AddAIDataSources()` extension.

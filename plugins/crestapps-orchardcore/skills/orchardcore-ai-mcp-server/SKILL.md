@@ -16,7 +16,8 @@ You are an Orchard Core expert. Generate configuration and admin guidance for ex
 ### Guidelines
 - Use feature ID `CrestApps.OrchardCore.AI.Mcp.Server`.
 - The MCP server exposes Orchard AI tools, MCP prompts, MCP resources, and templated resources.
-- The server uses SSE transport.
+- The server uses the MCP Streamable HTTP transport at `/mcp`.
+- The server feature depends on `CrestApps.OrchardCore.AI`; add other features such as AI Agent only when their tools are intended to be exposed.
 - Prefer authenticated access in production.
 - Prompts and resources can be managed from the admin UI.
 - Resource URIs are auto-constructed by the system from `{source}://{itemId}/{path}`.
@@ -53,6 +54,36 @@ You are an Orchard Core expert. Generate configuration and admin guidance for ex
 | Resources | Exposes static resources through `ListResources` and `ReadResource` |
 | Templated Resources | Exposes variable-based resource templates through `ListResourceTemplates` |
 
+### Expose Documentation Search as a Tool
+
+Use an AI Tool Instance for documentation lookup instead of adding a
+documentation-specific MCP prompt. Do not point the built-in
+`http-api-request` source directly at the static search indexes published by
+the Orchard Core and CrestApps documentation sites. They use large
+client-side indexes, ignore query parameters, and the source has no response
+filtering or size limit. The Orchard Core Gallery is a package and module
+discovery site, not a documentation search API.
+
+Enable `CrestApps.OrchardCore.AI.ToolInstances` and use either:
+
+- An `http-api-request` instance targeting a search service that you own and
+  populate from the documentation and gallery data.
+- A custom tool instance source that fetches and caches the static indexes
+  server-side and returns only matching entries.
+
+The indexed source data may include:
+
+- `https://docs.orchardcore.net`
+- `https://core.crestapps.com`
+- `https://orchardcore.crestapps.com`
+- `https://gallery.orchardcore.net` for package and module discovery
+
+Use `GET` only, set `AllowModelProvidedBody = false`, leave credentials empty
+for public sources, set a short timeout, and give each instance a precise
+description. Keep these instances separate from privileged management or
+content tools, and protect access with the generated
+`AccessAITool_{functionName}` permission.
+
 ### Authentication Modes
 
 | Mode | Description | Recommended Use |
@@ -66,10 +97,12 @@ You are an Orchard Core expert. Generate configuration and admin guidance for ex
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "OpenId",
-        "RequireAccessPermission": true
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "OpenId",
+          "RequireAccessPermission": true
+        }
       }
     }
   }
@@ -83,10 +116,12 @@ When `RequireAccessPermission` is `true`, callers must have the `AccessMcpServer
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "ApiKey",
-        "ApiKey": "{{McpServerApiKey}}"
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "{{McpServerApiKey}}"
+        }
       }
     }
   }
@@ -104,9 +139,11 @@ Accepted `Authorization` header formats include:
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "McpServer": {
-        "AuthenticationType": "None"
+    "CrestApps": {
+      "AI": {
+        "McpServer": {
+          "AuthenticationType": "None"
+        }
       }
     }
   }
@@ -115,9 +152,11 @@ Accepted `Authorization` header formats include:
 
 ### Server Endpoint
 
+The MCP server endpoints are registered in `Startup.Configure` via `routes.MapMcp("mcp")` using the Streamable HTTP transport (`WithHttpTransport()`), protected by the MCP authorization policy. The paths are relative to the tenant prefix.
+
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/mcp/sse` | `POST` | MCP SSE endpoint |
+| `/mcp` | `POST` (and `GET`/`DELETE`) | Streamable HTTP transport endpoint (current MCP standard) |
 
 ### Add MCP Prompts via Admin UI
 
@@ -195,7 +234,7 @@ Clients can discover prompts with `ListPrompts` and fetch their messages with `G
 ### Register a Custom Resource Type
 
 ```csharp
-services.AddMcpResourceType<DatabaseResourceTypeHandler>("database", entry =>
+services.AddCoreAIMcpResourceType<DatabaseResourceTypeHandler>("database", entry =>
 {
     entry.DisplayName = S["Database"];
     entry.Description = S["Query data from databases."];
@@ -220,19 +259,22 @@ public sealed class DatabaseResourceTypeHandler : McpResourceTypeHandlerBase
         variables.TryGetValue("table", out var table);
         variables.TryGetValue("id", out var id);
         // Query your data source here.
+        return Task.FromResult(CreateErrorResult(resource.Resource.Uri, "Not implemented."));
     }
 }
 ```
 
 ### External Client Connection Example
 
+Streamable HTTP transport connects to the `/mcp` base endpoint. The current host does not enable the SDK's optional legacy SSE endpoints.
+
 ```json
 {
   "mcpServers": {
     "orchard-core": {
       "transport": {
-        "type": "sse",
-        "url": "https://your-orchard-site.com/mcp/sse",
+        "type": "http",
+        "url": "https://your-orchard-site.com/mcp",
         "headers": {
           "Authorization": "Bearer <token-or-api-key>"
         }

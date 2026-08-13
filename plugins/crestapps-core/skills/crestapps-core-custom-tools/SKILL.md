@@ -11,11 +11,12 @@ You are a CrestApps.Core expert. Generate tool classes and registration code for
 
 ### Guidelines
 
-- Inherit from `AITool`.
-- Register tools with `AddCoreAITool<TTool>(name)`.
-- Use `.Selectable()` only for tools that should appear in UI assignment surfaces.
+- Inherit from `AIFunction` (from `Microsoft.Extensions.AI`) and override `Name`, `Description`, `JsonSchema`, and `InvokeCoreAsync`.
+- Register tools with `AddCoreAITool<TTool>(name)` and chain the metadata builder.
+- Use `.Selectable()` only for tools that should appear in UI assignment surfaces; use `.Hidden()` to keep a tool out of the shared MCP/agent listings while still available to explicitly configured profiles.
 - Prefer clear titles, descriptions, categories, and purpose tags.
 - Catch failures inside the tool and return descriptive results instead of throwing.
+- These code-registered tools are distinct from parameterized tool instances (`AIToolInstance` / `IAIToolInstanceSource`, prefixed `tool_instance_`); use tool instances when end users configure the tool, and `AddCoreAITool<T>` when the tool is defined in code.
 
 ### Registration
 
@@ -33,22 +34,41 @@ builder.Services
 ### Tool Example
 
 ```csharp
-public sealed class WeatherTool : AITool
+public sealed class WeatherTool : AIFunction
 {
-    private sealed record WeatherInput(string Location, string Units = "celsius");
+    public const string TheName = "get-weather";
 
-    protected override async ValueTask<object> InvokeCoreAsync(
+    private static readonly JsonElement _jsonSchema = JsonSerializer.Deserialize<JsonElement>("""
+    {
+      "type": "object",
+      "required": ["location"],
+      "properties": {
+        "location": { "type": "string", "description": "City name." },
+        "units": { "type": "string", "enum": ["celsius", "fahrenheit"], "description": "Temperature units." }
+      },
+      "additionalProperties": false
+    }
+    """);
+
+    public override string Name => TheName;
+
+    public override string Description => "Returns current weather for a location.";
+
+    public override JsonElement JsonSchema => _jsonSchema;
+
+    protected override ValueTask<object> InvokeCoreAsync(
         AIFunctionArguments arguments,
         CancellationToken cancellationToken)
     {
-        var input = arguments.Deserialize<WeatherInput>();
+        ArgumentNullException.ThrowIfNull(arguments);
 
-        if (string.IsNullOrWhiteSpace(input?.Location))
+        if (!arguments.TryGetValue("location", out var raw) || raw is not string location || string.IsNullOrWhiteSpace(location))
         {
-            return "A location is required.";
+            return ValueTask.FromResult<object>("""{"error":"A location is required."}""");
         }
 
-        return new { Temperature = 22, Condition = "Sunny", Location = input.Location };
+        return ValueTask.FromResult<object>(
+            JsonSerializer.Serialize(new { Temperature = 22, Condition = "Sunny", Location = location }));
     }
 }
 ```
@@ -62,3 +82,4 @@ public sealed class WeatherTool : AITool
 | `.WithCategory(...)` | UI grouping |
 | `.WithPurpose(...)` | Semantic auto-inclusion hints |
 | `.Selectable()` | User-assignable tool |
+| `.Hidden()` | Keep the tool out of shared MCP/agent listings (still usable by explicitly configured profiles) |

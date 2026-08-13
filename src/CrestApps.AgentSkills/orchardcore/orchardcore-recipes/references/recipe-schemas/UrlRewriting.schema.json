@@ -10,13 +10,145 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": true
+        "properties": {
+          "Id": {
+            "type": "string",
+            "description": "The identifier of an existing rule to update. Leave it empty to create a new rule."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The display name of the rewrite rule."
+          },
+          "Source": {
+            "type": "string",
+            "examples": [
+              "Redirect",
+              "Rewrite"
+            ],
+            "description": "The rewrite rule source provider name, such as Redirect or Rewrite. The well known members of the rule depend on this value."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "The order in which the rule is evaluated relative to the other rules. Lower values run first."
+          }
+        },
+        "required": [
+          "Source"
+        ],
+        "additionalProperties": true,
+        "description": "A URL rewrite rule to create or update.",
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "Source": {
+                  "const": "Redirect"
+                }
+              },
+              "required": [
+                "Source"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Source": {
+                  "const": "Redirect",
+                  "description": "Redirect rule. Redirects the incoming request to a new URL and returns the configured redirect status code. Fixed \u0027Source\u0027 for the \u0027Redirect\u0027 rewrite rule source."
+                },
+                "Pattern": {
+                  "type": "string",
+                  "description": "The regular expression matched against the incoming request path, for example ^article/(.*)$."
+                },
+                "SubstitutionPattern": {
+                  "type": "string",
+                  "description": "The replacement URL the matched request is redirected to. It can reference capture groups from the match pattern, such as /blog/$1."
+                },
+                "IsCaseInsensitive": {
+                  "type": "boolean",
+                  "description": "Whether the match pattern ignores case. Adds the \u0027NC\u0027 Apache mod_rewrite flag when true."
+                },
+                "QueryStringPolicy": {
+                  "type": "string",
+                  "enum": [
+                    "Append",
+                    "Drop"
+                  ],
+                  "description": "How the original request query string is handled. \u0027Append\u0027 keeps it (QSA flag) and \u0027Drop\u0027 removes it (QSD flag)."
+                },
+                "RedirectType": {
+                  "type": "string",
+                  "enum": [
+                    "Found",
+                    "MovedPermanently",
+                    "TemporaryRedirect",
+                    "PermanentRedirect"
+                  ],
+                  "description": "The HTTP redirect status code returned. \u0027Found\u0027 is 302, \u0027MovedPermanently\u0027 is 301, \u0027TemporaryRedirect\u0027 is 307 and \u0027PermanentRedirect\u0027 is 308."
+                }
+              },
+              "required": [
+                "Pattern",
+                "SubstitutionPattern"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "Source": {
+                  "const": "Rewrite"
+                }
+              },
+              "required": [
+                "Source"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Source": {
+                  "const": "Rewrite",
+                  "description": "Rewrite rule. Rewrites the incoming request to a new URL server-side without changing the address shown to the client. Fixed \u0027Source\u0027 for the \u0027Rewrite\u0027 rewrite rule source."
+                },
+                "Pattern": {
+                  "type": "string",
+                  "description": "The regular expression matched against the incoming request path, for example ^article/(.*)$."
+                },
+                "SubstitutionPattern": {
+                  "type": "string",
+                  "description": "The replacement URL the matched request is rewritten to. It can reference capture groups from the match pattern, such as /blog/$1."
+                },
+                "IsCaseInsensitive": {
+                  "type": "boolean",
+                  "description": "Whether the match pattern ignores case. Adds the \u0027NC\u0027 Apache mod_rewrite flag when true."
+                },
+                "QueryStringPolicy": {
+                  "type": "string",
+                  "enum": [
+                    "Append",
+                    "Drop"
+                  ],
+                  "description": "How the original request query string is handled. \u0027Append\u0027 keeps it (QSA flag) and \u0027Drop\u0027 removes it (QSD flag)."
+                },
+                "SkipFurtherRules": {
+                  "type": "boolean",
+                  "description": "Whether the remaining rules are skipped once this rule matches. Adds the \u0027L\u0027 Apache mod_rewrite flag when true."
+                }
+              },
+              "required": [
+                "Pattern",
+                "SubstitutionPattern"
+              ]
+            }
+          }
+        ]
       },
-      "description": "URL rewrite rule objects to create or update."
+      "minItems": 1,
+      "description": "The URL rewrite rules to create or update."
     }
   },
   "required": [
-    "name"
+    "name",
+    "Rules"
   ],
   "additionalProperties": true
 }

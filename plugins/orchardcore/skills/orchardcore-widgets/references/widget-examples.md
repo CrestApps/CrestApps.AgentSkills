@@ -87,8 +87,8 @@ public int Create()
           "LayerRule": {
             "Conditions": [
               {
-                "Name": "UrlCondition",
-                "Value": "^/$"
+                "Name": "HomepageCondition",
+                "Value": true
               }
             ]
           },

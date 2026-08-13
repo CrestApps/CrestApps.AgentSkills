@@ -24,7 +24,7 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 - Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
 - Agent profiles are reusable agents exposed as AI tools — each agent requires a `Description` field.
 - Agent availability: `OnDemand` (default, included via selection) or `AlwaysAvailable` (auto-included in every request).
-- `ISpeechToTextClient` is available via `IAIClientFactory.CreateSpeechToTextClientAsync()` for providers that support it (OpenAI, Azure OpenAI).
+- Resolve a speech-to-text deployment before creating an `ISpeechToTextClient`; `IAIClientFactory.CreateSpeechToTextClientAsync()` accepts an `AIDeployment`, not provider and connection names.
 
 ### Enabling AI Features
 
@@ -47,32 +47,30 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "DefaultParameters": {
-        "Temperature": 0,
-        "MaxOutputTokens": 800,
-        "TopP": 1,
-        "FrequencyPenalty": 0,
-        "PresencePenalty": 0,
-        "PastMessagesCount": 10,
-        "MaximumIterationsPerRequest": 1,
-        "EnableOpenTelemetry": false,
-        "EnableDistributedCaching": true
-      },
-      "Providers": {
-        "OpenAI": {
-          "Connections": {
-            "default": {
-              "ApiKey": "<!-- Your API Key -->",
-              "Deployments": [
-                { "Name": "gpt-4o", "Type": "Chat", "IsDefault": true },
-                { "Name": "gpt-4o-mini", "Type": "Utility", "IsDefault": true },
-                { "Name": "text-embedding-3-large", "Type": "Embedding", "IsDefault": true },
-                { "Name": "dall-e-3", "Type": "Image", "IsDefault": true }
-              ]
-            }
+    "CrestApps": {
+      "AI": {
+        "DefaultParameters": {
+          "Temperature": 0,
+          "MaxOutputTokens": 800,
+          "TopP": 1,
+          "FrequencyPenalty": 0,
+          "PresencePenalty": 0,
+          "PastMessagesCount": 10
+        },
+        "Connections": [
+          {
+            "Name": "default",
+            "ClientName": "OpenAI",
+            "Endpoint": "https://api.openai.com/v1",
+            "ApiKey": "Use a secret provider"
           }
-        }
+        ],
+        "Deployments": [
+          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
+          { "Name": "gpt-4o-mini", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Utility" },
+          { "Name": "text-embedding-3-large", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Embedding" },
+          { "Name": "dall-e-3", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Image" }
+        ]
       }
     }
   }
@@ -81,23 +79,24 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 
 ### Non-Connection Deployments via appsettings.json
 
-Contained-connection providers (e.g., Azure Speech) can be defined in appsettings.json using the `CrestApps_AI:Deployments` section. These deployments embed their own connection parameters and do not reference a shared provider connection.
+Contained-connection providers (for example, Azure Speech) can be defined in the `OrchardCore:CrestApps:AI:Deployments` section. These deployments embed their own connection parameters and do not reference a shared provider connection.
 
 ```json
 {
   "OrchardCore": {
-    "CrestApps_AI": {
-      "Deployments": [
-        {
-          "ClientName": "AzureSpeech",
-          "Name": "my-speech-to-text",
-          "Type": "SpeechToText",
-          "IsDefault": true,
-          "Endpoint": "https://eastus.api.cognitive.microsoft.com/",
-          "AuthenticationType": "ApiKey",
-          "ApiKey": "your-speech-service-api-key"
-        }
-      ]
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
+          {
+            "ClientName": "AzureSpeech",
+            "Name": "my-speech-to-text",
+            "Purpose": "SpeechToText",
+            "Endpoint": "https://eastus.api.cognitive.microsoft.com/",
+            "AuthenticationType": "ApiKey",
+            "ApiKey": "Use a secret provider"
+          }
+        ]
+      }
     }
   }
 }
@@ -114,8 +113,7 @@ Each deployment in the `Deployments` array has these properties:
 | `ClientName` | The deployment client/provider identifier (for example `OpenAI`, `AzureOpenAI`, `AzureSpeech`) | Yes for recipe-created deployments and non-connection deployments |
 | `ConnectionName` | Optional shared provider connection name. Omit for contained/non-connection deployments. | No |
 | `Name` | The model/deployment name (e.g., `gpt-4o`, `text-embedding-3-large`) | Yes |
-| `Type` | The deployment type: `Chat`, `Utility`, `Embedding`, `Image`, `SpeechToText` | Yes |
-| `IsDefault` | Whether this is the default deployment for its type within the connection | No |
+| `Purpose` | One or more deployment purposes: `Chat`, `Utility`, `Embedding`, `Image`, `Vision`, `SpeechToText`, or `TextToSpeech` | Yes |
 
 Use `ClientName` for deployments in recipes and configuration.
 
@@ -157,7 +155,7 @@ Use `ClientName` for deployments in recipes and configuration.
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Chat",
+          "Purpose": "Chat",
           "IsDefault": true
         },
         {
@@ -165,7 +163,7 @@ Use `ClientName` for deployments in recipes and configuration.
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
           "ConnectionName": "default",
-          "Type": "Utility",
+          "Purpose": "Utility",
           "IsDefault": true
         }
       ]
@@ -181,9 +179,9 @@ For new recipes, prefer a dedicated `AIDeployment` step over embedding deploymen
 The `AICompletionWithConfigTask` workflow activity is now deployment-driven. Its editor (`AICompletionWithConfigTaskDisplayDriver`) should only ask the user to select a chat deployment plus the prompt and output settings.
 
 - Do **not** ask for `ProviderName` or `ConnectionName`.
-- Populate the deployment dropdown from `IAIDeploymentManager.GetByTypeAsync(AIDeploymentType.Chat)`.
+- Populate the deployment dropdown from `IAIDeploymentManager.GetByPurposeAsync(AIDeploymentPurpose.Chat)`.
 - Persist the selected deployment using `DeploymentName`.
-- At execution time, resolve the deployment with `ResolveOrDefaultAsync(AIDeploymentType.Chat, deploymentName: DeploymentName)`.
+- At execution time, resolve the deployment with `ResolveOrDefaultAsync(AIDeploymentPurpose.Chat, deploymentName: DeploymentName)`.
 
 ```csharp
 public sealed class AICompletionWithConfigTaskDisplayDriver
@@ -196,7 +194,7 @@ public sealed class AICompletionWithConfigTaskDisplayDriver
         return Initialize<AICompletionWithConfigTaskViewModel>("AICompletionWithConfigTask_Fields_Edit", async model =>
         {
             model.DeploymentName = activity.DeploymentName;
-            model.DeploymentNames = (await _deploymentManager.GetByTypeAsync(AIDeploymentType.Chat))
+            model.DeploymentNames = (await _deploymentManager.GetByPurposeAsync(AIDeploymentPurpose.Chat))
                 .OrderBy(x => x.ConnectionNameAlias ?? x.ConnectionName)
                 .ThenBy(x => x.Name)
                 .Select(x => new SelectListItem(x.Name, x.Name));
@@ -240,8 +238,6 @@ Use this workflow activity when a workflow should target a specific deployment d
           "DisplayText": "{{DisplayName}}",
           "WelcomeMessage": "{{WelcomeMessage}}",
           "Description": "",
-          "FunctionNames": [],
-          "AgentNames": [],
           "Type": "Chat",
           "TitleType": "InitialPrompt",
           "PromptTemplate": null,
@@ -256,7 +252,9 @@ Use this workflow activity when a workflow should target a specific deployment d
               "PresencePenalty": null,
               "MaxTokens": null,
               "PastMessagesCount": null
-            }
+            },
+            "FunctionInvocationMetadata": { "Names": [] },
+            "AgentInvocationMetadata": { "Names": [] }
           }
         }
       ]
@@ -390,15 +388,22 @@ public async Task<int> CreateAsync()
 public sealed class MySpeechService
 {
     private readonly IAIClientFactory _clientFactory;
+    private readonly IAIDeploymentManager _deploymentManager;
 
-    public MySpeechService(IAIClientFactory clientFactory)
+    public MySpeechService(
+        IAIClientFactory clientFactory,
+        IAIDeploymentManager deploymentManager)
     {
         _clientFactory = clientFactory;
+        _deploymentManager = deploymentManager;
     }
 
-    public async Task<string> TranscribeAsync(Stream audioStream, string providerName, string connectionName)
+    public async Task<string> TranscribeAsync(Stream audioStream, string deploymentName)
     {
-        var client = await _clientFactory.CreateSpeechToTextClientAsync(providerName, connectionName);
+        var deployment = await _deploymentManager.ResolveOrDefaultAsync(
+            AIDeploymentPurpose.SpeechToText,
+            deploymentName: deploymentName);
+        var client = await _clientFactory.CreateSpeechToTextClientAsync(deployment);
 
         var response = await client.GetTextAsync(audioStream);
 
@@ -466,6 +471,7 @@ The site-level `DefaultAIDeploymentSettings` configures default deployments for 
 | `DefaultUtilityDeploymentName` | Lightweight model for intent detection and planning |
 | `DefaultEmbeddingDeploymentName` | Model for embedding generation in document indexing |
 | `DefaultImageDeploymentName` | Model for image generation (e.g., DALL-E 3) |
+| `DefaultVisionDeploymentName` | Model for image understanding in chat-style interactions |
 | `DefaultSpeechToTextDeploymentName` | Model for speech-to-text (e.g., Whisper) |
 | `DefaultTextToSpeechDeploymentName` | Model for text-to-speech synthesis |
 | `DefaultTextToSpeechVoiceId` | Default voice ID for TTS synthesis |
@@ -476,7 +482,7 @@ AI profiles of type `Chat` support a `ChatMode` setting that controls voice feat
 
 | Mode | Description |
 |------|-------------|
-| `TextOnly` | Default. Standard text-only chat. No voice features. |
+| `TextInput` | Default. Standard text-only chat. No voice features. |
 | `AudioInput` | Adds a microphone button for speech-to-text dictation. User must still send the transcribed message manually. Requires `DefaultSpeechToTextDeploymentName`. |
 | `Conversation` | Full two-way voice conversation. User speaks, transcript is sent automatically, AI responds with text and audio simultaneously. Requires both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName`. |
 
@@ -549,23 +555,23 @@ public sealed class GetWeatherFunction : AIFunction
 ### Registering Custom AI Tools
 
 ```csharp
-services.AddAITool<GetWeatherFunction>(GetWeatherFunction.TheName);
+services.AddCoreAITool<GetWeatherFunction>(GetWeatherFunction.TheName)
+    .Selectable();
 ```
 
 Or with configuration options:
 
 ```csharp
-services.AddAITool<GetWeatherFunction>(GetWeatherFunction.TheName, options =>
-{
-    options.Title = "Weather Getter";
-    options.Description = "Retrieves weather information for a specified location.";
-    options.Category = "Service";
-});
+services.AddCoreAITool<GetWeatherFunction>(GetWeatherFunction.TheName)
+    .WithTitle("Weather Getter")
+    .WithDescription("Retrieves weather information for a specified location.")
+    .WithCategory("Service")
+    .Selectable();
 ```
 
 ### Security Best Practices
 
-- Store API keys in user secrets during development: `dotnet user-secrets set "OrchardCore:CrestApps_AI:Providers:OpenAI:Connections:default:ApiKey" "your-key"`
+- Store API keys in user secrets during development: `dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "your-key"`
 - Use environment variables in production.
 - Apply appropriate permissions to restrict AI feature access.
 - Monitor token usage and set rate limits for production deployments.
