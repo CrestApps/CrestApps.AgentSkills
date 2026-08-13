@@ -202,6 +202,17 @@ In Razor template file names:
 @await DisplayAsync(shape)
 ```
 
+Use `DisplayAsAsync` when an existing shape must be rendered as a different
+shape type:
+
+```cshtml
+@await DisplayAsAsync(Model, "NewShapeType")
+```
+
+Pass `clearAlternates: true` when the original shape alternates must not be
+used. Prefer current shape APIs and shape alternates over manually building
+display contexts.
+
 ## Creating Shapes from Code
 
 ### Using IShapeFactory

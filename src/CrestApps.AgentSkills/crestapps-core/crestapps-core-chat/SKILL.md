@@ -18,6 +18,7 @@ You are a CrestApps.Core expert. Generate code and guidance for deployment-aware
 - Pass an `AICompletionContext` for system instructions, sampling settings, deployment names, and tool choices.
 - Use `IOrchestrator.ExecuteStreamingAsync(...)` when the request needs planning, tool scoping, or an iterative agent loop.
 - This skill is the completion and orchestration surface. `crestapps-core-chat-interactions` is the persisted session, history, handler-routing, and SignalR interaction feature.
+- The direct completion guidance here corresponds to the AI core and orchestration documentation. The `/docs/core/chat` topic documents `crestapps-core-chat-interactions`, not this direct completion loop.
 
 ### Registration
 

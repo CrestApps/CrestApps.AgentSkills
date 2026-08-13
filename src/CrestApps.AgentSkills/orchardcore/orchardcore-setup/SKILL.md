@@ -133,6 +133,13 @@ After running the application, navigate to `/` to access the setup screen:
 5. Set an **Admin Username** and **Password**.
 6. Click **Finish Setup**.
 
+If `OrchardCore:DatabaseProvider` is configured, the provider is fixed and
+cannot be changed on the Setup screen. If the provider requires a connection
+string, it remains available unless both `OrchardCore:DatabaseProvider` and
+`OrchardCore:ConnectionString` are configured; in that case the connection
+string is also fixed and is not editable. Setup requires a connection string
+only when the selected provider needs one and no saved value exists.
+
 ### Auto-Setup via Configuration
 
 Configure automatic setup in `appsettings.json`:

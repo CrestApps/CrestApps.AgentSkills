@@ -4,7 +4,7 @@ description: Skill for implementing CrestApps chat response handlers in Orchard 
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "3.0"
+  version: "1.0"
 ---
 
 # Orchard Core Chat Response Handlers

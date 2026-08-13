@@ -44,7 +44,7 @@ Common resources provided by `OrchardCore.Resources`:
 | jQuery-ui        | Script | 1.12.1  | jQuery       |
 | bootstrap        | Script | 5.3.8   | popperjs     |
 | bootstrap        | Style  | 5.3.8   | -            |
-| font-awesome     | Style  | 6.7.2   | -            |
+| font-awesome     | Style  | 7.2.0   | -            |
 | codemirror       | Script | 5.65.7  | -            |
 | Sortable         | Script | 1.10.2  | -            |
 | monaco           | Script | 0.46.0  | monaco-loader|

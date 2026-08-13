@@ -22,6 +22,31 @@ shapes, filters, and tags.
 Use `Culture.Name` for the current request culture; do not treat
 `Site.Culture` as the current UI culture.
 
+## Liquid Configuration and Slugs
+
+The `{% liquid %}` tag is disabled by default in Orchard Core 3.0. Enable it
+only when the tenant requires nested Liquid source:
+
+```json
+{
+  "OrchardCore_Liquid": {
+    "AllowLiquidTag": true
+  }
+}
+```
+
+The `slugify` filter transliterates Unicode text to an ASCII representation by
+default. Use the `transliterate` filter when transliteration is needed without
+slug normalization:
+
+```liquid
+{{ "Crème brûlée" | slugify }}
+{{ "Київ" | transliterate }}
+```
+
+The `transliterate` filter is provided by `OrchardCore.Localization`; enable
+that feature before using it in tenant templates.
+
 ## Zones and Sections
 
 `zone` is a block tag that adds its child content to a named layout zone. Use

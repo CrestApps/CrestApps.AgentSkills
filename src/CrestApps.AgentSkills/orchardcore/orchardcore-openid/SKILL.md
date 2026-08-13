@@ -18,6 +18,9 @@ The `OrchardCore.OpenId` module provides a complete OpenID Connect and OAuth 2.0
 - **OrchardCore.OpenId.Client** — External provider integration (Azure AD, Google, etc.).
 - **OrchardCore.OpenId.Validation** — Token validation for resource servers / APIs.
 
+Orchard Core 3.0 supports Pushed Authorization Requests (PAR). The default
+pushed authorization endpoint is `/connect/par`.
+
 ## OpenID Connect Server Configuration
 
 You are an Orchard Core expert. Configure the OpenID Connect authorization server.
@@ -54,6 +57,8 @@ public sealed class OpenIdServerMigrations : DataMigration
         settings.TokenEndpointPath = "/connect/token";
         settings.LogoutEndpointPath = "/connect/logout";
         settings.UserinfoEndpointPath = "/connect/userinfo";
+        settings.PushedAuthorizationEndpointPath = "/connect/par";
+        settings.RequireEndSessionConfirmation = true;
 
         await _serverService.UpdateSettingsAsync(settings);
 
@@ -154,6 +159,16 @@ The token endpoint (`/connect/token` by default) issues access tokens, identity 
 - Enable rolling refresh tokens (`UseRollingRefreshTokens`) to rotate refresh tokens on each use.
 - Token validation on resource servers uses the `OrchardCore.OpenId.Validation` feature.
 
+The PAR endpoint is `/connect/par`, represented by
+`PushedAuthorizationEndpointPath`. Existing applications that already have
+authorization endpoint permission receive the pushed authorization endpoint
+permission during the 3.0 migration. Review application permissions if PAR
+should not be available.
+
+`RequireEndSessionConfirmation` defaults to `true`. Set it to `false` only
+when a valid `id_token_hint` matching the current session should allow logout
+without a confirmation prompt.
+
 ## Scopes and Claims
 
 ### Registering Custom Scopes
@@ -190,6 +205,22 @@ public sealed class OpenIdScopeMigrations : DataMigration
 - `email` — Returns `email` and `email_verified` claims.
 - `roles` — Returns role membership claims.
 - `phone` — Returns phone number claims.
+
+Modules can add claims to the userinfo response by implementing
+`IUserInfoClaimsProvider`:
+
+```csharp
+public sealed class CustomUserInfoClaimsProvider : IUserInfoClaimsProvider
+{
+    public Task GenerateAsync(UserInfoClaimsContext context)
+    {
+        context.Claims["tenant"] = "example";
+        return Task.CompletedTask;
+    }
+}
+```
+
+Standard scope claims are written before `GenerateAsync` runs.
 
 ## External Authentication Providers
 
@@ -305,7 +336,8 @@ Use recipe steps to declaratively configure OpenID Connect settings, application
       "AuthorizationEndpointPath": "/connect/authorize",
       "TokenEndpointPath": "/connect/token",
       "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo"
+      "UserinfoEndpointPath": "/connect/userinfo",
+      "EnablePushedAuthorizationEndpoint": true
     }
   ]
 }

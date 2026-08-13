@@ -30,6 +30,12 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - If an index needs access to the YesSql document id, expose `public long DocumentId { get; set; }` on the `MapIndex` type and let YesSql populate it.
 - Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.
 
+For Orchard Core 3.0 migrations, use the current async migration and clock
+APIs. `IDataMigrationManager.UpdateAsync` accepts the feature names to update,
+and `ILocalClock.GetLocalNowAsync` replaces the removed local-clock async
+member. Do not add `IAsyncOptions` or `IAsyncConfigureOptions<TOptions>`;
+configure options with the synchronous options APIs.
+
 ### Basic Migration with Content Type
 
 ```csharp

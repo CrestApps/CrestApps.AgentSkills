@@ -62,6 +62,21 @@ agent.Put(new AgentMetadata
 
 Even with `AllowToolInvocation = true`, the recursion-depth guard (`AIInvocationContext.AgentInvocationDepth`) prevents that agent from invoking further agents.
 
+### Code-Defined System Agents
+
+Use `IAIProfileProvider` when an agent must be contributed by code instead of
+stored as an editable `AIProfile`. A provider can return an
+`AIProfileType.Agent` profile with `AgentMetadata.IsSystem = true`. System
+agents can be `AlwaysAvailable`, exposed through A2A, and hidden from the
+user-facing agent selection list. Register the provider with the AI services
+using the standard `IAIProfileProvider` service registration pattern.
+
+The built-in Tabular Data Agent is the reference pattern. It is contributed
+by an `IAIProfileProvider`, sets `IsSystem = true` and
+`AllowToolInvocation = true`, and declares its tabular tools through
+`FunctionInvocationMetadata`. Use this pattern for framework-managed agents
+that need their own controlled tools without creating a persisted profile.
+
 ### Availability Modes
 
 | Mode | Use |
