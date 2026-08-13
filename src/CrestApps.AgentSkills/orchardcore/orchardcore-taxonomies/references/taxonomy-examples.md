@@ -143,3 +143,20 @@ _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
     )
 );
 ```
+
+## Example 4: Filter and Paginate Taxonomy Listings
+
+Orchard Core 3.0 uses the full contents pager for taxonomy term listings.
+Implement `IContentsTaxonomyListFilter` to add module-specific query
+constraints without replacing the built-in pagination:
+
+```csharp
+public sealed class PublishedTaxonomyListFilter : IContentsTaxonomyListFilter
+{
+    public Task FilterAsync(IQuery<ContentItem> query, TermPart termPart)
+    {
+        // Add a module-specific restriction to the taxonomy term query.
+        return Task.CompletedTask;
+    }
+}
+```

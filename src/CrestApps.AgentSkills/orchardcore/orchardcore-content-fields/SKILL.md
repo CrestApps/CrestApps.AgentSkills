@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-fields
-description: Skill for adding and configuring common Orchard Core content fields. Covers field settings, supported editor options, display modes, and migration patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common Orchard Core content fields. Covers field settings, Liquid rendering, supported editor options, display modes, and migration patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, HtmlFieldSettings, MarkdownFieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -142,6 +142,7 @@ Stores HTML content with optional sanitization.
 | `Hint` | string | `null` | Help text displayed below the field. |
 | `Required` | bool | `false` | Whether the field is required. |
 | `SanitizeHtml` | bool | `true` | Whether to sanitize HTML content. |
+| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering the HTML. |
 
 ### HtmlField Editors
 
@@ -165,6 +166,7 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
         {
             Required = true,
             SanitizeHtml = true,
+            RenderLiquid = false,
             Hint = "Enter HTML content"
         })
     )
@@ -629,6 +631,10 @@ Stores Markdown on a part field. Enable `OrchardCore.Markdown`.
 |---|---|---|---|
 | `SanitizeHtml` | bool | `true` | Sanitizes rendered HTML. |
 | `RenderLiquid` | bool | `false` | Evaluates Liquid before rendering Markdown. |
+
+`SanitizeHtml` and `RenderLiquid` are independent. Sanitization can remain
+enabled while Liquid rendering is disabled, or Liquid can be evaluated before
+the rendered output is sanitized.
 
 Use the default editor or `.WithEditor("Wysiwyg")`; the WYSIWYG editor accepts `MarkdownFieldWysiwygEditorSettings.Options`.
 

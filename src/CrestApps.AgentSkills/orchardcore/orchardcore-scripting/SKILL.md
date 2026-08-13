@@ -26,6 +26,23 @@ You are an Orchard Core expert. Generate code and configuration for scripting, J
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
+`GlobalMethod` supports an `AsyncMethod` delegate in Orchard Core 3.0. Use
+it for I/O-bound script helpers so Jint can await the returned task:
+
+```csharp
+new GlobalMethod
+{
+    Name = "loadValue",
+    AsyncMethod = serviceProvider => (Func<Task<string>>)(async () =>
+    {
+        await Task.Yield();
+        return "value";
+    }),
+};
+```
+
+Scripts call the async helper as `loadValueAsync()` and receive a Promise.
+
 ### Enabling Scripting Features
 
 ```json

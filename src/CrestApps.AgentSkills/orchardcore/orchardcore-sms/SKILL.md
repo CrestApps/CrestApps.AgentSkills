@@ -107,7 +107,10 @@ public sealed class NotificationController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> SendOrderConfirmation(string phoneNumber, string orderId)
+    public async Task<IActionResult> SendOrderConfirmation(
+        string phoneNumber,
+        string orderId,
+        CancellationToken cancellationToken)
     {
         var message = new SmsMessage
         {
@@ -115,7 +118,7 @@ public sealed class NotificationController : Controller
             Body = $"Your order {orderId} has been confirmed and is being processed.",
         };
 
-        var result = await _smsService.SendAsync(message);
+        var result = await _smsService.SendAsync(message, cancellationToken);
 
         if (result.Succeeded)
         {
@@ -132,33 +135,44 @@ public sealed class NotificationController : Controller
 For providers that do not require settings, implement `ISmsProvider` and register with `AddSmsProvider<T>`:
 
 ```csharp
+using OrchardCore.Infrastructure;
 using OrchardCore.Sms;
+using Microsoft.Extensions.Localization;
 
 public sealed class WebhookSmsProvider : ISmsProvider
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IStringLocalizer<WebhookSmsProvider> _localizer;
 
-    public WebhookSmsProvider(IHttpClientFactory httpClientFactory)
+    public WebhookSmsProvider(
+        IHttpClientFactory httpClientFactory,
+        IStringLocalizer<WebhookSmsProvider> localizer)
     {
         _httpClientFactory = httpClientFactory;
+        _localizer = localizer;
     }
 
-    public async Task<SmsResult> SendAsync(SmsMessage message)
+    public async Task<Result> SendAsync(
+        SmsMessage message,
+        CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("SmsWebhook");
 
-        var response = await client.PostAsJsonAsync("/api/sms/send", new
-        {
-            to = message.To,
-            body = message.Body,
-        });
+        var response = await client.PostAsJsonAsync(
+            "/api/sms/send",
+            new
+            {
+                to = message.To,
+                body = message.Body,
+            },
+            cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {
-            return SmsResult.Success;
+            return Result.Success();
         }
 
-        return SmsResult.Failed("Failed to send SMS via webhook.");
+        return Result.Failed(_localizer["Failed to send SMS via webhook."]);
     }
 }
 ```

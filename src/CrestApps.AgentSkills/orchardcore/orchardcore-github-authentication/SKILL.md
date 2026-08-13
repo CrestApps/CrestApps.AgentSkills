@@ -18,6 +18,15 @@ The persisted `GitHubAuthenticationSettings` properties are `ClientID`,
 `/signin-github`. Register the tenant's full HTTPS callback URL with the
 GitHub OAuth App.
 
+### Orchard Core 3.0 API changes
+
+The GitHub integration uses the `AspNet.Security.OAuth.GitHub` package. The
+old `GithubDefault`, `GithubOptions`, `GithubHandler`, and
+`IGithubAuthenticationService` APIs are removed. Use the package's
+`GitHubAuthenticationDefaults`, `GitHubAuthenticationOptions`, and
+`GitHubAuthenticationHandler` types, or the Orchard Core settings and
+registration APIs described below.
+
 The `GitHubAuthenticationSettings` recipe step deliberately uses
 `ConsumerKey` and `ConsumerSecret`, which the handler maps to the persisted
 client ID and secret:

@@ -61,6 +61,7 @@ Export admin menus via a deployment plan, then use the generated JSON as a recip
           "MenuItems": [
             {
               "$type": "LinkAdminNode",
+              "MenuName": "{{AdminMenuName}}",
               "LinkText": "{{LinkText}}",
               "LinkUrl": "{{LinkUrl}}",
               "IconClass": "fa-solid fa-{{icon}}",
@@ -75,6 +76,11 @@ Export admin menus via a deployment plan, then use the generated JSON as a recip
   ]
 }
 ```
+
+The `MenuName` property must match the `Name` of the containing admin menu.
+For content type nodes, Orchard Core 3.0 uses `ContentTypeName` and
+`ContentTypeDisplayName`; do not use the removed `ContentTypeId` property in
+new recipes.
 
 ### Built-In Admin Node Types
 
@@ -254,6 +260,15 @@ public sealed class Startup : StartupBase
 3. The coordinator loads all admin menus from the database and calls `BuildTreeAsync` on each.
 4. Each admin node recursively adds menu items to the navigation builder.
 5. The resulting menu items are merged into the standard admin navigation.
+
+Orchard Core 3.0 reorganizes the standard navigation into **Settings**,
+**Tools**, **Design**, and **Access Control** groups. Use the
+`LegacyAdminMenuNavigation` AppContext switch only as a temporary migration
+aid when an application requires the previous layout:
+
+```csharp
+AppContext.SetSwitch("LegacyAdminMenuNavigation", true);
+```
 
 ### Customizing Standard Admin Navigation Item Icons
 

@@ -112,7 +112,10 @@ public sealed class OrderConfirmationService
         _emailService = emailService;
     }
 
-    public Task<Result> SendAsync(string recipientEmail, string orderId)
+    public Task<Result> SendAsync(
+        string recipientEmail,
+        string orderId,
+        CancellationToken cancellationToken = default)
     {
         var message = new MailMessage
         {
@@ -122,7 +125,7 @@ public sealed class OrderConfirmationService
             TextBody = $"Your order {orderId} has been confirmed.",
         };
 
-        return _emailService.SendAsync(message);
+        return _emailService.SendAsync(message, cancellationToken: cancellationToken);
     }
 }
 ```
@@ -131,7 +134,10 @@ Pass a provider technical name only when deliberately overriding the configured
 default:
 
 ```csharp
-var result = await _emailService.SendAsync(message, providerName: "SMTP");
+var result = await _emailService.SendAsync(
+    message,
+    providerName: "SMTP",
+    cancellationToken: cancellationToken);
 
 if (!result.Succeeded)
 {
@@ -144,6 +150,10 @@ if (!result.Succeeded)
 
 `MailMessage` supports `From`, `To`, `Cc`, `Bcc`, `ReplyTo`, `Sender`,
 `Subject`, `HtmlBody`, `TextBody`, and `Attachments`.
+
+`IEmailService.SendAsync()` and `IEmailProvider.SendAsync()` accept a
+`CancellationToken`. Pass the request token through custom providers and
+event handlers so shutdown and request cancellation can stop delivery.
 
 ## Liquid Templates
 

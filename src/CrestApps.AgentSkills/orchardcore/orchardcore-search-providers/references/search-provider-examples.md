@@ -170,3 +170,24 @@ Good reasons to add a controller:
 - provider-specific diagnostics endpoints
 
 Do not add a controller for ordinary profile editing or reset and rebuild workflows.
+
+## Example 5: Current Index Source Contracts
+
+Use the current contracts for a custom source:
+
+```csharp
+services.AddIndexingSource<
+    ContosoIndexManager,
+    ContosoDocumentIndexManager,
+    ContosoIndexNameProvider>(
+    "Contoso",
+    "Products",
+    options => options.DisplayName = "Products in Contoso");
+```
+
+`ContosoIndexManager` implements `IIndexManager`,
+`ContosoDocumentIndexManager` implements `IDocumentIndexManager`, and
+`ContosoIndexNameProvider` implements `IIndexNameProvider`. The registrations
+are keyed by provider name. Normal index authorization uses
+`IndexingPermissions.QuerySearchIndex` and the dynamic
+`QueryIndex_{indexProfile.Name}` permission.

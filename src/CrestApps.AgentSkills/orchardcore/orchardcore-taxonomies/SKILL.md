@@ -22,6 +22,7 @@ You are an Orchard Core expert. Generate taxonomy definitions, terms, and taxono
 - Taxonomies can be flat (tags) or hierarchical (categories).
 - Terms can have custom content parts and fields.
 - `TermPart` is welded automatically onto content items used as taxonomy terms; do not attach it manually.
+- Taxonomy content listings use full pagination in Orchard Core 3.0.
 
 ### Enabling Taxonomy Features
 
@@ -168,6 +169,12 @@ Execute the query, then load its returned content item ids with the `content_ite
     {{ item | display_text }}
 {% endfor %}
 ```
+
+### Filtering Taxonomy Content Listings
+
+Implement `IContentsTaxonomyListFilter` when a module must add restrictions
+to the query used by a taxonomy term content listing. Keep the filter
+focused on query constraints and let the built-in listing handle paging.
 
 ### Displaying Taxonomy Terms
 
