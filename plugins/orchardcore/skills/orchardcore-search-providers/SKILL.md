@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-providers
-description: Skill for implementing custom search providers in Orchard Core. Covers provider module structure, index profile handlers, provider-specific services, OrchardCore.Search integration, optional admin actions, and OpenSearch-style implementations that follow OrchardCore.Elasticsearch. Use this skill when requests mention Orchard Core Search Providers, Create a new search provider, Implement OpenSearch support, AddSearchService registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Search, AddSearchService, IndexProfileHandlerBase, ElasticsearchIndexProfileHandler, ElasticsearchService, AddElasticsearchServices. It also helps with OpenSearch provider examples, OrchardCore.Search integration, Optional admin actions, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for implementing custom search providers in Orchard Core. Covers provider module structure, index source contracts, index profile handlers, provider services, OrchardCore.Search integration, permissions, admin actions, and custom provider implementations that follow OrchardCore.Elasticsearch. Use this skill when requests mention Orchard Core Search Providers, Create a new search provider, Implement custom search support, AddSearchService registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Search, AddSearchService, AddIndexingSource, IIndexManager, IDocumentIndexManager, IIndexNameProvider, IndexProfileHandlerBase, ElasticsearchService, and AddElasticsearchServices. It also helps with custom provider examples, OrchardCore.Search integration, recipe steps, and the code patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,6 +28,12 @@ You are an Orchard Core expert. Generate code and configuration for implementing
 - Add an `AdminController` only when the provider needs extra actions such as index info, run query, or custom diagnostics.
 - Do not add provider-specific deployment steps just to create, reset, or rebuild indexes. Orchard Core already provides `CreateOrUpdateIndexProfile`, `ResetIndex`, and `RebuildIndex` for any provider.
 - Integrate with `OrchardCore.Search` by adding a scoped `ISearchService` and keyed registration through `services.AddSearchService<TService>(ProviderName)`.
+- Implement source managers using `IIndexManager`, `IDocumentIndexManager`,
+  and `IIndexNameProvider`; `AddIndexingSource` registers them as keyed
+  services by provider name.
+- Use `IndexingPermissions.QuerySearchIndex` and the dynamic
+  `QueryIndex_{name}` permissions for index access instead of defining a
+  second generic query-index permission.
 - If the provider exposes query definitions, register the query source and query handler in the main startup.
 - Keep examples focused on the latest Orchard Core implementation and omit backward-compatibility guidance.
 - All C# classes must use the `sealed` modifier.
@@ -212,6 +218,12 @@ public sealed class SearchStartup : StartupBase
 ```
 
 This is the current Orchard Core pattern used by Elasticsearch, Lucene, and Azure AI Search.
+
+The generic indexing authorization is centralized in
+`OrchardCore.Indexing.Core.IndexingPermissions`. Provider-specific permissions
+may still protect provider-only administration or query DSL endpoints, but a
+provider must not replace the shared `QuerySearchIndex` and dynamic
+`QueryIndex_{name}` permissions for normal index access.
 
 ### Content Indexing Registration
 

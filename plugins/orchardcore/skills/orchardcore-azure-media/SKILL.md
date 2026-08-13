@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-media
-description: Skill for configuring Azure Blob Storage for media in Orchard Core. Covers Azure Blob connection setup, container configuration, Liquid templating for per-tenant containers, Media Cache integration, ImageSharp configuration, and CDN considerations. Use this skill when requests mention Orchard Core Azure Media Storage, Azure Media Storage Configuration, Configuration Properties, Basic Configuration, Liquid Templating for Multi-Tenant Configuration, Container per Tenant, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media.Azure, OrchardCore.Media.Azure.Storage, ShellSettings, App_Data, AssetUrl, CreateContainer, ContainerName, BasePath, PhysicalFileSystemCache. It also helps with Liquid Templating for Multi-Tenant Configuration, Container per Tenant, Single Container with Base Folder per Tenant, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Azure Blob media storage in Orchard Core. Covers connection and container setup, tenant templating, Media Cache, ImageSharp resized-image cache configuration, and CDN use. Use this skill for OrchardCore.Media.Azure.Storage, OrchardCore.Media.Azure.ImageSharpImageCache, Azure Media Storage Configuration, or related implementation, setup, extension, and troubleshooting work. Strong matches include OrchardCore.Media.Azure, ShellSettings, AssetUrl, CreateContainer, ContainerName, BasePath, and ImageSharpBlobImageCacheOptions. It also helps with tenant containers, shared base folders, code patterns, admin flows, recipes, and referenced examples.
 ---
 
 # Orchard Core Azure Media Storage - Prompt Templates
@@ -96,6 +96,7 @@ Media is still served by the Orchard Core web site. The Media Cache module fetch
 
 - The Media Cache feature is automatically enabled when Azure Media Storage is enabled.
 - It caches files fetched from Azure Blob Storage locally to support image resizing via ImageSharp.
+- Local remote-media files use the `wwwroot/{tenant}/ms-cache` folder.
 - The admin dashboard provides a **Purge** action to clear cached files.
 - Consider purging only after a CDN has had sufficient time to cache most assets.
 - CDN providers have multiple Points of Presence (PoPs), each maintaining its own cache. A purged local cache item will be re-fetched from Azure Blob Storage when a CDN PoP requests it.
@@ -106,7 +107,8 @@ Media is still served by the Orchard Core web site. The Media Cache module fetch
 ### Guidelines
 
 - Enable the `OrchardCore.Media.Azure.ImageSharpImageCache` feature to store resized images in Azure Blob Storage.
-- This replaces the default `PhysicalFileSystemCache` that stores resized images in `App_Data`.
+- The options type is `ImageSharpBlobImageCacheOptions`.
+- Custom startup registration uses the `AzureImageSharpCache` configure order.
 - The ImageSharp cache maps `BasePath` to its cache folder, so use it to keep image-cache blobs in a separate hierarchy within the container.
 - Useful for ephemeral file systems (e.g., container hosting, clean deployments).
 - Reduces pressure on local disk IO, beneficial for environments like Azure App Services with throttled local storage.

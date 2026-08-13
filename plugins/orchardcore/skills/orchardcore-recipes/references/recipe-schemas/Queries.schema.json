@@ -13,33 +13,138 @@
         "properties": {
           "Name": {
             "type": "string",
-            "description": "Unique query name."
+            "description": "The technical name of the query. Must be unique on the tenant."
           },
           "Source": {
             "type": "string",
-            "description": "Query source provider, such as Sql, Lucene, or Elasticsearch."
+            "examples": [
+              "Elasticsearch",
+              "Lucene",
+              "Sql"
+            ],
+            "description": "The query source provider name, such as Sql, Lucene or Elasticsearch. The well known members of the query depend on this value."
           },
           "Schema": {
             "type": "string",
-            "description": "Optional schema or projection payload consumed by the source provider."
-          },
-          "Template": {
-            "type": "string",
-            "description": "Raw query text or template executed by the source provider."
+            "description": "The optional return schema of the query, used to shape the results when content items are not returned. It supports script expressions such as [js: ...]."
           },
           "ReturnContentItems": {
             "type": "boolean",
-            "description": "Whether the query returns full content items instead of primitive results."
+            "description": "Whether the query returns full content items instead of the raw source results."
           }
         },
         "required": [
           "Name",
           "Source"
         ],
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "A query to create or update.",
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "Source": {
+                  "const": "Elasticsearch"
+                }
+              },
+              "required": [
+                "Source"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Source": {
+                  "const": "Elasticsearch",
+                  "description": "Elasticsearch query. Runs an Elasticsearch query against an Elasticsearch index. Fixed \u0027Source\u0027 for the \u0027Elasticsearch\u0027 query source."
+                },
+                "Index": {
+                  "type": "string",
+                  "examples": [
+                    "articles",
+                    "blogposts",
+                    "pages"
+                  ],
+                  "description": "The name of the Elasticsearch index the query runs against."
+                },
+                "Template": {
+                  "type": "string",
+                  "description": "The Elasticsearch query JSON executed against the index. It supports Liquid and file expressions such as [file:text(\u0027Snippets/query.json\u0027)]."
+                }
+              },
+              "required": [
+                "Index",
+                "Template"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "Source": {
+                  "const": "Lucene"
+                }
+              },
+              "required": [
+                "Source"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Source": {
+                  "const": "Lucene",
+                  "description": "Lucene query. Runs a Lucene query against a Lucene index. Fixed \u0027Source\u0027 for the \u0027Lucene\u0027 query source."
+                },
+                "Index": {
+                  "type": "string",
+                  "examples": [
+                    "articles",
+                    "blogposts",
+                    "pages"
+                  ],
+                  "description": "The name of the Lucene index the query runs against."
+                },
+                "Template": {
+                  "type": "string",
+                  "description": "The Lucene query JSON executed against the index. It supports Liquid and file expressions such as [file:text(\u0027Snippets/query.json\u0027)]."
+                }
+              },
+              "required": [
+                "Index",
+                "Template"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "Source": {
+                  "const": "Sql"
+                }
+              },
+              "required": [
+                "Source"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Source": {
+                  "const": "Sql",
+                  "description": "SQL query. Runs a SQL query against the tenant database. Fixed \u0027Source\u0027 for the \u0027Sql\u0027 query source."
+                },
+                "Template": {
+                  "type": "string",
+                  "description": "The SQL query text executed against the tenant database. It supports Liquid expressions and query parameters such as @limit:3."
+                }
+              },
+              "required": [
+                "Template"
+              ]
+            }
+          }
+        ]
       },
       "minItems": 1,
-      "description": "Queries to create or update."
+      "description": "The queries to create or update."
     }
   },
   "required": [

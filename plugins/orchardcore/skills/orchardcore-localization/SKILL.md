@@ -40,6 +40,11 @@ The localization module uses these settings to configure request
 localization. Do not invent an `OrchardCore_Localization_CultureProvider`
 configuration section.
 
+In Orchard Core 3.0, `ILocalizationService` exposes culture lookup through
+an instance service method. Do not call a static default implementation.
+`PoParser` is static; use `PoParser.Parse` or `PoParser.ParseAsync` for PO
+file parsing.
+
 ## UI Strings
 
 Use the localizer typed to the class that owns the string:

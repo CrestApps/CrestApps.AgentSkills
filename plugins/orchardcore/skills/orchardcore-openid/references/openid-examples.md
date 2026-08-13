@@ -18,7 +18,8 @@ A complete setup configuring Orchard Core as an OpenID Connect authorization ser
       "AuthorizationEndpointPath": "/connect/authorize",
       "TokenEndpointPath": "/connect/token",
       "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo"
+      "UserinfoEndpointPath": "/connect/userinfo",
+      "EnablePushedAuthorizationEndpoint": true
     }
   ]
 }
@@ -98,6 +99,8 @@ public sealed class PortalOpenIdMigrations : DataMigration
         settings.TokenEndpointPath = "/connect/token";
         settings.LogoutEndpointPath = "/connect/logout";
         settings.UserinfoEndpointPath = "/connect/userinfo";
+        settings.PushedAuthorizationEndpointPath = "/connect/par";
+        settings.RequireEndSessionConfirmation = true;
         await _serverService.UpdateSettingsAsync(settings);
 
         await _scopeManager.CreateAsync(new OpenIdScopeDescriptor
@@ -137,7 +140,26 @@ public sealed class PortalOpenIdMigrations : DataMigration
 }
 ```
 
-## Example 2: Client Credentials for Service-to-Service Communication
+## Example 2: Adding Userinfo Claims
+
+Implement `IUserInfoClaimsProvider` to append custom claims to the userinfo
+response:
+
+```csharp
+public sealed class TenantUserInfoClaimsProvider : IUserInfoClaimsProvider
+{
+    public Task GenerateAsync(UserInfoClaimsContext context)
+    {
+        context.Claims["tenant"] = "example";
+        return Task.CompletedTask;
+    }
+}
+```
+
+The standard `profile`, `email`, `phone`, and `roles` claims are populated
+before the provider runs.
+
+## Example 3: Client Credentials for Service-to-Service Communication
 
 A background service authenticating with the authorization server using client credentials to call a protected API.
 
@@ -228,7 +250,7 @@ public sealed class TokenService
 }
 ```
 
-## Example 3: Public SPA Client with PKCE
+## Example 4: Public SPA Client with PKCE
 
 A single-page application using authorization code flow with Proof Key for Code Exchange.
 
@@ -311,7 +333,7 @@ public sealed class SpaClientMigrations : DataMigration
 }
 ```
 
-## Example 4: Protected API with JWT Bearer Validation
+## Example 5: Protected API with JWT Bearer Validation
 
 A resource server validating tokens issued by an Orchard Core authorization server.
 
@@ -378,7 +400,7 @@ public sealed class CreateOrderRequest
 }
 ```
 
-## Example 5: External Azure AD Authentication
+## Example 6: External Azure AD Authentication
 
 Configuring Azure Active Directory as an external identity provider for federated login.
 
@@ -405,7 +427,7 @@ Configuring Azure Active Directory as an external identity provider for federate
 }
 ```
 
-## Example 6: Complete Multi-Application Setup Recipe
+## Example 7: Complete Multi-Application Setup Recipe
 
 A full recipe deploying an authorization server with multiple clients and scopes in a single step.
 
@@ -429,7 +451,8 @@ A full recipe deploying an authorization server with multiple clients and scopes
       "AuthorizationEndpointPath": "/connect/authorize",
       "TokenEndpointPath": "/connect/token",
       "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo"
+      "UserinfoEndpointPath": "/connect/userinfo",
+      "EnablePushedAuthorizationEndpoint": true
     },
     {
       "name": "OpenIdScope",

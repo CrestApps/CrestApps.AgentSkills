@@ -137,3 +137,58 @@ public int Create()
     return 1;
 }
 ```
+
+## Example 4: Registration and Login Events
+
+Orchard Core 3.0 uses event contracts for registration and login
+customization:
+
+```csharp
+public sealed class RegistrationEvents : RegistrationFormEventsBase
+{
+    public override Task RegisteringAsync(UserRegisteringContext context)
+    {
+        return Task.CompletedTask;
+    }
+}
+```
+
+`ILoginFormEvent.ValidatingLoginAsync(IUser user)` validates a user during
+login. The external-login form action is now on
+`ExternalAuthenticationsController`, not `AccountController`.
+
+## Example 5: Explicit Role Assignment Permission
+
+`AssignRoleToUsers` is no longer implied by `EditUsers`. Include it explicitly
+when importing a role that must assign roles:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Roles",
+      "Roles": [
+        {
+          "Name": "UserManager",
+          "Permissions": [
+            "EditUsers",
+            "AssignRoleToUsers"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Use `User | has_permission` in Liquid permission checks. Do not depend on
+permission claims for administrators.
+
+## Example 6: Enable or Disable a User
+
+Use the 3.0 user service methods instead of an edit-form checkbox:
+
+```csharp
+await _userService.EnableAsync(user);
+await _userService.DisableAsync(user);
+```

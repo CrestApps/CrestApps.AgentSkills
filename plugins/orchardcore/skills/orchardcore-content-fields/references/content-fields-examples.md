@@ -344,3 +344,30 @@ public sealed class EventMigrations : DataMigration
     ]
 }
 ```
+
+## Example 5: HTML and Markdown Rendering Settings
+
+`RenderLiquid` is independent from `SanitizeHtml` for both HTML and Markdown
+fields. Enable either setting according to the content trust and templating
+requirements.
+
+```csharp
+await _contentDefinitionManager.AlterPartDefinitionAsync("ArticlePart", part => part
+    .WithField("Summary", field => field
+        .OfType("HtmlField")
+        .WithSettings(new HtmlFieldSettings
+        {
+            SanitizeHtml = true,
+            RenderLiquid = false
+        })
+    )
+    .WithField("Body", field => field
+        .OfType("MarkdownField")
+        .WithSettings(new MarkdownFieldSettings
+        {
+            SanitizeHtml = true,
+            RenderLiquid = true
+        })
+    )
+);
+```

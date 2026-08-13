@@ -34,7 +34,7 @@ Every Orchard Core theme or module should include a `_ViewImports.cshtml` file a
 - `@inherits OrchardCore.DisplayManagement.Razor.RazorPage<TModel>` gives access to `IOrchardHelper` via `Orchard` and shape display helpers.
 - Add only the `@addTagHelper` lines for assemblies your theme or module actually uses.
 - `@using OrchardCore.DisplayManagement.Razor` is not needed when `@inherits` already references that namespace.
-- For themes, add `@using OrchardCore` to access general extension methods.
+- No `@using OrchardCore` directive is needed to access content helpers from `IOrchardHelper`.
 
 ## _ViewStart.cshtml Conventions
 
@@ -389,6 +389,11 @@ Place these in the layout to output all resources registered by shapes and modul
 ## IOrchardHelper Extensions
 
 Access `IOrchardHelper` via the `Orchard` property in Razor views that inherit from `OrchardCore.DisplayManagement.Razor.RazorPage<TModel>`.
+
+In 3.0, content helpers are available without adding `@using OrchardCore`.
+The `ContentRazorHelperExtensions` class was replaced by
+`ContentOrchardHelperExtensions`; extension method usage in Razor views stays
+the same.
 
 ### Get a Content Item by ID
 

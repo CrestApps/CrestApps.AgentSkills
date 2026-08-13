@@ -54,6 +54,36 @@ You are an Orchard Core expert. Generate configuration and admin guidance for ex
 | Resources | Exposes static resources through `ListResources` and `ReadResource` |
 | Templated Resources | Exposes variable-based resource templates through `ListResourceTemplates` |
 
+### Expose Documentation Search as a Tool
+
+Use an AI Tool Instance for documentation lookup instead of adding a
+documentation-specific MCP prompt. Do not point the built-in
+`http-api-request` source directly at the static search indexes published by
+the Orchard Core and CrestApps documentation sites. They use large
+client-side indexes, ignore query parameters, and the source has no response
+filtering or size limit. The Orchard Core Gallery is a package and module
+discovery site, not a documentation search API.
+
+Enable `CrestApps.OrchardCore.AI.ToolInstances` and use either:
+
+- An `http-api-request` instance targeting a search service that you own and
+  populate from the documentation and gallery data.
+- A custom tool instance source that fetches and caches the static indexes
+  server-side and returns only matching entries.
+
+The indexed source data may include:
+
+- `https://docs.orchardcore.net`
+- `https://core.crestapps.com`
+- `https://orchardcore.crestapps.com`
+- `https://gallery.orchardcore.net` for package and module discovery
+
+Use `GET` only, set `AllowModelProvidedBody = false`, leave credentials empty
+for public sources, set a short timeout, and give each instance a precise
+description. Keep these instances separate from privileged management or
+content tools, and protect access with the generated
+`AccessAITool_{functionName}` permission.
+
 ### Authentication Modes
 
 | Mode | Description | Recommended Use |

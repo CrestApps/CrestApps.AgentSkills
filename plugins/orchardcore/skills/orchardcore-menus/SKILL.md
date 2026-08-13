@@ -76,7 +76,36 @@ Wrap every menu item in a complete root recipe document:
 Render a menu directly from a Liquid theme layout with its alias handle:
 
 ```liquid
-{% shape "menu", alias: "alias:main-menu" %}
+{% shape "menu", alias: "alias:main-menu", cache_id: "main-menu", cache_fixed_duration: "00:05:00", cache_tag: "alias:main-menu", cache_context: "user.roles" %}
+```
+
+Menus can be permission-based. Configure permissions on menu items when a
+link must be visible only to users who can perform the related action. When
+the menu is cached, include `user.roles` in `cache_context` so the output is
+varied by the current user's roles.
+
+For a custom `MenuItem` content type, attach `MenuItemPermissionPart` to
+enable permission-based visibility. The **Content Menu Item** also provides
+a **Check content permissions** option; when enabled, the item is shown only
+if the current user has `View Content` permission for the selected item.
+Permissions are enabled automatically for new tenants. Run the
+`MenuAddPermissions` recipe for an existing tenant that needs the permission
+part:
+
+```json
+{
+  "steps": [
+    {
+      "name": "recipes",
+      "Values": [
+        {
+          "executionid": "MenuAddPermissions",
+          "name": "MenuAddPermissions"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ## Shape Alternates

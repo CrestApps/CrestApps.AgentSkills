@@ -79,7 +79,7 @@ public sealed class ProductPartIndexHandler : ContentPartIndexHandler<ProductPar
         context.DocumentIndex.Set(
             $"{nameof(ProductPart)}.{nameof(ProductPart.ProductName)}",
             part.ProductName,
-            DocumentIndexOptions.Store | DocumentIndexOptions.Analyze);
+            DocumentIndexOptions.Store);
 
         context.DocumentIndex.Set(
             $"{nameof(ProductPart)}.{nameof(ProductPart.Price)}",
@@ -89,14 +89,59 @@ public sealed class ProductPartIndexHandler : ContentPartIndexHandler<ProductPar
         context.DocumentIndex.Set(
             $"{nameof(ProductPart)}.{nameof(ProductPart.SKU)}",
             part.SKU,
-            DocumentIndexOptions.Store | DocumentIndexOptions.Analyze);
+            DocumentIndexOptions.Store | DocumentIndexOptions.Keyword);
 
         return Task.CompletedTask;
     }
 }
 ```
 
-## Example 4: Using Search in Liquid
+## Example 4: Custom Document Index Handler
+
+`IDocumentIndexHandler` receives the source record through
+`BuildDocumentIndexContext.Record`. `DocumentIndex.Set` supports structured
+values and vectors in addition to scalar values.
+
+```csharp
+using System.Collections.Generic;
+using OrchardCore.Indexing;
+
+public sealed class ProductDocumentIndexHandler : IDocumentIndexHandler
+{
+    public Task BuildIndexAsync(BuildDocumentIndexContext context)
+    {
+        if (context.Record is not ProductRecord record)
+        {
+            return Task.CompletedTask;
+        }
+
+        context.DocumentIndex.Set(
+            "Product.Attributes",
+            record.Attributes,
+            DocumentIndexOptions.Store);
+
+        context.DocumentIndex.Set(
+            "Product.Embedding",
+            record.Embedding,
+            record.Embedding.Length,
+            DocumentIndexOptions.None);
+
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class ProductRecord
+{
+    public Dictionary<string, object> Attributes { get; init; } = [];
+    public float[] Embedding { get; init; } = [];
+}
+```
+
+Register it with `services.AddScoped<IDocumentIndexHandler, ProductDocumentIndexHandler>()`.
+Use `ContentIndexingConstants` from `OrchardCore.Contents.Indexing` for
+built-in content index keys.
+
+## Example 5: Using Search in Liquid
 
 ```liquid
 {% assign results = Queries.RecentArticles | query %}

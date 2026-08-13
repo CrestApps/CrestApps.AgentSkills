@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-parts
-description: Skill for adding and configuring common built-in Orchard Core content parts. Covers selected settings, migration patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, OrchardCore.Markdown, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common built-in Orchard Core content parts. Covers selected settings, Liquid rendering, migration patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, HtmlBodyPartSettings, OrchardCore.Markdown, MarkdownBodyPartSettings, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -125,11 +125,16 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 Provides a rich HTML body editor. Feature: `OrchardCore.Html`.
 
+`RenderLiquid` and `SanitizeHtml` are independent settings. Liquid can be
+rendered while sanitization remains enabled, or both can be disabled when the
+content is trusted and must remain unchanged.
+
 ### HtmlBodyPart Settings
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `SanitizeHtml` | bool | `true` | Whether to sanitize HTML content. |
+| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering the HTML. |
 
 ### HtmlBodyPart Editors
 
@@ -149,7 +154,8 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
         .WithEditor("Wysiwyg")
         .WithSettings(new HtmlBodyPartSettings
         {
-            SanitizeHtml = true
+            SanitizeHtml = true,
+            RenderLiquid = false
         })
     )
 );
@@ -161,11 +167,16 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 Provides a Markdown body editor. Feature: `OrchardCore.Markdown`.
 
+`RenderLiquid` and `SanitizeHtml` are independent settings. Liquid is
+evaluated before Markdown output is rendered, while sanitization controls the
+resulting HTML.
+
 ### MarkdownBodyPart Settings
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `SanitizeHtml` | bool | `true` | Whether to sanitize HTML output. |
+| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering Markdown. |
 
 ### MarkdownBodyPart Migration
 
@@ -175,7 +186,8 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
         .WithPosition("2")
         .WithSettings(new MarkdownBodyPartSettings
         {
-            SanitizeHtml = true
+            SanitizeHtml = true,
+            RenderLiquid = false
         })
     )
 );

@@ -87,6 +87,7 @@ place the access key in a deployment recipe or repository configuration file.
 Send through the base service:
 
 ```csharp
+using OrchardCore.Infrastructure;
 using OrchardCore.Sms;
 
 namespace MyModule;
@@ -100,18 +101,22 @@ public sealed class AppointmentReminderService
         _smsService = smsService;
     }
 
-    public Task<SmsResult> SendAsync(string phoneNumber)
+    public Task<Result> SendAsync(
+        string phoneNumber,
+        CancellationToken cancellationToken = default)
     {
-        return _smsService.SendAsync(new SmsMessage
-        {
-            To = phoneNumber,
-            Body = "Your appointment is tomorrow.",
-        });
+        return _smsService.SendAsync(
+            new SmsMessage
+            {
+                To = phoneNumber,
+                Body = "Your appointment is tomorrow.",
+            },
+            cancellationToken);
     }
 }
 ```
 
-Check `SmsResult.Succeeded` and handle errors without logging the full message
+Check `Result.Succeeded` and handle errors without logging the full message
 body or unnecessary personal data.
 
 ## Integrate Workflows and Notifications

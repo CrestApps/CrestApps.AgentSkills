@@ -11,6 +11,11 @@ metadata:
 
 Workflows are reusable visual definitions made of activities and outcome transitions. Create a workflow in **Workflows → Workflows**, add an event as a start activity, configure tasks/events, connect outcomes, and enable the definition. Export a tested workflow through the workflow deployment step and reuse its serialized payload in a `WorkflowType` recipe step rather than hand-creating activity IDs or transitions.
 
+In Orchard Core 3.0, `WorkflowIndex.WorkflowStatus` is stored as an integer
+that matches the `WorkflowStatus` enum. Update raw SQL and custom index
+queries to compare the column with the enum's integer value. Existing
+values are migrated automatically.
+
 ## Enable the required features
 
 Enable the base feature and every feature that contributes an activity before importing a workflow that uses it.
