@@ -37,7 +37,7 @@ CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET a
 
 4. **`CrestApps.AgentSkills.Mcp.OrchardCore`** - Runtime MCP server for Orchard Core
    - Extends `CrestApps.AgentSkills.Mcp` with Orchard Core–specific convenience wrappers
-   - Bundles both `orchardcore/` and `crestapps-orchardcore/` via `contentFiles` (copied to bin output on restore)
+   - Bundles both `orchardcore/` and `crestapps-orchardcore/`, packed under `skills/` and copied to the consuming app's build and publish output at `.agents/skills/` by a `buildTransitive` targets file (not `contentFiles`, which NuGet drops for transitive references)
    - Entry point: `OrchardCoreSkillMcpExtensions` (`AddOrchardCoreSkills`, `AddOrchardCoreAgentSkillServices`)
    - Services registered as singletons for caching
 

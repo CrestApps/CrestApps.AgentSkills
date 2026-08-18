@@ -133,8 +133,29 @@ jobs:
         validate_project \
           "src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" \
           '$(OrchardCoreSkillsDirectory)**\*' \
-          'PackagePath="contentFiles\any\any\.agents\skills"' \
+          'PackagePath="skills"' \
           'Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"'
+
+        # Skills must be delivered through buildTransitive targets. NuGet contentFiles
+        # are dropped for applications that reference the package transitively, which
+        # would silently ship a site with no skills at all.
+        mcp_project="src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj"
+        mcp_targets="src/CrestApps.AgentSkills.Mcp.OrchardCore/buildTransitive/CrestApps.AgentSkills.Mcp.OrchardCore.targets"
+
+        if [ ! -f "$mcp_targets" ]; then
+          echo "::error file=$mcp_targets::Missing buildTransitive targets that copy skills to the consuming app output."
+          exit 1
+        fi
+
+        if ! grep -Fq 'PackagePath="buildTransitive"' "$mcp_project"; then
+          echo "::error file=$mcp_project::buildTransitive assets are not packed."
+          exit 1
+        fi
+
+        if grep -Fq 'PackagePath="contentFiles' "$mcp_project"; then
+          echo "::error file=$mcp_project::Skills must not be packed as contentFiles; they do not flow transitively."
+          exit 1
+        fi
     - name: Deploy preview NuGet packages
       if: steps.check-publish.outputs.should-publish == 'true'
       run: |
