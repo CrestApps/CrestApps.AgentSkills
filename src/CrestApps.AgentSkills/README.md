@@ -13,7 +13,7 @@ This project is the **skill content container** for the repository. It is not pu
 ## Packaging behavior
 
 - `CrestApps.AgentSkills.OrchardCore` packs `orchardcore/` and `crestapps-orchardcore/` under `skills/`
-- `CrestApps.AgentSkills.Mcp.OrchardCore` packs `orchardcore/` and `crestapps-orchardcore/` under `contentFiles/any/any/.agents/skills/`
+- `CrestApps.AgentSkills.Mcp.OrchardCore` packs `orchardcore/` and `crestapps-orchardcore/` under `skills/`, then copies them to the consuming app's output and publish directory at `.agents/skills/` with a `buildTransitive` targets file
 - The Copilot CLI plugins are generated from matching roots:
   - `plugins/orchardcore` ← `src/CrestApps.AgentSkills/orchardcore`
   - `plugins/crestapps-orchardcore` ← `src/CrestApps.AgentSkills/crestapps-orchardcore`

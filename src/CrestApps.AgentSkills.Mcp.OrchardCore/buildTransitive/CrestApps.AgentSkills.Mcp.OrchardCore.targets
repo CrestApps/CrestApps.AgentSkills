@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    CrestApps.AgentSkills.Mcp.OrchardCore
+
+    Copies the packaged skill files into the consuming application's build output and
+    publish output under ".agents/skills". That is exactly where the runtime loader
+    looks for them, because AddOrchardCoreAgentSkillServices() defaults the skills
+    directory to "<AppContext.BaseDirectory>/.agents/skills".
+
+    Why this is not done with NuGet "contentFiles":
+      NuGet only honours contentFiles (copyToOutput) for DIRECT PackageReference items
+      and for ProjectReference chains. They are silently dropped when this package is
+      pulled in through another package, which is a transitive PackageReference. A module
+      that wraps this package would therefore publish without any skill files, and the
+      MCP server would expose no skill resources at all.
+
+      Assets in "buildTransitive" flow through transitive package references, so every
+      consuming application receives the skills no matter how deep this package sits in
+      the dependency graph. No consumer has to add a direct reference as a workaround.
+
+    Consumers that ship their own skills directory can opt out by setting
+    IncludeCrestAppsAgentSkills to false.
+  -->
+
+  <PropertyGroup>
+    <CrestAppsAgentSkillsDirectory Condition=" '$(CrestAppsAgentSkillsDirectory)' == '' ">$(MSBuildThisFileDirectory)../skills/</CrestAppsAgentSkillsDirectory>
+    <IncludeCrestAppsAgentSkills Condition=" '$(IncludeCrestAppsAgentSkills)' == '' ">true</IncludeCrestAppsAgentSkills>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(IncludeCrestAppsAgentSkills)' == 'true' And Exists('$(CrestAppsAgentSkillsDirectory)') ">
+    <None Include="$(CrestAppsAgentSkillsDirectory)**/*"
+          Link=".agents/skills/%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Pack="false"
+          Visible="false" />
+  </ItemGroup>
+
+</Project>

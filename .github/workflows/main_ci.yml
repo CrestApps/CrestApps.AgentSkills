@@ -112,5 +112,45 @@ jobs:
         validate_project \
           "src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj" \
           '$(OrchardCoreSkillsDirectory)**\*' \
-          'PackagePath="contentFiles\any\any\.agents\skills"' \
+          'PackagePath="skills"' \
           'Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"'
+
+        # Skills must be delivered through buildTransitive targets. NuGet contentFiles
+        # are dropped for applications that reference the package transitively, which
+        # would silently ship a site with no skills at all.
+        mcp_project="src/CrestApps.AgentSkills.Mcp.OrchardCore/CrestApps.AgentSkills.Mcp.OrchardCore.csproj"
+        mcp_targets="src/CrestApps.AgentSkills.Mcp.OrchardCore/buildTransitive/CrestApps.AgentSkills.Mcp.OrchardCore.targets"
+
+        if [ ! -f "$mcp_targets" ]; then
+          echo "::error file=$mcp_targets::Missing buildTransitive targets that copy skills to the consuming app output."
+          exit 1
+        fi
+
+        if ! grep -Fq 'PackagePath="buildTransitive"' "$mcp_project"; then
+          echo "::error file=$mcp_project::buildTransitive assets are not packed."
+          exit 1
+        fi
+
+        if grep -Fq 'PackagePath="contentFiles' "$mcp_project"; then
+          echo "::error file=$mcp_project::Skills must not be packed as contentFiles; they do not flow transitively."
+          exit 1
+        fi
+
+        # Source ProjectReference consumers (including this repository's own tests) rely on
+        # the item metadata below, while packaged consumers rely on the buildTransitive
+        # targets. Both delivery paths must stay intact.
+        if ! grep -Fq 'CopyToOutputDirectory' "$mcp_project" || ! grep -Fq 'CopyToPublishDirectory' "$mcp_project"; then
+          echo "::error file=$mcp_project::Skill items must keep CopyToOutputDirectory and CopyToPublishDirectory so project references still receive skills."
+          exit 1
+        fi
+
+        if ! grep -Fq 'CopyToOutputDirectory' "$mcp_targets" || ! grep -Fq 'CopyToPublishDirectory' "$mcp_targets"; then
+          echo "::error file=$mcp_targets::buildTransitive targets must copy skills to both the build output and the publish output."
+          exit 1
+        fi
+
+        # The runtime loader reads "<AppContext.BaseDirectory>/.agents/skills".
+        if ! grep -Fq '.agents' "$mcp_project" || ! grep -Fq '.agents' "$mcp_targets"; then
+          echo "::error file=$mcp_targets::Skills must be linked under '.agents/skills' to match the runtime loader path."
+          exit 1
+        fi

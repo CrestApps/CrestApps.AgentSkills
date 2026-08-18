@@ -19,29 +19,36 @@
 		<PackageReference Include="CrestApps.Core.AI.Mcp" />
 	</ItemGroup>
 
+	<!-- Pack skill files under skills/ in the nupkg rather than contentFiles/.
+	     NuGet only flows contentFiles to DIRECT package references, so a module that
+	     wraps this package would publish without skills. The buildTransitive .targets
+	     copies these files to the consuming app's output and publish directory instead,
+	     which works for direct and transitive references alike. -->
 	<ItemGroup>
-		<Content Include="$(OrchardCoreSkillsDirectory)**\*"
-				 Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"
-				 Pack="true"
-				 PackagePath="contentFiles\any\any\.agents\skills"
-				 BuildAction="Content"
-				 CopyToOutputDirectory="PreserveNewest"
-				 Visible="false">
-			<PackageCopyToOutput>true</PackageCopyToOutput>
-		</Content>
-		<Content Include="$(CrestAppsOrchardCoreSkillsDirectory)**\*"
-				 Exclude="$(CrestAppsOrchardCoreSkillsDirectory)**\bin\**\*;$(CrestAppsOrchardCoreSkillsDirectory)**\lib\**\*"
-				 Pack="true"
-				 PackagePath="contentFiles\any\any\.agents\skills"
-				 BuildAction="Content"
-				 CopyToOutputDirectory="PreserveNewest"
-				 Visible="false">
-			<PackageCopyToOutput>true</PackageCopyToOutput>
-		</Content>
+		<None Include="$(OrchardCoreSkillsDirectory)**\*"
+			  Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"
+			  Pack="true"
+			  PackagePath="skills"
+			  Link=".agents\skills\%(RecursiveDir)%(Filename)%(Extension)"
+			  CopyToOutputDirectory="PreserveNewest"
+			  CopyToPublishDirectory="PreserveNewest"
+			  Visible="false" />
+		<None Include="$(CrestAppsOrchardCoreSkillsDirectory)**\*"
+			  Exclude="$(CrestAppsOrchardCoreSkillsDirectory)**\bin\**\*;$(CrestAppsOrchardCoreSkillsDirectory)**\lib\**\*"
+			  Pack="true"
+			  PackagePath="skills"
+			  Link=".agents\skills\%(RecursiveDir)%(Filename)%(Extension)"
+			  CopyToOutputDirectory="PreserveNewest"
+			  CopyToPublishDirectory="PreserveNewest"
+			  Visible="false" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive" />
 	</ItemGroup>
 
 </Project>
