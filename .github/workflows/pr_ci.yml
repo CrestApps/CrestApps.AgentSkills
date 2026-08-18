@@ -137,3 +137,22 @@ jobs:
           echo "::error file=$mcp_project::Skills must not be packed as contentFiles; they do not flow transitively."
           exit 1
         fi
+
+        # Source ProjectReference consumers (including this repository's own tests) rely on
+        # the item metadata below, while packaged consumers rely on the buildTransitive
+        # targets. Both delivery paths must stay intact.
+        if ! grep -Fq 'CopyToOutputDirectory' "$mcp_project" || ! grep -Fq 'CopyToPublishDirectory' "$mcp_project"; then
+          echo "::error file=$mcp_project::Skill items must keep CopyToOutputDirectory and CopyToPublishDirectory so project references still receive skills."
+          exit 1
+        fi
+
+        if ! grep -Fq 'CopyToOutputDirectory' "$mcp_targets" || ! grep -Fq 'CopyToPublishDirectory' "$mcp_targets"; then
+          echo "::error file=$mcp_targets::buildTransitive targets must copy skills to both the build output and the publish output."
+          exit 1
+        fi
+
+        # The runtime loader reads "<AppContext.BaseDirectory>/.agents/skills".
+        if ! grep -Fq '.agents' "$mcp_project" || ! grep -Fq '.agents' "$mcp_targets"; then
+          echo "::error file=$mcp_targets::Skills must be linked under '.agents/skills' to match the runtime loader path."
+          exit 1
+        fi
