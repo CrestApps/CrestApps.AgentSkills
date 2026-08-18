@@ -29,11 +29,17 @@
 			  Exclude="$(OrchardCoreSkillsDirectory)**\bin\**\*;$(OrchardCoreSkillsDirectory)**\lib\**\*"
 			  Pack="true"
 			  PackagePath="skills"
+			  Link=".agents\skills\%(RecursiveDir)%(Filename)%(Extension)"
+			  CopyToOutputDirectory="PreserveNewest"
+			  CopyToPublishDirectory="PreserveNewest"
 			  Visible="false" />
 		<None Include="$(CrestAppsOrchardCoreSkillsDirectory)**\*"
 			  Exclude="$(CrestAppsOrchardCoreSkillsDirectory)**\bin\**\*;$(CrestAppsOrchardCoreSkillsDirectory)**\lib\**\*"
 			  Pack="true"
 			  PackagePath="skills"
+			  Link=".agents\skills\%(RecursiveDir)%(Filename)%(Extension)"
+			  CopyToOutputDirectory="PreserveNewest"
+			  CopyToPublishDirectory="PreserveNewest"
 			  Visible="false" />
 	</ItemGroup>
 
