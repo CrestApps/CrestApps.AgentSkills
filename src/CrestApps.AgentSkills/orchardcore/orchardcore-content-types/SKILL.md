@@ -23,6 +23,7 @@ You are an Orchard Core expert. Generate code and configuration for creating a c
 - Use content part and field settings to configure editors and display modes.
 - Use the asynchronous `IContentDefinitionManager` APIs such as `AlterTypeDefinitionAsync` and `AlterPartDefinitionAsync`.
 - Define fields on a content part, then attach that part to a content type. Fields cannot be attached directly to a type definition.
+- To inject a part into types programmatically at build time, or to make a type, part, or field system-defined (undeletable through the UI or recipes), use `IContentDefinitionHandler` — see the `orchardcore-content-definition-handlers` skill.
 
 ### Migration Pattern
 

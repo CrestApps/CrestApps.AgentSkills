@@ -23,7 +23,7 @@ skill instead.
 - Each feature must have a unique ID and should declare its dependencies.
 - Use `Startup` classes to register services, routes, and navigation.
 - Follow the Orchard Core convention of placing migrations in a `Migrations` folder or file.
-- Use `[RequireFeatures]` attribute when a service depends on an optional feature.
+- Declare a new feature with `[assembly: Feature(...)]` only when the user should manage it; to extend or override behavior when other features are present, gate a `Startup` with `[RequireFeatures(...)]` instead of adding another feature the user must enable. See the `orchardcore-features` skill for the full decision.
 - Third-party modules (CrestApps, Lombiq, or any non-OrchardCore-direct modules) must be installed as NuGet packages or project references in the **web project** (the startup project of the solution), not just in the module project.
 - Always seal classes.
 
