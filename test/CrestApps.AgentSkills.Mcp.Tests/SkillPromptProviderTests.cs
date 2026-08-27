@@ -1,6 +1,7 @@
 using CrestApps.AgentSkills.Mcp.Providers;
 using CrestApps.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CrestApps.AgentSkills.Mcp.Tests;
@@ -34,7 +35,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -52,7 +53,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -70,7 +71,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -86,7 +87,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -104,7 +105,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -122,7 +123,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -140,7 +141,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -158,7 +159,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var first = await provider.GetPromptsAsync();
         var second = await provider.GetPromptsAsync();
@@ -171,7 +172,7 @@ public sealed class SkillPromptProviderTests : IDisposable
     {
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -187,7 +188,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 
@@ -209,7 +210,7 @@ public sealed class SkillPromptProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillPromptProvider(
-            fileStore, NullLogger<SkillPromptProvider>.Instance);
+            fileStore, NullLogger<SkillPromptProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var prompts = await provider.GetPromptsAsync();
 

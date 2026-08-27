@@ -183,7 +183,8 @@ Place your skill files in a directory and use the test infrastructure:
 
 ```csharp
 var fileStore = new PhysicalSkillFileStore("/path/to/skills");
-var provider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance);
+var options = Options.Create(new AgentSkillOptions());
+var provider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance, options);
 var prompts = await provider.GetPromptsAsync();
 ```
 

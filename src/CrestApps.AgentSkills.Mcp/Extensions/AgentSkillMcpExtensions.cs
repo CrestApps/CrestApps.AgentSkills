@@ -3,6 +3,7 @@ using CrestApps.AgentSkills.Mcp.Providers;
 using CrestApps.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace CrestApps.AgentSkills.Mcp.Extensions;
 
@@ -43,13 +44,19 @@ public static class AgentSkillMcpExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var options = new AgentSkillOptions();
-        configure(options);
+        // Register the options through the standard options pipeline so that
+        // IOptions<AgentSkillOptions> is resolvable and consumers can post-configure.
+        services.Configure(configure);
 
-        var skillsPath = options.Path
-            ?? Path.Combine(AppContext.BaseDirectory, DefaultSkillsRelativePath);
+        // Resolve the skills path lazily from the configured options.
+        services.AddSingleton<IAgentSkillFilesStore>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<AgentSkillOptions>>().Value;
+            var skillsPath = options.Path
+                ?? Path.Combine(AppContext.BaseDirectory, DefaultSkillsRelativePath);
 
-        services.AddSingleton<IAgentSkillFilesStore>(new DefaultAgentSkillFilesStore(skillsPath));
+            return new DefaultAgentSkillFilesStore(skillsPath);
+        });
         services.AddSingleton<IMcpPromptProvider, SkillPromptProvider>();
         services.AddSingleton<IMcpResourceProvider, SkillResourceProvider>();
 
@@ -100,8 +107,9 @@ public static class AgentSkillMcpExtensions
         // These are temporary instances for config-time loading only;
         // the DI-registered singletons (with proper loggers) are used at runtime.
         var fileStore = new DefaultAgentSkillFilesStore(skillsPath);
-        var promptProvider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance);
-        var resourceProvider = new SkillResourceProvider(fileStore, NullLogger<SkillResourceProvider>.Instance);
+        var optionsAccessor = Options.Create(options);
+        var promptProvider = new SkillPromptProvider(fileStore, NullLogger<SkillPromptProvider>.Instance, optionsAccessor);
+        var resourceProvider = new SkillResourceProvider(fileStore, NullLogger<SkillResourceProvider>.Instance, optionsAccessor);
 
         var prompts = promptProvider.GetPromptsAsync().GetAwaiter().GetResult();
         if (prompts.Count > 0)

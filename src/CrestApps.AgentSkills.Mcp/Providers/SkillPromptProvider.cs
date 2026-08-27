@@ -1,6 +1,7 @@
 using CrestApps.AgentSkills.Mcp.Abstractions;
 using CrestApps.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 
 namespace CrestApps.AgentSkills.Mcp.Providers;
@@ -16,16 +17,20 @@ public sealed class SkillPromptProvider : IMcpPromptProvider
 {
     private readonly IAgentSkillFilesStore _fileStore;
     private readonly ILogger<SkillPromptProvider> _logger;
+    private readonly AgentSkillOptions _options;
     private IReadOnlyList<McpServerPrompt>? _prompts;
 
     public SkillPromptProvider(
         IAgentSkillFilesStore fileStore,
-        ILogger<SkillPromptProvider> logger)
+        ILogger<SkillPromptProvider> logger,
+        IOptions<AgentSkillOptions> options)
     {
         ArgumentNullException.ThrowIfNull(fileStore);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options);
         _fileStore = fileStore;
         _logger = logger;
+        _options = options.Value;
     }
 
     /// <summary>
@@ -68,11 +73,25 @@ public sealed class SkillPromptProvider : IMcpPromptProvider
                 continue;
             }
 
-            if (!SkillFileParser.TryParse(skillFileName, content, out var name, out var description, out var body))
+            if (!SkillFileParser.TryParse(skillFileName, content, out var name, out var description, out var body, out var mcp))
             {
                 _logger.LogWarning(
                     "Skill file '{FileName}' for skill '{SkillName}' has invalid or missing required fields (name and description are required), skipping.",
                     skillFileName, skillDirName);
+                continue;
+            }
+
+            var channel = McpChannelResolver.Resolve(mcp, _options.DefaultMcpChannel, name, _logger);
+
+            if (channel is not (McpChannel.Prompt or McpChannel.Both))
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Skill '{SkillName}' is configured for the '{Channel}' channel; not exposing it as a prompt.",
+                        name, channel);
+                }
+
                 continue;
             }
 
