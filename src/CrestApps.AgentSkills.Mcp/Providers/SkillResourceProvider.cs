@@ -1,6 +1,7 @@
 using CrestApps.AgentSkills.Mcp.Abstractions;
 using CrestApps.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 
 namespace CrestApps.AgentSkills.Mcp.Providers;
@@ -16,16 +17,20 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
 {
     private readonly IAgentSkillFilesStore _fileStore;
     private readonly ILogger<SkillResourceProvider> _logger;
+    private readonly AgentSkillOptions _options;
     private IReadOnlyList<McpServerResource>? _resources;
 
     public SkillResourceProvider(
         IAgentSkillFilesStore fileStore,
-        ILogger<SkillResourceProvider> logger)
+        ILogger<SkillResourceProvider> logger,
+        IOptions<AgentSkillOptions> options)
     {
         ArgumentNullException.ThrowIfNull(fileStore);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options);
         _fileStore = fileStore;
         _logger = logger;
+        _options = options.Value;
     }
 
     /// <summary>
@@ -52,21 +57,35 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
             var skillDirName = skillDir.Name;
 
             // Register the skill file as a resource.
-            var (skillFileName, skillContent, skillName, skillDescription) = await TryReadAndParseSkillFileAsync(skillDirName);
+            var parsed = await TryReadAndParseSkillFileAsync(skillDirName);
 
-            if (skillFileName is not null && skillContent is not null && skillName is not null && skillDescription is not null)
+            if (parsed is { } skill)
             {
-                var mimeType = GetMimeType(skillFileName);
-                var resource = McpServerResource.Create(
-                    () => skillContent,
-                    new McpServerResourceCreateOptions
-                    {
-                        Name = $"{skillName}/{skillFileName}",
-                        Description = skillDescription,
-                        UriTemplate = $"skills://{skillName}/{skillFileName}",
-                        MimeType = mimeType,
-                    });
-                resources.Add(resource);
+                var channel = McpChannelResolver.Resolve(skill.Mcp, _options.DefaultMcpChannel, skill.Name, _logger);
+
+                if (channel is McpChannel.Resource or McpChannel.Both)
+                {
+                    // Serve the front-matter-stripped body (matching the prompt), so internal
+                    // YAML keys (license, metadata, version, ...) are never leaked to clients.
+                    var body = skill.Body;
+                    var mimeType = GetMimeType(skill.FileName);
+                    var resource = McpServerResource.Create(
+                        () => body,
+                        new McpServerResourceCreateOptions
+                        {
+                            Name = $"{skill.Name}/{skill.FileName}",
+                            Description = skill.Description,
+                            UriTemplate = $"skills://{skill.Name}/{skill.FileName}",
+                            MimeType = mimeType,
+                        });
+                    resources.Add(resource);
+                }
+                else if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Skill '{SkillName}' is configured for the '{Channel}' channel; not exposing SKILL as a resource.",
+                        skill.Name, channel);
+                }
             }
             else
             {
@@ -140,8 +159,7 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
         return _resources;
     }
 
-    private async Task<(string? FileName, string? Content, string? Name, string? Description)> TryReadAndParseSkillFileAsync(
-        string skillDirName)
+    private async Task<ParsedSkill?> TryReadAndParseSkillFileAsync(string skillDirName)
     {
         foreach (var candidateFileName in SkillFileParser.SupportedSkillFileNames)
         {
@@ -173,7 +191,7 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
                 continue;
             }
 
-            if (!SkillFileParser.TryParse(candidateFileName, content, out var name, out var description, out _))
+            if (!SkillFileParser.TryParse(candidateFileName, content, out var name, out var description, out var body, out var mcp))
             {
                 _logger.LogWarning(
                     "Skill file '{FileName}' for skill '{SkillName}' has invalid or missing required fields (name and description are required), skipping.",
@@ -181,11 +199,13 @@ public sealed class SkillResourceProvider : IMcpResourceProvider
                 continue;
             }
 
-            return (candidateFileName, content, name, description);
+            return new ParsedSkill(candidateFileName, name, description, body, mcp);
         }
 
-        return (null, null, null, null);
+        return null;
     }
+
+    private readonly record struct ParsedSkill(string FileName, string Name, string Description, string Body, string? Mcp);
 
     private static string GetMimeType(string fileName)
     {

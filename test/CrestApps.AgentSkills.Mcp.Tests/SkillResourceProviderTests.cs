@@ -1,6 +1,7 @@
 using CrestApps.AgentSkills.Mcp.Providers;
 using CrestApps.AgentSkills.Mcp.Services;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CrestApps.AgentSkills.Mcp.Tests;
@@ -34,7 +35,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -52,7 +53,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -70,7 +71,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -93,7 +94,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -117,7 +118,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -136,7 +137,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -154,7 +155,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var first = await provider.GetResourcesAsync();
         var second = await provider.GetResourcesAsync();
@@ -167,7 +168,7 @@ public sealed class SkillResourceProviderTests : IDisposable
     {
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 
@@ -183,7 +184,7 @@ public sealed class SkillResourceProviderTests : IDisposable
 
         var fileStore = new DefaultAgentSkillFilesStore(_tempDir);
         var provider = new SkillResourceProvider(
-            fileStore, NullLogger<SkillResourceProvider>.Instance);
+            fileStore, NullLogger<SkillResourceProvider>.Instance, Options.Create(new AgentSkillOptions()));
 
         var resources = await provider.GetResourcesAsync();
 

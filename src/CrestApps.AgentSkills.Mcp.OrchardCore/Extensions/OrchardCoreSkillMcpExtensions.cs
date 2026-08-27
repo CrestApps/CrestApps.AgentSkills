@@ -2,6 +2,7 @@ using CrestApps.AgentSkills.Mcp;
 using CrestApps.AgentSkills.Mcp.Extensions;
 using CrestApps.OrchardCore.AgentSkills.Mcp.Adapters;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using SdkPromptProvider = CrestApps.Core.AI.Mcp.Services.IMcpPromptProvider;
 using SdkResourceProvider = CrestApps.Core.AI.Mcp.Services.IMcpResourceProvider;
 using SkillPromptProvider = CrestApps.AgentSkills.Mcp.Abstractions.IMcpPromptProvider;
@@ -54,13 +55,19 @@ public static class OrchardCoreSkillMcpExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var orchardOptions = new OrchardCoreSkillOptions();
-        configure(orchardOptions);
+        // Register the Orchard Core options through the standard options pipeline so
+        // IOptions<OrchardCoreSkillOptions> is resolvable and consumers can post-configure.
+        services.Configure(configure);
 
-        services.AddAgentSkillServices(options =>
-        {
-            options.Path = orchardOptions.Path;
-        });
+        services.AddAgentSkillServices();
+
+        // Bridge the Orchard Core options onto the underlying AgentSkillOptions via the
+        // options pipeline, so later post-configuration of OrchardCoreSkillOptions is honored.
+        services.AddOptions<AgentSkillOptions>()
+            .Configure<IOptions<OrchardCoreSkillOptions>>((options, orchardOptions) =>
+            {
+                options.Path = orchardOptions.Value.Path;
+            });
 
         // Register adapters that bridge AgentSkills' provider interfaces to the
         // CrestApps.Core SDK interfaces so the SDK's DefaultMcpServerPromptService
@@ -98,6 +105,12 @@ public static class OrchardCoreSkillMcpExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
+        // Register the Orchard Core options through the standard options pipeline so
+        // IOptions<OrchardCoreSkillOptions> is resolvable at runtime.
+        builder.Services.Configure(configure);
+
+        // Prompts/resources are loaded eagerly at configuration time (before any service
+        // provider exists), so the path must be resolved synchronously here.
         var orchardOptions = new OrchardCoreSkillOptions();
         configure(orchardOptions);
 

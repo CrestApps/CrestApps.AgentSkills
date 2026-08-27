@@ -117,4 +117,101 @@ public sealed class SkillFrontMatterParserTests
         Assert.Equal("A test skill.", description);
         Assert.StartsWith("# Body Content", body);
     }
+
+    [Fact]
+    public void TryParse_FoldedDescription_JoinsLinesAndTrims()
+    {
+        var content = "---\nname: folded-skill\ndescription: >\n  This is a folded\n  description value.\n---\n# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out var name, out var description, out _);
+
+        Assert.True(result);
+        Assert.Equal("folded-skill", name);
+        Assert.Equal("This is a folded description value.", description);
+    }
+
+    [Fact]
+    public void TryParse_QuotedValues_StripsQuotes()
+    {
+        var content = "---\nname: \"quoted-skill\"\ndescription: 'A quoted description.'\n---\n# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out var name, out var description, out _);
+
+        Assert.True(result);
+        Assert.Equal("quoted-skill", name);
+        Assert.Equal("A quoted description.", description);
+    }
+
+    [Fact]
+    public void TryParse_NestedMetadataKeys_DoNotOverrideTopLevel()
+    {
+        var content =
+            "---\n" +
+            "name: real-name\n" +
+            "description: Real description.\n" +
+            "metadata:\n" +
+            "  name: nested-name\n" +
+            "  description: nested description.\n" +
+            "  author: someone\n" +
+            "---\n" +
+            "# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out var name, out var description, out _);
+
+        Assert.True(result);
+        Assert.Equal("real-name", name);
+        Assert.Equal("Real description.", description);
+    }
+
+    [Fact]
+    public void TryParse_IgnoresUnknownTopLevelKeys()
+    {
+        var content =
+            "---\n" +
+            "name: skill\n" +
+            "description: Desc.\n" +
+            "license: MIT\n" +
+            "version: 1.2.3\n" +
+            "---\n" +
+            "# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out var name, out var description, out _);
+
+        Assert.True(result);
+        Assert.Equal("skill", name);
+        Assert.Equal("Desc.", description);
+    }
+
+    [Fact]
+    public void TryParse_McpKey_IsExtracted()
+    {
+        var content = "---\nname: skill\ndescription: Desc.\nmcp: resource\n---\n# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out _, out _, out _, out var mcp);
+
+        Assert.True(result);
+        Assert.Equal("resource", mcp);
+    }
+
+    [Fact]
+    public void TryParse_NoMcpKey_ReturnsNullMcp()
+    {
+        var content = "---\nname: skill\ndescription: Desc.\n---\n# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out _, out _, out _, out var mcp);
+
+        Assert.True(result);
+        Assert.Null(mcp);
+    }
+
+    [Fact]
+    public void TryParse_NestedNameOnly_MissingTopLevelName_ReturnsFalse()
+    {
+        // A skill that only defines name under metadata must NOT be considered valid.
+        var content = "---\ndescription: Desc.\nmetadata:\n  name: nested-name\n---\n# Body";
+
+        var result = SkillFrontMatterParser.TryParse(content, out _, out _, out _);
+
+        Assert.False(result);
+    }
 }
