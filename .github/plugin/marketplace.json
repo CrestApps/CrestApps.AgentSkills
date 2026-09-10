@@ -30,7 +30,7 @@
         "agentskills"
       ],
       "skills": [
-        "./skills/orchardcore"
+        "./skills"
       ]
     },
     {
@@ -56,7 +56,7 @@
         "agentskills"
       ],
       "skills": [
-        "./skills/crestapps-orchardcore"
+        "./skills"
       ]
     },
     {
@@ -80,7 +80,7 @@
         "agentskills"
       ],
       "skills": [
-        "./skills/crestapps-core"
+        "./skills"
       ]
     }
   ]
