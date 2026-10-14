@@ -1,5 +1,7 @@
 # CrestApps.AgentSkills
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/MikeAlhayek)
+
 Shared **AI agent skills** and MCP tooling for .NET applications, Orchard Core solutions, CrestApps OrchardCore modules, and CrestApps.Core libraries.
 
 ## Projects
@@ -207,6 +209,12 @@ done
 ## Contributing
 
 See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for contribution guidelines and the expected source-root placement for new skills.
+
+## ❤️ Sponsor
+
+This project is free and open source, built and maintained alongside full-time work. If it saves you time or powers something you ship, please consider [sponsoring on GitHub](https://github.com/sponsors/MikeAlhayek). Sponsorship funds new features, faster fixes, documentation and long-term maintenance, and companies using it in production are especially encouraged to sponsor.
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor_on_GitHub-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white&style=for-the-badge)](https://github.com/sponsors/MikeAlhayek)
 
 ## License
 
