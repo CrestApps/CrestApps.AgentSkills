@@ -73,12 +73,13 @@ Display mode variants (for parts with display modes):
 
 ## Debugging Alternates
 
+- Enable **Settings → Debugging → Write shape debug information**; each shape is wrapped with `<!--shape-start type:... bindings:...-->` comments naming the winning binding.
 - **Liquid**: `{{ Model.Metadata.Alternates | json | console_log }}` to the browser console.
 - **Razor**: temporarily render `Model.Metadata.Alternates` in a `<pre>` tag.
 - Remove debug snippets after verifying.
 
 ## Practical Tips
 
-- Most-specific alternates win; keep templates targeted to avoid surprising overrides.
+- Most-specific alternates win (alternates added last have the highest priority); keep templates targeted to avoid surprising overrides.
 - When overriding a content item template and you just want a wrapper, prefer `@await DisplayAsync(Model.Content)` and let parts render with their own templates.
 - Override `BagPart` only when you need custom item-level markup (e.g., FAQ accordion).

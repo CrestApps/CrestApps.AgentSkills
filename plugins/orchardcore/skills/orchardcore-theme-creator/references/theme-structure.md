@@ -82,38 +82,35 @@ using OrchardCore.Modules.Manifest;
 
 ### Views/Layout.cshtml
 
-```html
-@using OrchardCore.DisplayManagement.Shapes
-@using OrchardCore.DisplayManagement.Zones
-
+```cshtml
 <!DOCTYPE html>
-<html lang="@Orchard.CultureName()">
+<html lang="@Orchard.CultureName()" dir="@Orchard.CultureDir()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@RenderTitleSegments(Site.SiteName, "before")</title>
-    
-    <resources type="Meta" />
-    <link asp-src="~/YourTheme/css/site.css" />
-    <resources type="HeadLink" />
-    <resources type="HeadScript" />
-    <resources type="StyleSheet" />
+    <style asp-name="bootstrap" version="5" at="Head"></style>
+    <style asp-name="YourTheme" asp-src="~/YourTheme/css/site.min.css" debug-src="~/YourTheme/css/site.css" depends-on="bootstrap:5" at="Head"></style>
+    <script asp-name="bootstrap" version="5" at="Foot"></script>
+    <script asp-name="YourTheme" asp-src="~/YourTheme/js/site.min.js" debug-src="~/YourTheme/js/site.js" at="Foot"></script>
+    <resources type="Header" />
+    @await RenderSectionAsync("HeadMeta", required: false)
 </head>
 <body>
-    <zone Name="Header" />
-    
+    @await RenderSectionAsync("Header", required: false)
     <main class="container">
-        <zone Name="Messages" />
-        <zone Name="Content" />
+        @await RenderSectionAsync("Messages", required: false)
+        @await RenderBodyAsync()
     </main>
-    
-    <zone Name="Footer" />
-    
+    @await RenderSectionAsync("Footer", required: false)
     <resources type="FootScript" />
-    <script asp-src="~/YourTheme/js/site.js"></script>
 </body>
 </html>
 ```
+
+- `RenderBodyAsync()` renders the `Content` zone; `RenderSectionAsync(name, required: false)` renders any other zone. `<zone name="...">` only **adds** content to a zone, it never renders one.
+- `<resources type="Header" />` renders meta, link, stylesheet, and head script resources; `<resources type="FootScript" />` renders foot scripts.
+- Require every script the theme uses. Orchard Core 4.0 no longer loads jQuery through admin or module scripts; add `<script asp-name="jQuery" at="Foot"></script>` only if the theme needs it.
 
 ### Views/_ViewImports.cshtml
 
@@ -130,6 +127,30 @@ using OrchardCore.Modules.Manifest;
 @using OrchardCore.Mvc.Utilities
 @using Microsoft.AspNetCore.Mvc.Localization
 ```
+
+### Theme with Extra Features
+
+```csharp
+using OrchardCore.DisplayManagement.Manifest;
+using OrchardCore.Modules.Manifest;
+
+[assembly: Theme(
+    Name = "Your Theme",
+    Author = ManifestConstants.OrchardCoreTeam,
+    Website = ManifestConstants.OrchardCoreWebsite,
+    Version = ManifestConstants.OrchardCoreVersion,
+    Description = "A custom theme for OrchardCore."
+)]
+
+[assembly: Feature(
+    Id = "YourTheme.Widgets",
+    Name = "Your Theme Widgets",
+    Description = "Widgets used by Your Theme.",
+    Category = "Theming"
+)]
+```
+
+The theme stays on the Themes page and `YourTheme.Widgets` appears on the Features page (fixed in Orchard Core 4.0).
 
 ## Available Zones
 

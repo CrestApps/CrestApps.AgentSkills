@@ -24,7 +24,7 @@ You are an Orchard Core expert. Generate code for custom YesSql indexes that fol
 - Use literal column names such as `"ContentItemId"` and `"Published"` when creating or altering YesSql index tables; do not use `nameof(...)` inside `CreateMapIndexTableAsync()` or `AlterIndexTableAsync()`.
 - `MapIndex` tables already include a `DocumentId` column automatically. Never add or alter `DocumentId` manually in `CreateMapIndexTableAsync()` or `AlterIndexTableAsync()`.
 - If you need to read the YesSql document id from the index, add `public long DocumentId { get; set; }` to the index model and let YesSql populate it automatically.
-- Add explicit SQL indexes for the lookup fields you query most often.
+- Add explicit SQL indexes for the lookup fields you query most often, and lead each SQL index with the column you filter on. Orchard Core 4.0 added `IDX_ContentItemIndex_ContentItemId` (`ContentItemId`, `DocumentId`, `Published`, `Latest`) because every other `ContentItemIndex` index led with `DocumentId`, so reads by content item id scanned on SQL Server.
 - Orchard Core ids such as `ContentItemId` and `ItemId` are typically 26 characters long; define indexed string id columns with `.WithLength(26)`.
 - Enum properties can be stored directly in `MapIndex` tables with `.Column<YourEnum>("Status")`.
 - Query indexes with ISession.QueryIndex<TIndex>() when you only need projected values, rather than hydrating full ContentItem documents.
@@ -205,7 +205,9 @@ await SchemaBuilder.CreateMapIndexTableAsync<SportEventPartIndex>(table => table
 
 ```csharp
 using CrestApps.Sports.Core.Indexes;
+using CrestApps.Sports.Drills.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Data.Migration;
 using OrchardCore.Modules;
 using YesSql.Indexes;
 
@@ -216,6 +218,8 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddIndexProvider<DrillsIndexProvider>();
+        // DrillsMigrations creates the DrillsIndex table, as in the migration example above.
+        services.AddDataMigration<DrillsMigrations>();
     }
 }
 ```
@@ -245,6 +249,14 @@ public sealed class SportsContentService
     }
 }
 ```
+
+### Exposing an Index to Data Pipelines and Reports
+
+A `MapIndex` makes a good backing store for a custom data source: derive a `RecordDataSet<TIndex>` that pages through `ISession.QueryIndex<TIndex>()` in a stable order (for example by `Id`), and apply `DataConditions.Keys(...)`/`DataConditions.DateRange(...)` to the index query. Implement `IAggregateRecordDataSet` to answer counts and sums with a `GROUP BY` on the index table. See `orchardcore-data-sources`.
+
+### YesSql Configuration
+
+YesSql options (command page size, query gating, identity column size, ...) are configured in the `OrchardCore:YesSql` section (formerly `OrchardCore_YesSql`, still read but deprecated in 4.0); see `orchardcore-data`.
 
 ### Best Practices
 

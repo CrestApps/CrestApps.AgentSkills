@@ -1,5 +1,5 @@
 {
-  "GeneratedUtc": "2026-08-07T16:22:42.218369+00:00",
+  "GeneratedUtc": "2026-10-20T19:58:55.5585989+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
@@ -15,12 +15,20 @@
       "File": "AdminTemplates.schema.json"
     },
     {
+      "Name": "AgentStateReasonCode",
+      "File": "AgentStateReasonCode.schema.json"
+    },
+    {
       "Name": "AIDataSource",
       "File": "AIDataSource.schema.json"
     },
     {
       "Name": "AIDeployment",
       "File": "AIDeployment.schema.json"
+    },
+    {
+      "Name": "AIPersonas",
+      "File": "AIPersonas.schema.json"
     },
     {
       "Name": "AIProfile",
@@ -33,6 +41,14 @@
     {
       "Name": "AIProviderConnections",
       "File": "AIProviderConnections.schema.json"
+    },
+    {
+      "Name": "AIToolInstances",
+      "File": "AIToolInstances.schema.json"
+    },
+    {
+      "Name": "AsteriskSettings",
+      "File": "AsteriskSettings.schema.json"
     },
     {
       "Name": "AzureADSettings",
@@ -55,6 +71,38 @@
       "File": "command.schema.json"
     },
     {
+      "Name": "ContactCenterAgentEntitlement",
+      "File": "ContactCenterAgentEntitlement.schema.json"
+    },
+    {
+      "Name": "ContactCenterBusinessHoursCalendar",
+      "File": "ContactCenterBusinessHoursCalendar.schema.json"
+    },
+    {
+      "Name": "ContactCenterDialerProfile",
+      "File": "ContactCenterDialerProfile.schema.json"
+    },
+    {
+      "Name": "ContactCenterEntryPoint",
+      "File": "ContactCenterEntryPoint.schema.json"
+    },
+    {
+      "Name": "ContactCenterQueue",
+      "File": "ContactCenterQueue.schema.json"
+    },
+    {
+      "Name": "ContactCenterQueueGroup",
+      "File": "ContactCenterQueueGroup.schema.json"
+    },
+    {
+      "Name": "ContactCenterSkill",
+      "File": "ContactCenterSkill.schema.json"
+    },
+    {
+      "Name": "ContactCenterVoiceMedia",
+      "File": "ContactCenterVoiceMedia.schema.json"
+    },
+    {
       "Name": "content",
       "File": "content.schema.json"
     },
@@ -71,12 +119,20 @@
       "File": "CreateOrUpdateIndexProfile.schema.json"
     },
     {
+      "Name": "Currencies",
+      "File": "Currencies.schema.json"
+    },
+    {
       "Name": "custom-settings",
       "File": "custom-settings.schema.json"
     },
     {
       "Name": "custom-user-settings",
       "File": "custom-user-settings.schema.json"
+    },
+    {
+      "Name": "Customers",
+      "File": "Customers.schema.json"
     },
     {
       "Name": "DeleteAIDeployments",
@@ -127,6 +183,10 @@
       "File": "GitHubAuthenticationSettings.schema.json"
     },
     {
+      "Name": "IndexUsers",
+      "File": "IndexUsers.schema.json"
+    },
+    {
       "Name": "Layers",
       "File": "Layers.schema.json"
     },
@@ -169,6 +229,42 @@
     {
       "Name": "move-attached-media-fields",
       "File": "move-attached-media-fields.schema.json"
+    },
+    {
+      "Name": "OmnichannelCadence",
+      "File": "OmnichannelCadence.schema.json"
+    },
+    {
+      "Name": "OmnichannelCampaign",
+      "File": "OmnichannelCampaign.schema.json"
+    },
+    {
+      "Name": "OmnichannelCampaignGroup",
+      "File": "OmnichannelCampaignGroup.schema.json"
+    },
+    {
+      "Name": "OmnichannelChannelEndpoint",
+      "File": "OmnichannelChannelEndpoint.schema.json"
+    },
+    {
+      "Name": "OmnichannelDisposition",
+      "File": "OmnichannelDisposition.schema.json"
+    },
+    {
+      "Name": "OmnichannelLeadStatus",
+      "File": "OmnichannelLeadStatus.schema.json"
+    },
+    {
+      "Name": "OmnichannelMessageTemplate",
+      "File": "OmnichannelMessageTemplate.schema.json"
+    },
+    {
+      "Name": "OmnichannelOpportunityStage",
+      "File": "OmnichannelOpportunityStage.schema.json"
+    },
+    {
+      "Name": "OmnichannelSubjectAction",
+      "File": "OmnichannelSubjectAction.schema.json"
     },
     {
       "Name": "OpenIdApplication",
@@ -229,6 +325,26 @@
     {
       "Name": "Sitemaps",
       "File": "Sitemaps.schema.json"
+    },
+    {
+      "Name": "Stock",
+      "File": "Stock.schema.json"
+    },
+    {
+      "Name": "StripeSettings",
+      "File": "StripeSettings.schema.json"
+    },
+    {
+      "Name": "TelephonyExtension",
+      "File": "TelephonyExtension.schema.json"
+    },
+    {
+      "Name": "TelnyxSettings",
+      "File": "TelnyxSettings.schema.json"
+    },
+    {
+      "Name": "TelnyxSmsSettings",
+      "File": "TelnyxSmsSettings.schema.json"
     },
     {
       "Name": "Templates",

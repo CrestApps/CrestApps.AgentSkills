@@ -1,6 +1,10 @@
 ---
 name: orchardcore-logging-serilog
-description: Skill for configuring Serilog logging in Orchard Core. Covers Serilog integration setup, appsettings.json logging configuration with Console and File sinks, Program.cs Serilog initialization, tenant-aware logging with TenantName enrichment, and output template customization. Use this skill when requests mention Orchard Core Serilog Logging, Configure Serilog Structured Logging, Enabling the Feature, Serilog Configuration in appsettings.json, Output Template Tokens, Minimum Level Overrides, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Logging.Serilog, FromLogContext, SourceContext, CreateBuilder, ProductService, appsettings.json, Program.cs, UseSerilog(), ReadFrom.Configuration(). It also helps with Output Template Tokens, Minimum Level Overrides, Program.cs Serilog Initialization, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Serilog logging in Orchard Core. Covers the OrchardCore.Logging.Serilog package reference in the web project, appsettings.json Serilog configuration with Console and File sinks, Program.cs initialization with UseSerilog or UseSerilogWeb, tenant-aware logging with UseSerilogTenantNameLogging and TenantName enrichment, output templates, per-environment configuration, and replacing the default NLog setup of the Orchard Core templates. Use this skill when requests mention Orchard Core Serilog Logging, Serilog Configuration in appsettings.json, Output Template Tokens, Minimum Level Overrides, tenant name in logs, or closely related Orchard Core setup or troubleshooting work. Strong matches include OrchardCore.Logging.Serilog, UseSerilogWeb, UseSerilogTenantNameLogging, FromLogContext, SourceContext, TenantName, ReadFrom.Configuration(), UseNLogHost.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Serilog Logging - Prompt Templates
@@ -11,7 +15,8 @@ You are an Orchard Core expert. Generate configuration and code for Serilog inte
 
 ### Guidelines
 
-- Add a reference to `OrchardCore.Logging.Serilog` to enable Serilog integration.
+- Add a `PackageReference` to `OrchardCore.Logging.Serilog` in the **web (startup) project**. It is a host-level library, not a module: there is no feature to enable and no recipe step.
+- The Orchard Core templates use NLog (`builder.Host.UseNLogHost()`); remove that call (and the `OrchardCore.Logging.NLog` reference) when switching to Serilog.
 - Configure Serilog in `appsettings.json` under the `Serilog` section.
 - Initialize Serilog in `Program.cs` using `UseSerilog()` and `ReadFrom.Configuration()`.
 - Always call `Enrich.FromLogContext()` to enable log context enrichment.
@@ -21,24 +26,20 @@ You are an Orchard Core expert. Generate configuration and code for Serilog inte
 - Use the `{RequestId}` token to correlate log entries across a single HTTP request.
 - Use `restrictedToMinimumLevel` on individual sinks to control per-sink log verbosity.
 - The Console sink is useful for development; the File sink with rolling intervals is recommended for production.
-- All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
-### Enabling the Feature
+### Package Reference
 
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Logging.Serilog"
-      ],
-      "disable": []
-    }
-  ]
-}
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="3.*" />
+    <PackageReference Include="OrchardCore.Logging.Serilog" Version="3.*" />
+  </ItemGroup>
+</Project>
 ```
+
+Add the sink packages you configure (for example `Serilog.Sinks.Console`, `Serilog.Sinks.File`) if they are not already brought in transitively.
 
 ### Serilog Configuration in appsettings.json
 
@@ -134,10 +135,33 @@ builder.Services.AddOrchardCms();
 
 var app = builder.Build();
 
+app.UseStaticFiles();
 app.UseOrchardCore(c => c.UseSerilogTenantNameLogging());
 
 app.Run();
 ```
+
+`OrchardCore.Logging` also provides `builder.Host.UseSerilogWeb()`, a shortcut for `UseSerilog()` with `ReadFrom.Configuration()` and `Enrich.FromLogContext()`:
+
+```csharp
+using OrchardCore.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Host.UseSerilogWeb();
+
+builder.Services.AddOrchardCms();
+
+var app = builder.Build();
+
+app.UseStaticFiles();
+app.UseOrchardCore(c => c.UseSerilogTenantNameLogging());
+
+app.Run();
+```
+
+`UseSerilogTenantNameLogging()` must be called inside `UseOrchardCore(...)` so the middleware runs in the tenant pipeline where the tenant name is known.
 
 ### Tenant-Aware Logging
 

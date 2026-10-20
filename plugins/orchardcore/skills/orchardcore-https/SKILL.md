@@ -1,6 +1,6 @@
 ---
 name: orchardcore-https
-description: Skill for enforcing HTTPS and HSTS per Orchard Core tenant. Covers HttpsSettings, IHttpsService, HTTPS redirection, permanent redirect status, SSL port selection, HSTS modes, admin settings, and deployment. Use this skill when requests mention Orchard Core HTTPS, HttpsSettings, RequireHttps, HSTS, HTTPS redirection, strict transport security, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Https, HttpsSettings, IHttpsService, HttpsService, HttpStrictTransportSecurityMode, HttpsSettingsDisplayDriver, HttpsRedirectionOptions, and AddHsts. It also helps with feature recipes, proxy considerations, migrations, and the code patterns captured in this skill.
+description: Skill for enforcing HTTPS and HSTS per Orchard Core tenant. Covers HttpsSettings, IHttpsService, HTTPS redirection, permanent redirect status, SSL port selection, HSTS modes, admin settings, the settings recipe step, reverse proxy TLS termination, and deployment. Use this skill when requests mention Orchard Core HTTPS, HttpsSettings, RequireHttps, HSTS, HTTPS redirection, strict transport security, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Https, HttpsSettings, IHttpsService, HttpsService, HttpStrictTransportSecurityMode, HttpsSettingsDisplayDriver, HttpsRedirectionOptions, and AddHsts. It also helps with feature recipes, proxy considerations, migrations, and the code patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -46,7 +46,7 @@ You are an Orchard Core expert. Generate safe tenant-specific HTTPS configuratio
 
 ### Configuring HTTPS in the Admin
 
-Navigate to **Configuration → Settings → Security → HTTPS** using an HTTPS connection. Configure:
+Navigate to **Settings → Security → HTTPS** using an HTTPS connection. The page requires the `ManageHttps` permission. Configure:
 
 | Setting | Behavior |
 |---|---|
@@ -56,6 +56,32 @@ Navigate to **Configuration → Settings → Security → HTTPS** using an HTTPS
 | Strict transport security | Controls HSTS mode for this tenant. |
 
 Settings changes request a tenant shell release so the pipeline reads the new values.
+
+### Configuring HTTPS via Recipe
+
+`HttpsSettings` is a site setting, so use the `settings` step:
+
+```json
+{
+  "steps": [
+    {
+      "name": "feature",
+      "enable": [ "OrchardCore.Https" ]
+    },
+    {
+      "name": "settings",
+      "HttpsSettings": {
+        "RequireHttps": true,
+        "RequireHttpsPermanent": true,
+        "SslPort": 443,
+        "StrictTransportSecurityMode": "FromConfiguration"
+      }
+    }
+  ]
+}
+```
+
+`StrictTransportSecurityMode` accepts `Disabled` (default), `Enabled`, or `FromConfiguration`. A recipe import writes the settings directly; reload an already-running tenant so the pipeline picks them up.
 
 ### HttpsSettings
 
@@ -113,7 +139,7 @@ It configures `HttpsRedirectionOptions.HttpsPort` from `SslPort` and changes the
 
 ### Reverse Proxy Configuration
 
-At a TLS-terminating proxy, preserve the original scheme with the appropriate forwarded headers middleware and trusted proxy configuration. Configure the hosting environment before the Orchard Core pipeline runs. Do not use `RequireHttps` until the application recognizes proxied HTTPS requests correctly.
+At a TLS-terminating proxy, enable `OrchardCore.ReverseProxy` with `XForwardedProto` and the trusted `KnownProxies`/`KnownNetworks` (see `orchardcore-reverse-proxy`), or configure forwarded headers in the host before the Orchard Core pipeline runs. Do not use `RequireHttps` until the application recognizes proxied HTTPS requests correctly.
 
 ### Deployment
 

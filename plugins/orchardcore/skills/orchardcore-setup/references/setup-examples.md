@@ -127,10 +127,12 @@ Creating a project with custom modules added:
 
 ## Example 4: Auto-Setup for CI/CD
 
+Requires `.AddSetupFeatures("OrchardCore.AutoSetup")` in `Program.cs`.
+
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "AutoSetup": {
       "AutoSetupPath": "",
       "Tenants": [
         {
@@ -139,9 +141,9 @@ Creating a project with custom modules added:
           "SiteTimeZone": "America/New_York",
           "DatabaseProvider": "Sqlite",
           "RecipeName": "Blog",
-          "UserName": "admin",
-          "Email": "admin@example.com",
-          "Password": "Test123!"
+          "AdminUsername": "admin",
+          "AdminEmail": "admin@example.com",
+          "AdminPassword": "Test123!"
         }
       ]
     }

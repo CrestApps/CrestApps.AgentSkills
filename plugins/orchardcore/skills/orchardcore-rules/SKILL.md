@@ -1,6 +1,6 @@
 ---
 name: orchardcore-rules
-description: Skill for building and evaluating Orchard Core rules. Covers ICondition, IConditionEvaluator, ConditionOptions, rule registration, custom condition display drivers, condition operators, rule serialization, and Layers integration while keeping Rules distinct from Scripting. Use this skill when requests mention Orchard Core Rules, IConditionEvaluator, ConditionEvaluator, custom rule condition, rule builders, condition groups, Layers rules, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Rules, OrchardCore.Rules.Core, OrchardCore.Layers, Condition, ConditionGroup, Rule, IConditionFactory, IConditionResolver, IConditionOperatorResolver, AddRule, and AddRuleCondition. It also helps with built-in conditions, display drivers, rule evaluation, and the source-backed patterns captured in this skill.
+description: Skill for building and evaluating Orchard Core rules. Covers Condition models, IConditionEvaluator and ConditionEvaluator, IRuleService, ConditionOptions, rule registration, custom condition display drivers, condition operators, rule serialization, JavaScript condition validation, isolation and request cancellation, and Layers integration while keeping Rules distinct from Scripting. Use this skill when requests mention Orchard Core Rules, IConditionEvaluator, ConditionEvaluator, custom rule condition, rule builders, condition groups, Layers rules, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Rules, OrchardCore.Rules.Core, OrchardCore.Layers, Condition, ConditionGroup, Rule, IConditionFactory, IConditionResolver, IConditionOperatorResolver, AddRule, and AddRuleCondition. It also helps with built-in conditions, display drivers, rule evaluation, and the source-backed patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,7 +19,8 @@ serialization, and composable all/any groups.
 
 - Enable the exact `OrchardCore.Rules` feature; it depends on `OrchardCore.Scripting`.
 - Use `Condition` as the base type for a custom condition.
-- Implement `IConditionEvaluator` with `ValueTask<bool> EvaluateAsync(Condition condition)`.
+- Implement `IConditionEvaluator` with `ValueTask<bool> EvaluateAsync(Condition condition)`, or derive from `ConditionEvaluator<TCondition>` to get a typed override.
+- Evaluate a whole rule with `IRuleService.EvaluateAsync(rule)`. A rule, `All` group, or `Any` group with no conditions evaluates to `false`.
 - Register standard conditions through `AddRuleCondition`; do not use obsolete `AddCondition`.
 - Use `AddRule` when a condition has a display driver and the default condition factory is sufficient.
 - Register polymorphic JSON information through the provided registration extensions.
@@ -139,6 +140,28 @@ public sealed class Startup : StartupBase
 When the condition needs editor UI, register its `DisplayDriver<Condition>` in
 the same module. Keep view models unsealed because they bind form values.
 
+## JavaScript Conditions
+
+`JavascriptCondition` runs its `Script` through the scripting engine and
+converts the result to a Boolean.
+
+- The editor validates on save: a syntax error is caught as Jint
+  `ScriptPreparationException` and shown as "The script couldn't be parsed",
+  alongside runtime errors and non-Boolean results.
+- Conditions evaluated in the same request share one engine scope, but the
+  global variables are restored after each condition, so declarations in one
+  condition (such as another layer's `const`) never leak into the next.
+- Evaluation is bounded by `HttpContext.RequestAborted`; cancellation surfaces
+  as `OperationCanceledException` and propagates like any aborted request.
+  Time and statement budgets remain configurable through `IOptions<Jint.Options>`.
+- Global methods come from enabled features; Layers adds `isHomepage()`,
+  `isAnonymous()`, `isAuthenticated()`, `isInRole(role)`, `url(pattern)` (a
+  trailing `*` is a prefix match), and `culture(name)`.
+
+```javascript
+isAuthenticated() && url("/account*")
+```
+
 ## Use Rules with Layers
 
 Layers stores a rule to decide whether a layer is active for a request. Prefer
@@ -146,3 +169,17 @@ the built-in URL, culture, role, and authentication conditions for common
 targeting. Add a custom rule condition only when the selection is reusable and
 needs the builder UI; simple one-off dynamic values can instead be handled by
 the supported scripting condition.
+
+Rules define no recipe step or permissions of their own. Layers stores rules in
+its `Layers` recipe step and protects the editor with `ManageLayers`; a custom
+consumer must define its own permission. Conditions nested in `All`/`Any`
+groups are deserialized polymorphically, so recipes need their `$type` as well
+as `Name` (see `orchardcore-layers`).
+
+## Upgrading from 3.x
+
+- JavaScript conditions no longer see globals declared by previously evaluated
+  conditions in the same request.
+- Saving a JavaScript condition with a syntax error now yields a validation
+  message instead of an unhandled exception.
+- A JavaScript condition is cancelled when the request is aborted.

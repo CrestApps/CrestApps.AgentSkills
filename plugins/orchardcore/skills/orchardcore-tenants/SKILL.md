@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tenants
-description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation, SaaS setup, tenant configuration, testing with tenants using different recipes (Blog, Agency), and tenant management APIs. Use this skill when requests mention Orchard Core Tenants, Configure Multi-Tenancy, Enabling Multi-Tenancy, Setting Up with the SaaS Recipe, Creating a Tenant via Admin UI, Creating a Tenant via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Tenants, OrchardCore.Environment.Shell, OrchardCore.Environment.Shell.Scope, DatabaseProvider, TenantInfoService, ShellSettings, TenantOperationService, IShellHost, blog.example.com. It also helps with tenants examples, Creating a Tenant via Admin UI, Creating a Tenant via Recipe, Creating a Tenant via Tenants API, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation, SaaS setup, tenant configuration, the Tenants API, the tenant workflow activities and ITenantValidator validation, feature profiles, tenant removal, generated table prefixes and schemas, and testing with tenants using different recipes (Blog, Agency). Use this skill when requests mention Orchard Core Tenants, Configure Multi-Tenancy, Enabling Multi-Tenancy, Setting Up with the SaaS Recipe, Creating a Tenant via Admin UI, Creating a Tenant via Tenants API, CreateTenantTask, Feature Profiles, TenantsOptions, the OrchardCore Tenants configuration section, or closely related setup or troubleshooting work. Strong matches include OrchardCore.Tenants, OrchardCore.Tenants.FeatureProfiles, OrchardCore.Environment.Shell, OrchardCore.Environment.Shell.Scope, ShellSettings, IShellHost, ITenantValidator, TablePrefixPattern, SchemaPattern, blog.example.com.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,14 +15,15 @@ You are an Orchard Core expert. Generate tenant configurations and multi-tenancy
 
 ### Guidelines
 
-- Orchard Core supports multi-tenancy natively through the SaaS module.
+- Orchard Core supports multi-tenancy natively; the SaaS setup recipe enables tenant management on the Default tenant.
 - Each tenant is an isolated site sharing the same application instance.
-- Tenants can have separate databases or share a database with table prefix isolation.
-- Tenants can also share a database by using a separate schema when the provider supports schemas.
-- The `Default` tenant is the main shell that manages other tenants.
-- Enable `OrchardCore.Tenants` on the Default tenant to manage tenants.
+- Tenants can have separate databases or share a database with table prefix isolation, or with a separate schema when the provider supports schemas.
+- The `Default` tenant is the main shell that manages other tenants. Enable `OrchardCore.Tenants` on it to manage tenants under **Multi-Tenancy → Tenants** (`ManageTenants` permission).
 - Tenants can use any setup recipe (Blog, Agency, Blank, custom).
 - URL prefixes or hostnames route requests to the correct tenant.
+- A tenant name is also used as a folder name (for example `App_Data/Sites/{Tenant}` and the tenant media root), so the admin UI, the Tenants API, and the `CreateTenantTask` workflow activity all validate it with `ITenantValidator`.
+- Configure the module under `OrchardCore:Tenants` (the `OrchardCore_Tenants` section name is deprecated).
+- Other features: `OrchardCore.Tenants.FileProvider` (per-tenant static files from `App_Data/Sites/{Tenant}/wwwroot`, e.g. `robots.txt`), `OrchardCore.Tenants.FeatureProfiles`, and `OrchardCore.Tenants.Distributed` (keeps tenant states in sync across instances; see `orchardcore-shells`).
 - Always seal classes.
 
 ### Enabling Multi-Tenancy
@@ -45,8 +46,6 @@ Use the SaaS recipe during setup to get tenant management out of the box, or ena
 
 ### Setting Up with the SaaS Recipe
 
-The SaaS recipe configures the Default tenant with tenant management features:
-
 ```bash
 # Create a new project
 dotnet new occms -n MyMultiTenantApp
@@ -59,46 +58,25 @@ dotnet run
 # - Set admin credentials
 ```
 
-After setup, navigate to **Configuration > Tenants** in the admin panel to create and manage tenants.
+After setup, navigate to **Multi-Tenancy → Tenants** in the admin panel to create and manage tenants.
 
 ### Creating a Tenant via Admin UI
 
-1. Navigate to **Configuration > Tenants**.
-2. Click **Create Tenant**.
-3. Set the **Name** (technical name, no spaces).
+1. Navigate to **Multi-Tenancy → Tenants**.
+2. Click **Add Tenant**.
+3. Set the **Name** (technical name, letters, digits and underscores; it becomes a folder name).
 4. Set the **URL Prefix** (e.g., `blog`) or **URL Host** (e.g., `blog.example.com`).
-5. Select a **Recipe** (Blog, Blank, etc.).
-6. Choose a **Database Provider**.
-7. Optionally set a **Table Prefix** if sharing a database.
-8. Click **Create**.
-9. Click **Setup** to initialize the tenant.
+5. Select a **Recipe** (Blog, Blank, etc.) and optionally a **Feature Profile**.
+6. Choose a **Database Provider**, and a **Table Prefix** or **Schema** if sharing a database (unless generated by a pattern).
+7. Click **Create**, then **Setup** to initialize the tenant.
 
-### Creating a Tenant via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "Tenants",
-      "Tenants": [
-        {
-          "Name": "{{TenantName}}",
-          "RequestUrlPrefix": "{{UrlPrefix}}",
-          "RequestUrlHost": "",
-          "State": "Uninitialized",
-          "FeatureProfiles": [],
-          "Description": "{{Description}}"
-        }
-      ]
-    }
-  ]
-}
-```
+The tenants list renders through the shared `AdminList` shape and supports bulk **Enable**, **Disable**, and (when allowed) **Remove**.
 
 ### Creating a Tenant via Tenants API
 
+The `api/tenants` endpoints use the `Api` authentication scheme (for example an OpenID bearer token) and require `ManageTenants`. Available actions are `create`, `edit`, `setup`, `enable/{tenantName}`, `disable/{tenantName}`, and `remove/{tenantName}`.
+
 ```bash
-# Create a tenant using the REST API
 curl -X POST https://localhost:5001/api/tenants/create \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {{token}}" \
@@ -108,14 +86,16 @@ curl -X POST https://localhost:5001/api/tenants/create \
     "Description": "{{Description}}",
     "RecipeName": "Blog",
     "DatabaseProvider": "Sqlite",
+    "FeatureProfiles": [],
     "Category": ""
   }'
 ```
 
 ### Setting Up a Tenant Programmatically
 
+Pass `RecipeName` for a harvested recipe, or `Recipe` with the recipe JSON; an inline recipe is written to the tenant-scoped temporary directory (`ITempDirectoryProvider`, `OrchardCore:TempDirectory:Path`) before it runs.
+
 ```bash
-# Setup an uninitialized tenant
 curl -X POST https://localhost:5001/api/tenants/setup \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {{token}}" \
@@ -126,32 +106,33 @@ curl -X POST https://localhost:5001/api/tenants/setup \
     "RecipeName": "Blog",
     "UserName": "admin",
     "Email": "admin@{{tenant}}.example.com",
-    "Password": "{{SecurePassword}}"
+    "Password": "{{SecurePassword}}",
+    "SiteTimeZone": "UTC"
   }'
 ```
 
+### Creating Tenants from Workflows
+
+With `OrchardCore.Workflows` enabled, the tenant activities are **Create Tenant Task**, **Setup Tenant Task**, **Enable Tenant Task**, and **Disable Tenant Task**. `CreateTenantTask` runs the same `ITenantValidator` validation as the admin UI and API: an invalid name, a duplicate URL prefix and host, or an unknown feature profile takes the `Failed` outcome and the validation errors are assigned to `LastResult`. On success it takes `Done` with the new `ShellSettings` in `LastResult`.
+
 ### Testing with Blog Tenant
 
-A common pattern for testing is to create a Blog tenant:
-
 ```bash
-# 1. Start the application with SaaS recipe
+# 1. Start the application and set up the Default shell with the SaaS recipe.
 dotnet run
 
-# 2. Set up the Default shell with SaaS recipe
-
-# 3. Create a "blog" tenant via the admin UI:
+# 2. Create a "Blog" tenant in Multi-Tenancy > Tenants:
 #    - Name: Blog
 #    - URL Prefix: blog
 #    - Recipe: Blog
 #    - Database: Sqlite
 
-# 4. Set up the blog tenant
-
-# 5. Access the blog at https://localhost:5001/blog
+# 3. Set up the blog tenant, then browse https://localhost:5001/blog
 ```
 
 ### Tenant Configuration in appsettings.json
+
+Each tenant can be configured under a section named after it:
 
 ```json
 {
@@ -174,16 +155,15 @@ dotnet run
 }
 ```
 
-### Tenant Database Prefix and Schema Patterns
+### Tenants Module Options
 
-Configure database isolation defaults under `OrchardCore_Tenants`. The
-patterns are Fluid templates with `ShellSettings` in scope, and generated
-values are validated as SQL identifiers:
+Configure `TenantsOptions` under `OrchardCore:Tenants`:
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Tenants": {
+    "Tenants": {
+      "TenantRemovalAllowed": false,
       "RequireTablePrefix": true,
       "TablePrefixPattern": "{{ ShellSettings.Name }}",
       "SchemaPattern": "dbo"
@@ -192,18 +172,50 @@ values are validated as SQL identifiers:
 }
 ```
 
-`TablePrefixPattern` generates each tenant's table prefix and
-`SchemaPattern` generates its schema. A pattern removes the corresponding
-manual field from the tenant UI. Use a unique prefix or schema when tenants
-share a database.
+- `TenantRemovalAllowed` allows removing a tenant that is not set up yet or is disabled (default `false`).
+- `RequireTablePrefix` requires a non-empty table prefix when creating a tenant or editing an uninitialized one, for providers that support prefixes.
+- `TablePrefixPattern` and `SchemaPattern` are Fluid templates with `ShellSettings` in scope. A pattern generates the value and removes the manual field from the tenant UI. Generated and manual values must be valid SQL identifiers (letters, digits, underscores; starting with a letter or underscore).
+- The built-in SQLite provider does not share a single database file between tenants through these patterns.
 
-When `OrchardCore:DatabaseProvider` is configured, the provider is fixed and
-is not selectable in the Setup or Tenants UI. The connection string remains
-visible when that provider requires one. When both
-`OrchardCore:DatabaseProvider` and `OrchardCore:ConnectionString` are
-configured, the connection string is fixed as well and is not editable.
-Tenant creation can omit a connection string; setup requires one only when
-the selected provider needs it and the tenant has no saved value.
+When `OrchardCore:DatabaseProvider` is configured, the provider is fixed and is not selectable in the Setup or Tenants UI. When both `OrchardCore:DatabaseProvider` and `OrchardCore:ConnectionString` are configured, the connection string is fixed as well. Setup asks for a connection string only when the selected provider requires one and the tenant has no saved value.
+
+### Feature Profiles for Tenants
+
+Enable `OrchardCore.Tenants.FeatureProfiles` on the Default tenant, then manage profiles under **Multi-Tenancy → Feature Profiles** (`ManageTenantFeatureProfiles`). Rules are applied in order; `Exclude` and `Include` accept `*` and `?` wildcards. Select a profile when creating or editing a tenant, through the API (`FeatureProfiles`), or in Auto Setup.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Tenants",
+        "OrchardCore.Tenants.FeatureProfiles"
+      ],
+      "disable": []
+    },
+    {
+      "name": "FeatureProfiles",
+      "FeatureProfiles": {
+        "standard": {
+          "FeatureRules": [
+            {
+              "Rule": "Exclude",
+              "Expression": "OrchardCore.Tenants*"
+            },
+            {
+              "Rule": "Exclude",
+              "Expression": "OrchardCore.MiniProfiler"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+The **All Feature Profiles** deployment step exports the profiles.
 
 ### Accessing Tenant Information in Code
 
@@ -226,7 +238,7 @@ public sealed class TenantInfoService
 
     public string GetRequestUrlPrefix()
     {
-        return _shellSettings["RequestUrlPrefix"];
+        return _shellSettings.RequestUrlPrefix;
     }
 }
 ```
@@ -254,23 +266,9 @@ public sealed class TenantOperationService
 }
 ```
 
-### Feature Profiles for Tenants
+### Upgrading from 3.x
 
-Control which features are available to tenants:
-
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_Tenants": {
-      "TenantFeatureProfiles": {
-        "Standard": {
-          "IncludeAllFeatures": false,
-          "ExcludedFeatures": [
-            "OrchardCore.Tenants"
-          ]
-        }
-      }
-    }
-  }
-}
-```
+- Rename the `OrchardCore_Tenants` configuration section to `OrchardCore:Tenants`.
+- `CreateTenantTask` now validates its input with `ITenantValidator`; workflows that created tenants with invalid names, duplicate prefix and host, or missing feature profiles now take `Failed`. Its constructor gained an `ITenantValidator` parameter, so code that constructs it directly must pass one.
+- Tenant recipe uploads use `ITempDirectoryProvider` instead of `Path.GetTempPath()`.
+- A theme or module that overrides the tenants list view must render the `List` context with the `<admin-list>` tag helper (see `orchardcore-admin-lists`).

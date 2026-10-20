@@ -1,6 +1,10 @@
 ---
 name: orchardcore-spatial
-description: Skill for working with geographic and spatial data in Orchard Core. Covers GeoPointField for location storage, geo-bounding-box queries, geo-distance queries with the Haversine formula, combined spatial queries, and geographic content filtering patterns. Use this skill when requests mention Orchard Core Spatial, Work with Geographic and Spatial Data, Enabling the Spatial Feature, Adding a GeoPointField to a Content Type, Geo Bounding Box Query, Geo Distance Query, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Spatial, GeoPointField, ContentDefinition, ContentTypeSettings, TextField, ContentPartFieldSettings, geo_bounding_box, geo_distance, BlogPost.Location. It also helps with Geo Bounding Box Query, Geo Distance Query, Distance Units, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for working with geographic and spatial data in Orchard Core. Covers GeoPointField for location storage, standard and Leaflet map editors, culture-invariant latitude and longitude values, GraphQL, Lucene and Elasticsearch geo indexing with the shared Location field, geo-bounding-box queries, geo-distance queries with the Haversine formula, combined spatial queries, and geographic content filtering patterns. Use this skill when requests mention Orchard Core Spatial, GeoPointField, maps, store locators, latitude and longitude, geo bounding box or geo distance queries, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Spatial, GeoPointField, ContentDefinition recipes, geo_bounding_box, geo_distance, and distance units, plus the query patterns captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Spatial - Prompt Templates
@@ -11,13 +15,15 @@ You are an Orchard Core expert. Generate code and queries for spatial data inclu
 
 ### Guidelines
 
-- Enable `OrchardCore.Spatial` to add the `GeoPointField` content field.
-- `GeoPointField` stores a geographic position (latitude and longitude) on content items.
+- Enable `OrchardCore.Spatial` to add the `GeoPointField` content field. The module depends on `OrchardCore.ContentTypes` and `OrchardCore.Lucene`, so enabling it also enables Lucene.
+- `GeoPointField` (`OrchardCore.Spatial.Fields`) stores `decimal? Latitude` and `decimal? Longitude`. `GeoPointFieldSettings` only has the standard `Hint` and `Required` settings.
+- Editors: the default editor (two inputs) and `Leaflet` (an interactive OpenStreetMap map; it sends a referrer so tiles load). Values are parsed and rendered with the invariant culture, so always use `.` as the decimal separator.
+- The index handler writes the point under `{PartName}.{FieldName}` and also under a shared `Location` key, so one query can search several content types. Lucene stores the point as culture-invariant `lat,lon` text (fixed in 4.0, cultures with a `,` decimal separator used to corrupt it).
 - Use `geo_bounding_box` queries for fast area-based filtering without distance calculation.
 - Use `geo_distance` queries for precise radius-based filtering using the Haversine formula.
 - Combine `geo_bounding_box` with `geo_distance` for optimal performance on large datasets — the bounding box pre-filters records before the more expensive distance calculation runs.
 - Distance values are "as the crow flies" (straight-line) because the earth is round.
-- Lucene field names follow the pattern `{PartName}.{FieldName}` (e.g., `StorePart.Location`).
+- Lucene/Elasticsearch field names follow the pattern `{PartName}.{FieldName}` (e.g., `StorePart.Location`); `Location` targets every geo point field. Run these queries as Lucene or Elasticsearch queries (see `orchardcore-lucene`, `orchardcore-elasticsearch`, `orchardcore-content-queries`), with the content type's fields included in the index profile.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -96,6 +102,21 @@ Add a `GeoPointField` named `Location` to a content type via recipe:
   ]
 }
 ```
+
+### Field Data, Display, and GraphQL
+
+```json
+{
+  "StorePart": {
+    "Location": {
+      "Latitude": -33.8688,
+      "Longitude": 151.2093
+    }
+  }
+}
+```
+
+The default display template `GeoPointField.cshtml` renders `Latitude, Longitude` with six decimals; override it (e.g. `GeoPointField-StorePart-Location.cshtml` or a Liquid template) to render a map. In Liquid, read `{{ Model.ContentItem.Content.StorePart.Location.Latitude }}`. With GraphQL enabled, query `storePart { location { latitude longitude } }`.
 
 ### Geo Bounding Box Query
 

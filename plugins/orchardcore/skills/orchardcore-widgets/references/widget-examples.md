@@ -5,9 +5,9 @@
 ### Migration
 
 ```csharp
-public int Create()
+public async Task<int> CreateAsync()
 {
-    _contentDefinitionManager.AlterTypeDefinition("HeroBanner", type => type
+    await _contentDefinitionManager.AlterTypeDefinitionAsync("HeroBanner", type => type
         .DisplayedAs("Hero Banner")
         .Stereotype("Widget")
         .WithPart("HeroBanner", part => part
@@ -15,7 +15,7 @@ public int Create()
         )
     );
 
-    _contentDefinitionManager.AlterPartDefinition("HeroBanner", part => part
+    await _contentDefinitionManager.AlterPartDefinitionAsync("HeroBanner", part => part
         .WithField("Heading", field => field
             .OfType("TextField")
             .WithDisplayName("Heading")

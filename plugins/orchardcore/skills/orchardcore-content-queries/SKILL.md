@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-queries
-description: Skill for querying content items in Orchard Core using YesSql. Covers ContentItemIndex queries, custom index creation, ISession usage, IContentManager queries, and query optimization patterns. Use this skill when requests mention Orchard Core Content Queries, Query Content Items, Querying with ContentItemIndex, ContentItemIndex Fields Reference, Creating a Custom YesSql Index, Registering Custom Index and Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, OrchardCore.ContentManagement.Records, OrchardCore.Data.Migration, ContentItemIndex, ISession, IContentManager, ContentQueryService, IEnumerable, TitlePart, MapIndex. It also helps with content queries examples, Creating a Custom YesSql Index, Registering Custom Index and Migration, Registering Index Provider in Startup, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for querying content items in Orchard Core using YesSql and saved queries. Covers ContentItemIndex queries and its indexes (including IDX_ContentItemIndex_ContentItemId), custom index creation, ISession and IContentManager queries, query optimization, saved SQL queries of the Queries module (OrchardCore.Queries.Sql, the Cyqwel SQL parser, SELECT-only validation, SQL parameters, helper functions, paging), the Queries recipe step, the api/queries endpoint (ApiExecuteQueryGet and ApiExecuteQueryPost), QueriesPermissions.ManageSqlQueries, ExecuteApi query permissions, GraphQL named query permissions, and the Liquid query filter. Use this skill when requests mention Orchard Core Content Queries, Query Content Items, ContentItemIndex, Creating a Custom YesSql Index, SQL queries, saved queries, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.ContentManagement.Records, OrchardCore.Queries, ISession, IContentManager, MapIndex.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -105,6 +105,8 @@ The built-in `ContentItemIndex` has these fields:
 - `Owner` — The owner user ID.
 - `Author` — The author user name.
 
+Indexes on the table include `IDX_ContentItemIndex_DocumentId` (and the other `DocumentId`-led indexes) plus, since Orchard Core 4.0, `IDX_ContentItemIndex_ContentItemId` (`ContentItemId`, `DocumentId`, `Published`, `Latest`). Reads by content item id, such as `IContentManager.GetAsync(id)` or `GetAsync(ids)`, now seek this index instead of scanning. Existing tenants get it through a migration step, which can take a moment on a large table during the upgrade. Prefer filtering on `ContentItemId` together with `Published` or `Latest` to benefit from it.
+
 ### Creating a Custom YesSql Index
 
 ```csharp
@@ -179,7 +181,7 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddIndexProvider<{{PartName}}IndexProvider>();
-        services.AddScoped<IDataMigration, Migrations>();
+        services.AddDataMigration<Migrations>();
     }
 }
 ```
@@ -259,9 +261,7 @@ public sealed class ContentService
 }
 ```
 
-### Advanced YesSql Queries
-
-For complex queries that can't be expressed with YesSql indexes:
+### Combining Predicates and Ordering
 
 ```csharp
 using YesSql;
@@ -286,3 +286,110 @@ public sealed class AdvancedQueryService
     }
 }
 ```
+
+## Saved SQL Queries (Queries Module)
+
+The **SQL Queries** feature (`OrchardCore.Queries.Sql`, depends on `OrchardCore.Queries`) stores named SQL queries that run against the index tables. They are used from Liquid, Razor, scripting, GraphQL, the `api/queries/{name}` endpoint, data sources of data pipelines (see `orchardcore-data-sources`), and widgets.
+
+### SQL Syntax and Validation
+
+- Queries are parsed by the **Cyqwel** SQL parser and translated to the dialect of the tenant database (SQL Server, SQLite, PostgreSQL, MySQL), so they can be exported to sites using another database. Table names get the tenant table prefix and schema automatically.
+- **Only `SELECT` statements are supported.** `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`, `CREATE`, `ALTER`, `DROP`, `CALL`, multiple statements (`select ...; delete ...`) and mutations nested in CTEs or sub-queries are rejected with "Only SELECT statements are supported."
+- The admin editor validates the SQL when saving a query that contains no Liquid syntax and shows parse errors with their line and column. Queries containing Liquid are validated after rendering, when executed.
+- Supported constructs include `DISTINCT`, aggregates such as `count(distinct a)`, `GROUP BY`, `UNION`, joins, sub-queries, and `LIMIT n OFFSET m` (translated per dialect, e.g. `OFFSET ... FETCH NEXT` on SQL Server).
+- Helper functions translated per dialect: `second()`, `minute()`, `hour()`, `day()`, `month()`, `year()`, `now()` (UTC), and `random()` in `ORDER BY`.
+- Return `DocumentId` and check **Return Documents** (`ReturnContentItems`) to load content items.
+
+```sql
+select DocumentId
+from ContentItemIndex
+where Published = true and ContentType = @contenttype:'BlogPost'
+order by CreatedUtc desc
+limit @limit:10
+```
+
+### Parameters and Templates
+
+- Parameters use `@name` or `@name:default_value`; names are case-sensitive. Always pass user input as parameters.
+- A SQL query is a Liquid template, so Liquid may change the shape of the query, but never output user input with `{{ ... }}` (SQL injection).
+
+```liquid
+{% if limit > 0 %}
+    select DocumentId from ContentItemIndex where Published = true limit @limit
+{% else %}
+    select DocumentId from ContentItemIndex where Published = true
+{% endif %}
+```
+
+### Recipe Step
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [ "OrchardCore.Queries", "OrchardCore.Queries.Sql" ]
+    },
+    {
+      "name": "Queries",
+      "Queries": [
+        {
+          "Source": "Sql",
+          "Name": "RecentBlogPosts",
+          "Template": "select DocumentId from ContentItemIndex where ContentType = 'BlogPost' and Published = true order by CreatedUtc desc limit @limit:3",
+          "Schema": "{ \"type\": \"ContentItem/BlogPost\" }",
+          "ReturnContentItems": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Using Saved Queries
+
+```liquid
+{% assign posts = Queries.RecentBlogPosts | query: limit: 5 %}
+{% for item in posts %}
+    {{ item | display_text }}
+{% endfor %}
+```
+
+```cshtml
+@foreach (var contentItem in await Orchard.ContentQueryAsync("RecentBlogPosts"))
+{
+    @await Orchard.DisplayAsync(contentItem)
+}
+```
+
+The `executeQuery(name, parameters)` scripting function runs a query from JavaScript (workflows, recipes).
+
+### Web API
+
+`api/queries/{name}` runs a query with `GET` or `POST`; `parameters` is a JSON object, passed in the query string or as the POST body. The response holds `items` and `count`. The caller needs `ExecuteApi_{QueryName}` (implied by `ExecuteApiAll` and `ManageQueries`); a query the caller may not execute returns `404`.
+
+```http
+POST /api/queries/RecentBlogPosts
+Content-Type: application/json
+
+{ "limit": 5 }
+```
+
+In Orchard Core 4.0, the endpoint is split into two actions with endpoint names `ApiExecuteQueryGet` and `ApiExecuteQueryPost` (route, verbs and parameters unchanged), so OpenAPI documents are valid (see `orchardcore-openapi`).
+
+### Permissions
+
+| Permission | Member |
+|------------|--------|
+| Manage SQL Queries (security critical) | `OrchardCore.Queries.QueriesPermissions.ManageSqlQueries` |
+| Manage queries | `OrchardCore.Queries.QueryPermissions.ManageQueries` |
+| Execute Api - All queries | `OrchardCore.Queries.QueryPermissions.ExecuteApiAll` |
+| Execute Api - {name} | `QueryPermissions.CreatePermissionForQuery(name)` |
+
+Since Orchard Core 4.0, the GraphQL fields that expose named SQL, Lucene and Elasticsearch queries also require `ExecuteApi_{QueryName}`, like the REST endpoint.
+
+### Upgrading from 3.x
+
+- `OrchardCore.Queries.Sql.Permissions.ManageSqlQueries` was removed; use `OrchardCore.Queries.QueriesPermissions.ManageSqlQueries` (stored permission names are unchanged).
+- The Parlot-based SQL parser (`SqlAst`, `SqlTranslator`, `ParlotSqlParser`, `SqlParserException`) was replaced by Cyqwel. Non-`SELECT` statements, which were never intended, now fail to parse; review queries that relied on lenient parsing.
+- Generated API clients for `api/queries/{name}` get new method names (`ApiExecuteQueryGet`, `ApiExecuteQueryPost`, previously `ApiExecuteQuery`) on regeneration.

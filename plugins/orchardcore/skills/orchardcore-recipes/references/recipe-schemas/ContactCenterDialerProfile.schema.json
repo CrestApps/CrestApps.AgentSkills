@@ -1,0 +1,221 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterDialerProfile",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterDialerProfile\u0027."
+    },
+    "DialerProfiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the dialer profile. When it matches a stored dialer profile, that dialer profile is updated. Otherwise a new dialer profile is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique name of the dialer profile."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Description of the dialer profile."
+          },
+          "Mode": {
+            "type": "string",
+            "enum": [
+              "Manual",
+              "Preview",
+              "Power",
+              "Progressive",
+              "Predictive"
+            ],
+            "description": "Dialing mode that controls pacing and agent reservation behavior."
+          },
+          "ProviderName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Technical name of the Contact Center voice provider that places calls, or null for the default."
+          },
+          "CallsPerAgent": {
+            "type": "integer",
+            "description": "Number of calls placed per available agent for power dialing."
+          },
+          "MaxAttempts": {
+            "type": "integer",
+            "description": "Maximum number of dialing attempts allowed per activity."
+          },
+          "RetryDelayMinutes": {
+            "type": "integer",
+            "description": "Delay, in minutes, before a no-answer activity is retried."
+          },
+          "AnsweringMachineDetection": {
+            "type": "string",
+            "enum": [
+              "Disabled",
+              "Standard",
+              "Premium"
+            ],
+            "description": "Whether Power and Progressive dialing asks the provider to screen out answering machines before connecting an agent. A machine-answered call is hung up and retried."
+          },
+          "RingTimeoutSeconds": {
+            "type": "integer",
+            "description": "Seconds a Power, Progressive or Predictive call rings before it is given up as unanswered, from 15 to 120 (0 for the default of 30). Automated calls never ring for less than 15 seconds."
+          },
+          "PreviewExtensionSeconds": {
+            "type": "integer",
+            "description": "Seconds each extension adds when a preview agent asks for more time to review a record before it is dialed."
+          },
+          "MaxPreviewExtensions": {
+            "type": "integer",
+            "description": "How many times one preview offer may be extended."
+          },
+          "CallerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Caller identifier presented to the customer when supported."
+          },
+          "AlwaysUseCallerId": {
+            "type": "boolean",
+            "description": "Whether the caller identifier is presented even for an agent who has their own outbound line; when false, agents with a line call from it."
+          },
+          "DefaultRegionCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "ISO 3166-1 alpha-2 region a destination is read in when it carries no country calling code."
+          },
+          "RespectDoNotCall": {
+            "type": "boolean",
+            "description": "Whether do-not-call and communication preferences suppress activities."
+          },
+          "EnforceCallingWindow": {
+            "type": "boolean",
+            "description": "Whether calls are restricted by business-hours calendars."
+          },
+          "EnforceAbandonmentCap": {
+            "type": "boolean",
+            "description": "Whether outbound dialing is gated by a rolling abandonment-rate cap."
+          },
+          "MaxAbandonmentRatePercent": {
+            "type": "number",
+            "description": "Maximum tolerated rolling abandonment rate, expressed as a percentage of calls a live person answered."
+          },
+          "AbandonmentSampleFloor": {
+            "type": "integer",
+            "description": "Minimum number of live-answered calls that must accumulate in the rolling window before the abandonment rate is enforced."
+          },
+          "SafeHarborEnabled": {
+            "type": "boolean",
+            "description": "Whether an abandoned automated call plays the abandoned-call message instead of being hung up silently. Required when an automated profile enforces the abandonment cap."
+          },
+          "SafeHarborMessage": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The abandoned-call message spoken to a person who answered when no agent can be connected. \u0027{company}\u0027 is replaced with the site name and \u0027{number}\u0027 with the number the call came from."
+          },
+          "PredictivePacingModel": {
+            "type": "string",
+            "enum": [
+              "ReservedPerCall",
+              "OverDial"
+            ],
+            "description": "How a Predictive profile paces its calls: \u0027ReservedPerCall\u0027 reserves an agent for every call; \u0027OverDial\u0027 places more calls than there are free agents, sized from the measured answer rate, and claims a free agent when a person answers, falling back to \u0027ReservedPerCall\u0027 whenever the measurements cannot be trusted. Requires an enforced abandonment cap, the abandoned-call message and a target below the cap. Requires the Contact Center Paced Dialing feature."
+          },
+          "TargetAbandonmentRatePercent": {
+            "type": "number",
+            "description": "Abandonment rate, in percent of calls a person answered, that Predictive over-dialing steers toward. Must be greater than 0 and, for over-dialing, lower than MaxAbandonmentRatePercent."
+          },
+          "MaxLinesPerAgent": {
+            "type": "number",
+            "description": "Most calls Predictive over-dialing may have ringing per free agent, from 1 to 5."
+          },
+          "MaxCallsInFlight": {
+            "type": "integer",
+            "description": "Most calls a Predictive profile may have in flight for one campaign, from 1 to 1000."
+          },
+          "AnswerRateSampleFloor": {
+            "type": "integer",
+            "description": "Fewest settled calls the answer rate must be measured from before Predictive over-dialing trusts it, from 10 to 10000."
+          },
+          "AnswerRateWindowMinutes": {
+            "type": "integer",
+            "description": "Minutes of history the Predictive answer rate is measured over, from 5 to 240."
+          },
+          "CreditAgentsFreeingUp": {
+            "type": "boolean",
+            "description": "Whether Predictive over-dialing also counts agents expected to finish their call and wrap-up before a new call is answered."
+          },
+          "FreeUpCreditPercent": {
+            "type": "integer",
+            "description": "Percentage, from 0 to 100, of the agents expected to free up that Predictive over-dialing counts when CreditAgentsFreeingUp is true."
+          },
+          "ConnectWaitMilliseconds": {
+            "type": "integer",
+            "description": "Milliseconds, from 0 to 1500, a person who answered an over-dialed call may wait for an agent to free up before the abandoned-call message plays."
+          },
+          "AbandonedRetryRequiresAgent": {
+            "type": "boolean",
+            "description": "Whether a Predictive call that was abandoned is retried only with an agent reserved for it."
+          },
+          "ShowDialProgressToAgent": {
+            "type": "boolean",
+            "description": "Whether the agent\u0027s screens show who is being dialed and each step of an automated dial placed for them, rather than only that they are waiting for a connected call."
+          },
+          "CallingCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Default business-hours calendar used to evaluate outbound calls."
+          },
+          "RegionalCallingCalendarIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "A business-hours calendar identifier."
+            },
+            "description": "Region-specific business-hours calendar overrides keyed by ISO 3166-1 alpha-2 region code."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the dialer profile is enabled."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the dialer profile, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center dialer profiles to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "DialerProfiles"
+  ],
+  "additionalProperties": true
+}

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-xml-rpc
-description: Skill for enabling XML-RPC and MetaWeblog remote publishing in Orchard Core so desktop blogging clients can create and edit content. Covers the XML-RPC endpoint, the Remote Publishing (MetaWeblog) feature, reader/writer services, and endpoint routing. Use this skill when requests mention Orchard Core XML-RPC, MetaWeblog, remote publishing, Open Live Writer, desktop blogging client, xmlrpc endpoint, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.XmlRpc, OrchardCore.RemotePublishing, IXmlRpcReader, IXmlRpcWriter, MethodCallModelBinder, MetaWeblogController, and the /xmlrpc and /xmlrpc/metaweblog routes. It also helps with configuring blogging clients, feature enablement, and the routing patterns captured in this skill.
+description: Skill for enabling XML-RPC and MetaWeblog remote publishing in Orchard Core so desktop blogging clients can create and edit content. Covers the XML-RPC endpoint, the Remote Publishing (MetaWeblog) feature, supported MetaWeblog methods, the RSD discovery route for lists, content and media authorization including Liquid content and restricted media uploads, IXmlRpcHandler and IMetaWeblogDriver extension points, and reader and writer services. Use this skill when requests mention Orchard Core XML-RPC, MetaWeblog, remote publishing, Open Live Writer, desktop blogging clients, or the xmlrpc endpoint, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.XmlRpc, OrchardCore.RemotePublishing, IXmlRpcReader, IXmlRpcWriter, IXmlRpcHandler, MetaWeblogDriver, MetaWeblogHandler, and the /xmlrpc and /xmlrpc/metaweblog routes.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -24,7 +24,10 @@ You are an Orchard Core expert. Enable and configure XML-RPC / MetaWeblog so ext
   - `/xmlrpc/metaweblog` — the MetaWeblog API endpoint (`MetaWeblogController`), available only when Remote Publishing is enabled.
 - The core feature registers `IXmlRpcReader` (`XmlRpcReader`) and `IXmlRpcWriter` (`XmlRpcWriter`) for parsing and emitting XML-RPC method calls and responses.
 - `MethodCallModelBinder` binds incoming XML-RPC method-call payloads to controller action parameters.
-- Authenticate the client with a site user that has permission to create and publish the target content; the MetaWeblog operations run under that user's identity.
+- Authenticate the client with a site user that has permission to create and publish the target content; the MetaWeblog operations run under that user's identity (user name and password are sent in each call).
+- The MetaWeblog implementation lives in the Lists module (`MetaWeblogHandler`): each blog is a content item with `ListPart`, and posts are its contained items. Title, Autoroute, Html/Markdown body, and Media modules contribute `IMetaWeblogDriver`s when Remote Publishing is enabled.
+- Supported methods: `blogger.getUsersBlogs`, `metaWeblog.getRecentPosts`, `metaWeblog.newPost`, `metaWeblog.getPost`, `metaWeblog.editPost`, `blogger.deletePost`, and `metaWeblog.newMediaObject`.
+- Each list exposes an RSD discovery document at `/xmlrpc/metaweblog/{contentItemId}/rsd`.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -92,6 +95,61 @@ services.AddScoped<IXmlRpcWriter, XmlRpcWriter>();
 
 - `IXmlRpcReader` parses an incoming XML-RPC request into method-call objects.
 - `IXmlRpcWriter` serializes response objects back into the XML-RPC wire format.
+
+### Authorization of Remote Mutations
+
+- New and edited posts are authorized against the updated item with `EditContent`, or `PublishContent` when the client publishes; on failure the YesSql session is canceled and the whole call fails ("Not authorized to edit this content").
+- Since Orchard Core 4.0, Liquid runs only in `LiquidPart`/`LiquidField`, and posts that contain Liquid components (directly or embedded) also require the `ManageLiquidTemplates` permission. Unauthorized mutations are rejected in full.
+- `metaWeblog.newMediaObject` requires `ManageMedia` and `ManageMediaFolder` for the target folder, rejects `.`/`..` path segments, accepts only `MediaOptions.AllowedFileExtensions` (or `RestrictedFileExtensions` for users with `UploadRestrictedMedia`), and stores the file through `FileCreationService`, so upload security handlers such as `OrchardCore.Antivirus.ClamAV` can reject it.
+
+### Extending Remote Publishing
+
+Add MetaWeblog fields for your own part with a `MetaWeblogDriver`, and register it only when Remote Publishing is enabled:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.ContentManagement;
+using OrchardCore.MetaWeblog;
+using OrchardCore.Modules;
+using OrchardCore.XmlRpc;
+using OrchardCore.XmlRpc.Models;
+
+namespace MyModule.RemotePublishing;
+
+public sealed class SubtitleMetaWeblogDriver : MetaWeblogDriver
+{
+    public override void BuildPost(XRpcStruct rpcStruct, XmlRpcContext context, ContentItem contentItem)
+    {
+        var subtitle = (string)contentItem.Content.ArticlePart?.Subtitle?.Text;
+
+        if (!string.IsNullOrEmpty(subtitle))
+        {
+            rpcStruct.Set("mt_excerpt", subtitle);
+        }
+    }
+
+    public override void EditPost(XRpcStruct rpcStruct, ContentItem contentItem)
+    {
+        var excerpt = rpcStruct.Optional<string>("mt_excerpt");
+
+        if (excerpt is not null)
+        {
+            contentItem.Content.ArticlePart.Subtitle.Text = excerpt;
+        }
+    }
+}
+
+[RequireFeatures("OrchardCore.RemotePublishing")]
+public sealed class RemotePublishingStartup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddScoped<IMetaWeblogDriver, SubtitleMetaWeblogDriver>();
+    }
+}
+```
+
+For a new XML-RPC method set, implement `IXmlRpcHandler` (`SetCapabilities(XElement)` and `ProcessAsync(XmlRpcContext)`; check `context.RpcMethodCall.MethodName` and set `context.RpcMethodResponse`) and register it with `services.AddScoped<IXmlRpcHandler, MyHandler>()`.
 
 ### Configuring a Blogging Client (Open Live Writer)
 

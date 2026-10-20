@@ -1,6 +1,10 @@
 ---
 name: orchardcore-sanitizer
-description: Skill for configuring HTML sanitization in Orchard Core. Covers the HtmlSanitizer service for XSS prevention, Razor sanitize helpers, configuring allowed tags and attributes, scheme allowlists, and custom sanitization configuration. Use this skill when requests mention Orchard Core Sanitizer, Configure HTML Sanitization, Parts and Fields Using the Sanitizer, Orchard Core Default Sanitizer Customizations, Sanitizing HTML in Razor Views, Configuring the Sanitizer in Program.cs, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with HtmlBodyPart, HtmlField, HtmlMenuItemPart, MarkdownBodyPart, MarkdownField, @Orchard.SanitizeHtml(), ConfigureHtmlSanitizer, AllowedTags.Add('iframe'), AllowedSchemes.Add('ftp'). It also helps with Sanitizing HTML in Razor Views, Configuring the Sanitizer in Program.cs, Allowing Additional Tags, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring HTML sanitization in Orchard Core. Covers the HtmlSanitizer service for XSS prevention, final-output sanitization of HTML and Markdown, source persisted as authored, the sanitized fragment cache, IHtmlSanitizerService, the sanitize_html Liquid filter, Razor sanitize helpers, configuring allowed tags and attributes, scheme allowlists, and custom sanitization configuration. Use this skill when requests mention Orchard Core Sanitizer, Configure HTML Sanitization, Parts and Fields Using the Sanitizer, Orchard Core Default Sanitizer Customizations, Sanitizing HTML in Razor Views, Configuring the Sanitizer in Program.cs, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with HtmlBodyPart, HtmlField, HtmlMenuItemPart, MarkdownBodyPart, MarkdownField, SanitizeHtml, @Orchard.SanitizeHtml(), ConfigureHtmlSanitizer, HtmlSanitizerOptions, AllowedTags.Add('iframe'), AllowedSchemes.Add('ftp').
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Sanitizer - Prompt Templates
@@ -12,25 +16,37 @@ You are an Orchard Core expert. Generate HTML sanitization configurations and cu
 ### Guidelines
 
 - The HTML Sanitizer is part of Orchard Core's infrastructure — no additional feature needs to be enabled.
-- The sanitizer prevents XSS attacks by cleaning user-provided HTML content.
+- The sanitizer prevents XSS attacks by cleaning the **final rendered** HTML. Authored HTML and Markdown source is stored unchanged; nothing is sanitized on save.
 - It is used by default for `HtmlBodyPart`, `HtmlField`, `HtmlMenuItemPart`, `MarkdownBodyPart`, and `MarkdownField`.
-- Sanitization can be disabled per field/part via the `Sanitize Html` option in field or part settings.
-- Use the `@Orchard.SanitizeHtml()` Razor helper to sanitize HTML in views.
+- Sanitization can be disabled per field/part via the `Sanitize Html` option (`SanitizeHtml = false`) for trusted output.
+- Use the `@Orchard.SanitizeHtml()` Razor helper, the `sanitize_html` Liquid filter, or `IHtmlSanitizerService.Sanitize()` in code.
 - Orchard Core customizes the default HtmlSanitizer by allowing the `class` attribute, allowing `mailto` and `tel` schemes, and removing the `form` tag.
-- Configure the sanitizer using `ConfigureHtmlSanitizer` during service registration.
-- Multiple `ConfigureHtmlSanitizer` calls can be chained in the startup pipeline.
+- Configure the sanitizer using `ConfigureHtmlSanitizer` during service registration; multiple calls are combined.
+- Sanitizer configuration actions must be deterministic, because results are cached per tenant (see below).
 - The sanitizer is based on the [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer) library.
 - Always seal classes.
 
 ### Parts and Fields Using the Sanitizer
 
-| Part / Field | Description |
+| Part / Field | Pipeline before sanitization |
 |-------------|-------------|
-| `HtmlBodyPart` | Rich HTML content body. |
-| `HtmlField` | HTML content field attached to any content type. |
-| `HtmlMenuItemPart` | HTML content in menu items. |
-| `MarkdownBodyPart` | Markdown rendered to HTML, then sanitized. |
-| `MarkdownField` | Markdown field rendered to HTML, then sanitized. |
+| `HtmlBodyPart` | Authored HTML, then shortcodes. |
+| `HtmlField` | Authored HTML, then shortcodes. |
+| `HtmlMenuItemPart` | Sanitized on a cloned content item when the menu renders; unsafe URL schemes are rejected. |
+| `MarkdownBodyPart` | Markdown converted to HTML, then shortcodes. |
+| `MarkdownField` | Markdown converted to HTML, then shortcodes. |
+
+This applies consistently to Detail, Summary, Preview, `BodyAspect`, GraphQL
+rendered HTML, and the `MarkdownToHtmlAsync` Razor helper. `LiquidPart` and
+`LiquidField` have no sanitize setting because their output may not be HTML.
+
+Because the stored source is unsanitized, render the part or field shape (or
+sanitize explicitly) instead of writing stored `Html` with `raw`:
+
+```liquid
+{{ Model.Content.HtmlBodyPart | shape_render }}
+{{ Model.ContentItem.Content.Article.Summary.Html | sanitize_html | raw }}
+```
 
 ### Orchard Core Default Sanitizer Customizations
 
@@ -43,13 +59,39 @@ Orchard Core modifies the base HtmlSanitizer defaults:
 | Allow `tel` scheme | The `tel:` URI scheme is allowed in links. |
 | Remove `form` tag | The `<form>` tag is removed from the allowed tags list. |
 
+### Sanitized Result Cache
+
+Content is sanitized each time it is displayed. `HtmlSanitizerService` caches
+the sanitized result of fragments up to 64K characters per tenant (bounded to a
+few MB of text), so repeated displays skip parsing. Consequently, actions
+registered with `ConfigureHtmlSanitizer()`, including sanitizer event handlers
+such as `PostProcessNode`, must return the same result for the same input;
+do not make them depend on the current user, request, or time.
+
 ### Sanitizing HTML in Razor Views
 
 ```html
-@Orchard.SanitizeHtml((string)Model.ContentItem.HtmlBodyPart.Html)
+@Orchard.SanitizeHtml((string)Model.ContentItem.Content.HtmlBodyPart.Html)
 ```
 
-This renders the sanitized HTML, stripping any potentially dangerous tags, attributes, or scripts.
+### Sanitizing HTML in Code
+
+```csharp
+public sealed class CommentFormatter
+{
+    private readonly IHtmlSanitizerService _htmlSanitizerService;
+
+    public CommentFormatter(IHtmlSanitizerService htmlSanitizerService)
+    {
+        _htmlSanitizerService = htmlSanitizerService;
+    }
+
+    public string Format(string html)
+        => _htmlSanitizerService.Sanitize(html);
+}
+```
+
+`IHtmlSanitizerService` lives in `OrchardCore.Infrastructure.Html`.
 
 ### Configuring the Sanitizer in Program.cs
 
@@ -87,7 +129,7 @@ builder.Services
         tenantServices.ConfigureHtmlSanitizer((sanitizer) =>
         {
             // Allow data attributes and srcset.
-            sanitizer.AllowedAttributes.Add("data-*");
+            sanitizer.AllowDataAttributes = true;
             sanitizer.AllowedAttributes.Add("srcset");
         }));
 ```
@@ -100,9 +142,9 @@ builder.Services
     .ConfigureServices(tenantServices =>
         tenantServices.ConfigureHtmlSanitizer((sanitizer) =>
         {
-            // Remove <script> and <style> tags (removed by default, but shown for illustration).
-            sanitizer.AllowedTags.Remove("script");
-            sanitizer.AllowedTags.Remove("style");
+            // Disallow inline styles and embedded media.
+            sanitizer.AllowedAttributes.Remove("style");
+            sanitizer.AllowedTags.Remove("video");
         }));
 ```
 
@@ -116,9 +158,6 @@ builder.Services
         {
             // Allow iframes for video embeds.
             sanitizer.AllowedTags.Add("iframe");
-
-            // Allow data attributes for JavaScript frameworks.
-            sanitizer.AllowedAttributes.Add("data-*");
 
             // Allow additional URI schemes.
             sanitizer.AllowedSchemes.Add("ftp");
@@ -136,7 +175,8 @@ To disable sanitization for a specific field or part:
 2. Edit the field or part settings (e.g., `HtmlBodyPart`).
 3. Uncheck the **Sanitize Html** option.
 
-This is useful when trusted editors need to use HTML that would otherwise be stripped (e.g., embedded scripts, custom forms).
+Or in a migration: `.WithSettings(new HtmlBodyPartSettings { SanitizeHtml = false })`.
+Only do this when every editor of the content type is trusted.
 
 ### Common Sanitizer Configuration Scenarios
 
@@ -145,6 +185,16 @@ This is useful when trusted editors need to use HTML that would otherwise be str
 | Allow YouTube/Vimeo embeds | `AllowedTags.Add("iframe")` |
 | Allow FTP links | `AllowedSchemes.Add("ftp")` |
 | Allow data URIs for inline images | `AllowedSchemes.Add("data")` |
-| Allow custom data attributes | `AllowedAttributes.Add("data-*")` |
+| Allow custom data attributes | `AllowDataAttributes = true` |
+| Allow heading ids from Markdown `autoidentifiers` | `AllowedAttributes.Add("id")` |
 | Allow target attribute on links | `AllowedAttributes.Add("target")` |
 | Block all inline styles | `AllowedAttributes.Remove("style")` |
+
+### Upgrading from 3.x
+
+- Before: HTML and Markdown parts and fields sanitized the source when saving.
+  After: the source is stored as authored and only the final rendered HTML is
+  sanitized. Templates or APIs that output the stored `Html` directly must now
+  sanitize it themselves.
+- Sanitizer configuration actions must be deterministic because of the new
+  per-tenant result cache.

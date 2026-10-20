@@ -14,9 +14,9 @@ public sealed class Migrations : DataMigration
         _contentDefinitionManager = contentDefinitionManager;
     }
 
-    public int Create()
+    public async Task<int> CreateAsync()
     {
-        _contentDefinitionManager.AlterTypeDefinition("Article", type => type
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("Article", type => type
             .DisplayedAs("Article")
             .Creatable()
             .Listable()
@@ -43,7 +43,7 @@ public sealed class Migrations : DataMigration
             )
         );
 
-        _contentDefinitionManager.AlterPartDefinition("Article", part => part
+        await _contentDefinitionManager.AlterPartDefinitionAsync("Article", part => part
             .WithField("Summary", field => field
                 .OfType("TextField")
                 .WithDisplayName("Summary")
@@ -184,9 +184,9 @@ public sealed class Migrations : DataMigration
         _contentDefinitionManager = contentDefinitionManager;
     }
 
-    public int Create()
+    public async Task<int> CreateAsync()
     {
-        _contentDefinitionManager.AlterTypeDefinition("NewsItem", type => type
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("NewsItem", type => type
             .DisplayedAs("News Item")
             .Creatable()
             .Listable()
@@ -219,8 +219,8 @@ This generates URLs such as `news/2025/07/product-launch-announcement`.
 ## Example 4: Programmatic Route Lookup and Content Retrieval
 
 ```csharp
-using OrchardCore.Autoroute.Services;
 using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Routing;
 
 public sealed class AutorouteContentResolver
 {
@@ -244,7 +244,8 @@ public sealed class AutorouteContentResolver
             return null;
         }
 
-        return await _contentManager.GetAsync(entry.ContentItemId);
+        // For a contained item (BagPart item or taxonomy term), entry.JsonPath locates it inside the container.
+        return await _contentManager.GetAsync(entry.ContentItemId, entry.JsonPath);
     }
 }
 ```
@@ -325,9 +326,9 @@ public sealed class Migrations : DataMigration
         _contentDefinitionManager = contentDefinitionManager;
     }
 
-    public int Create()
+    public async Task<int> CreateAsync()
     {
-        _contentDefinitionManager.AlterTypeDefinition("FaqPage", type => type
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("FaqPage", type => type
             .DisplayedAs("FAQ Page")
             .Creatable()
             .Listable()
@@ -352,7 +353,7 @@ public sealed class Migrations : DataMigration
             )
         );
 
-        _contentDefinitionManager.AlterTypeDefinition("FaqItem", type => type
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("FaqItem", type => type
             .DisplayedAs("FAQ Item")
             .WithPart("TitlePart", part => part
                 .WithPosition("0")
@@ -362,7 +363,7 @@ public sealed class Migrations : DataMigration
             )
         );
 
-        _contentDefinitionManager.AlterPartDefinition("FaqItem", part => part
+        await _contentDefinitionManager.AlterPartDefinitionAsync("FaqItem", part => part
             .WithField("Answer", field => field
                 .OfType("HtmlField")
                 .WithDisplayName("Answer")

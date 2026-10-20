@@ -1,6 +1,6 @@
 ---
 name: orchardcore-lucene
-description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene Query API, query filters, Lucene Worker background tasks, custom data indexing, automatic field mapping, and Elasticsearch Query DSL support in Lucene. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile (Recommended), Legacy Index Creation (Obsolete), Reset Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Search.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, LuceneIndexSettings. It also helps with Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Lucene search in Orchard Core. Covers Lucene index creation and management, recipe steps for index operations, Lucene queries and the Lucene Query API, query filters, the Lucene Worker background task, custom data indexing, automatic field mapping, Elasticsearch Query DSL support in Lucene, LuceneSearchPermissions and dynamic per-index permissions, and the Orchard Core 4.0 removal of obsolete Lucene permission members. Use this skill when requests mention Orchard Core Lucene Search, Configure Lucene Search, Enabling Lucene Features, Creating a Lucene Index Profile, Legacy Index Creation (Obsolete), Reset Lucene Index, Rebuild Lucene Index, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Search.Lucene.Worker, OrchardCore.Search, OrchardCore.Indexing, CreateOrUpdateIndexProfile, LuceneIndexSettings, ManageLuceneIndexes, QueryLuceneApi.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -24,6 +24,8 @@ You are an Orchard Core expert. Generate code and configuration for Lucene-based
 - Supported query types: `bool`, `match`, `match_all`, `match_phrase`, `term`, `terms`, `wildcard`, `prefix`, `fuzzy`, `range`, `regexp`, `query_string`, `simple_query_string`, `geo_distance`, `geo_bounding_box`.
 - Text fields with a `.keyword` suffix are automatically stored in the index (max 256 chars) for term-level queries.
 - Enable `OrchardCore.Search.Lucene.Worker` only when running the same tenant on multiple instances (farm) with a file system index.
+- `OrchardCore.Search.Lucene` is an obsolete feature id kept for compatibility; it enables `OrchardCore.Lucene`. Use `OrchardCore.Lucene` in new recipes.
+- Reference permissions from `OrchardCore.Lucene.LuceneSearchPermissions` and `OrchardCore.Indexing.Core.IndexingPermissions`; the old `OrchardCore.Lucene.Permissions.*` and `LuceneIndexPermissionHelper.ManageLuceneIndexes` members were removed in Orchard Core 4.0.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -183,15 +185,21 @@ To rebuild all indices:
   "steps": [
     {
       "name": "Queries",
-      "Source": "Lucene",
-      "Name": "RecentBlogPosts",
-      "Index": "Search",
-      "Template": "{ \"query\": { \"match_all\": {} }, \"size\": 10 }",
-      "ReturnContentItems": true
+      "Queries": [
+        {
+          "Source": "Lucene",
+          "Name": "RecentBlogPosts",
+          "Index": "BlogPostsLucene",
+          "Template": "{ \"query\": { \"match_all\": {} }, \"size\": 10 }",
+          "ReturnContentItems": true
+        }
+      ]
     }
   ]
 }
 ```
+
+`Index` is the index profile `Name` (not the physical `IndexName`). Saved Lucene queries are executed through `api/queries/{name}`, Liquid (`Queries.RecentBlogPosts | query`), GraphQL and the `Queries` data source (see `orchardcore-content-queries` and `orchardcore-data-sources`). Since Orchard Core 4.0, the GraphQL field of a named query requires the `ExecuteApi_{QueryName}` permission (implied by `ExecuteApiAll` and `ManageQueries`).
 
 ### Lucene Query Filters
 
@@ -291,6 +299,26 @@ Verbs: `POST` and `GET`
 
 Same parameters as `api/lucene/content`.
 
+Both endpoints use the `Api` authentication scheme and require `LuceneSearchPermissions.QueryLuceneApi`. Their endpoint names are `ApiGetLuceneContent`, `ApiPostLuceneContent`, `ApiGetLuceneDocuments` and `ApiPostLuceneDocuments` (used by OpenAPI, see `orchardcore-openapi`).
+
+### Permissions
+
+| Permission | Member | Notes |
+|------------|--------|-------|
+| `ManageLuceneIndexes` | `OrchardCore.Lucene.LuceneSearchPermissions.ManageLuceneIndexes` | Manage Lucene indexes and run admin queries. |
+| `QueryLuceneApi` | `OrchardCore.Lucene.LuceneSearchPermissions.QueryLuceneApi` | Call `api/lucene/*`. Implied by `ManageLuceneIndexes`. |
+| `QueryIndex_{IndexName}` | `IndexingPermissions.CreateDynamicPermission(indexProfile)` | Query one index from the front-end search. Implied by `ManageIndexes` and `QuerySearchIndex`. |
+| `QuerySearchIndex` | `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex` | Query any index. |
+
+A `PermissionMigrations` deferred task rewrites the legacy per-index role claims (`QueryLucene{IndexName}Index`) to the dynamic `QueryIndex_{ProfileName}` permissions once the index profiles exist.
+
+### Upgrading from 3.x
+
+- `OrchardCore.Lucene.Permissions.ManageLuceneIndexes` and `OrchardCore.Lucene.LuceneIndexPermissionHelper.ManageLuceneIndexes` were removed; use `OrchardCore.Lucene.LuceneSearchPermissions.ManageLuceneIndexes`.
+- `OrchardCore.Lucene.Permissions.QueryLuceneApi` was removed; use `OrchardCore.Lucene.LuceneSearchPermissions.QueryLuceneApi`.
+- `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex`.
+- Stored permission names are unchanged, so roles keep their permissions; only code referencing the removed members must change.
+
 ### Lucene Worker
 
 Enable `OrchardCore.Search.Lucene.Worker` to synchronize the local file system index across multiple instances. This creates a background task that keeps indexes in sync in a farm scenario.
@@ -305,6 +333,7 @@ Do **not** enable the Worker if:
 Register a custom indexing source in `Startup.cs`:
 
 ```csharp
+using Microsoft.Extensions.Localization;
 using OrchardCore.Modules;
 
 namespace MyModule;

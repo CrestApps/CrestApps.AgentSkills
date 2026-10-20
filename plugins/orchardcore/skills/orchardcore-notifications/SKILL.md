@@ -1,6 +1,6 @@
 ---
 name: orchardcore-notifications
-description: Skill for managing Orchard Core notifications. Covers notification messages, notification delivery methods, notification lifecycle events, workflow activities, and notification permissions. Use this skill when requests mention Orchard Core Notifications, Create and Manage Notifications, Enabling Notifications, Notification Model, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Notifications, OrchardCore.Notifications.Email, OrchardCore.Users, OrchardCore.Modules, OrchardCore.Security.Permissions. It also helps with notifications examples, Sending Notifications with INotificationService, Sending Notifications to Multiple Users, Implementing a Notification Method Provider, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for managing Orchard Core notifications. Covers notification messages, email and SMS notification delivery methods, notification lifecycle events, the OrchardCore Notifications configuration section and NotificationOptions, workflow activities, the notifications admin list, and notification permissions, plus the difference with INotifier UI messages. Use this skill when requests mention Orchard Core Notifications, Create and Manage Notifications, Enabling Notifications, Notification Model, Sending Notifications with INotificationService, notification center, unread notifications navbar, TotalUnreadNotifications, OrchardCore.Notifications.Sms, upgrading notifications configuration to Orchard Core 4, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Notifications, OrchardCore.Notifications.Email, and OrchardCore.Notifications.Sms. It also helps with Implementing a Notification Method Provider.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,7 +19,13 @@ it returns a `NotificationSendResult`.
 ### Guidelines
 
 - Enable `OrchardCore.Notifications` before using notification services.
-- Enable `OrchardCore.Notifications.Email` only when email delivery is needed.
+- Enable `OrchardCore.Notifications.Email` (requires a configured email
+  provider) and/or `OrchardCore.Notifications.Sms` (requires a configured SMS
+  provider) for out-of-band delivery. Users opt in or out of each enabled method
+  in their profile.
+- Use `INotificationService` for persistent notifications in the notification
+  center; use `INotifier` (`OrchardCore.DisplayManagement.Notify`) for
+  transient per-request UI messages such as "Saved successfully".
 - Send a `NotificationMessage`, not a `Notification`; the service creates the
   `Notification` entity.
 - Pass the recipient as the `notify` object. Use application users when sending
@@ -50,6 +56,33 @@ it returns a `NotificationSendResult`.
   ]
 }
 ```
+
+### Configuration
+
+`NotificationOptions` binds `OrchardCore:Notifications` (also per tenant under
+`OrchardCore:{TenantName}:Notifications`):
+
+```json
+{
+  "OrchardCore": {
+    "Notifications": {
+      "TotalUnreadNotifications": 10,
+      "DisableNotificationHtmlBodySanitizer": false,
+      "AbsoluteCacheExpirationSeconds": 3600,
+      "SlidingCacheExpirationSeconds": 1800
+    }
+  }
+}
+```
+
+| Option | Default | Purpose |
+|---|---|---|
+| `TotalUnreadNotifications` | `10` | Unread notifications shown in the navbar. |
+| `DisableNotificationHtmlBodySanitizer` | `false` | Skips sanitizing `HtmlBody` of workflow notifications. |
+| `AbsoluteCacheExpirationSeconds` | `0` | Absolute lifetime of the cached unread list; `0` means no absolute expiration. |
+| `SlidingCacheExpirationSeconds` | `1800` | Sliding lifetime of the cached unread list; `0` disables it. |
+
+The unread list is cached only when one of the expirations is greater than `0`.
 
 ### Notification and Message Models
 
@@ -196,14 +229,19 @@ public sealed class AuditNotificationMethodProvider : INotificationMethodProvide
 {
     private readonly ILogger _logger;
 
-    public AuditNotificationMethodProvider(ILogger<AuditNotificationMethodProvider> logger)
+    internal readonly IStringLocalizer S;
+
+    public AuditNotificationMethodProvider(
+        ILogger<AuditNotificationMethodProvider> logger,
+        IStringLocalizer<AuditNotificationMethodProvider> stringLocalizer)
     {
         _logger = logger;
+        S = stringLocalizer;
     }
 
     public string Method => "Audit";
 
-    public LocalizedString Name => new("Audit notification");
+    public LocalizedString Name => S["Audit notification"];
 
     public Task<Result> SendAsync(
         object notify,
@@ -278,6 +316,17 @@ subject and message. Enable Contents and Users as well to use
 ### Administration
 
 The notification center and notification list are administered through the
-built-in module UI. Notification read state is handled by the module endpoint;
-`INotificationService` exposes delivery only, not read, unread, count, or
-delete operations.
+built-in module UI. The list renders with the shared `AdminList` shape, so it
+follows the site's List/Grid layout and page size settings (see
+`orchardcore-admin-lists`); unread rows carry the `notification-is-unread` CSS
+class and read rows `notification-is-read`. Notification read state is handled
+by the module endpoint; `INotificationService` exposes delivery only, not read,
+unread, count, or delete operations. Filter the list with custom
+`INotificationAdminListFilterProvider` implementations.
+
+### Upgrading from 3.x
+
+- The `OrchardCore_Notifications` section is now `OrchardCore:Notifications`;
+  the old name still binds but is deprecated.
+- `NotificationPermissions.ManageNotifications` has a `LocalizationSource`
+  description translated with PO files.

@@ -1,6 +1,10 @@
 ---
 name: orchardcore-widgets
-description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, and widget placement configuration. Use this skill when requests mention Orchard Core Widgets, Create and Manage Widgets, Enabling Widget Features, Creating a Widget Content Type, Layer Configuration via Recipe, Layer Rule Expressions, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.Flows, FlowPart, DataMigration, IContentDefinitionManager, WithPart, WithField, LayerRule, Paragraph, RawHtml, Blockquote, Image, Container. It also helps with widget examples, Layer Configuration via Recipe, Layer Rule Expressions, Placing Widgets in Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and managing widgets in Orchard Core. Covers widget content types, zones, layers, layer rules, widget placement configuration, Widget shape templates and wrappers, safe rendering of widget HTML, and ManageLiquidTemplates for Liquid widgets. Use this skill when requests mention Orchard Core Widgets, Create and Manage Widgets, Enabling Widget Features, Creating a Widget Content Type, Layer Configuration via Recipe, Layer Rule Expressions, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Widgets, OrchardCore.Layers, OrchardCore.Flows, FlowPart, DataMigration, IContentDefinitionManager, WithPart, WithField, LayerRule, Paragraph, RawHtml, Blockquote, Image, Container. It also helps with widget examples, Layer Configuration via Recipe, Layer Rule Expressions, Placing Widgets in Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Widgets - Prompt Templates
@@ -16,7 +20,9 @@ You are an Orchard Core expert. Generate widget definitions, layer configuration
 - Layers control when widgets are visible using rule expressions.
 - Enable `OrchardCore.Widgets` and `OrchardCore.Layers` for widget support.
 - Each widget is a content item that can be edited from the admin panel.
-- Layer rules use JavaScript-like expressions to control visibility.
+- Layer rules are composed of conditions (URL, role, culture, homepage, authentication, content type, JavaScript, Boolean, All/Any groups); see `orchardcore-layers` and `orchardcore-rules`.
+- Widgets that contain a `LiquidPart`, `LiquidField`, or `FacebookPluginPart` can only be edited or published by users with `ManageLiquidTemplates`, and so can the pages that embed them in a `FlowPart`, `BagPart`, or `WidgetsListPart`.
+- HTML and Markdown in widgets are stored unsanitized; render the part or field shapes in widget templates rather than writing stored `Html` with `raw`.
 - Use `FlowPart` to allow widgets inside content items.
 - `WidgetsListPart` editor wrapper placement uses `ContentPart_Edit` with differentiator `{ContentType}-{PartName}`.
 - `WidgetsListPart` does not render its own front-end display shape; it injects widgets directly into layout zones.
@@ -175,30 +181,46 @@ Widgets are assigned to zones and layers via the admin UI or recipes:
 
 ### Widget Template (Liquid)
 
-Create a template at `Views/Widget-{{WidgetName}}.liquid`:
+The `Widget` shape exposes `Model.ContentItem`, the `Model.Content` zone with
+the shapes of its parts and fields, and `Model.Header`, `Model.Meta`,
+`Model.Footer`, `Model.Classes`. Create `Views/Widget-{{WidgetName}}.liquid`
+(`Widget__{{WidgetName}}`):
 
 ```liquid
-<div class="widget widget-{{ Model.ContentItem.ContentType | downcase }}">
+<div class="{{ Model.Classes | join: " " }}">
     <h3>{{ Model.ContentItem.Content.{{WidgetName}}.Heading.Text }}</h3>
     <div class="widget-body">
-        {{ Model.ContentItem.Content.{{WidgetName}}.Body.Html }}
+        {{ Model.Content["{{WidgetName}}-Body"] | shape_render }}
     </div>
 </div>
 ```
+
+Rendering the `{PartName}-{FieldName}` field shape processes shortcodes and
+sanitizes the HTML. The built-in themes render `Paragraph` and `RawHtml` the
+same way (`{{ Model.Content.Paragraph-Content | shape_render }}`).
 
 ### Widget Template (Razor)
 
 Create a template at `Views/Widget-{{WidgetName}}.cshtml`:
 
 ```cshtml
-@model OrchardCore.ContentManagement.ContentItem
-
-<div class="widget">
-    <h3>@Model.Content.{{WidgetName}}.Heading.Text</h3>
+<div class="@string.Join(" ", Model.Classes)">
+    <h3>@Model.ContentItem.Content.{{WidgetName}}.Heading.Text</h3>
     <div class="widget-body">
-        @Html.Raw(Model.Content.{{WidgetName}}.Body.Html)
+        @await DisplayAsync(Model.Content.Named("{{WidgetName}}-Body"))
     </div>
 </div>
+```
+
+### Widget Wrapper
+
+Widgets rendered by Layers are wrapped by `Widget_Wrapper`
+(`Widget.Wrapper.cshtml`) that adds the title container. Override it, or the
+`Widget-{{WidgetName}}.Wrapper` / `Widget-Zone-Footer.Wrapper` alternates, to
+remove the wrapper markup:
+
+```liquid
+{{ Model.Content | shape_render }}
 ```
 
 ### FlowPart for Inline Widgets
@@ -232,12 +254,12 @@ If the part is attached as a named part, replace `WidgetsListPart` with the part
 
 ### Built-in Widget Content Types
 
-The Blog and Agency recipes provide these widget content types:
+The default recipes (Blog, Agency) create widget types such as:
 
-- `Paragraph`
-- `RawHtml`
+- `Paragraph` (an `HtmlField` named `Content`)
+- `RawHtml` (an `HtmlField` named `Content`)
 - `Blockquote`
-- `Image`
+- `MediaWidget` / `Image`
 - `Container`
 
 ### Widget Best Practices

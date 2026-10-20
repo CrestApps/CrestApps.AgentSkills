@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Currencies",
+      "description": "Recipe step discriminator. Must be \u0027Currencies\u0027."
+    },
+    "Currencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The ISO-4217 currency code, for example USD."
+          },
+          "DisplayName": {
+            "type": "string",
+            "description": "The friendly name shown in currency dropdowns, for example US Dollar."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "The user id of the user creating the entry. Leave it blank to use the current user\u0027s Id."
+          },
+          "Author": {
+            "type": "string",
+            "description": "The username of the user creating the entry. Leave it blank to use the current username."
+          }
+        },
+        "required": [
+          "Name",
+          "DisplayName"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The currencies to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Currencies"
+  ],
+  "additionalProperties": true
+}

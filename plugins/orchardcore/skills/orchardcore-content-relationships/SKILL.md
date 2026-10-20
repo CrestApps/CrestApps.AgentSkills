@@ -1,6 +1,10 @@
 ---
 name: orchardcore-content-relationships
-description: Skill for modeling content relationships in Orchard Core. Covers five relationship strategies including BagPart for embedded items, ContentPickerField for many-to-many, FlowPart for layout widgets, ListPart for hierarchical collections, and Taxonomies for categorization and tagging. Use this skill when requests mention Orchard Core Content Relationships, Model Content Relationships, Relationship Strategy Decision Matrix, BagPart — Embedded Items within a Parent, ContentPickerField — Many-to-Many References, FlowPart — Structured Layout with Widgets, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with BagPart, ContentPickerField, FlowPart, ListPart, DataMigration. It also helps with ContentPickerField — Many-to-Many References, FlowPart — Structured Layout with Widgets, ListPart — Hierarchical One-to-Many Collections, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for modeling content relationships in Orchard Core. Covers five relationship strategies including BagPart for embedded items, ContentPickerField for many-to-many references, FlowPart for layout widgets, ListPart for hierarchical collections, and Taxonomies for categorization and tagging, plus ContentPickerField settings, DisplayedStereotypes, TitlePattern, and reverse lookups with ContentPickerFieldIndex. Use this skill when requests mention Orchard Core Content Relationships, a Relationship Strategy Decision Matrix, embedded items, related content, many-to-many references, parent-child content, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include BagPart, ContentPickerField, ContentPickerFieldSettings, ContentPickerFieldIndex, LocalizationSetContentPickerField, FlowPart, ListPart, TaxonomyField, and DataMigration code patterns and recipes.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Content Relationships - Prompt Templates
@@ -178,15 +182,69 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-#### Accessing ContentPickerField in Liquid
+#### ContentPickerField Settings
+
+| Setting | Description |
+|---|---|
+| `Required` / `Hint` | Standard field settings (at least one item, editor hint). |
+| `Multiple` | Allow selecting several items. |
+| `DisplayAllContentTypes` | Allow any content type. |
+| `DisplayedContentTypes` | Selectable types when `DisplayAllContentTypes` is `false`. |
+| `DisplayedStereotypes` | Restrict to types with one of these stereotypes; takes precedence over `DisplayedContentTypes`. |
+| `Placeholder` | Placeholder text of the picker input. |
+| `TitlePattern` | Liquid pattern for each item's title in the picker, default `{{ Model.ContentItem \| display_text }}`. With `LocalizationPart`, use `{{ Model.ContentItem \| display_text }} ({{ Model.ContentItem.Content.LocalizationPart.Culture }})`. |
+
+`ContentPickerFieldSettings` is in `OrchardCore.ContentFields.Settings`. The field stores `string[] ContentItemIds`.
+
+#### Accessing ContentPickerField in Liquid and Razor
 
 ```liquid
-{% assign relatedIds = Model.ContentItem.Content.BlogPost.RelatedPosts.ContentItemIds %}
-{% for id in relatedIds %}
-    {% assign related = id | content_item_id %}
-    <a href="{{ related | display_url }}">{{ related.DisplayText }}</a>
+{% assign related = Model.ContentItem.Content.BlogPost.RelatedPosts.ContentItemIds | content_item_id %}
+{% for item in related %}
+    <a href="{{ item | display_url }}">{{ item.DisplayText }}</a>
+    {{ item | shape_build_display: "Summary" | shape_render }}
 {% endfor %}
 ```
+
+```cshtml
+@foreach (var item in await Orchard.GetContentItemsByIdAsync(Model.ContentItemIds))
+{
+    @await Orchard.DisplayAsync(item, "Summary")
+}
+```
+
+#### Reverse Lookups (Which Items Reference This One?)
+
+A picker stores IDs only on the referencing side. Enable `OrchardCore.ContentFields.Indexing.SQL` and query `ContentPickerFieldIndex` to find referencing items:
+
+```csharp
+using OrchardCore.ContentFields.Indexing.SQL;
+using OrchardCore.ContentManagement;
+using YesSql;
+
+namespace MyModule.Services;
+
+public sealed class RelatedPostsService
+{
+    private readonly ISession _session;
+
+    public RelatedPostsService(ISession session)
+    {
+        _session = session;
+    }
+
+    public Task<IEnumerable<ContentItem>> GetPostsReferencingAsync(string contentItemId)
+        => _session
+            .Query<ContentItem, ContentPickerFieldIndex>(x =>
+                x.ContentType == "BlogPost" &&
+                x.ContentField == "RelatedPosts" &&
+                x.SelectedContentItemId == contentItemId &&
+                x.Published)
+            .ListAsync();
+}
+```
+
+For localized sites use `LocalizationSetContentPickerField`, which stores localization sets instead of item IDs so the picked content resolves to the current culture.
 
 ### FlowPart — Structured Layout with Widgets
 
@@ -197,6 +255,8 @@ public sealed class Migrations : DataMigration
 - Building flexible, ad-hoc pages with complex layouts (about, contact, portfolio pages).
 - You need widgets positioned in columns and rows.
 - Content editors need a visual canvas for arranging content blocks.
+
+Widgets inside FlowPart and BagPart are sorted by drag and drop; with `OrchardCore.ContentPreview` enabled, every drop refreshes the live preview. See `orchardcore-flow-bagpart` for settings and templates.
 
 #### Defining FlowPart in Code
 
@@ -229,7 +289,7 @@ public sealed class Migrations : DataMigration
 
 ### ListPart — Hierarchical One-to-Many Collections
 
-`ListPart` connects independently managed content items in a parent-child hierarchy. Children have their own URLs and are edited separately.
+`ListPart` connects independently managed content items in a parent-child hierarchy. Children have their own URLs and are edited separately. See `orchardcore-lists` for settings, `ContainedPartIndex` queries, and page size selection.
 
 #### When to Use
 

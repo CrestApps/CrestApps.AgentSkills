@@ -1,6 +1,6 @@
 ---
 name: orchardcore-features
-description: Explains OrchardCore feature management including enabling and disabling features, programmatic control with IShellFeaturesManager and UpdateFeaturesAsync, dependencies, manifest declarations, recipe activation, and feature guards. Covers when to declare a managed feature with FeatureAttribute (including EnabledByDependencyOnly to group reusable services) versus when to gate behavior with RequireFeaturesAttribute to extend or override existing features without adding a new feature the user must manage. Use this skill when requests mention OrchardCore Features, Enabling the Features Module, Feature Management from the Admin Dashboard, Programmatic Feature Control with IShellFeaturesManager, Querying Feature States, Enabling and Disabling Features, FeatureAttribute vs RequireFeaturesAttribute, EnabledByDependencyOnly, [Feature] or [RequireFeatures] on a Startup class, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+description: Explains OrchardCore feature management including enabling and disabling features, the Features admin list with bulk Enable and Disable actions, programmatic control with IShellFeaturesManager and UpdateFeaturesAsync, dependencies, manifest declarations, recipe activation, the AllFeatures deployment step, and feature guards. Covers FeatureAttribute (including EnabledByDependencyOnly) versus RequireFeaturesAttribute gating, composing a startup for every tenant with RequiredStartupAttribute, and contributing features with IFeaturesProvider. Use this skill when requests mention OrchardCore Features, Feature Management from the Admin Dashboard, Programmatic Feature Control with IShellFeaturesManager, Enabling and Disabling Features, FeatureAttribute vs RequireFeaturesAttribute, EnabledByDependencyOnly, [Feature], [RequireFeatures] or [RequiredStartup] on a Startup class, FeaturesBulkAction, FeaturesPermissions, theme features, or closely related Orchard Core setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -12,6 +12,14 @@ metadata:
 Features are enabled per tenant. Manage them at **Configuration → Features** or
 through `IShellFeaturesManager`. Resolve IDs from the module manifest rather
 than inferring them from an assembly or package name.
+
+## Features Admin List
+
+- Requires the `ManageFeatures` permission (`OrchardCore.Features.FeaturesPermissions.ManageFeatures`), granted to `Administrator` by default.
+- Enabling a feature also enables its dependencies; disabling a feature also disables the features that depend on it. Always-enabled features cannot be turned off.
+- Select several features and use **Actions** → **Enable** or **Disable** for bulk changes. The `FeaturesBulkAction` enum has `None`, `Enable`, and `Disable`.
+- The list renders one `AdminList` per category, all named `Features` (`FeaturesAdminList.Name`), so it follows the site's List/Grid layout (see `orchardcore-admin-lists`).
+- Extra `[Feature]` attributes declared in a theme's manifest alongside `[Theme]` are listed with their category and an **Enable** button.
 
 ## Query and Update Features
 
@@ -112,6 +120,41 @@ A module may have several `StartupBase` classes: an unattributed one for its
 core services, plus `[RequireFeatures(...)]` classes that light up integrations
 as their target features come online.
 
+### Compose a startup for every tenant with `RequiredStartupAttribute`
+
+`[RequiredStartup]` (namespace `OrchardCore.Modules`, Orchard Core 4.0) composes a
+public component type for every tenant even when the feature that defines it is
+disabled. Its services are attributed to `Application.DefaultFeatureId`. Combine
+it with `[RequireFeatures(...)]` to compose it only when all listed features are
+enabled. Use it sparingly, for plumbing that must exist regardless of the
+module's own feature state.
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Modules;
+
+[RequiredStartup]
+[RequireFeatures("OrchardCore.Deployment")]
+public sealed class AlwaysOnDeploymentStartup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        // Registered for every tenant where Deployment is enabled,
+        // even if this module's own feature is disabled.
+    }
+}
+```
+
+### Contribute features with `IFeaturesProvider`
+
+`IFeaturesProvider` (`OrchardCore.Environment.Extensions.Features`) builds the
+`IFeatureInfo` list of each extension. In 4.0 the extension manager resolves
+every registered provider (`GetServices<IFeaturesProvider>()`) instead of a
+single one, so a host-level subsystem can add its own provider (as
+`OrchardCore.DisplayManagement` does for themes) instead of replacing the
+default. Custom implementations that replaced the single registration must be
+added to the collection instead.
+
 ## Manifest Declarations
 
 Use the current Pascal-case named arguments supported by the manifest
@@ -147,6 +190,13 @@ Key manifest options on `FeatureAttribute`:
 Do not bypass dependency validation with `force` unless the tenant lifecycle
 explicitly requires it.
 
+## Export Features with a Deployment Plan
+
+Add the **All Features** deployment step (`AllFeatures`, category
+**Infrastructure**) to a deployment plan to export a `Feature` recipe step with
+the enabled features, and the disabled ones unless **Ignore disabled features**
+(`IgnoreDisabledFeatures`) is checked.
+
 ## Recipe Activation
 
 ```json
@@ -170,3 +220,9 @@ explicitly requires it.
 For current search feature IDs, use `OrchardCore.Elasticsearch` or
 `OrchardCore.Lucene` for the provider and their `OrchardCore.Search.*`
 features only when the corresponding search integration is needed.
+
+## Upgrading from 3.x
+
+- The **Toggle** bulk action was removed from the Features admin list and `FeaturesBulkAction.Toggle` no longer exists; call `FeatureService.EnableOrDisableFeaturesAsync` with `FeaturesBulkAction.Enable` or `FeaturesBulkAction.Disable`.
+- `OrchardCore.Features.Permissions.ManageFeatures` was removed; use `OrchardCore.Features.FeaturesPermissions.ManageFeatures`.
+- `IFeaturesProvider` is resolved as a collection; register additional providers instead of replacing the default one.

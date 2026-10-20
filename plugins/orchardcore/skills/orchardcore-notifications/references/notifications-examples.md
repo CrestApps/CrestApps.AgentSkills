@@ -112,14 +112,19 @@ public sealed class AuditNotificationMethodProvider : INotificationMethodProvide
 {
     private readonly ILogger _logger;
 
-    public AuditNotificationMethodProvider(ILogger<AuditNotificationMethodProvider> logger)
+    internal readonly IStringLocalizer S;
+
+    public AuditNotificationMethodProvider(
+        ILogger<AuditNotificationMethodProvider> logger,
+        IStringLocalizer<AuditNotificationMethodProvider> stringLocalizer)
     {
         _logger = logger;
+        S = stringLocalizer;
     }
 
     public string Method => "Audit";
 
-    public LocalizedString Name => new("Audit notification");
+    public LocalizedString Name => S["Audit notification"];
 
     public Task<Result> SendAsync(
         object notify,

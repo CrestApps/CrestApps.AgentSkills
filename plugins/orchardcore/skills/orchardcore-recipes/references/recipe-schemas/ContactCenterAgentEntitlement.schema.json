@@ -1,0 +1,115 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterAgentEntitlement",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterAgentEntitlement\u0027."
+    },
+    "Agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "UserName": {
+            "type": "string",
+            "description": "User name of the target Orchard user the entitlement is applied to. Entries without a user name are skipped."
+          },
+          "DisplayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Display name for the agent. When empty, the resolved user name is used."
+          },
+          "MaxConcurrentInteractions": {
+            "type": "integer",
+            "description": "Maximum number of interactions the agent may handle at once. Values below 1 are raised to 1."
+          },
+          "AllowedQueueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A queue identifier the agent is entitled to. Identifiers that no longer exist are filtered out."
+            },
+            "description": "Queue identifiers the agent is entitled to work."
+          },
+          "AllowedCampaignIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A campaign identifier the agent is entitled to. Identifiers that no longer exist are filtered out."
+            },
+            "description": "Campaign identifiers the agent is entitled to work."
+          },
+          "Skills": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A skill identifier granted to the agent."
+            },
+            "description": "Skill identifiers granted to the agent."
+          },
+          "SkillProficiencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "SkillId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The skill identifier."
+                },
+                "Proficiency": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5,
+                  "description": "How well the agent holds the skill, from 1 to 5."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "How well the agent holds each skill. Skills listed only in \u0027Skills\u0027 are read at the default proficiency."
+          },
+          "QueueMemberships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "QueueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The queue the membership is for."
+                },
+                "Priority": {
+                  "type": "integer",
+                  "description": "How strongly the agent is pulled toward this queue; lower is served first."
+                },
+                "DelaySeconds": {
+                  "type": "integer",
+                  "description": "How long an item must have waited before this agent is offered it, which is how a backup (overflow) membership is expressed."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "How the agent serves each queue: its priority and the wait before the agent is offered work from it."
+          }
+        },
+        "required": [
+          "UserName"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center agent entitlements to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Agents"
+  ],
+  "additionalProperties": true
+}

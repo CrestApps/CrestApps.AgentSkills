@@ -1,6 +1,10 @@
 ---
 name: orchardcore-shells
-description: Skill for configuring Orchard Core shell providers. Covers Azure Blob shell configuration for cloud deployments, database shell configuration for multi-instance scenarios, migration from file-based to cloud/database providers, and environment-specific shell settings. Use this skill when requests mention Orchard Core Shells Configuration, Configure Shell Providers for Multi-Tenant Environments, Azure Blob Shell Configuration, Database Shell Configuration, Migration from File-Based Configuration, Environment-Specific Provider Registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Shells.Azure, CreateBuilder, DatabaseProvider, tenants.json, appsettings.json. It also helps with Migration from File-Based Configuration, Environment-Specific Provider Registration, Environment-Specific with Azure Blob, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Orchard Core shell providers. Covers Azure Blob shell configuration for cloud deployments (including Azure Storage accounts with Hierarchical Namespace, ADLS Gen2), database shell configuration for multi-instance scenarios, the OrchardCore Shells Azure and Shells Database configuration sections, migration from file-based to cloud/database providers, and environment-specific shell settings. Use this skill when requests mention Orchard Core Shells Configuration, Configure Shell Providers for Multi-Tenant Environments, Azure Blob Shell Configuration, Database Shell Configuration, UseHierarchicalNamespace, Migration from File-Based Configuration, Environment-Specific Provider Registration, or closely related setup or troubleshooting work. Strong matches include OrchardCore.Shells.Azure, AddAzureShellsConfiguration, AddDatabaseShellsConfiguration, BlobShellStorageOptions, DatabaseShellsStorageOptions, CreateBuilder, DatabaseProvider, tenants.json, appsettings.json.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Shells Configuration - Prompt Templates
@@ -17,7 +21,7 @@ You are an Orchard Core expert. Generate configuration and code for Azure Blob s
 - Azure Blob provider stores files in a blob container hierarchy similar to `App_Data`.
 - Database provider stores all tenant configuration as a single JSON document in a supported database.
 - Both providers support `MigrateFromFiles` to automatically migrate existing `App_Data` configuration.
-- Shell providers are configured in the startup project, not in individual tenant settings.
+- Shell providers are configured in the startup project, not in individual tenant settings, under `OrchardCore:Shells:Azure` or `OrchardCore:Shells:Database`. The 3.x names `OrchardCore_Shells_Azure` and `OrchardCore_Shells_Database` still work but are deprecated.
 - Use environment-based conditional registration to disable providers in development.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
@@ -37,11 +41,13 @@ Add the `OrchardCore.Shells.Azure` package to the web project:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Shells_Azure": {
-      "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
-      "ContainerName": "orchardcore-shells",
-      "BasePath": "",
-      "MigrateFromFiles": true
+    "Shells": {
+      "Azure": {
+        "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
+        "ContainerName": "orchardcore-shells",
+        "BasePath": "",
+        "MigrateFromFiles": true
+      }
     }
   }
 }
@@ -53,6 +59,11 @@ Add the `OrchardCore.Shells.Azure` package to the web project:
 | `ContainerName` | Name of the blob container for shell configuration |
 | `BasePath` | Optional subdirectory path inside the container |
 | `MigrateFromFiles` | When `true`, migrates existing `App_Data` config to blob storage |
+| `UseHierarchicalNamespace` | Optional `true`/`false` to force Gen2 (HNS) or Gen1 behavior when account-level detection is unavailable, e.g. with a container-scoped SAS token. Omit to auto-detect |
+
+#### Azure Storage with Hierarchical Namespace (ADLS Gen2)
+
+Orchard Core 4.0 supports storage accounts with Hierarchical Namespace enabled as well as flat-namespace accounts. Before a namespace-sensitive operation the store probes the account (`GetAccountInfo`) to detect HNS. On HNS accounts, directories are real and moves are atomic through the Data Lake APIs; the DFS endpoint is derived from the connection string, so no extra setting is needed. Set `UseHierarchicalNamespace` only when detection cannot run.
 
 #### Enable in Startup
 
@@ -96,11 +107,13 @@ orchardcore-shells/
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Shells_Database": {
-      "DatabaseProvider": "SqlConnection",
-      "ConnectionString": "Server=db-server;Database=OrchardShells;Trusted_Connection=True;",
-      "TablePrefix": "",
-      "MigrateFromFiles": true
+    "Shells": {
+      "Database": {
+        "DatabaseProvider": "SqlConnection",
+        "ConnectionString": "Server=db-server;Database=OrchardShells;Trusted_Connection=True;",
+        "TablePrefix": "",
+        "MigrateFromFiles": true
+      }
     }
   }
 }
@@ -111,11 +124,14 @@ orchardcore-shells/
 | `DatabaseProvider` | Database engine (`SqlConnection`, `Sqlite`, `Postgres`, `MySql`) |
 | `ConnectionString` | Connection string for the shell configuration database |
 | `TablePrefix` | Optional table prefix for the shell configuration table |
+| `Schema` | Optional database schema, for providers that support schemas |
 | `MigrateFromFiles` | When `true`, migrates existing `App_Data` config to the database |
 
 > **Note:** The Database Shells provider does not support root-level `appsettings.json` or `appsettings.{Environment}.json` files.
 
 #### Enable in Startup
+
+`AddDatabaseShellsConfiguration()` ships with the core `OrchardCore.Infrastructure` package, so no extra package is needed with `OrchardCore.Application.Cms.Targets`.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -142,10 +158,12 @@ Both providers support the `MigrateFromFiles` option to assist migrating from an
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Shells_Database": {
-      "DatabaseProvider": "Postgres",
-      "ConnectionString": "Host=db-server;Database=orchardshells;Username=orcharduser;Password=P@ss;",
-      "MigrateFromFiles": true
+    "Shells": {
+      "Database": {
+        "DatabaseProvider": "Postgres",
+        "ConnectionString": "Host=db-server;Database=orchardshells;Username=orcharduser;Password=P@ss;",
+        "MigrateFromFiles": true
+      }
     }
   }
 }
@@ -196,17 +214,17 @@ Store shell provider settings in environment variables to avoid committing secre
 #### Azure Blob via Environment Variables
 
 ```
-OrchardCore__OrchardCore_Shells_Azure__ConnectionString=DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net
-OrchardCore__OrchardCore_Shells_Azure__ContainerName=orchardcore-shells
-OrchardCore__OrchardCore_Shells_Azure__MigrateFromFiles=true
+OrchardCore__Shells__Azure__ConnectionString=DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net
+OrchardCore__Shells__Azure__ContainerName=orchardcore-shells
+OrchardCore__Shells__Azure__MigrateFromFiles=true
 ```
 
 #### Database via Environment Variables
 
 ```
-OrchardCore__OrchardCore_Shells_Database__DatabaseProvider=SqlConnection
-OrchardCore__OrchardCore_Shells_Database__ConnectionString=Server=db-server;Database=OrchardShells;Trusted_Connection=True;
-OrchardCore__OrchardCore_Shells_Database__MigrateFromFiles=true
+OrchardCore__Shells__Database__DatabaseProvider=SqlConnection
+OrchardCore__Shells__Database__ConnectionString=Server=db-server;Database=OrchardShells;Trusted_Connection=True;
+OrchardCore__Shells__Database__MigrateFromFiles=true
 ```
 
 ### Multi-Instance Deployment Pattern
@@ -216,11 +234,13 @@ For load-balanced or horizontally scaled deployments where multiple app instance
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Shells_Database": {
-      "DatabaseProvider": "SqlConnection",
-      "ConnectionString": "Server=central-db;Database=OrchardShells;User Id=shelluser;Password=ShellP@ss;",
-      "TablePrefix": "Shell",
-      "MigrateFromFiles": false
+    "Shells": {
+      "Database": {
+        "DatabaseProvider": "SqlConnection",
+        "ConnectionString": "Server=central-db;Database=OrchardShells;User Id=shelluser;Password=ShellP@ss;",
+        "TablePrefix": "Shell",
+        "MigrateFromFiles": false
+      }
     }
   }
 }
@@ -240,3 +260,12 @@ This ensures all instances read and write tenant configuration from the same cen
 | Per-tenant file management | ✅ Independent files | Single JSON document |
 | Best for | Azure-hosted deployments | Any database-backed deployment |
 | Independent tenant config access | ✅ Direct blob access | Via application only |
+
+### Keeping Tenant States in Sync
+
+Shared shell configuration stores tenant settings centrally, but each instance still holds its own running shells. Enable `OrchardCore.Tenants.Distributed` on the Default tenant, with a distributed cache such as `OrchardCore.Redis.Cache`, so that tenant creation, setup, and release on one instance are applied on the others (see `orchardcore-redis` and `orchardcore-tenants`).
+
+### Upgrading from 3.x
+
+- Rename `OrchardCore:OrchardCore_Shells_Azure` to `OrchardCore:Shells:Azure` and `OrchardCore:OrchardCore_Shells_Database` to `OrchardCore:Shells:Database` (environment variables `OrchardCore__Shells__Azure__*` and `OrchardCore__Shells__Database__*`). When both names define a value, the new name wins.
+- Azure Shells Configuration now works on HNS (ADLS Gen2) storage accounts; add `UseHierarchicalNamespace` only when auto-detection fails.

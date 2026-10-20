@@ -1,6 +1,6 @@
 ---
 name: orchardcore-taxonomies
-description: Skill for creating and managing taxonomies in Orchard Core. Covers taxonomy creation, taxonomy terms, taxonomy fields, and taxonomy-based content organization. Use this skill when requests mention Orchard Core Taxonomies, Create and Manage Taxonomies, Enabling Taxonomy Features, Creating a Taxonomy via Recipe, Hierarchical Terms (Nested), Attaching TaxonomyField to a Content Type, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, TaxonomyField, TermPart, TitlePart, AliasPart, TaxonomyPart, AlterPartDefinition, WithField, WithSettings, TaxonomyFieldSettings, AlterTypeDefinition, WithPart. It also helps with taxonomy examples, Hierarchical Terms (Nested), Attaching TaxonomyField to a Content Type, Querying by Taxonomy Terms in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and managing taxonomies in Orchard Core. Covers taxonomies and hierarchical terms, TaxonomyField settings, the Tags editor and TagNames, Term and TermItem shapes, routable taxonomies and term listings, TaxonomyIndex queries, Orchard helpers, Liquid filters, admin contents list taxonomy filters, the ManageTaxonomy permission, and IContentsTaxonomyListFilter. Use this skill when requests mention Orchard Core Taxonomies, categories, tags, terms, TaxonomyField, taxonomy_terms, inherited_terms, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Taxonomies, OrchardCore.Taxonomies.ContentsAdminList, TaxonomyField, TaxonomyPart, TermPart, TaxonomyIndex, TaxonomyFieldSettings, AliasPart, and QueryCategorizedContentItemsAsync, plus migrations, recipes, and examples.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,8 +21,11 @@ You are an Orchard Core expert. Generate taxonomy definitions, terms, and taxono
 - Use `TaxonomyField` on content types to allow categorization.
 - Taxonomies can be flat (tags) or hierarchical (categories).
 - Terms can have custom content parts and fields.
-- `TermPart` is welded automatically onto content items used as taxonomy terms; do not attach it manually.
-- Taxonomy content listings use full pagination in Orchard Core 3.0.
+- `TaxonomyPart` (`TermContentType`, `Terms`) is added to taxonomies and `TermPart` (`TaxonomyContentItemId`) is welded onto terms automatically; do not attach them manually.
+- Terms are stored inside the taxonomy document (not as separate content items); child terms are nested in a term's `Terms` array.
+- Managing taxonomies requires the `ManageTaxonomy` permission (`OrchardCore.Taxonomies.Permissions.ManageTaxonomies`, granted to Administrator) plus the usual content permissions.
+- Front-end term listings (a term displayed through container routing) use the full `Pager`, so the 4.0 **Page size selection** (`pageSize` query string) applies.
+- Enable `OrchardCore.Taxonomies.ContentsAdminList` to filter the admin content list by taxonomy terms.
 
 ### Enabling Taxonomy Features
 
@@ -122,7 +125,7 @@ You are an Orchard Core expert. Generate taxonomy definitions, terms, and taxono
 ### Attaching TaxonomyField to a Content Type
 
 ```csharp
-_contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
+await _contentDefinitionManager.AlterPartDefinitionAsync("BlogPost", part => part
     .WithField("Categories", field => field
         .OfType("TaxonomyField")
         .WithDisplayName("Categories")
@@ -147,6 +150,45 @@ _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
 );
 ```
 
+### TaxonomyField Settings
+
+| Setting | Description |
+|---|---|
+| `TaxonomyContentItemId` | The taxonomy whose terms can be selected. |
+| `Unique` | Only one term can be selected (radio buttons). |
+| `LeavesOnly` | Only terms without children can be selected. |
+| `Open` | Editors can create new terms from the field editor (the `Tags` editor defaults this to `true` through `TaxonomyFieldTagsEditorSettings`). |
+| `Placeholder` | Placeholder of the tags input. |
+| `Required` / `Hint` | Standard field settings. |
+
+The field stores `TaxonomyContentItemId` and `TermContentItemIds`. With the `Tags` editor and display mode, the term display texts are also stored as `TagNames`:
+
+```liquid
+{% for tagName in Model.ContentItem.Content.BlogPost.Tags.TagNames %}
+    <span class="badge text-bg-secondary">{{ tagName }}</span>
+{% endfor %}
+```
+
+Republish categorized items after renaming a tag, because `TagNames` is a stored copy.
+
+### TaxonomyIndex
+
+`TaxonomyIndex` has one row per selected term per field: `TaxonomyContentItemId`, `ContentItemId`, `ContentType`, `ContentPart`, `ContentField`, `TermContentItemId`, `Published`, and `Latest`.
+
+### Querying Categorized Content in Razor
+
+```cshtml
+@using YesSql.Services
+@{
+    var termIds = Model.TermContentItemIds;
+    var related = await Orchard.QueryCategorizedContentItemsAsync(query => query
+        .Where(index => index.TermContentItemId.IsIn(termIds) &&
+            index.ContentItemId != Model.Part.ContentItem.ContentItemId));
+}
+```
+
+`Orchard.GetTaxonomyTermAsync(taxonomyId, termId)` returns a term, and `Orchard.GetInheritedTermsAsync(taxonomyId, termId)` returns the term with its parents.
+
 ### Querying by Taxonomy Terms in Liquid
 
 Create a SQL query named `ContentItemsByTaxonomyTerm` with **Return Content Items** disabled:
@@ -170,11 +212,67 @@ Execute the query, then load its returned content item ids with the `content_ite
 {% endfor %}
 ```
 
+### Routable Taxonomies and Term Listings
+
+Add `AutoroutePart` to the `Taxonomy` type with `AllowRouteContainedItems`, then enable **Route Contained Items** on the taxonomy item. The taxonomy renders through the `TaxonomyPart` shape and each term route renders `TermPart`, which lists the content items categorized with that term (and its children) with a full pager.
+
 ### Filtering Taxonomy Content Listings
 
-Implement `IContentsTaxonomyListFilter` when a module must add restrictions
-to the query used by a taxonomy term content listing. Keep the filter
-focused on query constraints and let the built-in listing handle paging.
+Implement `IContentsTaxonomyListFilter` (namespace `OrchardCore.Taxonomies.Core`) to add restrictions to the query used by a term listing, or replace `IContentsTaxonomyListQueryService` (`QueryAsync(TermPart, Pager)`) for full control. Keep filters focused on query constraints and let the built-in listing handle paging.
+
+```csharp
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
+using OrchardCore.Taxonomies.Core;
+using OrchardCore.Taxonomies.Models;
+using YesSql;
+
+namespace MyModule.Taxonomies;
+
+public sealed class ArticlesOnlyTaxonomyListFilter : IContentsTaxonomyListFilter
+{
+    public Task FilterAsync(IQuery<ContentItem> query, TermPart termPart)
+    {
+        query.With<ContentItemIndex>(x => x.ContentType == "Article");
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+Register it with `services.AddScoped<IContentsTaxonomyListFilter, ArticlesOnlyTaxonomyListFilter>();`.
+
+### Rendering a Term Hierarchy (Term Shape)
+
+```liquid
+{% shape "term", alias: "alias:Categories" %}
+{% shape "term", TaxonomyContentItemId: taxonomyId, TermContentItemId: termId %}
+```
+
+```cshtml
+<shape type="Term" alias="alias:Categories" />
+```
+
+The `Term` shape holds `TermItem` shapes (`Level`, `TermContentItem`, `Items`, `Differentiator`); each item is morphed into `TermContentItem` for rendering. Alternates include `Term-Categories.cshtml`, `TermItem-Category-level-2.cshtml`, and `TermContentItem-Categories.cshtml`.
+
+### Admin Contents List Filters
+
+With `OrchardCore.Taxonomies.ContentsAdminList` enabled, choose which taxonomies appear as filters in the admin content list:
+
+```json
+{
+  "steps": [
+    {
+      "name": "settings",
+      "TaxonomyContentsAdminListSettings": {
+        "TaxonomyContentItemIds": [
+          "{{TaxonomyContentItemId}}"
+        ]
+      }
+    }
+  ]
+}
+```
 
 ### Displaying Taxonomy Terms
 
@@ -182,6 +280,12 @@ focused on query constraints and let the built-in listing handle paging.
 {% assign terms = Model.ContentItem.Content.BlogPost.Categories | taxonomy_terms %}
 {% for term in terms %}
     <span class="badge">{{ term.DisplayText }}</span>
+{% endfor %}
+
+{% assign taxonomyId = Model.ContentItem.Content.BlogPost.Categories.TaxonomyContentItemId %}
+{% for termId in Model.ContentItem.Content.BlogPost.Categories.TermContentItemIds %}
+    {% assign path = termId | inherited_terms: taxonomyId %}
+    {% for t in path %}{{ t.DisplayText }} / {% endfor %}
 {% endfor %}
 ```
 

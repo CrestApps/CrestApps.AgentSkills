@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelOpportunityStage",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelOpportunityStage\u0027."
+    },
+    "OpportunityStages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the opportunity stage. When it matches a stored opportunity stage, that opportunity stage is updated. Otherwise a new opportunity stage is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Unique name of the opportunity stage."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Administrative description of the opportunity stage."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "Position of the stage in the pipeline, lowest first."
+          },
+          "Probability": {
+            "type": "integer",
+            "description": "Default chance, from 0 to 100, that an opportunity in this stage is won."
+          },
+          "IsClosed": {
+            "type": "boolean",
+            "description": "Whether an opportunity in this stage is closed."
+          },
+          "IsWon": {
+            "type": "boolean",
+            "description": "Whether an opportunity in this stage is won."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the opportunity stage, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The opportunity stages to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "OpportunityStages"
+  ],
+  "additionalProperties": true
+}

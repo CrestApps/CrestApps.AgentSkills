@@ -50,10 +50,14 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddSiteDisplayDriver<SiteSettingsDisplayDriver>();
+        services.AddSiteSettingsPermission(SiteSettingsDisplayDriver.GroupId, SiteSettingsPermissions.ManageSiteSettings);
+        services.AddPermissionProvider<Permissions>();
         services.AddNavigationProvider<AdminMenu>();
     }
 }
 ```
+
+The driver derives from `SiteDisplayDriver<SiteSettingsModel>`, checks `ManageSiteSettings` in `EditAsync` and `UpdateAsync`, and calls `IOptionsUpdateNotifier.RequestUpdate<TOptions>()` when options are built from these settings. See `orchardcore-site-settings` for the full driver, view, menu and options code.
 
 ---
 
@@ -143,7 +147,7 @@ public sealed class AdminController : Controller
 
     public async Task<IActionResult> Index()
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageYourFeature))
+        if (!await _authorizationService.AuthorizeAsync(User, YourModulePermissions.ManageYourFeature))
         {
             return Forbid();
         }
@@ -155,7 +159,7 @@ public sealed class AdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(YourViewModel model)
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageYourFeature))
+        if (!await _authorizationService.AuthorizeAsync(User, YourModulePermissions.ManageYourFeature))
         {
             return Forbid();
         }
@@ -174,27 +178,42 @@ public sealed class AdminController : Controller
 
 ### Views/Admin/Index.cshtml
 ```html
-@{
-    ViewLayout = "~/Views/Shared/_Layout.cshtml";
-}
-
-<zone Name="Title"><h1>Your Module</h1></zone>
-
-<zone Name="Content">
-    <div class="card">
-        <div class="card-body">
-            <p>Your module content here.</p>
-            <a asp-action="Create" class="btn btn-primary">Create New</a>
-        </div>
-    </div>
+<zone Name="Title">
+    <breadcrumb name="YourModule" title="@T["Your Module"]" />
 </zone>
+
+<div class="card">
+    <div class="card-body">
+        <p>@T["Your module content here."]</p>
+        <a asp-action="Create" class="btn btn-primary">@T["Create New"]</a>
+    </div>
+</div>
 ```
+
+### Views/Admin/Create.cshtml
+```html
+@model YourViewModel
+
+<zone Name="Title">
+    <breadcrumb name="YourModuleCreate" title="@T["New item"]">
+        <breadcrumb-item id="YourModule" action="Index" controller="Admin" area="OrchardCore.YourModule" permission="@YourModulePermissions.ManageYourFeature.Name">@T["Your Module"]</breadcrumb-item>
+    </breadcrumb>
+</zone>
+
+<form asp-action="Create" method="post" class="no-multisubmit">
+    @Html.ValidationSummary()
+    @* fields *@
+    <button type="submit" class="btn btn-primary">@T["Save"]</button>
+</form>
+```
+
+The `<breadcrumb>` tag helper renders the trail and the page `<h1>`, and adds the title to the browser `<title>`; do not add your own `<h1>`. See `orchardcore-breadcrumbs`.
 
 ---
 
 ## Example: API Controller Module
 
-A module exposing REST API endpoints.
+A module exposing REST API endpoints with an MVC controller. Prefer Minimal API endpoints (see `SKILL.md`) for new JSON endpoints. With the `Api` scheme, 401/403 responses carry an RFC 9457 Problem Details body.
 
 ### Controllers/ApiController.cs
 ```csharp
@@ -224,7 +243,7 @@ public sealed class ApiController : ControllerBase
         
         if (contentItem == null)
         {
-            return NotFound();
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: "Content item not found.");
         }
 
         return Ok(contentItem);
@@ -275,9 +294,11 @@ public sealed record CreateRequest(string ContentType, string Title);
 
 ### Assets/js/main.js
 ```javascript
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Your module loaded');
-});
+// Loaded with <script asp-name="your-module" at="Foot" type="module">: runs once parsed,
+// no jQuery and no DOMContentLoaded wrapper needed.
+for (const element of document.querySelectorAll('[data-your-module]')) {
+    element.addEventListener('click', () => element.classList.toggle('active'));
+}
 ```
 
 ### Assets/scss/styles.scss

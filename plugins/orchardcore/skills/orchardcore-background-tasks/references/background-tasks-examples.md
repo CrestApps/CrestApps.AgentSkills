@@ -13,6 +13,7 @@ using OrchardCore.ContentManagement.Records;
 using YesSql;
 
 [BackgroundTask(
+    Title = "Draft cleanup",
     Schedule = "0 2 * * *",
     Description = "Removes draft content items older than 30 days.")]
 public sealed class DraftCleanupTask : IBackgroundTask

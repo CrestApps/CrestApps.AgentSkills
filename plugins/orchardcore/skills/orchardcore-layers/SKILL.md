@@ -1,6 +1,10 @@
 ---
 name: orchardcore-layers
-description: Skill for configuring layers in Orchard Core. Covers layer creation, layer rules and conditions, zone-based widget visibility, JavaScript and URL rule expressions, and conditional content display. Use this skill when requests mention Orchard Core Layers, Configuring Layers for Conditional Widget Display, Enabling Layer Features, Available Conditions, Common Layer Patterns, Declaring Zones in Themes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Layers, OrchardCore.Widgets, OrchardCore.Rules, OrchardCore.Scripting, LayerRule, HtmlWidget, HtmlBodyPart, BeforeContent, AfterContent, Widget. It also helps with Common Layer Patterns, Declaring Zones in Themes, Configuring Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring layers in Orchard Core. Covers layer creation, layer rules and conditions, zone-based widget visibility, the Layers and LayerSettings recipe steps, JavaScript condition methods, validation, isolation and cancellation, URL rule expressions, the ManageLayers permission, and conditional content display. Use this skill when requests mention Orchard Core Layers, Configuring Layers for Conditional Widget Display, Enabling Layer Features, Available Conditions, Common Layer Patterns, Declaring Zones in Themes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Layers, OrchardCore.Widgets, OrchardCore.Rules, OrchardCore.Scripting, LayerRule, HtmlWidget, HtmlBodyPart, BeforeContent, AfterContent, Widget. It also helps with Common Layer Patterns, Declaring Zones in Themes, Configuring Zones, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Layers - Prompt Templates
@@ -18,7 +22,9 @@ You are an Orchard Core expert. Generate configuration and code for managing lay
 - Available zones are configured in **Design > Settings > Zones** and must match theme layout sections.
 - Conditions can be combined using `All` (AND) and `Any` (OR) condition groups.
 - The `Always` layer uses a `Boolean` condition set to `true`, so widgets on this layer always render.
-- Enable `OrchardCore.Layers` and `OrchardCore.Widgets` features for full widget/layer support.
+- Enable `OrchardCore.Layers` and `OrchardCore.Widgets` features for full widget/layer support; Layers enables `OrchardCore.Rules`.
+- Creating, editing, deleting, and reordering layers and their conditions requires the `ManageLayers` permission.
+- A rule (and an `All`/`Any` group) with no conditions evaluates to `false`; use a `Boolean` condition set to `true` for "always".
 - Always wrap recipe JSON in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
@@ -106,7 +112,29 @@ Set available zone names in **Design > Settings > Zones** in the admin. Common z
 - `Sidebar`
 - `Footer`
 
+### Recipe: Zones
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "LayerSettings": {
+        "Zones": [ "Header", "Content", "Footer" ]
+      }
+    }
+  ]
+}
+```
+
 ### Recipe: Creating Layers
+
+`Name` must match the registered condition factory name (the condition class
+name). Conditions nested inside an `All`/`Any` group also need `$type`
+(for example `"OrchardCore.Rules.Models.UrlCondition, OrchardCore.Rules"`),
+which the **All Layers** deployment step emits. Supplying `LayerRule` for an
+existing layer replaces its whole condition list, and an unknown condition name
+fails the step without saving.
 
 ```json
 {
@@ -222,12 +250,35 @@ Implement custom layer conditions by following the Rules module pattern. Refer t
 
 ### JavaScript Conditions
 
-The `Javascript` condition allows writing custom rule logic in JavaScript. Use the scripting API provided by `OrchardCore.Scripting`:
+The `Javascript` condition evaluates an expression that must convert to a
+Boolean. Layers adds these global methods:
+
+| Function | Behavior |
+|---|---|
+| `isHomepage()` | The request path is the tenant home page. |
+| `isAnonymous()` / `isAuthenticated()` | Authentication state of the current user. |
+| `isInRole(role)` | Role name, case-insensitive. |
+| `url(pattern)` | Case-insensitive path match; a trailing `*` makes it a prefix match. |
+| `culture(name)` | Current culture or its parent culture, case-insensitive. |
 
 ```javascript
-// Example: Show widget only on URLs starting with /blog
-url().startsWith('/blog')
+// Show widgets on the blog section for signed-in users.
+isAuthenticated() && url("/blog*")
 ```
+
+- Saving validates the script: syntax errors (Jint `ScriptPreparationException`),
+  runtime exceptions, and non-Boolean results are reported as validation
+  messages instead of failing the request.
+- Each condition runs with a clean global scope. Variables, functions, or
+  `const` declarations from one layer's condition are not visible to another,
+  so write each condition as a self-contained expression.
+- Conditions are bounded by `HttpContext.RequestAborted`; a script still
+  running when the client disconnects is stopped with an
+  `OperationCanceledException`. Configure time or statement limits through
+  `IOptions<Jint.Options>` (see `orchardcore-scripting`).
+- Prefer the structured `Url`, `Role`, `Culture`, and `Homepage` conditions
+  over JavaScript when they express the rule; they are faster and easier to
+  audit.
 
 ### Widget Management Workflow
 
@@ -237,3 +288,11 @@ url().startsWith('/blog')
 4. Create widget content types with the `Widget` stereotype.
 5. Add widgets to zones and associate them with layers.
 6. Widgets display only when their associated layer's conditions evaluate to `true`.
+
+### Upgrading from 3.x
+
+- JavaScript conditions of different layers used to share one script scope,
+  so a `var` or `const` declared in one could break another. Each condition is
+  now isolated; remove any reliance on values declared by another layer.
+- Invalid JavaScript conditions are rejected with a validation message on save
+  instead of an unhandled exception.

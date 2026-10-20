@@ -1,6 +1,6 @@
 ---
 name: orchardcore-shapes
-description: Skill for working with shapes in Orchard Core's display management system. Covers shape creation, shape templates (Liquid and Razor), shape alternates, shape wrappers, shape metadata, ad-hoc shapes, IShapeFactory usage, IShapeTableProvider, and rendering shapes in Liquid templates. Use this skill when requests mention Orchard Core Shapes, Working with Shapes, How Shapes Work, Shape Metadata, Creating Shape Templates, Liquid Shape Template (Views/Content.liquid), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement, IShapeFactory, IShapeTableProvider, TextField, IDisplayManager, IDisplayResult, ContainerWidget, TitlePart, HtmlBodyPart. It also helps with shapes examples, Creating Shape Templates, Liquid Shape Template (Views/Content.liquid), Razor Shape Template (Views/Content.cshtml), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for working with shapes in Orchard Core's display management system. Covers shape creation, Liquid and Razor shape templates, template file naming and canonical shape names, alternates and their priority, wrappers and ChildContent, shape metadata, ad-hoc and strongly typed shapes, IShapeFactory, IShapeTableProvider, IShapeAttributeProvider code bindings, layouts and zones, item positions including start and end sentinels, DisplayAsAsync, IShapeHtmlRenderer, and rendering shapes in Liquid. Use this skill when requests mention Orchard Core Shapes, Working with Shapes, How Shapes Work, Shape Metadata, Creating Shape Templates, Liquid Shape Template (Views/Content.liquid), alternates not being picked, wrappers, zones, or related troubleshooting. Strong matches include OrchardCore.DisplayManagement, IShapeFactory, IShapeTableProvider, IDisplayHelper, IShapeHtmlRenderer, ShapeMetadata, IDisplayManager, IDisplayResult, TextField, TitlePart, HtmlBodyPart.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -18,39 +18,60 @@ You are an Orchard Core expert. Generate shape templates, shape providers, and s
 - Shapes are the fundamental rendering unit in Orchard Core's display management.
 - Every piece of visible output is rendered through a shape.
 - Shapes have a type name (e.g., `Content`, `Widget`, `TextField`), metadata, and properties.
-- Shape templates can be written in Liquid (`.liquid`) or Razor (`.cshtml`).
-- Template file names map to shape types using conventions: `Content.liquid`, `Content__BlogPost.liquid`.
-- Use double underscore (`__`) in file names to represent the dash (`-`) separator in alternates.
+- Shape templates can be written in Liquid (`.liquid`) or Razor (`.cshtml`). Both use the same file naming rules.
+- Use canonical names (`_` and `__`) in C#, `placement.json`, and shape metadata. Use dots and hyphens only in template file names.
 - For `DisplayDriver<T>.Edit()` flows, remember the root editor shape for the model type as well as any nested field/editor shapes. If `BuildEditorAsync()` is used for `TableauExportPipeline`, Orchard will resolve a root `TableauExportPipeline_Edit` shape in addition to shapes like `TableauExportPipelineFields_Edit`.
 - For ALL admin editor Razor shapes (`*.Edit.cshtml` including site settings editors), shape templates should use the `ocat-*` (Orchard Core Admin Theme) CSS classes for consistent field layout: `ocat-wrapper` for the outer row, `ocat-label` for labels, `ocat-end` for the input column, `ocat-end-offset` for checkbox-only layouts/headings/buttons, `ocat-limited-wrapper` + `ocat-limited` for narrower inputs.
 - The former `@Orchard.GetWrapperClasses()`, `@Orchard.GetLabelClasses()`, `@Orchard.GetEndClasses()` helper methods and `TheAdminThemeOptions` class have been removed. Use the static `ocat-*` CSS classes directly. Do NOT use these classes in frontend views or Admin Menu node editing.
-- `IShapeFactory` creates shapes dynamically from code.
+- `IShapeFactory` creates shapes dynamically from code; `IDisplayHelper` renders them inside a view; `IShapeHtmlRenderer` renders them to a string outside of a view.
 - `IShapeTableProvider` customizes shape behavior (alternates, wrappers, bindings).
 - `IDisplayManager<T>` orchestrates building and rendering shapes for content.
 - Always seal classes.
 
 ## How Shapes Work
 
-Shapes are dynamic objects that carry data and metadata for rendering. The rendering pipeline:
+Shapes are objects that carry data and metadata for rendering. The rendering pipeline:
 
-1. A **display driver** returns an `IDisplayResult` containing shape descriptors.
-2. The **display manager** builds shapes from these descriptors using `IShapeFactory`.
-3. **Placement** rules determine where shapes appear (zone and position).
-4. The **shape table** resolves which template to use, applying alternates and wrappers.
-5. The **template engine** (Liquid or Razor) renders the shape using the resolved template.
+1. A **display driver** returns an `IDisplayResult` (usually a `ShapeResult`).
+2. **Placement** rules are resolved first; a hidden shape is never created.
+3. The **display manager** builds the shape using `IShapeFactory` and adds it to the selected zone.
+4. When rendered, `Displaying` handlers run, then the **binding** is resolved by checking alternates from highest to lowest priority, then the shape type and its `__` fallbacks.
+5. The binding (Razor, Liquid, or a `[Shape]` method) renders the shape, then **wrappers** render around its `ChildContent`.
+
+If no binding can be resolved, rendering throws an `InvalidOperationException` naming the missing shape type and active theme.
 
 ### Shape Metadata
 
-Every shape has a `Metadata` property with:
+Every shape has a `Metadata` property (`ShapeMetadata`) with:
 
-- `Type` — The shape type name (e.g., `Content`, `Widget`).
-- `DisplayType` — The display context (e.g., `Detail`, `Summary`).
-- `Alternates` — List of alternate shape names to try (most specific first).
-- `Wrappers` — List of wrapper shape names to wrap the shape output.
-- `Name` — Optional name for referencing the shape.
+- `Type` — The logical shape type used for binding resolution (not the CLR type).
+- `DisplayType` — The display context (e.g., `Detail`, `Summary`, `Edit`).
+- `Alternates` — Ordered alternate binding names; **the last added has the highest priority**.
+- `Wrappers` — Shape types rendered around this shape; the first added is the innermost.
+- `Name` / `Differentiator` — Identify the shape inside its parent and among reused shape types.
 - `Position` — The position within a zone.
-- `Tab` — The editor tab group.
+- `Prefix` — HTML field prefix used while rendering editors.
+- `TabGrouping`, `CardGrouping`, `ColumnGrouping` — Editor grouping set by placement.
 - `PlacementSource` — Where the placement rule came from.
+- `ChildContent` — The rendered output so far (set by the binding, cache, or wrappers). Do not use it as input data.
+
+## Template File Names
+
+| Canonical binding name | Razor or Liquid file name |
+|---|---|
+| `Content` | `Content.cshtml` / `Content.liquid` |
+| `Content__BlogPost` | `Content-BlogPost.cshtml` / `.liquid` |
+| `Content_Summary__BlogPost` | `Content-BlogPost.Summary.cshtml` / `.liquid` |
+| `Content_Summary` | `Content.Summary.cshtml` / `.liquid` |
+| `Widget__HeroBanner` | `Widget-HeroBanner.cshtml` / `.liquid` |
+| `Fields_Common_Text__FirstName` | `Views/Fields/Common.Text-FirstName.cshtml` / `.liquid` |
+
+Rules:
+
+- `-` becomes `__` (breaking separator, creates fallback levels); `.` becomes `_`.
+- When the final dot appears after the final hyphen, the suffix is a display type inserted before the first `__`: `Content-BlogPost.Summary` → `Content_Summary__BlogPost`.
+- Templates are harvested from `Views`, `Views/Items`, `Views/Parts`, `Views/Fields`, and `Views/Elements`; the last three add `Parts_`, `Fields_`, or `Elements_` prefixes.
+- A file named `Content__BlogPost__Summary.liquid` does **not** match the summary alternate; use `Content-BlogPost.Summary.liquid`.
 
 ## Creating Shape Templates
 
@@ -98,56 +119,43 @@ Without this wrapper, Orchard throws an `InvalidOperationException` saying the r
 
 ## Shape Alternates
 
-Shape alternates allow more specific templates to override generic ones. Alternates are tried in order from most specific to least specific.
+Alternates let more specific templates override generic ones. Alternates added later win; do not add the base type itself as an alternate.
 
-### Alternate Naming Conventions
+For a `Content` shape displaying a `BlogPost` content type in `Summary` display type, the resolver checks (most specific first):
 
-For a `Content` shape displaying a `BlogPost` content type in `Summary` display type:
+| Alternate | File Name |
+|---|---|
+| `Content_Summary__BlogPost` | `Content-BlogPost.Summary.cshtml` / `.liquid` |
+| `Content__BlogPost` | `Content-BlogPost.cshtml` / `.liquid` |
+| `Content_Summary` | `Content.Summary.cshtml` / `.liquid` |
+| `Content` (base) | `Content.cshtml` / `.liquid` |
 
-| Alternate | File Name (Liquid) | File Name (Razor) |
-|---|---|---|
-| `Content__BlogPost__Summary` | `Content__BlogPost__Summary.liquid` | `Content-BlogPost.Summary.cshtml` |
-| `Content__BlogPost` | `Content__BlogPost.liquid` | `Content-BlogPost.cshtml` |
-| `Content__Summary` | `Content__Summary.liquid` | `Content.Summary.cshtml` |
-| `Content` (base) | `Content.liquid` | `Content.cshtml` |
+Other content alternates include `Content__Alias__[Alias]`, `Content__Slug__[Slug]`, and their display-type variants. See `orchardcore-templates` for the full alternate catalog.
 
-### Liquid Template File Naming
-
-In Liquid template file names:
-- Use double underscore (`__`) to separate shape type segments.
-- Example: `Content__BlogPost.liquid` for the `Content-BlogPost` alternate.
-- Example: `Content__BlogPost__Summary.liquid` for `Content-BlogPost-Summary` alternate.
-- Example: `Widget__ContainerWidget.liquid` for `Widget-ContainerWidget` alternate.
-
-### Razor Template File Naming
-
-In Razor template file names:
-- Use a dot (`.`) to separate display type.
-- Use a dash (`-`) to separate content type.
-- Example: `Content-BlogPost.cshtml` for content type alternate.
-- Example: `Content-BlogPost.Summary.cshtml` for content type + display type alternate.
-- Example: `Content.Summary.cshtml` for display type alternate.
+Shape types containing `__` also fall back by removing the last segment: `Car__Toyota__Hybrid` → `Car__Toyota` → `Car`.
 
 ## Rendering Shapes in Liquid Templates
 
 ### Basic Shape Rendering
 
 ```liquid
-<!-- Render a shape by name -->
-{% shape "ShapeName" %}
-
-<!-- Render a shape with properties -->
+<!-- Create and render a shape by type, with properties -->
 {% shape "ShapeName", prop1: "value1", prop2: "value2" %}
 
-<!-- Render a zone (which is a shape containing other shapes) -->
-{% zone "Content" %}
-{% zone "Header" %}
-{% zone "Footer" %}
+<!-- Create, populate, then render -->
+{% assign car = "Car" | shape_new %}
+{% shape_add_properties car brand: "Toyota", color: "Blue" %}
+{{ car | shape_render }}
 
-<!-- Render a shape object using shape_render filter -->
+<!-- Render a shape object or a zone of the current shape -->
 {{ Model.Content | shape_render }}
 {{ Model.Header | shape_render }}
+
+<!-- Render a content item with a display type -->
+{{ Model.ContentItem | shape_build_display: "Summary" | shape_render }}
 ```
+
+In a Liquid **layout**, render layout zones with `{% render_section "Header", required: false %}` and the body with `{% render_body %}`. The `{% zone "Footer" %}...{% endzone %}` block adds markup **to** a layout zone; it does not render it.
 
 ### Rendering Content Part Shapes in Liquid
 
@@ -159,8 +167,9 @@ In Razor template file names:
 {{ Model.Content.TitlePart | shape_render }}
 {{ Model.Content.HtmlBodyPart | shape_render }}
 
-<!-- Render with a specific display type -->
-{% shape "Content", Model: Model.ContentItem, DisplayType: "Summary" %}
+<!-- Remove one shape by name before rendering the zone -->
+{% shape_remove_item Model.Content "HtmlBodyPart" %}
+{{ Model.Content | shape_render }}
 ```
 
 ### Iterating Over Shapes in a Zone
@@ -186,32 +195,29 @@ In Razor template file names:
 ## Rendering Shapes in Razor Templates
 
 ```cshtml
-@* Render a zone *@
+@* Render a zone of the current shape *@
 @await DisplayAsync(Model.Content)
 @await DisplayAsync(Model.Header)
-@await DisplayAsync(Model.Footer)
 
 @* Render a specific part shape *@
 @await DisplayAsync(Model.Content.TitlePart)
-@await DisplayAsync(Model.Content.HtmlBodyPart)
 
 @* Create and render an ad-hoc shape *@
 @{
     var shape = await New.MyCustomShape(Property1: "value1");
 }
 @await DisplayAsync(shape)
+
+@* Tag helper form *@
+<shape type="MyCustomShape" prop-property1="value1" />
 ```
 
-Use `DisplayAsAsync` when an existing shape must be rendered as a different
-shape type:
+Use `DisplayAsAsync` to render an existing shape as another logical type. It clears alternates by default and changes `Metadata.Type` on the same instance:
 
 ```cshtml
-@await DisplayAsAsync(Model, "NewShapeType")
+@await DisplayAsAsync(Model, "CompactCar")
+@await DisplayAsAsync(Model, "CompactCar", clearAlternates: false)
 ```
-
-Pass `clearAlternates: true` when the original shape alternates must not be
-used. Prefer current shape APIs and shape alternates over manually building
-display contexts.
 
 ## Creating Shapes from Code
 
@@ -223,25 +229,41 @@ using OrchardCore.DisplayManagement;
 public sealed class MyService
 {
     private readonly IShapeFactory _shapeFactory;
+    private readonly IShapeHtmlRenderer _shapeHtmlRenderer;
 
-    public MyService(IShapeFactory shapeFactory)
+    public MyService(IShapeFactory shapeFactory, IShapeHtmlRenderer shapeHtmlRenderer)
     {
         _shapeFactory = shapeFactory;
+        _shapeHtmlRenderer = shapeHtmlRenderer;
     }
 
     public async Task<IShape> CreateCustomShapeAsync()
     {
-        // Create a shape that maps to a "MyCustomShape" template
-        var shape = await _shapeFactory.CreateAsync("MyCustomShape", Arguments.From(new
+        // Dynamic shape with copied properties, rendered by "MyCustomShape" templates.
+        return await _shapeFactory.CreateAsync("MyCustomShape", Arguments.From(new
         {
             Title = "Hello",
-            Description = "World"
+            Description = "World",
         }));
-
-        return shape;
     }
+
+    public async Task<IShape> CreateTypedShapeAsync()
+    {
+        // Strongly typed shape: the model must be a non-sealed class (a proxy derives from it).
+        return await _shapeFactory.CreateAsync<CarViewModel>("Car", car =>
+        {
+            car.Brand = "Toyota";
+            car.Color = "Blue";
+        });
+    }
+
+    // Outside of a view (API endpoint, background-rendered fragment, JSON response).
+    public async Task<string> RenderCustomShapeAsync(CancellationToken cancellationToken)
+        => await _shapeHtmlRenderer.RenderAsync(await CreateCustomShapeAsync(), cancellationToken);
 }
 ```
+
+Inside a view, render with `@await DisplayAsync(shape)`. Never call `IDisplayHelper` from an endpoint without a view; use `IShapeHtmlRenderer` instead (`RenderAsync` or `RenderZoneAsync(shape, "Content")`).
 
 ### Using Initialize in Display Drivers
 
@@ -252,16 +274,18 @@ public sealed class MyPartDisplayDriver : ContentPartDisplayDriver<MyPart>
 {
     public override IDisplayResult Display(MyPart part, BuildPartDisplayContext context)
     {
-        return Initialize<MyPartViewModel>("MyPart", model =>
+        return Initialize<MyPartViewModel, MyPart>("MyPart", static (model, part) =>
         {
             model.Text = part.Text;
             model.ContentItem = part.ContentItem;
-        })
+        }, part)
         .Location("Detail", "Content:5")
         .Location("Summary", "Content:5");
     }
 }
 ```
+
+See `orchardcore-display-management` for every `ShapeResult` helper (`Initialize`, `Dynamic`, `Copy`, `View`, `Factory`, `Combine`) and the 4.0 typed-state and `ValueTask` overloads.
 
 ### Root + Nested Editor Shape Pattern
 
@@ -335,33 +359,25 @@ public override IDisplayResult Display(MyPart part, BuildPartDisplayContext cont
 
 ## Shape Table Providers
 
-`IShapeTableProvider` lets you customize shape behavior globally.
+`IShapeTableProvider` lets you customize shape behavior globally. The shape table is built once per tenant and theme, so only register behavior (handlers, bindings) there; never resolve request data or register resources inside `DiscoverAsync`.
 
 ### Adding Alternates
 
 ```csharp
 using OrchardCore.DisplayManagement.Descriptors;
 
-public sealed class ContentShapeTableProvider : IShapeTableProvider
+public sealed class CarShapeTableProvider : IShapeTableProvider
 {
     public ValueTask DiscoverAsync(ShapeTableBuilder builder)
     {
-        builder.Describe("Content")
+        builder.Describe("Car")
             .OnDisplaying(context =>
             {
-                var contentType = context.Shape.GetProperty<string>("ContentType");
-                var displayType = context.Shape.Metadata.DisplayType;
-
-                if (!string.IsNullOrEmpty(contentType))
+                if (context.Shape is CarViewModel car)
                 {
-                    // Add content-type-specific alternate
-                    context.Shape.Metadata.Alternates.Add($"Content__{contentType}");
-
-                    // Add content-type + display-type alternate
-                    if (!string.IsNullOrEmpty(displayType))
-                    {
-                        context.Shape.Metadata.Alternates.Add($"Content__{contentType}__{displayType}");
-                    }
+                    // Least specific first: the last added alternate wins.
+                    context.Shape.Metadata.Alternates.Add($"Car_Color__{car.Color}");
+                    context.Shape.Metadata.Alternates.Add($"Car_Brand__{car.Brand}");
                 }
             });
 
@@ -369,6 +385,8 @@ public sealed class ContentShapeTableProvider : IShapeTableProvider
     }
 }
 ```
+
+Values used in binding names should be controlled identifiers, not arbitrary user input.
 
 ### Adding Wrappers
 
@@ -380,8 +398,8 @@ public sealed class WidgetShapeTableProvider : IShapeTableProvider
         builder.Describe("Widget")
             .OnDisplaying(context =>
             {
-                // Wrap all widgets with a wrapper template
-                context.Shape.Metadata.Wrappers.Add("Widget_Wrapper");
+                // Wrap all widgets with the Widget_CardWrapper template.
+                context.Shape.Metadata.Wrappers.Add("Widget_CardWrapper");
             });
 
         return ValueTask.CompletedTask;
@@ -396,29 +414,72 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IShapeTableProvider, ContentShapeTableProvider>();
+        services.AddShapeTableProvider<CarShapeTableProvider>();
+        services.AddShapeTableProvider<WidgetShapeTableProvider>();
     }
 }
 ```
 
 ## Shape Wrapper Templates
 
-Wrappers surround a shape's output with additional markup.
+A wrapper receives the same shape; `Model.Metadata.ChildContent` holds the output rendered so far. Never call `DisplayAsync(Model)` or `shape_render` on `Model` inside a wrapper, which re-renders the shape recursively.
 
-### Liquid Wrapper (Views/Widget_Wrapper.liquid)
+### Liquid Wrapper (Views/Widget.CardWrapper.liquid)
 
 ```liquid
-<div class="widget widget-{{ Model.Metadata.Type | downcase }}">
-    {{ Model | shape_render }}
+<div class="card widget-{{ Model.ContentItem.ContentType | downcase }}">
+    <div class="card-body">
+        {{ Model.Metadata.ChildContent }}
+    </div>
 </div>
 ```
 
-### Razor Wrapper (Views/Widget_Wrapper.cshtml)
+### Razor Wrapper (Views/Widget.CardWrapper.cshtml)
 
 ```cshtml
-<div class="widget widget-@Model.Metadata.Type.ToLowerInvariant()">
-    @await DisplayAsync(Model)
+<div class="card">
+    <div class="card-body">
+        @Model.Metadata.ChildContent
+    </div>
 </div>
+```
+
+Wrappers can also be added from `placement.json` (`"wrappers": [ "Widget_CardWrapper" ]`) or the `<add-wrapper>` metadata tag helper.
+
+## Code Bindings with `[Shape]`
+
+```csharp
+using Microsoft.AspNetCore.Html;
+using OrchardCore.DisplayManagement;
+using OrchardCore.DisplayManagement.Descriptors;
+
+public sealed class CarShapes : IShapeAttributeProvider
+{
+    [Shape("Car")]
+    public IHtmlContent Car(IShape Shape)
+    {
+        var car = (CarViewModel)Shape;
+        var tagBuilder = Shape.GetTagBuilder("div");
+        tagBuilder.InnerHtml.Append($"A {car.Color} {car.Brand} car.");
+
+        return tagBuilder;
+    }
+}
+```
+
+Register with `services.AddShapeAttributes<CarShapes>();`.
+
+## Layouts, Zones, and Item Positions
+
+- `ILayoutAccessor.GetLayoutAsync()` returns the request's `Layout` shape; its zones are `Zone` shapes created on demand.
+- Content shapes built by display managers hold `ContentZone` zones, which build tab, card, and column grouping shapes when children carry grouping metadata.
+- `await shape.AddAsync(child, "5")` adds a positioned item. Positions sort numerically and hierarchically: `start < before < 0 (empty) < 1 < 1.1 < 2 < 10 < after < free text < end`. Use `start`/`end` when an item must be truly first or last, including relative to free-text positions such as `PrefixPosition()` values.
+
+```csharp
+var layout = await _layoutAccessor.GetLayoutAsync();
+var menu = await _shapeFactory.CreateAsync("Menu");
+
+await layout.Zones["Header"].AddAsync(menu, "5");
 ```
 
 ## Common Shape Types Reference
@@ -426,7 +487,7 @@ Wrappers surround a shape's output with additional markup.
 | Shape Type | Description | Template |
 |---|---|---|
 | `Content` | Main content item display | `Content.liquid` |
-| `Content_Edit` | Content item editor | `Content_Edit.liquid` |
+| `Content_Edit` | Content item editor | `Content.Edit.liquid` |
 | `Widget` | Widget display wrapper | `Widget.liquid` |
 | `Zone` | Layout zone container | `Zone.liquid` |
 | `MenuItem` | Menu item rendering | `MenuItem.liquid` |
@@ -467,7 +528,7 @@ Wrappers surround a shape's output with additional markup.
 </article>
 ```
 
-### Override Content for Specific Type (Views/Content__BlogPost.liquid)
+### Override Content for Specific Type (Views/Content-BlogPost.liquid)
 
 ```liquid
 <article class="blog-post">
@@ -488,7 +549,7 @@ Wrappers surround a shape's output with additional markup.
 </article>
 ```
 
-### Override Widget Wrapper (Views/Widget.liquid)
+### Override Widget (Views/Widget.liquid)
 
 ```liquid
 <div class="widget widget-{{ Model.ContentItem.ContentType | downcase }}">
@@ -498,7 +559,7 @@ Wrappers surround a shape's output with additional markup.
 </div>
 ```
 
-### Override Summary Display (Views/Content__Summary.liquid)
+### Override Summary Display (Views/Content.Summary.liquid)
 
 ```liquid
 <article class="content-summary">
@@ -516,18 +577,16 @@ Wrappers surround a shape's output with additional markup.
 
 ## Shape Debug Information
 
-You can enable HTML comments around rendered shapes to trace which template produced each fragment. This is useful during development for identifying which Razor or Liquid template is responsible for a specific piece of output.
-
-Enable **Write shape debug information** in the tenant's
-**Settings → Debugging** editor. Orchard Core applies that setting to
-`ShapeRenderingOptions`; no service-registration extension is required.
+Enable **Write shape debug information** in the tenant's **Settings → Debugging** editor. Orchard Core applies that setting to `ShapeRenderingOptions` through `IOptionsMonitor`, so it takes effect without a shell release.
 
 When enabled, each rendered shape is wrapped with comments like:
 
 ```html
-<!--shape-start type:Content bindings:Content__BlogPost=>Views/Content-BlogPost.cshtml (razor)-->
+<!--shape-start type:Content bindings:Content__BlogPost => Views/Content-BlogPost.cshtml (razor) -->
 ...
 <!--shape-end type:Content-->
 ```
 
-The comment shows the shape type and binding used for resolution.
+The comment shows the shape type and the binding that won. To find slow shapes rather than template names, collect the `OrchardCore.DisplayManagement` activity source and meter (see `orchardcore-display-management`) or use `orchardcore-mini-profiler`.
+
+When an override is not selected, check: the shape's `Metadata.Type`, `DisplayType`, and ordered `Alternates`; canonical name vs file name form; that the template is under a harvested `Views` folder; whether a later alternate wins; whether placement changed the shape type (which clears alternates and wrappers); and whether the active theme or startup project overrides the module binding.

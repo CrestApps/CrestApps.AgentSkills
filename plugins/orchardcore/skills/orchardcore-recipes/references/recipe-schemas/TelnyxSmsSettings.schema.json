@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TelnyxSmsSettings",
+      "description": "Recipe step discriminator. Must be \u0027TelnyxSmsSettings\u0027."
+    },
+    "Settings": {
+      "type": "object",
+      "description": "Telnyx SMS provider settings, independent of the Telnyx voice settings.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the UI-configured Telnyx SMS provider is enabled."
+        },
+        "ApiKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx API key (v2) presented as a bearer token on the Messaging API. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "MessagingProfileId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional Telnyx messaging profile identifier used when sending."
+        },
+        "WebhookPublicKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx webhook Ed25519 public key (base64) used to verify inbound messaging webhooks. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "ApiBaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional override of the Telnyx REST API base address. Empty uses https://api.telnyx.com/v2/."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "Settings"
+  ],
+  "additionalProperties": true
+}

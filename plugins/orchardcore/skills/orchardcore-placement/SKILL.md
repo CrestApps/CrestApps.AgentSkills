@@ -1,10 +1,10 @@
 ---
 name: orchardcore-placement
-description: Skill for configuring Orchard Core placement, including placement.json, tabs, cards, columns, alternates, wrappers, dynamic placement providers, and fluent location syntax in display drivers. Use this skill when requests mention Orchard Core Placement, Configure Orchard Core placement, Placement string format, Segment meanings, Important ordering rules, Valid examples, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with PlacementLocationBuilder, IShapePlacementProvider, MyPart, TextField, MyShape, SecretShape, MyPlacementProvider, IPlacementInfoResolver, IBuildShapeContext, ShapePlacementContext, IServiceCollection, placement.json. It also helps with placement examples, Important ordering rules, Valid examples, placement.json examples, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Orchard Core placement, including placement.json, tabs, cards, columns, groups, alternates, wrappers, positions with before, after, start and end sentinels, placement precedence, dynamic placement providers, and fluent location syntax in display drivers. Use this skill when requests mention Orchard Core Placement, Configure Orchard Core placement, Placement string format, Segment meanings, Important ordering rules, Valid examples, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with PlacementLocationBuilder, IShapePlacementProvider, IPlacementInfoResolver, PlacementInfo, IBuildShapeContext, ShapePlacementContext, ContentPart_Edit, TextField, differentiators, placement.json. It also helps with placement examples, editor grouping, and the code patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "1.2"
+  version: "1.0"
 ---
 
 # Orchard Core Placement - Prompt Templates
@@ -49,6 +49,19 @@ Every segment after `Zone:position` is optional.
 - `#TabName;tabPosition` - editor tab name and the tab's ordering position
 - `%CardName;cardPosition` - editor card name and the card's ordering position
 - `|ColumnName[_width][;columnPosition]` - editor column name, optional Bootstrap width modifier, and optional column ordering position
+- `@group` - a group identifier used to filter shapes (for example `OnGroup` site settings sections)
+
+### Position values
+
+Positions sort numerically and hierarchically, never alphabetically:
+
+```text
+start  <  before  <  0 (empty)  <  1  <  1.1  <  2  <  10  <  after  <  free-text  <  end
+```
+
+- `before` and `after` are anchors inside the numeric range. Non-numeric positions (for example `PrefixPosition()` values that alphabetize admin menu items) sort after `after`.
+- Use `start` or `end` when a shape must be truly first or last, regardless of any other position. Sub-ordering works the same way: `end` < `end.50` < `end.100`.
+- Shapes with the same position keep their registration order. The module or theme name never affects order.
 
 ### Important ordering rules
 
@@ -66,6 +79,9 @@ Every segment after `Zone:position` is optional.
 | `Content:4%Interaction;1` | Place in the `Interaction` card inside `Content` |
 | `Content:4#Capabilities;8%Tools;3` | Place in the `Capabilities` tab, then the `Tools` card |
 | `Content:4#Capabilities;8%Tools;3|Col_4;2` | Place in a 4-wide column, ordered second, inside the `Tools` card inside the `Capabilities` tab |
+| `Content:end` | Place truly last in the `Content` zone |
+| `/Footer:1` | Place in the `Footer` layout zone instead of a local content zone |
+| `Parameters:1@search` | Place with the `search` group identifier (fluent `.Group("search")`) |
 
 ## Differentiator patterns
 
@@ -289,12 +305,23 @@ return Initialize<MyViewModel>("MyShape", model =>
 
 Use `.AsLayoutZone()` when the placement should be treated as a layout zone rather than an editor grouping.
 
+## Placement precedence
+
+1. Tenant rules from the `OrchardCore.Placements` module (admin UI or `OrchardCore.Placements.FileStorage`) override everything below.
+2. The startup project, which acts as a super-theme.
+3. The active theme for the request (front-end or admin) and its base themes.
+4. Modules in dependency order.
+5. Driver defaults from `.Location(...)`.
+
+Display types do not inherit placement: rules for `SummaryAdmin` do not reach `SummaryAdminGrid` (admin Grid layout). See `orchardcore-admin-lists`.
+
 ## Custom placement provider
 
 Use an `IShapePlacementProvider` when placement depends on runtime conditions.
 
 ```csharp
-using OrchardCore.DisplayManagement.Descriptors.ShapePlacementStrategy;
+using OrchardCore.DisplayManagement.Descriptors;
+using OrchardCore.DisplayManagement.Handlers;
 
 public sealed class MyPlacementProvider : IShapePlacementProvider
 {
@@ -309,10 +336,8 @@ public sealed class MyPlacementProvider : IShapePlacementProvider
         {
             if (placementContext.ShapeType == "MyShape")
             {
-                return new PlacementInfo
-                {
-                    Location = "Content:5#General;1%Details;1",
-                };
+                // PlacementInfo is immutable; FromLocation parses and caches the location string.
+                return PlacementInfo.FromLocation("Content:5#General;1%Details;1");
             }
 
             return null;
@@ -324,7 +349,7 @@ public sealed class MyPlacementProvider : IShapePlacementProvider
 ### Registering the provider
 
 ```csharp
-using OrchardCore.DisplayManagement.Descriptors.ShapePlacementStrategy;
+using OrchardCore.DisplayManagement.Descriptors;
 
 public sealed class Startup : StartupBase
 {
@@ -349,9 +374,7 @@ public sealed class Startup : StartupBase
 
 ## Common zones
 
-- `Content`
-- `Content:before`
-- `Content:after`
+- `Content` (use `Content:before`, `Content:after`, `Content:start`, or `Content:end` for positions)
 - `Header`
 - `Navigation`
 - `Sidebar`

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-cors
-description: Skill for administering tenant-specific cross-origin resource sharing in Orchard Core. Covers CorsSettings policies, CorsPolicySetting options, CorsService persistence, CorsOptionsConfiguration, admin configuration, deployment, and secure origin restrictions. Use this skill when requests mention Orchard Core CORS, CorsSettings, cross-origin requests, allowed origins, CORS policies, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cors, CorsSettings, CorsPolicySetting, CorsService, CorsOptionsConfiguration, CorsOptions, and ManageCorsSettings. It also helps with feature recipes, policy deployment, security validation, and the code patterns captured in this skill.
+description: Skill for administering tenant-specific cross-origin resource sharing in Orchard Core. Covers CorsSettings policies, CorsPolicySetting options, the settings recipe step, CorsService persistence, CorsOptionsConfiguration, admin configuration, deployment, and secure origin restrictions. Use this skill when requests mention Orchard Core CORS, CorsSettings, cross-origin requests, allowed origins, CORS policies, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cors, CorsSettings, CorsPolicySetting, CorsService, CorsOptionsConfiguration, CorsOptions, and ManageCorsSettings. It also helps with feature recipes, policy deployment, security validation, and the code patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -17,9 +17,10 @@ You are an Orchard Core expert. Generate secure configuration and code for the O
 
 - Enable the `OrchardCore.Cors` feature. The module has no declared feature dependencies.
 - The module calls `app.UseCors()` at Orchard Core's CORS pipeline order and configures ASP.NET Core `CorsOptions` from tenant site settings.
-- Configure policies from **Settings → Security → Cross-Origin Resource Sharing**. When legacy navigation is enabled, use **Configuration → Settings → CORS**. The feature requires the `ManageCorsSettings` permission.
+- Configure policies from **Settings → Security → Cross-Origin Resource Sharing**. The page requires the security-critical `ManageCorsSettings` permission (Administrator by default).
+- Policies are tenant site settings (`CorsSettings`). There is no `appsettings.json` configuration section for CORS; use the admin UI or the `settings` recipe step.
 - Each `CorsPolicySetting` has a name, origin, header, method, credentials, default-policy, and exposed-header settings.
-- `CorsOptionsConfiguration` rejects a policy that combines `AllowAnyOrigin` and `AllowCredentials`; this is unsafe and invalid in ASP.NET Core.
+- The admin rejects a policy that combines **Allow credentials** with **Allow any origin** or an `AllowedOrigins` entry of `*`. At runtime, `CorsOptionsConfiguration` skips a policy that has both `AllowCredentials` and `AllowAnyOrigin` (for example one imported by a recipe) and logs a warning.
 - Use exact trusted origins when credentials are allowed. Do not use wildcard origins for authenticated browser requests.
 - The first policy becomes the default if no policy is explicitly marked as default.
 - Setting changes release the tenant shell, so the CORS middleware reads the new policy configuration.
@@ -57,7 +58,41 @@ Create a policy under **Settings → Security → Cross-Origin Resource Sharing*
 | Exposed headers | List response headers browser JavaScript may read. |
 | Default policy | Mark one policy when all endpoints should use it. |
 
-The policy editor refuses wildcard-origin policies that also allow credentials and shows a security warning.
+The policy editor refuses wildcard-origin policies that also allow credentials and shows a security warning. Origins are a scheme, host, and optional port only, with no path or trailing slash. An empty allowed list permits nothing for that category unless the matching **Allow any** option is on.
+
+### Configuring Policies via Recipe
+
+```json
+{
+  "steps": [
+    {
+      "name": "feature",
+      "enable": [ "OrchardCore.Cors" ]
+    },
+    {
+      "name": "settings",
+      "CorsSettings": {
+        "Policies": [
+          {
+            "Name": "Frontend",
+            "AllowAnyOrigin": false,
+            "AllowedOrigins": [ "https://app.example.com" ],
+            "AllowAnyHeader": false,
+            "AllowedHeaders": [ "Content-Type", "Authorization" ],
+            "AllowAnyMethod": false,
+            "AllowedMethods": [ "GET", "POST" ],
+            "AllowCredentials": true,
+            "IsDefaultPolicy": true,
+            "ExposedHeaders": [ "X-Pagination-Total" ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Recipe and deployment imports write the site settings directly and skip the admin validation. Define at most one default policy, never combine credentials with a wildcard origin, and reload an already-running tenant after importing.
 
 ### CorsSettings Model
 
@@ -145,7 +180,7 @@ The policy name must exactly match a policy configured in `CorsSettings`.
 
 ### Deployment
 
-When `OrchardCore.Deployment` is enabled, the module registers a site-settings deployment step labelled **Cors settings**. Add that step to a deployment plan to export tenant CORS policies, then import it into the destination tenant.
+When `OrchardCore.Deployment` is enabled, the module registers a site-settings deployment step labelled **Cors settings**. Add that step to a deployment plan to export tenant CORS policies; the exported recipe uses the same `settings` step and `CorsSettings` object shown above.
 
 ```json
 {
@@ -178,3 +213,14 @@ When `OrchardCore.Deployment` is enabled, the module registers a site-settings d
 | Browser preflight fails | Add only the requested method and headers to the selected policy. |
 | Policy is missing after save | Correct the invalid wildcard-origin plus credentials combination. |
 | Setting change has no effect | Confirm the tenant shell was released after updating settings. |
+| Preflight rejected | Compare the `Origin` header exactly (scheme and port) and allow every header in `Access-Control-Request-Headers`. |
+| API call from the SPA returns `401` | CORS does not authenticate; send a bearer token for the `Api` scheme (see `orchardcore-openid`). |
+
+Test a preflight without a browser:
+
+```bash
+curl -i -X OPTIONS "https://cms.example.com/api/content/abc" \
+  -H "Origin: https://app.example.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: authorization,content-type"
+```

@@ -1,10 +1,10 @@
 ---
 name: orchardcore-theming
-description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor templates, zones, shape templates, shape alternates, placement rules, asset management, resource manifests, and theme settings. Use this skill when requests mention Orchard Core Theming, How to Use, Evidence Rules, Reference Cues, Tasks, Create a Theme, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.MyTheme, OrchardCore.DisplayManagement.Manifest, OrchardCore.DisplayManagement, OrchardCore.Theme.Targets, OrchardCore.IOrchardHelper, OrchardCore.ResourceManagement, ContentDefinition, BagPart, FlowPart, ListPart, IConfigureOptions<ResourceManagementOptions>, ResourceManifest. It also helps with assets resources, placement rules, shape alternates, shape workflow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor layouts (render_section, render_body, RenderSectionAsync, RenderBodyAsync), zones, shape templates, alternates, placement rules, assets, resource manifests, theme settings, admin themes based on TheAdmin (bootstrap-select styles, admin menu color CSS custom properties), extra Feature attributes in theme manifests, and the jQuery and Vue 3 changes of Orchard Core 4. Use this skill when requests mention Orchard Core Theming, Create a Theme, theme layouts, shape overrides, template discovery, admin theme customization, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.DisplayManagement.Manifest, OrchardCore.Theme.Targets, OrchardCore.ResourceManagement, IOrchardHelper, BagPart, FlowPart, ListPart, ResourceManifest, TheTheme, TheAdmin.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
-  version: "2.0"
+  version: "1.0"
 ---
 
 # Orchard Core Theming
@@ -32,7 +32,8 @@ Use this skill for Orchard Core theming tasks including theme creation, shape ov
 - Prefer shapes over MVC partials for UI composition.
 - `Views/Layout.cshtml` is treated as the site layout automatically; do not set `Layout = null` inside it.
 - Override base theme views in the child theme rather than editing the base theme.
-- Use `{% render_section "SectionName" %}` in Liquid layouts to render named sections.
+- Render layout zones with `{% render_section "Name", required: false %}` (Liquid) or `@await RenderSectionAsync("Name", required: false)` (Razor), and the main content with `{% render_body %}` / `@await RenderBodyAsync()`. The `{% zone %}` block and `<zone>` tag helper **add** content to a zone; they do not render it.
+- Front-end themes must require every script they use. Orchard Core 4.0 admin scripts no longer pull in jQuery; require `jQuery` explicitly if your theme needs it.
 - Asset pipelines can be managed through `wwwroot/` and resource manifests.
 - The `TheAdmin` theme is used for the admin panel and can be extended.
 
@@ -128,29 +129,31 @@ If it's missing, it can cause build errors.
 
 ```liquid
 <!DOCTYPE html>
-<html lang="{{ Culture.Name }}">
+<html lang="{{ Culture.Name }}" dir="{{ Culture.Dir }}">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ Model.Title }} - {{ Site.SiteName }}</title>
-    {% resources type: "HeadMeta" %}
-    {% resources type: "HeadLink" %}
-    {% style src: "~/{{ThemeName}}/css/site.css" %}
-    {% resources type: "Stylesheet" %}
+    <title>{% page_title Site.SiteName, position: "before" %}</title>
+    {% style name: "bootstrap", version: "5", at: "Head" %}
+    {% style name: "{{ThemeName}}", at: "Head" %}
+    {% script name: "bootstrap", version: "5", at: "Foot" %}
+    {% script name: "{{ThemeName}}", at: "Foot" %}
+    {% resources type: "Header" %}
+    {% render_section "HeadMeta", required: false %}
 </head>
 <body>
-    {% zone "Header" %}
+    {% render_section "Header", required: false %}
 
     <main role="main" class="container">
-        {% zone "BeforeContent" %}
-        {% zone "Content" %}
-        {% zone "AfterContent" %}
+        {% render_section "Messages", required: false %}
+        {% render_section "BeforeContent", required: false %}
+        {% render_body %}
+        {% render_section "AfterContent", required: false %}
     </main>
 
-    {% zone "Footer" %}
+    {% render_section "Footer", required: false %}
 
     {% resources type: "FootScript" %}
-    {% script src: "~/{{ThemeName}}/js/site.js" at: "Foot" %}
 </body>
 </html>
 ```
@@ -158,32 +161,35 @@ If it's missing, it can cause build errors.
 ### Razor Layout Template
 
 ```cshtml
-@inject OrchardCore.IOrchardHelper Orchard
-
 <!DOCTYPE html>
-<html lang="@Orchard.CultureName()">
+<html lang="@Orchard.CultureName()" dir="@Orchard.CultureDir()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@RenderTitleSegments(Site.SiteName)</title>
+    <title>@RenderTitleSegments(Site.SiteName, "before")</title>
+    <style asp-name="bootstrap" version="5" at="Head"></style>
+    <style asp-name="{{ThemeName}}" at="Head"></style>
+    <script asp-name="bootstrap" version="5" at="Foot"></script>
+    <script asp-name="{{ThemeName}}" at="Foot"></script>
+    <resources type="Header" />
     @await RenderSectionAsync("HeadMeta", required: false)
-    <link rel="stylesheet" href="~/{{ThemeName}}/css/site.css" />
-    @RenderSection("Styles", required: false)
 </head>
 <body>
-    @await DisplayAsync(ThemeLayout.Header)
+    @await RenderSectionAsync("Header", required: false)
 
     <main role="main" class="container">
-        @await DisplayAsync(ThemeLayout.Content)
+        @await RenderSectionAsync("Messages", required: false)
+        @await RenderBodyAsync()
     </main>
 
-    @await DisplayAsync(ThemeLayout.Footer)
+    @await RenderSectionAsync("Footer", required: false)
 
-    <script src="~/{{ThemeName}}/js/site.js"></script>
-    @RenderSection("Scripts", required: false)
+    <resources type="FootScript" />
 </body>
 </html>
 ```
+
+`Orchard`, `Site`, and `ThemeLayout` are provided by `RazorPage<TModel>`; do not `@inject` another `Orchard` property. Shapes that register resources must render before `<resources type="Header" />`, so pre-render them into a variable at the top of the layout when they appear later in the markup.
 
 ### Shape Templates
 
@@ -223,12 +229,14 @@ public sealed class ResourceManagementOptionsConfiguration : IConfigureOptions<R
         manifest
             .DefineScript("{{ThemeName}}")
             .SetUrl("~/{{ThemeName}}/js/site.min.js", "~/{{ThemeName}}/js/site.js")
-            .SetPosition(ResourcePosition.Foot);
+            .SetDependencies("bootstrap:5");
 
         return manifest;
     }
 }
 ```
+
+Choose head or foot when requiring the script (`at="Foot"`); `SetPosition(ResourcePosition.First | Last | ByDependency)` only changes ordering.
 
 Register the configuration from the theme or module startup:
 
@@ -265,3 +273,46 @@ Common zones used in Orchard Core themes:
 Zone shapes support alternates for per-zone template overrides:
 
 - `Zone__ZoneName` → file `Zone-Footer.cshtml` (or `.liquid`)
+
+## Additional Features in a Theme Manifest
+
+A theme assembly can declare extra `[Feature]` attributes next to `[Theme]`. The theme stays listed on the Themes page, and the extra features appear in **Configuration → Features** with their category and Enable button:
+
+```csharp
+using OrchardCore.DisplayManagement.Manifest;
+using OrchardCore.Modules.Manifest;
+
+[assembly: Theme(
+    Name = "Contoso Theme",
+    Author = "Contoso",
+    Version = "1.0.0",
+    Description = "Contoso front-end theme.",
+    BaseTheme = "TheTheme"
+)]
+
+[assembly: Feature(
+    Id = "ContosoTheme.Widgets",
+    Name = "Contoso Theme Widgets",
+    Description = "Widget content types used by the Contoso theme.",
+    Category = "Theming"
+)]
+```
+
+Attach code that belongs to the extra feature with `[Feature("ContosoTheme.Widgets")]` on its `Startup` class. In Orchard Core 3.x such themes disappeared from the Themes page; that is fixed in 4.0.
+
+## Admin Themes Based on TheAdmin
+
+- `bootstrap-select` styles are no longer included automatically. Admin views that use it must add `<style asp-name="bootstrap-select" at="Head"></style>`.
+- Admin scripts no longer use jQuery or jQuery UI, and admin Vue apps use Vue 3. Do not assume `$` exists in admin views; require `jQuery` explicitly if a custom admin script still needs it.
+- The admin menu palette is driven by CSS custom properties. Rebrand it from a theme that depends on TheAdmin:
+
+```css
+:root {
+    --oc-admin-accent-rgb: 73, 80, 87;
+    --oc-admin-accent-strong-color: #343a40;
+    --oc-admin-menu-bg-color: #f1f3f5;
+    --oc-admin-menu-border-color: #dee2e6;
+}
+```
+
+Other menu variables include `--oc-admin-accent-color`, `--oc-admin-menu-group-font-color`, `--oc-admin-menu-separator-color`, `--oc-admin-menu-item-hover-bg-color`, `--oc-admin-menu-item-active-bg-color`, and `--oc-selected-indicator-color`. The menu markup was redesigned in 4.0 (groups, `nav-group`, `current`, off-canvas below `md`); re-check overrides of `Navigation-admin.cshtml`, `NavigationItem-admin.cshtml`, or `NavigationItemLink-admin.cshtml`. See `orchardcore-admin` and `orchardcore-admin-menu` for the menu itself.

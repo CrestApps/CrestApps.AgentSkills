@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-items
-description: Skill for working with Orchard Core content items. Covers the content item lifecycle, IContentManager API, content item JSON structure, querying with YesSql, content handlers, recipe import/export, and accessing parts and fields programmatically. Use this skill when requests mention Orchard Core Content Items, Working with Content Items, Content Item Lifecycle, Content Item JSON Structure, IContentManager API, Accessing Parts and Fields, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, IContentManager, ISession, IContentHandler, TitlePart, AutoroutePart, ContentPart, TextField, IEnumerable, ContentItemIndex, ILogger, PublishContentContext. It also helps with content items examples, IContentManager API, Accessing Parts and Fields, Querying Content Items with YesSql, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for working with Orchard Core content items. Covers the content item lifecycle, IContentManager API including batched GetAsync, content item JSON structure, querying with YesSql and the IDX_ContentItemIndex_ContentItemId index, content handlers, recipe import and export, links to the Contents admin list with several contentTypeId or stereotype values, and accessing parts and fields programmatically. Use this skill when requests mention Orchard Core Content Items, Working with Content Items, Content Item Lifecycle, Content Item JSON Structure, IContentManager API, Accessing Parts and Fields, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement, IContentManager, ISession, IContentHandler, TitlePart, AutoroutePart, ContentPart, TextField, ContentItemIndex, PublishContentContext, ContentsAdminList.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -100,6 +100,10 @@ public sealed class {{ServiceName}}
         var published = await _contentManager.GetAsync(
             contentItem.ContentItemId, VersionOptions.Published);
 
+        // Retrieve several content items in one query (published by default).
+        var items = await _contentManager.GetAsync(
+            ["{{id1}}", "{{id2}}"], VersionOptions.Published);
+
         // Update an existing content item.
         await _contentManager.UpdateAsync(contentItem);
 
@@ -115,6 +119,22 @@ public sealed class {{ServiceName}}
     }
 }
 ```
+
+Reads by id (`GetAsync(id)` and `GetAsync(ids)`) use the `IDX_ContentItemIndex_ContentItemId` SQL index added in Orchard Core 4.0 (`ContentItemId`, `DocumentId`, `Published`, `Latest`). Prefer one batched `GetAsync(ids)` over a loop of single reads.
+
+When a content type generates its title from a `TitlePart` pattern, the pattern is also evaluated when a version is published (Orchard Core 4.0), so republishing an item sets its display text from the pattern, at most once per item per request.
+
+### Linking to the Contents Admin List
+
+`/Admin/Contents/ContentItems` accepts several content types or stereotypes, as repeated or comma-separated values (Orchard Core 4.0); single values work as before:
+
+```text
+/Admin/Contents/ContentItems?contentTypeId=Article&contentTypeId=BlogPost
+/Admin/Contents/ContentItems?contentTypeId=Article,BlogPost
+/Admin/Contents/ContentItems?stereotype=Widget,Page
+```
+
+Use these URLs in admin menu links (see `orchardcore-admin-menu`) to give editors a list scoped to a family of types. Column providers of the list receive the filtered types and stereotypes under `ContentsAdminList.ContentTypesKey` and `ContentsAdminList.StereotypesKey` (see `orchardcore-admin-lists`).
 
 ### Accessing Parts and Fields
 
@@ -259,7 +279,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentHandler<{{HandlerName}}>();
+        services.AddScoped<IContentHandler, {{HandlerName}}>();
     }
 }
 ```

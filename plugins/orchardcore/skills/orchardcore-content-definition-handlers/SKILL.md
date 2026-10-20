@@ -173,6 +173,7 @@ The same call works on `ContentTypeDefinition`, `ContentPartDefinition`, `Conten
 - If a user can still delete the part or type, verify the `ContentSettings` block is written under the `nameof(ContentSettings)` key with `IsSystemDefined = true` on the correct record (the type, the type-part, the part, or the field).
 - If the injected part appears in the "add part" picker, set `ContentPartSettings.Attachable = false` when building the part definition.
 - If `JObject.FromObject` does not resolve, add `using System.Text.Json.Nodes;` — `JObject` is the Orchard Core helper in that namespace, and it returns a `JsonObject`.
+- Injected parts count like stored ones for authorization: injecting a `LiquidPart`, a `LiquidField`, or a `FacebookPluginPart` makes editing and publishing every item of that type (and items that embed it) require the `ManageLiquidTemplates` permission (see `orchardcore-liquid`).
 - For ordinary, user-editable types and parts, use `IContentDefinitionManager` migrations instead; reach for a handler only when the definition must be injected or protected.
 
 See [references/content-definition-handler-examples.md](references/content-definition-handler-examples.md) for a system-defined field example.

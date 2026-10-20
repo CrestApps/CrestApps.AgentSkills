@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-fields
-description: Skill for adding and configuring common Orchard Core content fields. Covers field settings, Liquid rendering, supported editor options, display modes, and migration patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, HtmlFieldSettings, MarkdownFieldSettings, TextFieldSettings, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings. It also helps with content fields examples, TextField Settings, TextField Editors, TextField Migration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common Orchard Core content fields. Covers field settings, TextField minimum and maximum length, the new LiquidField, HTML and Markdown field rendering and sanitization, supported editor options, display modes, custom field editors as ES modules, and migration patterns. Use this skill when requests mention Orchard Core Content Fields, Add and Configure Content Fields, General Pattern for Adding a Field, TextField, TextField Settings, TextField Editors or closely related Orchard Core work. Strong matches include work with OrchardCore.Taxonomies, OrchardCore.ContentLocalization, OrchardCore.Application.Cms.Targets, FieldSettings, HtmlFieldSettings, MarkdownFieldSettings, LiquidField, TextFieldSettings, MinLength, MaxLength, NumericFieldSettings, ContentPartFieldSettings, WithField, WithSettings, TextField, TextFieldPredefinedListEditorSettings.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,6 +21,7 @@ You are an Orchard Core expert. Generate migration code and recipes for common c
 - Fields also have `ContentPartFieldSettings` controlling `DisplayName`, `Description`, `Editor`, `DisplayMode`, and `Position`.
 - Use `.WithEditor("EditorName")` to select an editor variant.
 - Use `.WithDisplayMode("DisplayModeName")` to select a display variant.
+- In templates, render field shapes (for example `{{ Model.Content["Article-Summary"] | shape_render }}`) rather than writing stored HTML or Markdown with `raw`; stored source is unsanitized.
 - Third-party modules providing fields (CrestApps, Lombiq, community modules, etc.) must be installed as NuGet packages in the web project (the startup project of the solution), not just in the module project.
 - Always seal classes.
 
@@ -57,6 +58,12 @@ Stores a single text value. Supports multiple editor modes.
 | `Type` | FieldBehaviorType | `Unset` | Field behavior type. |
 | `Pattern` | string | `null` | The pattern used to build the value. |
 | `Placeholder` | string | `""` | Placeholder text. |
+| `MinLength` | int? | `null` | Minimum number of characters; validated on save when greater than `0` and rendered as `minlength`. |
+| `MaxLength` | int? | `null` | Maximum number of characters; validated on save when greater than `0` and rendered as `maxlength`. |
+
+`MinLength`/`MaxLength` (**Minimum length**/**Maximum length** in the UI) apply
+to the standard and `TextArea` editors. Leaving them empty means no limit, so
+existing definitions are unaffected.
 
 ### TextField Editors
 
@@ -68,6 +75,11 @@ Stores a single text value. Supports multiple editor modes.
 | `PredefinedList` | Dropdown or radio buttons from a predefined list. |
 | `Monaco` | Monaco code editor. |
 | `Color` | HTML color editor with an optional alpha value. |
+| `Email`, `Tel`, `Url` | Typed HTML inputs. |
+| `IconPicker` | Font Awesome icon picker. |
+
+`Header` is a TextField **display mode** (`TextField-Header.Display.cshtml`),
+not an editor.
 
 ### TextField Migration
 
@@ -82,7 +94,9 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
             Required = true,
             Hint = "{{Hint}}",
             DefaultValue = "{{DefaultValue}}",
-            Placeholder = "{{Placeholder}}"
+            Placeholder = "{{Placeholder}}",
+            MinLength = 3,
+            MaxLength = 120
         })
     )
 );
@@ -129,11 +143,17 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
 );
 ```
 
+In the admin options editor, a new option's value is prefilled from its label
+until the value is edited, and saving rejects two options with the same label
+and value pair.
+
 ---
 
 ## HtmlField
 
-Stores HTML content with optional sanitization.
+Stores the authored HTML in `Html`, unchanged. On display the HTML is
+processed for shortcodes and then sanitized when `SanitizeHtml` is enabled.
+Liquid syntax is not executed; use `LiquidField` for templating.
 
 ### HtmlField Settings
 
@@ -141,17 +161,20 @@ Stores HTML content with optional sanitization.
 |---|---|---|---|
 | `Hint` | string | `null` | Help text displayed below the field. |
 | `Required` | bool | `false` | Whether the field is required. |
-| `SanitizeHtml` | bool | `true` | Whether to sanitize HTML content. |
-| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering the HTML. |
+| `SanitizeHtml` | bool | `true` | Whether to sanitize the final rendered HTML. |
 
 ### HtmlField Editors
 
 | Editor | Description |
 |---|---|
-| *(default)* | Rich text editor (WYSIWYG). |
+| *(default)* | CodeMirror HTML source editor. |
+| `Multiline` | Plain multi-line text area. |
 | `Wysiwyg` | WYSIWYG HTML editor. |
-| `Trumbowyg` | Trumbowyg WYSIWYG editor. |
-| `Monaco` | Monaco code editor for raw HTML. |
+| `Trumbowyg` | Trumbowyg editor (`HtmlFieldTrumbowygEditorSettings`). |
+| `Monaco` | Monaco code editor for raw HTML (`HtmlFieldMonacoEditorSettings`). |
+
+`DisplayHtmlFieldViewModel.Html` is the rendered output; `Model.Field.Html` is
+the authored source.
 
 ### HtmlField Migration
 
@@ -166,12 +189,36 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
         {
             Required = true,
             SanitizeHtml = true,
-            RenderLiquid = false,
             Hint = "Enter HTML content"
         })
     )
 );
 ```
+
+---
+
+## LiquidField
+
+Stores authored Liquid source in `Liquid` and renders it on display, in the
+body aspect, and through the GraphQL `liquid` field. Provided by
+`OrchardCore.Liquid`. It has no field-specific settings, no sanitize option,
+and a single standard (CodeMirror) editor. The source is validated on save.
+Editing it, or any content item containing it, requires the
+`ManageLiquidTemplates` permission (see `orchardcore-liquid`).
+
+```csharp
+await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part => part
+    .WithField("{{FieldName}}", field => field
+        .OfType("LiquidField")
+        .WithDisplayName("{{DisplayName}}")
+        .WithPosition("{{Position}}")
+    )
+);
+```
+
+In the field source, `ContentItem` is the containing content item. The display
+shape model `LiquidFieldViewModel` exposes `Liquid` (source) and `Html`
+(rendered output).
 
 ---
 
@@ -629,12 +676,9 @@ Stores Markdown on a part field. Enable `OrchardCore.Markdown`.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `SanitizeHtml` | bool | `true` | Sanitizes rendered HTML. |
-| `RenderLiquid` | bool | `false` | Evaluates Liquid before rendering Markdown. |
+| `SanitizeHtml` | bool | `true` | Sanitizes the final HTML (after Markdown conversion and shortcodes). |
 
-`SanitizeHtml` and `RenderLiquid` are independent. Sanitization can remain
-enabled while Liquid rendering is disabled, or Liquid can be evaluated before
-the rendered output is sanitized.
+The Markdown source is stored as authored and Liquid in it is not executed.
 
 Use the default editor or `.WithEditor("Wysiwyg")`; the WYSIWYG editor accepts `MarkdownFieldWysiwygEditorSettings.Options`.
 
@@ -646,7 +690,6 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
         .WithSettings(new MarkdownFieldSettings
         {
             SanitizeHtml = true,
-            RenderLiquid = false,
         })
     )
 );
@@ -659,6 +702,78 @@ await _contentDefinitionManager.AlterPartDefinitionAsync("{{PartName}}", part =>
 Stores latitude and longitude. Enable `OrchardCore.Spatial`; its field settings are the common `Hint` and `Required` settings. Use `.WithEditor("Leaflet")` for the built-in map editor.
 
 For related content-part and route configuration, see `orchardcore-content-parts` and `orchardcore-autoroute`.
+
+---
+
+## Other Built-In Editors
+
+| Field | Editors besides the standard one |
+|---|---|
+| `BooleanField` | `Switch` |
+| `DateField` | `Localized` |
+| `NumericField` | `Range`, `Select`, `Slider`, `Spinner` |
+| `MultiTextField` | `CheckboxList`, `Picker` |
+| `MediaField` | `Attached` (stores under `mediafields/`, requires `ManageAttachedMediaFieldsFolder`) |
+| `TaxonomyField` | `Tags` |
+| `UserPickerField` | `UserNames` |
+
+---
+
+## Custom Field Editors
+
+Create `{FieldType}-{Editor}.Option.cshtml` (an `<option>` for the editor list)
+and `{FieldType}-{Editor}.Edit.cshtml`. Field editors can be injected after
+page load by the Flow, Bag, and widget list editors, so:
+
+- Put configuration in `data-*` attributes on the editor wrapper and load the
+  script as an ES module: `<script asp-src="~/MyModule/Scripts/my-editor.js" type="module" at="Foot"></script>`.
+- Initialize every matching element, including ones added later (for example
+  with a `MutationObserver` on `document.body`), and scope lookups to the
+  wrapper or to `Html.IdFor(...)` ids instead of global ids.
+- Do not depend on `DOMContentLoaded` alone or on jQuery; admin pages no
+  longer load jQuery or jQuery UI implicitly (require them explicitly if a
+  legacy editor still needs them).
+- Render the hint with `@await DisplayAsync(await New.Hint_Admin(Hint: settings.Hint))`
+  so admin themes can customize it.
+
+```cshtml
+@model OrchardCore.ContentFields.ViewModels.EditTextFieldViewModel
+<div class="ocat-wrapper my-counter-editor" data-max="140">
+    <label asp-for="Text" class="ocat-label">@Model.PartFieldDefinition.DisplayName()</label>
+    <div class="ocat-end">
+        <input asp-for="Text" class="form-control content-preview-text" />
+    </div>
+</div>
+<script asp-src="~/MyModule/Scripts/counter-editor.js" type="module" at="Foot"></script>
+```
+
+```javascript
+const init = (wrapper) => {
+    if (wrapper.dataset.initialized) return;
+    wrapper.dataset.initialized = "true";
+    wrapper.querySelector("input").maxLength = Number(wrapper.dataset.max);
+};
+
+const initAll = () => document.querySelectorAll(".my-counter-editor").forEach(init);
+initAll();
+new MutationObserver(initAll).observe(document.body, { childList: true, subtree: true });
+```
+
+Content field handler and display driver resolvers now resolve their lists
+once per scope and return the same list; copy it before adding or removing
+items.
+
+---
+
+## Upgrading from 3.x
+
+- `HtmlFieldSettings.RenderLiquid` and `MarkdownFieldSettings.RenderLiquid`
+  were removed. Liquid in those fields renders as text and startup logs a
+  warning per affected field; move that content to a `LiquidField`.
+- HTML and Markdown are no longer sanitized on save. Template code that output
+  `Field.Html` with `raw` must render the field shape or use `sanitize_html`.
+- AJAX-injected field editors are ES modules and the admin no longer ships
+  jQuery implicitly; port custom editors as described above.
 
 ---
 
