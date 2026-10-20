@@ -96,6 +96,19 @@ copilot plugin install crestapps-core@crestapps-agentskills
 
 If you want the full Orchard Core plugin experience without copying files into your repository, install **both** `orchardcore` and `crestapps-orchardcore`.
 
+## Claude Code plugins
+
+The same plugins can be installed in Claude Code (CLI or desktop app):
+
+```bash
+claude plugin marketplace add CrestApps/CrestApps.AgentSkills
+claude plugin install orchardcore@crestapps-agentskills
+claude plugin install crestapps-orchardcore@crestapps-agentskills
+claude plugin install crestapps-core@crestapps-agentskills
+```
+
+Inside an interactive Claude Code session, the equivalent commands are `/plugin marketplace add CrestApps/CrestApps.AgentSkills` and `/plugin install <plugin>@crestapps-agentskills`.
+
 The `crestapps-orchardcore` plugin is versioned from **2.0.0** onward because it now contains only CrestApps OrchardCore module skills instead of the previous mixed bundle.
 
 ## Plugin publishing

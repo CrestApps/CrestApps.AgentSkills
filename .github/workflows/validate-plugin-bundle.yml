@@ -11,8 +11,59 @@ on:
       - 'plugins/crestapps-core/skills/**'
       - '.github/workflows/publish-plugin.yml'
       - '.github/workflows/validate-plugin-bundle.yml'
+      - '.github/plugin/marketplace.json'
+      - '.claude-plugin/marketplace.json'
 
 jobs:
+  validate-marketplace-manifests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Validate marketplace manifests
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          github_manifest_path = Path(".github/plugin/marketplace.json")
+          claude_manifest_path = Path(".claude-plugin/marketplace.json")
+
+          errors = []
+          manifests = {}
+
+          for path in (github_manifest_path, claude_manifest_path):
+              try:
+                  manifests[path] = json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as ex:
+                  errors.append(f"{path} is not a valid JSON marketplace manifest: {ex}")
+
+          if len(manifests) == 2 and manifests[github_manifest_path] != manifests[claude_manifest_path]:
+              errors.append(f"{claude_manifest_path} must have the same content as {github_manifest_path}.")
+
+          for plugin in manifests.get(github_manifest_path, {}).get("plugins", []):
+              name = plugin.get("name")
+              source = Path(plugin.get("source", ""))
+
+              if not source.is_dir():
+                  errors.append(f"Plugin '{name}' source '{source}' does not exist.")
+                  continue
+
+              for skills_path in plugin.get("skills", []):
+                  if not (source / skills_path).is_dir():
+                      errors.append(f"Plugin '{name}' skills path '{skills_path}' does not exist under '{source}'.")
+
+          for error in errors:
+              print(f"::error::{error}")
+
+          if errors:
+              raise SystemExit(1)
+
+          print("Marketplace manifests are valid.")
+
+
   validate-plugin-skills:
     if: github.event.pull_request.head.ref != 'automation/publish-plugin-bundle'
     runs-on: ubuntu-latest
