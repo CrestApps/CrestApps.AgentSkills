@@ -20,3 +20,12 @@ Orchard Core 4.0 notes:
 - The Html and Markdown part and field settings no longer include `RenderLiquid`; use `LiquidPart` or `LiquidField` instead.
 - `OrchardCore.Media.ImageSharpV3` is no longer a valid feature ID.
 - Steps added in 4.0 without a schema file here, such as `DataPipelines`, should be authored from an exported deployment plan.
+
+Maintenance note: the schema definitions in `CrestApps.OrchardCore` do not yet cover every Orchard Core 4.0 settings change. After regenerating with `utilities/CrestApps.OrchardCore.RecipeSchemaExporter`, re-apply these 4.0 changes until those definitions catch up:
+
+- remove `RenderLiquid` from `HtmlBodyPartSettings`, `MarkdownBodyPartSettings`, `HtmlFieldSettings` and `MarkdownFieldSettings`;
+- add `TextFieldSettings.MinLength` and `MaxLength`;
+- add `OpenIdServerSettings.RequireEndSessionConfirmation`;
+- add the `AdminSettings` properties `DisplayQuickNavigation`, `ShowBreadcrumb`, `MenuBehavior`, `ListLayout`, `ListActionsLayout` and `AllowUserListLayoutSelection`;
+- add `LoginSettings.UsePersistentAuthenticationCookie`;
+- add the root settings properties `AllowPageSizeSelection` and `PageSizeOptions`.

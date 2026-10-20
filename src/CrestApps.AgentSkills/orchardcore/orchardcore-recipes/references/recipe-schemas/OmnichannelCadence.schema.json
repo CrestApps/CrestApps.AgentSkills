@@ -1,0 +1,84 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelCadence",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelCadence\u0027."
+    },
+    "Cadences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the cadence. When it matches a stored cadence, that cadence is updated. Otherwise a new cadence is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "DisplayText": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the cadence shown when it is selected on a loading campaign."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Administrative description of the cadence."
+          },
+          "Steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "DelayMinutes": {
+                  "type": "integer",
+                  "description": "Minutes the contact must be silent since the automation\u0027s previous message before this nudge is sent. The clock restarts after each nudge."
+                },
+                "IsAiGenerated": {
+                  "type": "boolean",
+                  "description": "Whether the AI composes this nudge. When false, \u0027Message\u0027 is sent verbatim."
+                },
+                "Message": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The exact text sent when \u0027IsAiGenerated\u0027 is false (required in that case), or optional guidance the AI composes the nudge from when it is true."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "Ordered nudges. The number of steps caps how many nudges are ever sent; an empty list never nudges."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the cadence is enabled. A disabled cadence never nudges."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the cadence, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "DisplayText"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The re-engagement cadences to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Cadences"
+  ],
+  "additionalProperties": true
+}

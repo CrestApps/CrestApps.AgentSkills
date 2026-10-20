@@ -205,6 +205,14 @@
           "type": "string",
           "description": "The visitor cookie lifetime as a .NET TimeSpan string."
         },
+        "AllowCrossSiteEmbedding": {
+          "type": "boolean",
+          "description": "Whether the visitor cookie is written SameSite=None; Secure so it survives inside a frame on another site. A request that did not arrive over HTTPS keeps the SameSite=Lax cookie either way."
+        },
+        "UsePartitionedCookie": {
+          "type": "boolean",
+          "description": "Whether the visitor cookie carries the Partitioned attribute while AllowCrossSiteEmbedding is on, which keeps the cookie written in a frame apart from the first-party one of the same name."
+        },
         "RemoteAddressMode": {
           "type": "string",
           "description": "The remote-address storage mode."
@@ -274,6 +282,160 @@
         "AllowUserListLayoutSelection": {
           "type": "boolean",
           "description": "Whether each admin list shows a List/Grid selector whose choice is kept per user in a cookie."
+        }
+      },
+      "additionalProperties": false
+    },
+    "AsteriskSettings": {
+      "type": "object",
+      "description": "Asterisk provider settings for the tenant-configured ARI connection.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the tenant-configured Asterisk provider is enabled."
+        },
+        "BaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Base URL of the Asterisk ARI endpoint."
+        },
+        "UserName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ARI user name."
+        },
+        "Password": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ARI password. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "ApplicationName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Stasis application name used for originated channels."
+        },
+        "EndpointTemplate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional template that turns a dialed destination into an ARI endpoint; use the {number} token for the destination."
+        },
+        "OutboundCallerId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Caller identifier presented on outbound calls."
+        },
+        "TimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "Outbound dial timeout, in seconds."
+        },
+        "VoicemailContext": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Dialplan context a call continues into when an agent sends an inbound offer to voicemail."
+        },
+        "VoicemailExtensionTemplate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Template that resolves the voicemail dialplan extension; it may use tokens such as {voicemailRecipientUserName} or {calledAddress}."
+        },
+        "VoicemailPriority": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Dialplan priority used when continuing a call to voicemail."
+        },
+        "WebSocketUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Secure WebSocket URL browser SIP user agents connect to."
+        },
+        "SipDomain": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP domain used to compose browser agent addresses of record."
+        },
+        "TurnUrls": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or newline-delimited STUN/TURN URLs advertised to browser agents."
+        },
+        "TurnSharedSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "coturn REST shared secret used to issue time-limited TURN credentials. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "IceTransportPolicy": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ICE transport policy sent to the browser, for example \u0027all\u0027 or \u0027relay\u0027."
+        },
+        "WebRtcCodecs": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or newline-delimited browser audio codec preference list, for example \u0027opus,g722,ulaw\u0027."
+        },
+        "PjsipCredentialLifetimeMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 15,
+          "description": "Lifetime, in minutes, of the short-lived PJSIP credentials issued to browser agents."
+        },
+        "PjsipContactExpirationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120,
+          "description": "PJSIP contact expiration, in seconds."
+        },
+        "PjsipRealtimeProviderInvariantName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ADO.NET provider invariant name used to write PJSIP Realtime rows."
+        },
+        "PjsipRealtimeConnectionString": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "PJSIP Realtime database connection string. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "PjsipRealtimeTablePrefix": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional PJSIP Realtime table prefix."
         }
       },
       "additionalProperties": false
@@ -543,6 +705,123 @@
       },
       "additionalProperties": false
     },
+    "ContactCenterExternalTransferSettings": {
+      "type": "object",
+      "description": "The operator-curated catalog of approved external transfer destinations.",
+      "properties": {
+        "Destinations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Id": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Opaque stable identifier callers supply when requesting a transfer to this destination."
+              },
+              "DisplayName": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Operator-assigned display name of the destination."
+              },
+              "E164Address": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Canonical E.164 address the call is transferred to."
+              },
+              "Enabled": {
+                "type": "boolean",
+                "description": "Whether the destination is active. Disabled destinations are always denied."
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Approved external destinations. Only entries that are present and enabled are reachable by an external transfer."
+        },
+        "AllowUnlistedNumbers": {
+          "type": "boolean",
+          "description": "Whether an agent who may transfer externally may also dial a number that is not in \u0027Destinations\u0027. The number must still pass the platform\u0027s dial policy."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContactCenterRecordingSettings": {
+      "type": "object",
+      "description": "Recording governance policy every Contact Center voice interaction must satisfy.",
+      "properties": {
+        "RecordAllCalls": {
+          "type": "boolean",
+          "description": "Whether every call is recorded automatically while the Call Recording feature is enabled: a Contact Center call when it connects to an agent, an AI voice agent\u0027s call when it is answered, and a number dialed on the soft phone keypad when it is answered."
+        },
+        "ConsentModel": {
+          "type": "string",
+          "enum": [
+            "AllParties",
+            "SingleParty"
+          ],
+          "description": "Consent model that governs whether a call may be recorded: every party must consent, or the recording organization\u0027s consent is sufficient."
+        },
+        "RequireExplicitConsent": {
+          "type": "boolean",
+          "description": "Whether consent must be captured on the interaction before recording may start. Giving the recording disclosure captures it."
+        },
+        "EnableRecordingDisclosure": {
+          "type": "boolean",
+          "description": "Whether callers are told the call is recorded, using RecordingDisclosureText."
+        },
+        "RecordingDisclosureText": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "maxLength": 500,
+          "description": "The notice callers are given that the call is recorded, spoken word for word by the platform or read out by the agent."
+        },
+        "DiscloseOnInboundCalls": {
+          "type": "boolean",
+          "description": "Whether the disclosure is spoken to an inbound caller on an entry point before its welcome message, menu or queue."
+        },
+        "DiscloseOnAIVoiceCalls": {
+          "type": "boolean",
+          "description": "Whether an automated voice agent gives the disclosure before anything else it says."
+        },
+        "PromptAgentsToDisclose": {
+          "type": "boolean",
+          "description": "Whether an agent on a call whose caller has not heard the disclosure is shown it to read out and confirm."
+        },
+        "RetentionDays": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36500,
+          "description": "Days a recording is retained before it becomes eligible for erasure. Zero retains recordings indefinitely."
+        },
+        "LegalHoldByDefault": {
+          "type": "boolean",
+          "description": "Whether captured recordings begin under legal hold, which exempts them from retention-driven and subject-request erasure until released."
+        },
+        "AllowAgentSecurePause": {
+          "type": "boolean",
+          "description": "Whether an agent may pause and resume recording on their own live interaction from the agent desktop."
+        },
+        "MaxSecurePauseSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400,
+          "description": "Longest time, in seconds, a recording may stay paused before it resumes automatically. Zero applies no automatic resume."
+        },
+        "RequirePauseReason": {
+          "type": "boolean",
+          "description": "Whether an agent must supply a reason when pausing recording."
+        }
+      },
+      "additionalProperties": false
+    },
     "ContentAuditTrailSettings": {
       "type": "object",
       "description": "Configuration for content-specific audit trail tracking.",
@@ -674,6 +953,10 @@
         "DefaultTextToSpeechVoiceId": {
           "type": "string",
           "description": "The voice identifier to use for text-to-speech."
+        },
+        "DefaultRealtimeDeploymentName": {
+          "type": "string",
+          "description": "The technical name of the default realtime deployment: the model that carries a spoken conversation, in the chat or on a phone call, when the profile names none."
         }
       },
       "additionalProperties": false
@@ -1486,13 +1769,49 @@
           "type": "string",
           "description": "The chat message rate-limit window as a .NET TimeSpan string."
         },
+        "AnonymousMessageRateLimitTiers": {
+          "type": "array",
+          "description": "The multi-tier sliding-window message limits applied to anonymous callers. A message is throttled when it would exceed any tier. When empty, anonymous callers fall back to MaxMessagesPerWindow and RateLimitWindow.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Limit": {
+                "type": "integer",
+                "description": "The maximum number of events allowed within the window."
+              },
+              "Window": {
+                "type": "string",
+                "description": "The sliding-window duration as a .NET TimeSpan string."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
         "MaxAnonymousSessionsPerWindow": {
           "type": "integer",
-          "description": "The maximum number of anonymous sessions allowed within the anonymous session-start window."
+          "description": "The maximum number of anonymous sessions allowed within the anonymous session-start window. Used only as a fallback when AnonymousSessionStartRateLimitTiers is empty."
         },
         "AnonymousSessionRateLimitWindow": {
           "type": "string",
           "description": "The anonymous session-start rate-limit window as a .NET TimeSpan string."
+        },
+        "AnonymousSessionStartRateLimitTiers": {
+          "type": "array",
+          "description": "The multi-tier sliding-window limits applied to anonymous session starts. A session start is throttled when it would exceed any tier. When empty, anonymous session starts fall back to MaxAnonymousSessionsPerWindow and AnonymousSessionRateLimitWindow.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Limit": {
+                "type": "integer",
+                "description": "The maximum number of events allowed within the window."
+              },
+              "Window": {
+                "type": "string",
+                "description": "The sliding-window duration as a .NET TimeSpan string."
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -1648,6 +1967,27 @@
       },
       "additionalProperties": false
     },
+    "SecureCaptureSettings": {
+      "type": "object",
+      "description": "Policy for agent-assisted secure data capture, where the customer enters sensitive data through a one-time link instead of speaking it.",
+      "properties": {
+        "Enabled": {
+          "type": "boolean",
+          "description": "Whether agents may start a secure capture. When false the platform refuses a capture regardless of permission or provider capability."
+        },
+        "LinkTimeToLiveSeconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 3600,
+          "description": "Lifetime, in seconds, of the one-time customer capture link."
+        },
+        "PauseRecordingDuringCapture": {
+          "type": "boolean",
+          "description": "Whether starting a capture pauses call recording for its duration."
+        }
+      },
+      "additionalProperties": false
+    },
     "SecuritySettings": {
       "type": "object",
       "description": "Configuration for HTTP security headers.",
@@ -1787,6 +2127,48 @@
       ],
       "additionalProperties": false
     },
+    "SoftPhoneWidgetSettings": {
+      "type": "object",
+      "description": "Where the soft phone widget is shown and how it looks.",
+      "properties": {
+        "Enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Kill switch for the soft phone widget. When false the widget, its styles and its scripts are not rendered anywhere on the site."
+        },
+        "DisplayOnAdmin": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the floating soft phone widget is shown on the admin dashboard."
+        },
+        "EnableDiagnostics": {
+          "type": "boolean",
+          "description": "Whether the soft phone\u0027s Diagnostics tab (live media stats, microphone meter, provider warnings and the audio test) is shown."
+        },
+        "AccentColor": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "default": "#2f6fed",
+          "description": "Accent color of the widget, as a CSS color value."
+        },
+        "RecentCallsCount": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30,
+          "description": "Maximum number of calls shown in the recent-calls history."
+        },
+        "DefaultCountryCode": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ISO 3166-1 alpha-2 country the phone number input selects initially. When empty, the country is derived from the request culture."
+        }
+      },
+      "additionalProperties": false
+    },
     "TaxonomyContentsAdminListSettings": {
       "type": "object",
       "description": "Configuration for taxonomy filters in the content admin list.",
@@ -1797,6 +2179,259 @@
           "items": {
             "type": "string"
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TelephonySettings": {
+      "type": "object",
+      "description": "Telephony settings shared by every phone system provider.",
+      "properties": {
+        "DefaultProviderName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "examples": [
+            "Telnyx",
+            "Asterisk"
+          ],
+          "description": "Technical name of the telephony provider used when no provider is requested explicitly."
+        },
+        "AllowedShortCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "A short code the tenant may dial."
+          },
+          "description": "Short codes the tenant may dial even though they are not international numbers, for example a carrier service code. Emergency codes are never dialable."
+        }
+      },
+      "additionalProperties": false
+    },
+    "TelnyxSettings": {
+      "type": "object",
+      "description": "Telnyx voice provider settings. Telnyx authenticates every REST call with one tenant API key.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the Telnyx provider is enabled."
+        },
+        "ApiKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx API key (v2), presented as a bearer token on every REST call. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "ConnectionId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Identifier of the Telnyx Call Control (Voice API) application used to place and control calls. It is provisioned by the Connect action and belongs to one Telnyx account."
+        },
+        "SipConnectionId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional Telnyx Credential (SIP) connection browser credentials are issued against. When empty, \u0027ConnectionId\u0027 is used."
+        },
+        "OutboundVoiceProfileId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional outbound voice profile applied to outbound calls when the connection does not bind one."
+        },
+        "CredentialLifetimeMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 180,
+          "description": "Browser SIP credential lifetime, in minutes."
+        },
+        "DefaultOutboundCallerId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Default E.164 caller identifier presented on outbound calls when no other caller identifier applies."
+        },
+        "WebhookPublicKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx webhook Ed25519 public key (base64) used to verify inbound webhook signatures. Inbound webhooks are rejected while it is empty. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "ApiBaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional override of the Telnyx REST API base address. Empty uses https://api.telnyx.com/v2/."
+        },
+        "SipWebSocketUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP-over-WebSocket signaling URL browser soft phones register against. Empty uses wss://sip.telnyx.com:7443."
+        },
+        "SipDomain": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP domain browser credentials register under. Empty uses sip.telnyx.com."
+        },
+        "WebRtcCodecs": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or space-separated preferred WebRTC audio codecs advertised to the browser."
+        },
+        "WebRtcRegion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx signaling region browser soft phones register on. Empty lets Telnyx geo-routing choose."
+        },
+        "IceUrls": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or space-separated STUN/TURN URLs advertised to the browser. Empty advertises a default Telnyx STUN server."
+        },
+        "TurnUsername": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional TURN user name advertised alongside \u0027IceUrls\u0027."
+        },
+        "TurnCredential": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional TURN credential advertised alongside \u0027IceUrls\u0027. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "IceTransportPolicy": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ICE transport policy advertised to the browser, for example \u0027all\u0027 or \u0027relay\u0027."
+        },
+        "EchoTestDestination": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional echo destination (a number or SIP URI that echoes audio back) used by the audio test and the health canary."
+        },
+        "OrphanedCallHandling": {
+          "type": "string",
+          "enum": [
+            "Report",
+            "EndCall"
+          ],
+          "description": "What to do about a call the connection has up that the platform has no record of: record it and leave it connected, or tell the caller and hang up."
+        },
+        "AnsweringMachineDetection": {
+          "type": "string",
+          "enum": [
+            "Premium",
+            "Standard",
+            "Disabled"
+          ],
+          "description": "How an automated call asks the provider whether a person or a machine answered it."
+        },
+        "NoiseSuppressionEngine": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "Krisp",
+            "DeepFilterNet",
+            "Denoiser",
+            "AiCoustics"
+          ],
+          "description": "The Telnyx noise suppression engine started on an agent\u0027s leg once it is connected, or \u0027Off\u0027."
+        },
+        "NoiseSuppressionAgentVoice": {
+          "type": "boolean",
+          "description": "Whether noise suppression cleans the agent\u0027s voice, which is what the caller hears."
+        },
+        "NoiseSuppressionCallerVoice": {
+          "type": "boolean",
+          "description": "Whether noise suppression cleans the caller\u0027s voice, which is what the agent hears."
+        },
+        "NoiseSuppressionStrength": {
+          "type": "string",
+          "enum": [
+            "Light",
+            "Balanced",
+            "Strong"
+          ],
+          "description": "How hard the noise suppression engine works on each voice it cleans. \u0027Balanced\u0027 (the default) removes line hiss while keeping the soft endings of words."
+        },
+        "TtsVoice": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Text-to-speech voice used by spoken prompts, either \u0027female\u0027, \u0027male\u0027 or a \u0027Provider.Model.VoiceId\u0027 name such as \u0027AWS.Polly.Joanna-Neural\u0027."
+        },
+        "TtsLanguage": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Language spoken prompts are said in, for example \u0027en-US\u0027."
+        }
+      },
+      "additionalProperties": false
+    },
+    "TelnyxSmsSettings": {
+      "type": "object",
+      "description": "Telnyx SMS provider settings, independent of the Telnyx voice settings.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the UI-configured Telnyx SMS provider is enabled."
+        },
+        "ApiKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx API key (v2) presented as a bearer token on the Messaging API. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "MessagingProfileId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional Telnyx messaging profile identifier used when sending."
+        },
+        "WebhookPublicKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx webhook Ed25519 public key (base64) used to verify inbound messaging webhooks. Secret: stored exactly as given, so it must already be data-protected by the destination tenant. Prefer the provider\u0027s own recipe step, which takes the value in clear text and protects it."
+        },
+        "ApiBaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional override of the Telnyx REST API base address. Empty uses https://api.telnyx.com/v2/."
         }
       },
       "additionalProperties": false

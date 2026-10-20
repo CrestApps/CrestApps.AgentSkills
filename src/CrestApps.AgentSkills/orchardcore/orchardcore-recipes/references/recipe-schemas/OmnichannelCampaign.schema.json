@@ -1,0 +1,171 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelCampaign",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelCampaign\u0027."
+    },
+    "Campaigns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the campaign. When it matches a stored campaign, that campaign is updated. Otherwise a new campaign is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "DisplayText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Human-readable name of the campaign."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Administrative description of the campaign."
+          },
+          "CampaignGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the campaign group this campaign is reported under."
+          },
+          "InteractionType": {
+            "type": "string",
+            "enum": [
+              "Manual",
+              "Automated"
+            ],
+            "description": "Whether the campaign is handled manually by an agent or automated by AI."
+          },
+          "Channel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Communication channel used by the campaign, for example \u0027SMS\u0027, \u0027Chat\u0027, or \u0027Email\u0027."
+          },
+          "InitialOutboundPromptPattern": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For automated campaigns, the initial message used to start the conversation with the customer."
+          },
+          "CampaignGoal": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Description of what success looks like, used by the AI to decide when the conversation can end."
+          },
+          "ProviderName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Name of the AI provider used for automation."
+          },
+          "ConnectionName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Name of the provider connection used for automation."
+          },
+          "DeploymentName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Name of the model deployment used for automation."
+          },
+          "SystemMessage": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "System message that steers the automated conversation."
+          },
+          "Temperature": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Sampling temperature applied to the automated completions."
+          },
+          "TopP": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Nucleus sampling probability applied to the automated completions."
+          },
+          "FrequencyPenalty": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Frequency penalty applied to the automated completions."
+          },
+          "PresencePenalty": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Presence penalty applied to the automated completions."
+          },
+          "MaxTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Maximum number of tokens the automated completions may generate."
+          },
+          "ToolNames": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Names of the tools the automation is allowed to invoke."
+          },
+          "AllowAIToUpdateContact": {
+            "type": "boolean",
+            "description": "Whether the AI is allowed to update the contact during an automated conversation."
+          },
+          "AllowAIToUpdateSubject": {
+            "type": "boolean",
+            "description": "Whether the AI is allowed to update the subject during an automated conversation."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the campaign, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "Campaigns to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Campaigns"
+  ],
+  "additionalProperties": true
+}

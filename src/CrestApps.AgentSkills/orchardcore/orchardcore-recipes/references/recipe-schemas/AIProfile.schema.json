@@ -65,6 +65,10 @@
             "type": "string",
             "description": "Orchestrator name."
           },
+          "PersonaId": {
+            "type": "string",
+            "description": "Optional technical name of the AI persona this profile links to. An empty value unlinks the persona, and leaving the key out keeps the current link."
+          },
           "ChatDeploymentName": {
             "type": "string",
             "description": "Chat deployment technical name for the AI model."
@@ -199,6 +203,22 @@
                       "additionalProperties": true
                     },
                     "description": "Ordered prompt template selections for the profile."
+                  }
+                },
+                "additionalProperties": true
+              },
+              "AIPersonaMetadata": {
+                "type": "object",
+                "description": "The AI persona this resource links to, by the persona\u0027s technical name. Applied when the AI Personas feature is enabled.",
+                "properties": {
+                  "PersonaId": {
+                    "type": "string",
+                    "description": "Technical name of the linked persona."
+                  },
+                  "Parameters": {
+                    "type": "object",
+                    "description": "Liquid arguments used when rendering the persona instructions.",
+                    "additionalProperties": true
                   }
                 },
                 "additionalProperties": true

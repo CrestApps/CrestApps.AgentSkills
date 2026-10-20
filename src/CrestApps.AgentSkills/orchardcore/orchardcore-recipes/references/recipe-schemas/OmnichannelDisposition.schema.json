@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelDisposition",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelDisposition\u0027."
+    },
+    "Dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the disposition. When it matches a stored disposition, that disposition is updated. Otherwise a new disposition is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Unique name of the disposition."
+          },
+          "DisplayText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Legacy display text. Prefer \u0027Name\u0027; this is only used to seed the name when \u0027Name\u0027 is not supplied."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Administrative description of the disposition."
+          },
+          "CaptureDate": {
+            "type": "boolean",
+            "description": "Whether selecting this disposition prompts the agent to capture a follow-up date."
+          },
+          "Outcome": {
+            "type": "string",
+            "enum": [
+              "None",
+              "NotInService",
+              "NoAnswer",
+              "Busy",
+              "AnsweringMachine",
+              "Rejected",
+              "Failed",
+              "Disconnected"
+            ],
+            "description": "The outcome the platform applies this disposition for when a call ends in a way nobody chose: NotInService (the dialer or an automated call found the number dead; recording it also excludes the number from future dialing), NoAnswer, Busy or AnsweringMachine (the dialer or an automated call), or Rejected, Failed or Disconnected (a dialer call that ended before an agent was connected)."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the disposition, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "Dispositions to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Dispositions"
+  ],
+  "additionalProperties": true
+}

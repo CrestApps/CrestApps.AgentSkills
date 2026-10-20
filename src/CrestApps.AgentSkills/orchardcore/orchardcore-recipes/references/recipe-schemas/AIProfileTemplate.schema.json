@@ -237,6 +237,22 @@
                 },
                 "additionalProperties": true
               },
+              "AIPersonaMetadata": {
+                "type": "object",
+                "description": "The AI persona this resource links to, by the persona\u0027s technical name. Applied when the AI Personas feature is enabled.",
+                "properties": {
+                  "PersonaId": {
+                    "type": "string",
+                    "description": "Technical name of the linked persona."
+                  },
+                  "Parameters": {
+                    "type": "object",
+                    "description": "Liquid arguments used when rendering the persona instructions.",
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true
+              },
               "AnalyticsMetadata": {
                 "type": "object",
                 "description": "Known analytics and outcome tracking metadata for chat profiles.",
@@ -477,7 +493,11 @@
                   },
                   "ChatDeploymentName": {
                     "type": "string",
-                    "description": "Chat deployment name used when the generated profile needs a chat-capable model."
+                    "description": "Text deployment the generated profile talks to. It answers typed messages, including those typed during a voice conversation."
+                  },
+                  "ConversationDeploymentName": {
+                    "type": "string",
+                    "description": "Deployment that carries a spoken conversation for the generated profile. Naming one puts the profile in Conversation chat mode unless the template carries a chat mode of its own. Leave it empty to inherit the site\u0027s default realtime deployment."
                   },
                   "UtilityDeploymentName": {
                     "type": "string",
@@ -486,6 +506,10 @@
                   "OrchestratorName": {
                     "type": "string",
                     "description": "Orchestrator name applied to generated profiles."
+                  },
+                  "RealtimeDeploymentName": {
+                    "type": "string",
+                    "description": "Legacy. Set ConversationDeploymentName instead. Still honored for existing templates: when set and no conversation deployment is named, it supplies one."
                   },
                   "InitialResponseHandlerName": {
                     "type": "string",

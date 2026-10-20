@@ -1,0 +1,169 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AsteriskSettings",
+      "description": "Recipe step discriminator. Must be \u0027AsteriskSettings\u0027."
+    },
+    "Settings": {
+      "type": "object",
+      "description": "Asterisk provider settings for the tenant-configured ARI connection.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the tenant-configured Asterisk provider is enabled."
+        },
+        "BaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Base URL of the Asterisk ARI endpoint."
+        },
+        "UserName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ARI user name."
+        },
+        "Password": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ARI password. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "ApplicationName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Stasis application name used for originated channels."
+        },
+        "EndpointTemplate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional template that turns a dialed destination into an ARI endpoint; use the {number} token for the destination."
+        },
+        "OutboundCallerId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Caller identifier presented on outbound calls."
+        },
+        "TimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "Outbound dial timeout, in seconds."
+        },
+        "VoicemailContext": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Dialplan context a call continues into when an agent sends an inbound offer to voicemail."
+        },
+        "VoicemailExtensionTemplate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Template that resolves the voicemail dialplan extension; it may use tokens such as {voicemailRecipientUserName} or {calledAddress}."
+        },
+        "VoicemailPriority": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Dialplan priority used when continuing a call to voicemail."
+        },
+        "WebSocketUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Secure WebSocket URL browser SIP user agents connect to."
+        },
+        "SipDomain": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP domain used to compose browser agent addresses of record."
+        },
+        "TurnUrls": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or newline-delimited STUN/TURN URLs advertised to browser agents."
+        },
+        "TurnSharedSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "coturn REST shared secret used to issue time-limited TURN credentials. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "IceTransportPolicy": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ICE transport policy sent to the browser, for example \u0027all\u0027 or \u0027relay\u0027."
+        },
+        "WebRtcCodecs": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or newline-delimited browser audio codec preference list, for example \u0027opus,g722,ulaw\u0027."
+        },
+        "PjsipCredentialLifetimeMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 15,
+          "description": "Lifetime, in minutes, of the short-lived PJSIP credentials issued to browser agents."
+        },
+        "PjsipContactExpirationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120,
+          "description": "PJSIP contact expiration, in seconds."
+        },
+        "PjsipRealtimeProviderInvariantName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ADO.NET provider invariant name used to write PJSIP Realtime rows."
+        },
+        "PjsipRealtimeConnectionString": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "PJSIP Realtime database connection string. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "PjsipRealtimeTablePrefix": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional PJSIP Realtime table prefix."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "Settings"
+  ],
+  "additionalProperties": true
+}

@@ -1,0 +1,80 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AgentStateReasonCode",
+      "description": "Recipe step discriminator. Must be \u0027AgentStateReasonCode\u0027."
+    },
+    "ReasonCodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the reason code. When it matches a stored reason code, that reason code is updated. Otherwise a new reason code is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique reason code name shown to agents and supervisors."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Reason code description."
+          },
+          "AppliesTo": {
+            "type": "string",
+            "enum": [
+              "Offline",
+              "Available",
+              "Reserved",
+              "Busy",
+              "WrapUp",
+              "Break",
+              "RequestBreak",
+              "Away",
+              "DoNotDisturb",
+              "Meeting",
+              "Training",
+              "AfterHoursUnavailable"
+            ],
+            "description": "Presence state an agent enters when they select this reason code."
+          },
+          "SortOrder": {
+            "type": "integer",
+            "description": "Relative order the reason code is listed in, lowest first."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the reason code can be selected by agents."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the reason code, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The agent state reason codes to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "ReasonCodes"
+  ],
+  "additionalProperties": true
+}

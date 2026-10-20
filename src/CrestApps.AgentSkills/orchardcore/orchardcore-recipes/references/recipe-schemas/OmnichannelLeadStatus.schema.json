@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelLeadStatus",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelLeadStatus\u0027."
+    },
+    "LeadStatuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the lead status. When it matches a stored lead status, that lead status is updated. Otherwise a new lead status is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Unique name of the lead status."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Administrative description of the lead status."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "Position of the status in lists, lowest first."
+          },
+          "IsDefault": {
+            "type": "boolean",
+            "description": "Whether a new lead starts in this status."
+          },
+          "IsClosed": {
+            "type": "boolean",
+            "description": "Whether a lead in this status is closed."
+          },
+          "IsConverted": {
+            "type": "boolean",
+            "description": "Whether this is the status a lead takes when it is converted."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the lead status, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The lead statuses to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "LeadStatuses"
+  ],
+  "additionalProperties": true
+}
