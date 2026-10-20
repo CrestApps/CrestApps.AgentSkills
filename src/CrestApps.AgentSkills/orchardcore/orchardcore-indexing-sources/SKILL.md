@@ -1,6 +1,6 @@
 ---
 name: orchardcore-indexing-sources
-description: Skill for registering Orchard Core indexing sources for search providers. Covers AddIndexingSource wrappers, AddElasticsearchIndexingSource, OrchardCore.Contents integration, source metadata, options-gated registration, current index manager contracts, indexing task categories, and custom record indexing. Use this skill when requests mention Orchard Core Indexing Sources, AddElasticsearchIndexingSource, AddAzureAISearchIndexingSource, Register a new indexing source, or closely related Orchard Core implementation, setup, or troubleshooting work.
+description: Skill for registering Orchard Core indexing sources for search providers. Covers AddIndexingSource wrappers, AddLuceneIndexingSource, AddElasticsearchIndexingSource, AddAzureAISearchIndexingSource, OrchardCore.Contents integration, source metadata, options-gated registration, current index manager contracts, indexing task categories with IIndexingTaskManager, custom record indexing, and how indexing sources differ from the data sources of data pipelines. Use this skill when requests mention Orchard Core Indexing Sources, AddElasticsearchIndexingSource, AddAzureAISearchIndexingSource, Register a new indexing source, or closely related Orchard Core implementation, setup, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -94,7 +94,8 @@ for a custom provider. They are not Orchard Core APIs and must be replaced by
 the provider's own manager implementations:
 
 ```csharp
-// Fictional Contoso provider example.
+// Fictional Contoso provider example. S is an IStringLocalizer injected in the startup.
+// DisplayName and Description are LocalizedString values.
 services.AddIndexingSource<
     ContosoIndexManager,
     ContosoDocumentIndexManager,
@@ -103,13 +104,32 @@ services.AddIndexingSource<
     implementationType: "Products",
     options =>
     {
-        options.DisplayName = "Products in Contoso";
-        options.Description = "Create a Contoso index for product records.";
+        options.DisplayName = S["Products in Contoso"];
+        options.Description = S["Create a Contoso index for product records."];
     });
 ```
 
 Do not treat `OrchardCore.OpenSearch` or `AddOpenSearchIndexingSource` as
-built-in Orchard Core APIs; no such provider exists in Orchard Core 3.0.0.
+built-in Orchard Core APIs; no such provider exists in Orchard Core 4.0.
+The built-in wrappers are `AddLuceneIndexingSource`,
+`AddElasticsearchIndexingSource` and `AddAzureAISearchIndexingSource`.
 Pair a custom source with an
 `IndexProfileHandlerBase` implementation only when it owns source-specific
 defaults or mappings.
+
+## Indexing Sources vs Data Sources
+
+Orchard Core 4.0 also has **data sources** (`IDataSource`, registered with
+`services.AddDataSource<T>()` in the Data Pipelines Core feature). They are a
+different extension point: a data source exposes tabular data sets that data
+pipelines and reports read in batches with a user's permissions, while an
+indexing source feeds documents into a search provider index from the
+indexing task log. Use `orchardcore-data-sources` for the former.
+
+## Provider Connection Settings
+
+Provider connection settings that options-gated sources depend on are read
+from `OrchardCore:Search:Elasticsearch` and `OrchardCore:Search:AzureAISearch`
+since Orchard Core 4.0 (formerly `OrchardCore_Elasticsearch` and
+`OrchardCore_AzureAISearch`). Azure AI Search options are refreshed through
+`IOptionsMonitor<AzureAISearchDefaultOptions>` when the admin settings change.

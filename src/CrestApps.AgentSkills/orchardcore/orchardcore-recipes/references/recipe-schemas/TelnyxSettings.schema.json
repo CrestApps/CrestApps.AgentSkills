@@ -1,0 +1,203 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TelnyxSettings",
+      "description": "Recipe step discriminator. Must be \u0027TelnyxSettings\u0027."
+    },
+    "Settings": {
+      "type": "object",
+      "description": "Telnyx voice provider settings. Telnyx authenticates every REST call with one tenant API key.",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Whether the Telnyx provider is enabled."
+        },
+        "ApiKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx API key (v2), presented as a bearer token on every REST call. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "ConnectionId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Identifier of the Telnyx Call Control (Voice API) application used to place and control calls. It is provisioned by the Connect action and belongs to one Telnyx account."
+        },
+        "SipConnectionId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional Telnyx Credential (SIP) connection browser credentials are issued against. When empty, \u0027ConnectionId\u0027 is used."
+        },
+        "OutboundVoiceProfileId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional outbound voice profile applied to outbound calls when the connection does not bind one."
+        },
+        "CredentialLifetimeMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 180,
+          "description": "Browser SIP credential lifetime, in minutes."
+        },
+        "DefaultOutboundCallerId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Default E.164 caller identifier presented on outbound calls when no other caller identifier applies."
+        },
+        "WebhookPublicKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx webhook Ed25519 public key (base64) used to verify inbound webhook signatures. Inbound webhooks are rejected while it is empty. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "ApiBaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional override of the Telnyx REST API base address. Empty uses https://api.telnyx.com/v2/."
+        },
+        "SipWebSocketUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP-over-WebSocket signaling URL browser soft phones register against. Empty uses wss://sip.telnyx.com:7443."
+        },
+        "SipDomain": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "SIP domain browser credentials register under. Empty uses sip.telnyx.com."
+        },
+        "WebRtcCodecs": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or space-separated preferred WebRTC audio codecs advertised to the browser."
+        },
+        "WebRtcRegion": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Telnyx signaling region browser soft phones register on. Empty lets Telnyx geo-routing choose."
+        },
+        "IceUrls": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Comma- or space-separated STUN/TURN URLs advertised to the browser. Empty advertises a default Telnyx STUN server."
+        },
+        "TurnUsername": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional TURN user name advertised alongside \u0027IceUrls\u0027."
+        },
+        "TurnCredential": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional TURN credential advertised alongside \u0027IceUrls\u0027. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "IceTransportPolicy": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "ICE transport policy advertised to the browser, for example \u0027all\u0027 or \u0027relay\u0027."
+        },
+        "EchoTestDestination": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional echo destination (a number or SIP URI that echoes audio back) used by the audio test and the health canary."
+        },
+        "OrphanedCallHandling": {
+          "type": "string",
+          "enum": [
+            "Report",
+            "EndCall"
+          ],
+          "description": "What to do about a call the connection has up that the platform has no record of: record it and leave it connected, or tell the caller and hang up."
+        },
+        "AnsweringMachineDetection": {
+          "type": "string",
+          "enum": [
+            "Premium",
+            "Standard",
+            "Disabled"
+          ],
+          "description": "How an automated call asks the provider whether a person or a machine answered it."
+        },
+        "NoiseSuppressionEngine": {
+          "type": "string",
+          "enum": [
+            "Off",
+            "Krisp",
+            "DeepFilterNet",
+            "Denoiser",
+            "AiCoustics"
+          ],
+          "description": "The Telnyx noise suppression engine started on an agent\u0027s leg once it is connected, or \u0027Off\u0027."
+        },
+        "NoiseSuppressionAgentVoice": {
+          "type": "boolean",
+          "description": "Whether noise suppression cleans the agent\u0027s voice, which is what the caller hears."
+        },
+        "NoiseSuppressionCallerVoice": {
+          "type": "boolean",
+          "description": "Whether noise suppression cleans the caller\u0027s voice, which is what the agent hears."
+        },
+        "NoiseSuppressionStrength": {
+          "type": "string",
+          "enum": [
+            "Light",
+            "Balanced",
+            "Strong"
+          ],
+          "description": "How hard the noise suppression engine works on each voice it cleans. \u0027Balanced\u0027 (the default) removes line hiss while keeping the soft endings of words."
+        },
+        "TtsVoice": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Text-to-speech voice used by spoken prompts, either \u0027female\u0027, \u0027male\u0027 or a \u0027Provider.Model.VoiceId\u0027 name such as \u0027AWS.Polly.Joanna-Neural\u0027."
+        },
+        "TtsLanguage": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Language spoken prompts are said in, for example \u0027en-US\u0027."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "Settings"
+  ],
+  "additionalProperties": true
+}

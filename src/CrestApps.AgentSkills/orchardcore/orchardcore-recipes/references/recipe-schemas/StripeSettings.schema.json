@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "StripeSettings",
+      "description": "Recipe step discriminator. Must be \u0027StripeSettings\u0027."
+    },
+    "Settings": {
+      "type": "object",
+      "description": "Stripe settings. A member the step carries replaces the stored one.",
+      "properties": {
+        "IsLive": {
+          "type": "boolean",
+          "description": "Whether the live Stripe keys are used. When false, the test keys are used."
+        },
+        "CheckoutMode": {
+          "type": "string",
+          "enum": [
+            "PaymentElements",
+            "HostedCheckout"
+          ],
+          "description": "The Stripe checkout integration mode. Kept for compatibility; the checkout always collects card details on the site with Payment Elements."
+        },
+        "LivePublishableKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The live publishable key. It must start with \u0027pk_live_\u0027, or the step fails and nothing is stored."
+        },
+        "LivePrivateSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The live secret key. It must start with \u0027sk_live_\u0027, or the step fails and nothing is stored. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "LiveWebhookSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The live webhook signing secret. It must start with \u0027whsec_\u0027, or the step fails and nothing is stored. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "TestPublishableKey": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The test publishable key. It must start with \u0027pk_test_\u0027, or the step fails and nothing is stored."
+        },
+        "TestPrivateSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The test secret key. It must start with \u0027sk_test_\u0027, or the step fails and nothing is stored. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        },
+        "TestWebhookSecret": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The test webhook signing secret. It must start with \u0027whsec_\u0027, or the step fails and nothing is stored. Secret: supply it in clear text and it is data-protected before it is stored. It is never exported, and when it is omitted or empty the destination keeps the value it already stores."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "name",
+    "Settings"
+  ],
+  "additionalProperties": true
+}

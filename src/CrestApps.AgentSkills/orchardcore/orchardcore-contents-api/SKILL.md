@@ -1,6 +1,10 @@
 ---
 name: orchardcore-contents-api
-description: Skill for using Orchard Core content APIs. Covers the Contents REST API (GET, POST, DELETE), GraphQL content queries and filtering, Liquid content loading helpers, Razor content helper methods, content item lifecycle states, and admin list customization. Use this skill when requests mention Orchard Core Contents API, Using Orchard Core Content APIs, Content Item Lifecycle States, CommonPart Properties, REST API Endpoints, Authentication for REST API, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Contents, OrchardCore.Apis.GraphQL, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, IContentManager, CommonPart, TitlePart, HtmlBodyPart, IOrchardHelper, IEnumerable, IContentsAdminListFilterProvider. It also helps with REST API Endpoints, Authentication for REST API, GraphQL Queries, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for using Orchard Core content APIs. Covers the Contents REST API minimal endpoints (GET, POST with draft, DELETE) secured by the Api bearer scheme, AccessContentApi and content permission checks, Problem Details error responses, the ManageLiquidTemplates requirement for Liquid content mutations, GraphQL content queries and filtering, Liquid and Razor content loading helpers, content item lifecycle states, and admin list customization. Use this skill when requests mention Orchard Core Contents API, api/content, content REST endpoints, content lifecycle states, CommonPart, Authentication for REST API, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Contents, OrchardCore.Apis.GraphQL, OrchardCore.OpenId.Validation, IContentManager, IOrchardHelper, IContentsAdminListFilterProvider, AccessContentApi, and ManageLiquidTemplates.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Contents API - Prompt Templates
@@ -12,7 +16,8 @@ You are an Orchard Core expert. Generate code and configuration for accessing co
 ### Guidelines
 
 - The `OrchardCore.Contents` module owns the REST endpoints and the `AccessContentApi` permission. GraphQL requires `OrchardCore.Apis.GraphQL`; Liquid and Razor helpers are separate display-management integrations.
-- REST API endpoints use the `Api` authentication scheme. Configure an API authentication provider, such as OpenID token validation, for that scheme.
+- REST API endpoints use the `Api` authentication scheme. Configure an API authentication provider, such as OpenID token validation, for that scheme. Cookie sessions are not accepted.
+- Mutating items that contain Liquid parts or fields also requires `ManageLiquidTemplates` in 4.0.
 - Create a dedicated API user with appropriate permissions for API calls.
 - GraphQL queries are available when the `OrchardCore.Apis.GraphQL` feature is enabled.
 - Use Liquid `Content` object to load content items by alias, slug, ID, or version ID.
@@ -47,30 +52,21 @@ Attach `CommonPart` to edit common properties of a content item:
 
 ### REST API Endpoints
 
-Enable the `OrchardCore.Contents` module and configure OpenId for authentication.
+`OrchardCore.Contents` maps three minimal-API endpoints. All of them authenticate with the `Api` scheme (bearer tokens only, no cookies), skip anti-forgery, and return the content item JSON on success.
 
-#### GET /api/content/{contentItemId}
-
-Retrieve a content item by ID.
-
-| Parameter       | Location | Required | Type   | Description                   |
-|-----------------|----------|----------|--------|-------------------------------|
-| `contentItemId` | path     | Yes      | string | The content item ID           |
-
-**Response:** `200 OK` with the content item JSON.
+| Method and route | Endpoint name | Purpose |
+|---|---|---|
+| `GET /api/content/{contentItemId}` | `ApiGetContentItem` | Get the published version. `404` if it does not exist. |
+| `POST /api/content` | `ApiCreateContentItem` | Create a new item, or update the item whose `ContentItemId` matches. Add `?draft=true` to save a draft instead of publishing. |
+| `DELETE /api/content/{contentItemId}` | `ApiDeleteContentItem` | Remove the item and return it. `404` if it does not exist. |
 
 #### POST /api/content
-
-Create or update a content item. Send the content item JSON in the request body.
-
-**Request body example:**
 
 ```json
 {
   "ContentItemId": "optional-existing-id",
   "ContentType": "BlogPost",
   "DisplayText": "My New Post",
-  "Published": true,
   "TitlePart": {
     "Title": "My New Post"
   },
@@ -80,57 +76,63 @@ Create or update a content item. Send the content item JSON in the request body.
 }
 ```
 
-**Response:** `200 OK` with the created/updated content item.
-
-#### DELETE /api/content/{contentItemId}
-
-Delete a content item by ID.
-
-| Parameter       | Location | Required | Type   | Description                     |
-|-----------------|----------|----------|--------|---------------------------------|
-| `contentItemId` | path     | Yes      | string | The content item ID to delete   |
-
-**Response:** `200 OK` on success.
+- A new item needs a known `ContentType`; otherwise the response is `400`.
+- For an existing item the payload is merged into the latest draft, with arrays replaced rather than merged.
+- Validation failures return `400` with an RFC 9457 validation Problem Details body (`errors` keyed by member name), and nothing is saved.
+- Content handlers and workflows run as they do in the editor.
 
 ### REST API Permission Matrix
 
-Every endpoint requires `AccessContentApi`. It also checks content permissions:
+Every endpoint requires `AccessContentApi`. It also checks content permissions against the item:
 
-| Endpoint | Additional permission |
+| Endpoint | Additional permissions |
 |---|---|
 | `GET /api/content/{contentItemId}` | `ViewContent` on the item |
-| `POST /api/content` for a new item | `PublishContent` on the new item |
-| `POST /api/content` for an existing item | `EditContent` on the item |
+| `POST /api/content` for a new item | `EditContent` and `PublishContent` on the new item, then `EditContent` again on the merged item |
+| `POST /api/content` for an existing item | `EditContent` on the item before and after the merge |
 | `DELETE /api/content/{contentItemId}` | `DeleteContent` on the item |
+
+Missing authentication returns `401` and missing permissions `403`; in 4.0 both carry an `application/problem+json` body.
+
+#### Liquid Content and `ManageLiquidTemplates`
+
+In Orchard Core 4.0, a mutation of an item that contains a `LiquidPart`, a `LiquidField`, or a `FacebookPluginPart`, directly or recursively embedded (for example in a `BagPart` or `FlowPart`), also requires the security-critical `ManageLiquidTemplates` permission (`OrchardCore.Liquid.Permissions.ManageLiquidTemplates`, granted to Administrator and Editor by default). The check runs on the merged item, so an API user without it gets `403` and the whole mutation is cancelled; the Liquid component is not silently dropped. `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField` no longer execute Liquid, so posting Liquid syntax there stores it as plain source.
 
 ### Authentication for REST API
 
-API access requires OAuth 2 via OpenId. Enable and configure these features:
+The endpoints only accept bearer tokens validated by `OrchardCore.OpenId.Validation`.
 
-1. **OpenId Authorization Server** (`OrchardCore.OpenId.Server`)
-2. **OpenId Token Validation** (`OrchardCore.OpenId.Validation`)
+1. Enable `OrchardCore.OpenId.Server` and `OrchardCore.OpenId.Validation`, configure a flow (client credentials for services, authorization code + PKCE for apps), and set `OpenIdValidationSettings.Tenant` to the server tenant. See `orchardcore-openid`.
+2. Create a dedicated API user or a client-credentials application with `RoleEntries`, and grant its role `AccessContentApi` plus the content permissions above.
+3. Request the `roles` scope for user-based tokens so the role permissions apply.
 
 ```json
 {
   "steps": [
     {
-      "name": "Feature",
+      "name": "feature",
       "enable": [
         "OrchardCore.Contents",
         "OrchardCore.OpenId.Server",
         "OrchardCore.OpenId.Validation"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
 
-Create a dedicated API user and configure appropriate permissions via **Security > Roles**.
+```bash
+curl -X POST "https://cms.example.com/api/content?draft=true" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "ContentType": "BlogPost", "DisplayText": "Draft post", "TitlePart": { "Title": "Draft post" } }'
+```
+
+To explore and try the endpoints in a browser, enable `OrchardCore.OpenApi` with the Swagger UI and run the `OpenApiPkce` recipe (see `orchardcore-openapi`). With `OrchardCore.RateLimits`, an `Endpoint` policy on `/api` throttles these calls.
 
 ### GraphQL Queries
 
-Enable `OrchardCore.Apis.GraphQL` for GraphQL content queries.
+Enable `OrchardCore.Apis.GraphQL` for GraphQL content queries. Callers need `ExecuteGraphQL` (`OrchardCore.Apis.GraphQL.GraphQLPermissions`), and results are filtered by `ViewContent` / `ViewOwnContent` per content type and per item. See `orchardcore-graphql` for configuration and custom types.
 
 #### Query All Items of a Content Type
 
@@ -370,6 +372,8 @@ List content items sharing a stereotype by navigating to:
 ```
 /Admin/Contents/ContentItems?stereotype=Test
 ```
+
+In 4.0, `stereotype` and `contentTypeId` accept several values, repeated or comma-separated, for example `?stereotype=Widget,Page` or `?contentTypeId=Article&contentTypeId=BlogPost`.
 
 #### Custom Full-Text Search
 

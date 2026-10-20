@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data-migrations
-description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, schema alterations, data seeding, and migration versioning patterns. Use this skill when requests mention Orchard Core Data Migrations, Create Data Migrations, Basic Migration with Content Type, Folder and Class Conventions, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, CrestApps.Sports.Teams.Migrations, DataMigration, IDataMigration, IContentDefinitionManager, SchemaBuilder, WithPart. It also helps with data migrations examples, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, Incremental Migration (UpdateFrom), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, adding SQL indexes to existing tables, schema alterations, recipe migrations with IRecipeMigrator, data seeding, AddDataMigration registration, and migration versioning patterns. Use this skill when requests mention Orchard Core Data Migrations, Create Data Migrations, Basic Migration with Content Type, Folder and Class Conventions, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, Incremental Migration (UpdateFrom), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, DataMigration, IDataMigration, AddDataMigration, IRecipeMigrator, IContentDefinitionManager, SchemaBuilder, CreateIndex, WithPart.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -22,7 +22,9 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - Use `CreateAsync()` for initial migration, `UpdateFrom1Async()`, `UpdateFrom2Async()` for incremental updates.
 - `Create`, `CreateAsync`, `UpdateFromX`, `UpdateFromXAsync`, `Uninstall`, and `UninstallAsync` can be marked `static` when they do not use injected services, inherited instance members, or other instance state.
 - Keep migration methods instance methods when they rely on constructor-injected services like `IContentDefinitionManager` or inherited members like `SchemaBuilder`.
-- Register migrations in `Startup.cs` using `services.AddScoped<IDataMigration, Migrations>()`.
+- Register migrations in `Startup.cs` using `services.AddDataMigration<Migrations>()` (namespace `OrchardCore.Data.Migration`).
+- Migrations run automatically when the tenant starts and strictly follow the version chain: `UpdateFrom4Async()` runs only when the last method returned `4`. Never renumber shipped migrations.
+- Use `IRecipeMigrator.ExecuteAsync("file.recipe.json", this)` to run a recipe file from the module's `Migrations` folder.
 - `IContentDefinitionManager` is used to define content types and parts.
 - `SchemaBuilder` is used to create and alter YesSql index tables.
 - Use stable column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()`. A string literal is clearest for a persisted schema; use `nameof(...)` only when the member name is intentionally the persisted column name.
@@ -30,11 +32,10 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - If an index needs access to the YesSql document id, expose `public long DocumentId { get; set; }` on the `MapIndex` type and let YesSql populate it.
 - Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.
 
-For Orchard Core 3.0 migrations, use the current async migration and clock
-APIs. `IDataMigrationManager.UpdateAsync` accepts the feature names to update,
-and `ILocalClock.GetLocalNowAsync` replaces the removed local-clock async
-member. Do not add `IAsyncOptions` or `IAsyncConfigureOptions<TOptions>`;
-configure options with the synchronous options APIs.
+Use the current async migration and clock APIs. `IDataMigrationManager.UpdateAsync`
+accepts the feature names to update, and `ILocalClock.GetLocalNowAsync` replaces the
+removed local-clock async member. Do not add `IAsyncOptions` or
+`IAsyncConfigureOptions<TOptions>`; configure options with the synchronous options APIs.
 
 ### Basic Migration with Content Type
 
@@ -189,6 +190,46 @@ public sealed class Migrations : DataMigration
 }
 ```
 
+### Adding a SQL Index to an Existing Table
+
+Create the index in a shared helper, call it from `CreateAsync()` for new tenants and from a new `UpdateFromXAsync()` for existing ones, and bump the returned version in both. Orchard Core 4.0 added `IDX_ContentItemIndex_ContentItemId` to `ContentItemIndex` exactly this way (version 6 to 7). Lead the index with the column you filter on; creating an index on a large table takes time during the upgrade.
+
+```csharp
+public sealed class Migrations : DataMigration
+{
+    public async Task<int> CreateAsync()
+    {
+        await SchemaBuilder.CreateMapIndexTableAsync<{{IndexName}}>(table => table
+            .Column<string>("ContentItemId", col => col.WithLength(26))
+            .Column<bool>("Published")
+            .Column<bool>("Latest")
+        );
+
+        await CreateContentItemIdIndexAsync();
+
+        // Shortcut: new tenants skip UpdateFrom1Async.
+        return 2;
+    }
+
+    public async Task<int> UpdateFrom1Async()
+    {
+        await CreateContentItemIdIndexAsync();
+
+        return 2;
+    }
+
+    private Task CreateContentItemIdIndexAsync()
+        => SchemaBuilder.AlterIndexTableAsync<{{IndexName}}>(table => table
+            .CreateIndex("IDX_{{IndexName}}_ContentItemId",
+                "ContentItemId",
+                "DocumentId",
+                "Published",
+                "Latest"));
+}
+```
+
+`DocumentId` can be listed in a `CreateIndex` call even though it is never declared as a column.
+
 ### Incremental Migration (UpdateFrom)
 
 ```csharp
@@ -272,7 +313,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IDataMigration, Migrations>();
+        services.AddDataMigration<Migrations>();
         services.AddIndexProvider<{{IndexName}}Provider>();
     }
 }

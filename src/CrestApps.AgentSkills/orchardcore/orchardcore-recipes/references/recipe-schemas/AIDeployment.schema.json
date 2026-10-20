@@ -71,6 +71,56 @@
               "IdentityId": {
                 "type": "string",
                 "description": "Optional client ID of a user-assigned managed identity. Used when AuthenticationType is ManagedIdentity."
+              },
+              "AIDeploymentMetadata": {
+                "type": "object",
+                "properties": {
+                  "Features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Technical name of a registered model feature the underlying model was trained with, for example textGeneration, toolCalling, reasoning, imageInput, audioInput, or realtime."
+                    },
+                    "uniqueItems": true,
+                    "description": "Technical names of the trained model features this deployment supports. Only declared features are offered in editors and sent to the provider."
+                  },
+                  "Parameters": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "AllowedValues": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Subset of the registered allowed values this deployment supports. Omit or leave empty to support every registered value."
+                        },
+                        "DefaultValue": {
+                          "type": "string",
+                          "description": "Value applied when an operator does not select one."
+                        },
+                        "Minimum": {
+                          "type": "number",
+                          "description": "Inclusive minimum accepted value for numeric parameters."
+                        },
+                        "Maximum": {
+                          "type": "number",
+                          "description": "Inclusive maximum accepted value for numeric parameters."
+                        },
+                        "Step": {
+                          "type": "number",
+                          "description": "Increment applied by numeric editors."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Per-deployment narrowing of a registered model parameter."
+                    },
+                    "description": "Supported model parameters keyed by their registered technical name (for example reasoningEffort). A parameter that is not present is not exposed by the deployment."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Declared model capabilities for the deployment: the trained features it supports and the configurable model parameters it exposes."
               }
             },
             "additionalProperties": true,
@@ -89,7 +139,7 @@
                   "TextToSpeech",
                   "Vision"
                 ],
-                "description": "The deployment purpose. Defaults to Chat when not specified."
+                "description": "Legacy. Declare the model\u0027s capabilities under Properties.AIDeploymentMetadata instead. A deployment that names neither is imported as a text chat deployment."
               },
               {
                 "type": "array",
@@ -104,11 +154,11 @@
                     "TextToSpeech",
                     "Vision"
                   ],
-                  "description": "The deployment purpose. Defaults to Chat when not specified."
+                  "description": "Legacy. Declare the model\u0027s capabilities under Properties.AIDeploymentMetadata instead. A deployment that names neither is imported as a text chat deployment."
                 },
                 "minItems": 1,
                 "uniqueItems": true,
-                "description": "The deployment purposes."
+                "description": "Legacy deployment purposes, projected onto model capabilities on import."
               }
             ]
           }

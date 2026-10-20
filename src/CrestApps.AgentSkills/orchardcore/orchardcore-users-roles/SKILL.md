@@ -1,6 +1,6 @@
 ---
 name: orchardcore-users-roles
-description: Skill for managing users, roles, and permissions in Orchard Core. Covers user registration, role creation, permission definitions, custom user settings, and authentication configuration. Use this skill when requests mention Orchard Core Users & Roles, Manage Users, Roles, and Permissions, Enabling User and Role Features, Defining Custom Permissions, Registering Permission Provider, Checking Permissions in Code, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Users, OrchardCore.Roles, OrchardCore.Users.Registration, OrchardCore.Users.ResetPassword, OrchardCore.Users.CustomUserSettings, OrchardCore.Security.Permissions, IPermissionProvider, IAuthorizationService. It also helps with users roles examples, Registering Permission Provider, Checking Permissions in Code, Checking Permissions in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for managing users, roles, and permissions in Orchard Core. Covers login, registration, and external authentication settings recipes, persistent authentication cookies, email confirmation resend, ILoginFormEvent and ILogoutFormEvent, the User Loggedout workflow event, RegistrationOptions and ExternalLoginOptions through IOptionsMonitor, external login scripts, rate-limited user endpoints, Users and Roles configuration sections, role recipes with PermissionBehavior, ViewRoles, UsersPermissions, and permission checks in code and Liquid. Use this skill when requests mention Orchard Core Users & Roles, Login Settings, Remember me, Email Confirmation, Logout events, Defining Custom Permissions, Checking Permissions, or closely related Orchard Core implementation, setup, extension, upgrade, or troubleshooting work. Strong matches include OrchardCore.Users, OrchardCore.Roles, OrchardCore.Users.Registration, OrchardCore.Users.ExternalAuthentication, IAuthorizationService, UsersPermissions, and LoginSettings.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,12 +16,14 @@ You are an Orchard Core expert. Generate code and configuration for user managem
 ### Guidelines
 
 - Enable `OrchardCore.Users` and `OrchardCore.Roles` for user and role management.
-- Custom permissions should extend `IPermissionProvider`.
-- Roles group permissions together for easier management.
-- Use `[Authorize]` attributes or `IAuthorizationService` for permission checks.
-- Custom user settings allow extending user profiles with additional fields.
-- Registration and login can be customized through the registration and login event interfaces.
-- External authentication providers (Google, Microsoft, etc.) can be added.
+- Declare permissions in a static `*Permissions` class and expose them through an `IPermissionProvider` (see `orchardcore-permission-providers`).
+- Create permission descriptions with `LocalizationSource.Create("...", typeof(MyPermissions))`.
+- Use `IAuthorizationService.AuthorizeAsync(User, permission)` for permission checks and `has_permission` in Liquid.
+- Reference built-in user permissions through `OrchardCore.Users.UsersPermissions` and role permissions through `OrchardCore.Roles.RolesPermissions`.
+- Customize login, logout, registration, and password recovery with `ILoginFormEvent`, `ILogoutFormEvent`, `IRegistrationFormEvents`, and `IPasswordRecoveryFormEvents`.
+- Read `RegistrationOptions` and `ExternalLoginOptions` through `IOptionsMonitor<T>.CurrentValue`; they refresh when site settings change.
+- Enable `OrchardCore.RateLimits` to throttle login, registration, password recovery, and confirmation-email endpoints (see `orchardcore-rate-limits`).
+- External authentication providers live in their own skills (`orchardcore-google`, `orchardcore-microsoft-auth`, `orchardcore-facebook`, `orchardcore-github-authentication`, `orchardcore-twitter`, `orchardcore-openid`).
 
 ### Enabling User and Role Features
 
@@ -43,44 +45,59 @@ You are an Orchard Core expert. Generate code and configuration for user managem
 }
 ```
 
+Other Users features include `OrchardCore.Users.ExternalAuthentication`, Users Change Email, User Time Zone, User Localization, Users Authentication Ticket Store (server-side tickets in memory or distributed cache), Users Audit Trail, and the Two-Factor Email, Authenticator App, and SMS methods.
+
 ### Defining Custom Permissions
 
 ```csharp
+using OrchardCore.Localization;
 using OrchardCore.Security.Permissions;
 
-public sealed class Permissions : IPermissionProvider
-{
-    public static readonly Permission Manage{{Feature}} =
-        new("Manage{{Feature}}", "Manage {{Feature}}");
+namespace MyModule;
 
-    public static readonly Permission View{{Feature}} =
-        new("View{{Feature}}", "View {{Feature}}");
+public static class MyFeaturePermissions
+{
+    public static readonly Permission ManageMyFeature = new(
+        "ManageMyFeature",
+        LocalizationSource.Create("Manage my feature", typeof(MyFeaturePermissions)));
+
+    public static readonly Permission ViewMyFeature = new(
+        "ViewMyFeature",
+        LocalizationSource.Create("View my feature", typeof(MyFeaturePermissions)),
+        [ManageMyFeature]);
+}
+```
+
+```csharp
+using OrchardCore;
+using OrchardCore.Security.Permissions;
+
+namespace MyModule;
+
+internal sealed class PermissionProvider : IPermissionProvider
+{
+    private readonly IEnumerable<Permission> _allPermissions =
+    [
+        MyFeaturePermissions.ManageMyFeature,
+        MyFeaturePermissions.ViewMyFeature,
+    ];
 
     public Task<IEnumerable<Permission>> GetPermissionsAsync()
-    {
-        return Task.FromResult<IEnumerable<Permission>>(new[]
-        {
-            Manage{{Feature}},
-            View{{Feature}}
-        });
-    }
+        => Task.FromResult(_allPermissions);
 
-    public IEnumerable<PermissionStereotype> GetDefaultStereotypes()
-    {
-        return new[]
+    public IEnumerable<PermissionStereotype> GetDefaultStereotypes() =>
+    [
+        new PermissionStereotype
         {
-            new PermissionStereotype
-            {
-                Name = "Administrator",
-                Permissions = new[] { Manage{{Feature}} }
-            },
-            new PermissionStereotype
-            {
-                Name = "Editor",
-                Permissions = new[] { View{{Feature}} }
-            }
-        };
-    }
+            Name = OrchardCoreConstants.Roles.Administrator,
+            Permissions = _allPermissions,
+        },
+        new PermissionStereotype
+        {
+            Name = "Editor",
+            Permissions = [MyFeaturePermissions.ViewMyFeature],
+        },
+    ];
 }
 ```
 
@@ -91,7 +108,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IPermissionProvider, Permissions>();
+        services.AddPermissionProvider<PermissionProvider>();
     }
 }
 ```
@@ -100,6 +117,7 @@ public sealed class Startup : StartupBase
 
 ```csharp
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 public sealed class MyController : Controller
 {
@@ -112,7 +130,7 @@ public sealed class MyController : Controller
 
     public async Task<IActionResult> Index()
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.View{{Feature}}))
+        if (!await _authorizationService.AuthorizeAsync(User, MyFeaturePermissions.ViewMyFeature))
         {
             return Forbid();
         }
@@ -122,6 +140,8 @@ public sealed class MyController : Controller
 }
 ```
 
+Role-specific user permissions are created from `UsersPermissions`, for example `UsersPermissions.CreateAssignRoleToUsersPermission("Editor")`, `CreateEditUsersInRolePermission`, `CreateDeleteUsersInRolePermission`, `CreateListUsersInRolePermission`, and `CreatePermissionForManageUsersInRole`.
+
 ### Checking Permissions in Liquid
 
 ```liquid
@@ -130,39 +150,32 @@ public sealed class MyController : Controller
 {% endif %}
 ```
 
-The `Administrator` role no longer receives permission claims by default during
-login. Use `has_permission` for permission checks instead of checking a
-permission claim with `has_claim`.
+The `Administrator` role does not receive permission claims during login. Use `has_permission` instead of checking a permission claim with `has_claim`.
 
-### Registration and Login Extensibility in 3.0
+### Login Settings via Recipe
 
-Registration and login customization now use dedicated event contracts:
-
-```csharp
-public sealed class RegistrationEvents : RegistrationFormEventsBase
+```json
 {
-    public override Task RegisteringAsync(UserRegisteringContext context)
+  "steps": [
     {
-        // Validate or change the registration context.
-        return Task.CompletedTask;
+      "name": "Settings",
+      "LoginSettings": {
+        "UseSiteTheme": false,
+        "DisableLocalLogin": false,
+        "AllowRememberMe": true,
+        "UsePersistentAuthenticationCookie": false,
+        "AllowChangingUsername": false,
+        "AllowChangingEmail": false,
+        "AllowChangingPhoneNumber": true
+      }
     }
+  ]
 }
 ```
 
-`IRegistrationFormEvents` includes
-`Task RegisteringAsync(UserRegisteringContext context)`, and
-`RegistrationFormEventsBase` can be used when only selected handlers are
-needed. `ILoginFormEvent` includes
-`Task<IActionResult> ValidatingLoginAsync(IUser user)`.
+`UsePersistentAuthenticationCookie` (**Use persistent authentication cookies by default**) controls whether local and external sign-ins survive browser restarts. With `AllowRememberMe` enabled it is the default value of the **Remember me** checkbox; with `AllowRememberMe` disabled it decides persistence for every sign-in.
 
-The `ExternalLogin` action is no longer on the `Account` controller. Custom
-login views must post external-login forms to the corresponding action on
-`ExternalAuthenticationsController`.
-
-### Registration Settings via Recipe
-
-Use the `Settings` recipe step for the registration settings that remain in
-Orchard Core 3.0:
+### Registration and External Authentication Settings via Recipe
 
 ```json
 {
@@ -173,6 +186,15 @@ Orchard Core 3.0:
         "UsersMustValidateEmail": true,
         "UsersAreModerated": false,
         "UseSiteTheme": false
+      },
+      "ResetPasswordSettings": {
+        "AllowResetPassword": true,
+        "UseSiteTheme": false
+      },
+      "ExternalLoginSettings": {
+        "UseExternalProviderIfOnlyOneDefined": false,
+        "UseScriptToSyncProperties": false,
+        "SyncPropertiesScript": ""
       },
       "ExternalRegistrationSettings": {
         "DisableNewRegistrations": false,
@@ -187,11 +209,89 @@ Orchard Core 3.0:
 }
 ```
 
-`ExternalRegistrationSettings` controls users created through external
-authentication. Do not use the removed `UsersCanRegister`,
-`NoPasswordForExternalUsers`, `NoUsernameForExternalUsers`,
-`NoEmailForExternalUsers`, or `UseScriptToGenerateUsername` properties on
-`RegistrationSettings`.
+With `OrchardCore.Deployment` enabled, Login, Registration, Reset Password, Change Email, External login, and External registration settings each have a deployment step.
+
+The **Generate username** script receives `context` with `userName`, `loginProvider`, and `externalClaims`; set `context.userName`. The **Sync properties** script receives `context` and fills `rolesToAdd`, `rolesToRemove`, claims, and properties. Orchard passes the per-login data through the scoped `externalLoginContext()` global, so write scripts against `context` and never build script text from user data.
+
+### Email Confirmation
+
+When `UsersMustValidateEmail` is enabled, an unconfirmed user who signs in with a valid password lands on a page with **Send confirmation email**. The action is offered for about 10 minutes in the same browser (a short-lived cookie, not a sign-in), at most once per minute per user, and, with Rate Limits enabled, 2 requests per minute per IP on the `ResendEmailConfirmation` route (`email-confirmation` policy).
+
+### Login, Logout, and Registration Events
+
+```csharp
+using OrchardCore.Users;
+using OrchardCore.Users.Events;
+
+public sealed class AuditLogoutFormEvent : LogoutFormEventBase
+{
+    public override Task LoggingOutAsync(IUser user, CancellationToken cancellationToken = default)
+    {
+        // Runs before sign-out, while the principal is still available.
+        return Task.CompletedTask;
+    }
+
+    public override Task LoggedOutAsync(IUser user, CancellationToken cancellationToken = default)
+    {
+        // Runs after sign-out.
+        return Task.CompletedTask;
+    }
+}
+```
+
+```csharp
+services.AddScoped<ILogoutFormEvent, AuditLogoutFormEvent>();
+services.AddScoped<IRegistrationFormEvents, MyRegistrationEvents>();
+```
+
+- `ILoginFormEvent` includes `Task<IActionResult> ValidatingLoginAsync(IUser user)`.
+- `IRegistrationFormEvents` includes `Task RegisteringAsync(UserRegisteringContext context)`; derive from `RegistrationFormEventsBase` to override only what you need.
+- With `OrchardCore.Workflows`, the **User Loggedout Event** (`UserLoggedOutEvent`) complements **User Loggedin Event**.
+- External-login forms post to `ExternalAuthenticationsController`, not `AccountController`.
+
+### Reading Settings-Backed Options
+
+```csharp
+using Microsoft.Extensions.Options;
+using OrchardCore.Users.Models;
+
+public sealed class RegistrationGate
+{
+    private readonly IOptionsMonitor<RegistrationOptions> _registrationOptions;
+
+    public RegistrationGate(IOptionsMonitor<RegistrationOptions> registrationOptions)
+    {
+        _registrationOptions = registrationOptions;
+    }
+
+    public bool RequiresEmailConfirmation()
+        => _registrationOptions.CurrentValue.UsersMustValidateEmail;
+}
+```
+
+### Rate-Limited User Endpoints
+
+When `OrchardCore.RateLimits` is enabled, Users registers per-IP route limits: login (POST, 10, sliding window), registration and external registration (3), link external login (10), forgot and reset password (5), and resend confirmation (2 per minute). See `orchardcore-rate-limits` to tune them.
+
+### Configuration Sections
+
+```json
+{
+  "OrchardCore": {
+    "Users": {
+      "LoginPath": "Login",
+      "LogoffPath": "Users/LogOff",
+      "ChangePasswordUrl": "ChangePassword",
+      "ChangePasswordConfirmationUrl": "ChangePasswordConfirmation",
+      "ExternalLoginsUrl": "ExternalLogins",
+      "TwoFactorAuthenticationPath": "TwoFactor"
+    },
+    "Roles": {
+      "AdminRoleName": "Administrator"
+    }
+  }
+}
+```
 
 ### Creating Roles via Recipe
 
@@ -204,8 +304,9 @@ authentication. Do not use the removed `UsersCanRegister`,
         {
           "Name": "{{RoleName}}",
           "Description": "{{RoleDescription}}",
+          "PermissionBehavior": "Replace",
           "Permissions": [
-            "View{{Feature}}",
+            "ViewMyFeature",
             "AccessAdminPanel"
           ]
         }
@@ -215,77 +316,48 @@ authentication. Do not use the removed `UsersCanRegister`,
 }
 ```
 
-`AssignRoleToUsers` is no longer implicitly granted by `EditUsers`. Add
-`OrchardCore.Users.UsersPermissions.AssignRoleToUsers` to existing roles that
-must assign roles, or use
-`OrchardCore.Users.UsersPermissions.CreateAssignRoleToUsersPermission(roleName)`
-for a role-specific permission.
+`PermissionBehavior` is `Replace` (default), `Add` (append missing permissions), or `Remove` (remove listed permissions).
+
+`AssignRoleToUsers` is not implied by `EditUsers`. Grant `AssignRoleToUsers` explicitly, or a role-specific `AssignRoleToUsers_{RoleName}` permission.
+
+### Roles Admin
+
+- `ViewRoles` (implied by `ManageRoles`) gives read-only access to the roles list and a role's permissions.
+- The role Create page has **Save & Configure** to go straight to the permission editor; the Edit page has **Save and continue**.
+- System roles (`Administrator`, `Anonymous`, `Authenticated`) cannot be deleted, and `Administrator` cannot be edited.
+- Permission descriptions are translated with PO files; only context-free descriptions, templated permissions such as "Edit Article", and categories use Data Localization.
 
 ### Enabling and Disabling Users
-
-User activation is managed from the Users list in 3.0. Use the user service
-methods when changing status programmatically:
 
 ```csharp
 await _userService.EnableAsync(user);
 await _userService.DisableAsync(user);
 ```
 
-### Custom User Settings
-
-Extend user profiles with custom settings by enabling `OrchardCore.Users.CustomUserSettings`:
-
-```csharp
-// Define a custom user settings content type via migration
-await _contentDefinitionManager.AlterTypeDefinitionAsync("UserProfile", type => type
-    .DisplayedAs("User Profile")
-    .Stereotype("CustomUserSettings")
-    .WithPart("UserProfile", part => part
-        .WithPosition("0")
-    )
-);
-
-await _contentDefinitionManager.AlterPartDefinitionAsync("UserProfile", part => part
-    .WithField("Bio", field => field
-        .OfType("TextField")
-        .WithDisplayName("Bio")
-        .WithEditor("TextArea")
-        .WithPosition("0")
-    )
-    .WithField("Avatar", field => field
-        .OfType("MediaField")
-        .WithDisplayName("Avatar")
-        .WithPosition("1")
-    )
-);
-```
-
-### External Authentication (e.g., Microsoft)
+### Creating Users from a Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Microsoft.Authentication.AzureAD"
-      ],
-      "disable": []
+      "name": "command",
+      "Commands": [
+        "createUser /UserName:admin /Password:{{Password}} /Email:admin@example.com /Roles:Administrator"
+      ]
     }
   ]
 }
 ```
 
-Configuration in `appsettings.json`:
+### Custom User Settings
 
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_Microsoft_Authentication_AzureAD": {
-      "AppId": "{{ClientId}}",
-      "TenantId": "{{TenantId}}",
-      "CallbackPath": "/signin-oidc"
-    }
-  }
-}
-```
+Use the `CustomUserSettings` stereotype for per-user fields. See `orchardcore-custom-user-settings`.
+
+### Upgrading from 3.x
+
+- `OrchardCore.Users.CommonPermissions` was removed; use `OrchardCore.Users.UsersPermissions` (same member names).
+- `CommonPermissions.CreateAssignRoleToUsersPermission(role)` returned the edit-users-in-role permission in 3.x. `UsersPermissions.CreateAssignRoleToUsersPermission(role)` returns the real assign-role permission; code that relied on the old result must call `CreateEditUsersInRolePermission(role)`.
+- `StandardPermissions.SiteOwner` is gone; use the `Administrator` role.
+- `Permission.Description` is a `LocalizationSource`; use `.Value` or `IStringLocalizerFactory.Localize(permission.Description)`.
+- `IOptions<RegistrationOptions>` and `IOptions<ExternalLoginOptions>` become `IOptionsMonitor<T>` with `CurrentValue`.
+- Rename configuration sections `OrchardCore_Users` to `OrchardCore:Users` and `OrchardCore_Roles` to `OrchardCore:Roles` (old names still work but are deprecated).

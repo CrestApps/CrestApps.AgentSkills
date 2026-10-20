@@ -1,6 +1,10 @@
 ---
 name: orchardcore-templates
-description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, and template precedence rules. Use this skill when requests mention Orchard Core Templates, Customizing Templates in Orchard Core, Content Type Templates, Widget Templates, Content Part Templates, Custom Model Shape Templates, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Templates, OrchardCore.Users, AliasPart, AutoroutePart, HtmlBodyPart, BagPart, TextField, ListPart, TitlePart, (e.g, SummaryAdmin, CampaignAction_Edit. It also helps with Content Part Templates, Custom Model Shape Templates, Content Field Templates, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, the Templates and AdminTemplates recipe steps, template deployment steps, the ManageTemplates, ManageAdminTemplates and ManageLiquidTemplates permissions, Liquid shape template rendering, and template precedence rules. Use this skill when requests mention Orchard Core Templates, Admin Templates, Customizing Templates in Orchard Core, Content Type Templates, Widget Templates, Content Part Templates, Custom Model Shape Templates, template previews or closely related Orchard Core work. Strong matches include work with OrchardCore.Templates, OrchardCore.AdminTemplates, OrchardCore.Users, AliasPart, AutoroutePart, HtmlBodyPart, BagPart, TextField, ListPart, TitlePart, SummaryAdmin, CampaignAction_Edit.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Templates - Prompt Templates
@@ -22,6 +26,60 @@ You are an Orchard Core expert. Generate template overrides and explain template
 - Use `ConsoleLog` (Razor) or `console_log` (Liquid) to inspect available alternates for any shape.
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
+
+### Features, Permissions, and Liquid Security
+
+| Feature | Admin menu | Permission |
+|---|---|---|
+| `OrchardCore.Templates` (depends on `OrchardCore.Liquid`) | **Design > Templates** | `ManageTemplates` (Administrator, Editor) |
+| `OrchardCore.AdminTemplates` | **Design > Admin Templates** | `ManageAdminTemplates` (Administrator) |
+
+Every template action, including previews, also requires the security-critical
+`OrchardCore.Liquid.Permissions.ManageLiquidTemplates` permission (granted to
+Administrator and Editor by default). Without it the template menus and the
+**Templates** shortcuts on the content type, part, and type-part editors are
+hidden. Grant it explicitly to custom roles that manage templates.
+
+`.liquid` shape templates, from the admin or from theme files, are rendered by
+`LiquidShapeTemplateViewEngine` directly with Fluid; Razor no longer renders
+them as `LiquidPage` partials. Behavior and PO localization contexts are
+unchanged.
+
+### Templates Recipe Steps
+
+Templates are keyed by shape name; `Content` is the Liquid source:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Templates",
+      "Templates": {
+        "Content__BlogPost": {
+          "Description": "Blog post detail",
+          "Content": "<article><h1>{{ Model.ContentItem.DisplayText }}</h1>{{ Model.Content | shape_render }}</article>"
+        }
+      }
+    },
+    {
+      "name": "AdminTemplates",
+      "AdminTemplates": {
+        "Content_SummaryAdmin__Article": {
+          "Description": "Article admin list row",
+          "Content": "{{ Model.Header | shape_render }}{{ Model.Content | shape_render }}"
+        }
+      }
+    }
+  ]
+}
+```
+
+The **All Templates** (`AllTemplates`) and **All Admin Templates**
+(`AllAdminTemplates`) deployment steps export these steps. With
+`ExportAsFiles`, each template is written to `Templates/{Name}.liquid` or
+`AdminTemplates/{Name}.liquid` (`__` becomes `-`, `_` becomes `.`) and
+referenced as
+`"Content": "[file:text('Templates/Content-BlogPost.liquid')]"`.
 
 ### Content Type Templates
 
@@ -319,3 +377,12 @@ YourTheme/Views/OrchardCore.Users/Account/Login.cshtml
     <small>{{ Model.ContentItem.PublishedUtc | date: "%B %d, %Y" }}</small>
 </div>
 ```
+
+### Upgrading from 3.x
+
+- `ManageTemplates` or `ManageAdminTemplates` alone no longer opens the
+  template editors; users also need `ManageLiquidTemplates`. Editor keeps it
+  through a migration, custom roles must be granted it.
+- Output stored HTML through the part or field shape (or `sanitize_html`)
+  instead of `{{ ... .Html | raw }}`: HTML and Markdown source is no longer
+  sanitized on save.

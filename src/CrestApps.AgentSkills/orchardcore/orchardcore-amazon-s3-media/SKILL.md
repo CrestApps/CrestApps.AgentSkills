@@ -1,116 +1,115 @@
 ---
 name: orchardcore-amazon-s3-media
-description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers bucket setup, AWS credentials, security policies, tenant templating, local S3 emulators, ImageSharp resized-image caches, and CDN use. Use this skill for OrchardCore.Media.AmazonS3, OrchardCore.Media.AmazonS3.ImageSharpImageCache, Amazon S3 Media Storage Configuration, or related implementation, setup, extension, and troubleshooting work. Strong matches include ShellSettings, BucketName, appsettings.json, and AwsImageSharpImageCacheOptions. It also helps with profiles, credential loading, tenant buckets, base folders, emulator settings, recipes, and referenced examples.
+description: Skill for configuring Amazon S3 media storage in Orchard Core. Covers the OrchardCore.Media.AmazonS3 and OrchardCore.Media.AmazonS3.ImageCache features, the OrchardCore Media AmazonS3 and Media AmazonS3 ImageCache configuration sections, environment variable names, bucket setup, AWS credentials and their loading order, bucket policies, tenant templating with ShellSettings, local S3 emulators with ServiceURL and ForcePathStyle, the Media Cache, resized image caching in S3, TUS resumable upload staging with S3 multipart uploads, and CDN use. Use this skill for Amazon S3 Media Storage, AwsStorageOptions, AwsMediaImageCacheOptions, BucketName, BasePath, CreateBucket, RemoveBucket, AWSS3ResizedImageCache, S3TusTempStore, upgrading from OrchardCore_Media_AmazonS3 or OrchardCore.Media.AmazonS3.ImageSharpImageCache, or related implementation, setup, extension, and troubleshooting work.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# Orchard Core Amazon S3 Media Storage - Prompt Templates
+# Orchard Core Amazon S3 Media Storage
 
 ## Module Overview
 
-The `OrchardCore.Media.AmazonS3` module enables storing media assets in Amazon S3 Buckets instead of the default `App_Data` file-based store. It provides two features:
+The `OrchardCore.Media.AmazonS3` module stores media in S3 buckets instead of
+`App_Data`:
 
-- **OrchardCore.Media.AmazonS3** — Replaces the default media store with Amazon S3 storage.
-- **OrchardCore.Media.AmazonS3.ImageSharpImageCache** — Stores ImageSharp resized image cache in Amazon S3 instead of the local file system.
+- **`OrchardCore.Media.AmazonS3`** — replaces the media store with S3. Depends on (and enables) `OrchardCore.Media.Cache`.
+- **`OrchardCore.Media.AmazonS3.ImageCache`** — stores resized images in S3 instead of `wwwroot/{tenant}/media-cache`.
 
-Media is still served by the Orchard Core web site. The Media Cache module fetches assets on the fly from S3, enabling image resizing through ImageSharp.Web integration.
+Media is still served by the Orchard Core site: the Media Cache fetches objects
+on demand, which keeps on-the-fly resizing working. Only one storage provider
+is active at a time. Invalid configuration logs an error and falls back to local
+file storage.
 
-## Amazon S3 Media Storage Configuration
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Media.AmazonS3",
+        "OrchardCore.Media.AmazonS3.ImageCache"
+      ],
+      "disable": []
+    }
+  ]
+}
+```
 
-### Guidelines
-
-- Enable the `OrchardCore.Media.AmazonS3` feature.
-- Only one storage provider can be active at a time (File Storage, Azure Blob Storage, or Amazon S3 Storage).
-- When hosting inside AWS (EC2, EKS, etc.), you only need `BucketName`; credentials are resolved via IAM roles.
-- When hosting outside AWS, provide credentials via the `Credentials` section, AWS CLI profiles, or environment variables.
-- Prefer AWS profiles or environment variables over embedding credentials in `appsettings.json` to avoid accidental source control exposure.
-- Set `CreateBucket` to `true` to auto-create the bucket. New buckets are created without ACLs for security.
-
-### Configuration Properties
+## Amazon S3 Media Storage (`OrchardCore:Media:AmazonS3`)
 
 | Property | Description | Default |
 |---|---|---|
-| BucketName | AWS S3 bucket name (required). | `""` |
-| Region | AWS region endpoint (e.g., `eu-central-1`). | `""` |
-| Profile | AWS CLI profile name (e.g., `default`). | `""` |
-| ProfilesLocation | Custom location for AWS profiles file. | `""` |
-| Credentials.SecretKey | AWS secret key (for hosting outside AWS). | `""` |
-| Credentials.AccessKey | AWS access key (for hosting outside AWS). | `""` |
-| BasePath | Subdirectory path inside the bucket. | `"/media"` |
-| CreateBucket | Auto-create the bucket on startup. | `false` |
+| `BucketName` | Bucket name (required). Templatable. | |
+| `Region` | Region endpoint, e.g. `eu-central-1`. `Region` or `ServiceURL` is required. | |
+| `ServiceURL` | Custom endpoint (emulators, S3-compatible stores). Use instead of `Region`. | |
+| `ForcePathStyle` | Path-style addressing (`http://host/bucket`), required by emulators. | `false` |
+| `Profile`, `ProfilesLocation` | AWS CLI profile and custom profiles file. | |
+| `Credentials:AccessKey`, `Credentials:SecretKey` | Explicit keys when hosted outside AWS. | |
+| `BasePath` | Sub-path inside the bucket, e.g. `/media`. Templatable. | `""` |
+| `CreateBucket` | Create the bucket on startup (without ACLs). | `false` |
+| `RemoveBucket` | Delete the bucket when the tenant is removed. | `false` |
 
-### Basic Configuration (Hosted in AWS)
+Hosted in AWS (EC2, ECS, EKS), `BucketName` is enough; credentials come from the
+IAM role:
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "BucketName": "my-orchard-media",
-      "BasePath": "/media"
+    "Media": {
+      "AmazonS3": {
+        "BucketName": "my-orchard-media",
+        "Region": "eu-central-1",
+        "BasePath": "/media"
+      }
     }
   }
 }
 ```
 
-### Configuration with Explicit Credentials (Hosted Outside AWS)
+Hosted outside AWS, prefer a profile or environment variables over keys in
+`appsettings.json`:
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "BucketName": "my-orchard-media",
-      "Region": "eu-central-1",
-      "Credentials": {
-        "SecretKey": "your-secret-key",
-        "AccessKey": "your-access-key"
-      },
-      "BasePath": "/media",
-      "CreateBucket": true
+    "Media": {
+      "AmazonS3": {
+        "BucketName": "my-orchard-media",
+        "Region": "eu-central-1",
+        "Profile": "default",
+        "BasePath": "/media",
+        "CreateBucket": true
+      }
     }
   }
 }
 ```
 
-### Configuration with AWS Profile
-
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "BucketName": "my-orchard-media",
-      "Region": "eu-central-1",
-      "Profile": "default",
-      "ProfilesLocation": "",
-      "BasePath": "/media"
-    }
-  }
-}
-```
+Environment variables: `OrchardCore__Media__AmazonS3__BucketName`,
+`OrchardCore__Media__AmazonS3__Credentials__AccessKey`,
+`OrchardCore__Media__AmazonS3__Credentials__SecretKey`.
 
 ## AWS Credentials Loading Order
 
-The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions` loading order:
+`OrchardCore:Media:AmazonS3` is a subset of `AWSOptions` and resolves credentials
+in this order:
 
-1. `Credentials` property of `AWSOptions`.
-2. Shared Credentials File (custom location) — when both profile and profile location are specified.
-3. SDK Store (Windows only) — when only the profile is set.
-4. Shared Credentials File (default location) — when only the profile is set.
-5. AWS Web Identity Federation Credentials — when an OIDC token file exists in environment variables.
-6. `CredentialsProfileStoreChain` — SDK Store (Windows) then Shared Credentials File (default).
-7. Environment variables — when `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set.
-8. ECS Task Credentials or EC2 Instance Credentials — when using IAM roles.
+1. The `Credentials` section.
+2. Shared credentials file at `ProfilesLocation` (profile and location set).
+3. SDK Store (Windows only) when only the profile is set.
+4. Shared credentials file in the default location when only the profile is set.
+5. Web Identity Federation (OIDC token file from environment variables).
+6. `CredentialsProfileStoreChain` (SDK Store, then default shared file).
+7. Environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+8. ECS task or EC2 instance credentials (IAM roles).
 
-**Best practice**: Use profiles or environment variables instead of embedding credentials directly in configuration files.
+## Bucket Access
 
-## S3 Bucket Access
-
-### Guidelines
-
-- Buckets created with `CreateBucket: true` are created without ACLs for security.
-- **Private bucket (recommended)**: Media is served through Orchard Core, so the application identity needs bucket access but the bucket does not need public reads.
-- **Public bucket**: Use only when clients or a CDN must retrieve media directly from S3. Configure an explicit read policy and review the effect of public-access-block settings.
-- Do not combine a public read policy with a public-access block that prevents public policies from taking effect.
-
-### Public Read Bucket Policy (Direct S3 Delivery Only)
+- Buckets created with `CreateBucket: true` have ACLs disabled.
+- **Private bucket (recommended)**: media is served through Orchard Core, so only the application identity needs access.
+- **Public bucket**: only when clients or a CDN read S3 directly. Add an explicit read policy and make sure Block Public Access does not cancel it.
 
 ```json
 {
@@ -127,140 +126,119 @@ The `OrchardCore_Media_AmazonS3` configuration follows the standard `AWSOptions`
 }
 ```
 
-## Multi-Tenant Bucket Templating
+## Tenant Templating
 
-### Guidelines
-
-- Use Liquid templating in `BucketName` and `BasePath` for multi-tenant setups.
-- The `ShellSettings` object is available in the Liquid template context.
-- `{{ ShellSettings.Name }}` is automatically lowercased; ensure the full `BucketName` conforms to [S3 naming rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html).
-- Only default Liquid filters and tags are available.
-
-### Bucket per Tenant
+`BucketName` and `BasePath` accept Liquid with `ShellSettings` in scope.
+`{{ ShellSettings.Name }}` is lowercased; the full name must follow S3 bucket
+naming rules. Only default Liquid filters and tags are available.
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "BucketName": "{{ ShellSettings.Name }}-media",
-      "Region": "eu-central-1",
-      "Credentials": {
-        "SecretKey": "",
-        "AccessKey": ""
-      },
-      "BasePath": "/media",
-      "Profile": "",
-      "ProfilesLocation": ""
+    "Media": {
+      "AmazonS3": {
+        "BucketName": "{{ ShellSettings.Name }}-media",
+        "Region": "eu-central-1",
+        "BasePath": "/media"
+      }
     }
   }
 }
 ```
 
-### Single Bucket with Base Folder per Tenant
+Single bucket with a folder per tenant:
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "BucketName": "shared-media",
-      "Region": "eu-central-1",
-      "Credentials": {
-        "SecretKey": "",
-        "AccessKey": ""
-      },
-      "BasePath": "{{ ShellSettings.Name }}/Media",
-      "Profile": "",
-      "ProfilesLocation": ""
+    "Media": {
+      "AmazonS3": {
+        "BucketName": "shared-media",
+        "Region": "eu-central-1",
+        "BasePath": "{{ ShellSettings.Name }}/Media"
+      }
     }
   }
 }
 ```
 
-## Local S3 Emulator Setup (Docker)
+## Local S3 Emulator
 
-### Guidelines
-
-- Use a local emulator for development to avoid shared online storage conflicts.
-- Set `ServiceURL` instead of `Region` when using an emulator.
-- Enable `ForcePathStyle: true` for all emulators (uses `http://localhost/mybucket` instead of `http://mybucket.localhost`).
-- Credentials are required but not validated by emulators; use dummy values.
-
-### Emulator Configuration
+Use `ServiceURL` (no `Region`), `ForcePathStyle: true`, and dummy credentials:
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3": {
-      "ServiceURL": "http://localhost:9444/",
-      "Profile": "default",
-      "ProfilesLocation": "",
-      "Credentials": {
-        "SecretKey": "dummy",
-        "AccessKey": "dummy"
-      },
-      "BasePath": "/media",
-      "CreateBucket": true,
-      "RemoveBucket": true,
-      "BucketName": "media",
-      "ForcePathStyle": true
+    "Media": {
+      "AmazonS3": {
+        "ServiceURL": "http://localhost:9444/",
+        "Profile": "default",
+        "Credentials": {
+          "SecretKey": "dummy",
+          "AccessKey": "dummy"
+        },
+        "BasePath": "/media",
+        "CreateBucket": true,
+        "RemoveBucket": true,
+        "BucketName": "media",
+        "ForcePathStyle": true
+      }
     }
   }
 }
 ```
-
-### Docker Commands for S3 Emulators
-
-**S3Mock** (Adobe):
 
 ```bash
+# S3Mock (Adobe)
 docker run -p 9444:9090 -t adobe/s3mock:latest
-```
 
-**LocalS3** (Robothy):
-
-```bash
+# LocalS3 (Robothy)
 docker run -d -e MODE=IN_MEMORY -p 9444:80 luofuxiang/local-s3:latest
 ```
 
-## Amazon S3 ImageSharp Image Cache
+## Media Cache
 
-### Guidelines
+- Enabled automatically with S3 storage; local remote-media files live in `wwwroot/{tenant}/ms-cache`.
+- **Settings → Media → Cache** (permission `MediaPermissions.ManageAssetCache`) offers a **Purge** action.
+- With a CDN, purge only after it has fetched most assets. Each PoP caches independently and CDNs evict on their own schedule, so the bucket must always stay reachable for re-fetches.
 
-- Enable the `OrchardCore.Media.AmazonS3.ImageSharpImageCache` feature.
-- The options type is `AwsImageSharpImageCacheOptions`.
-- Custom startup registration uses the `ImageSharpCache` configure order.
-- Useful for ephemeral file systems (containers, clean deployments).
-- Reduces pressure on local disk IO.
-- Cache files are only removed per tenant when using a separate bucket per tenant.
-- Templating and emulator settings work the same as for the main S3 media storage.
+## Amazon S3 Image Cache (`OrchardCore:Media:AmazonS3:ImageCache`)
 
-### ImageSharp Cache Configuration
+Stores resized images in S3 (`AWSS3ResizedImageCache`, options
+`AwsMediaImageCacheOptions`). Depends on `OrchardCore.Media.AmazonS3`.
+`BucketName` and `BasePath` can be templated like the storage section.
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_AmazonS3_ImageSharp_Cache": {
-      "Region": "eu-central-1",
-      "Profile": "default",
-      "ProfilesLocation": "",
-      "Credentials": {
-        "SecretKey": "",
-        "AccessKey": ""
-      },
-      "BasePath": "/cache",
-      "CreateBucket": true,
-      "RemoveBucket": false,
-      "BucketName": "media-cache"
+    "Media": {
+      "AmazonS3": {
+        "ImageCache": {
+          "BucketName": "media-image-cache",
+          "BasePath": "/cache",
+          "CreateBucket": true,
+          "RemoveBucket": false
+        }
+      }
     }
   }
 }
 ```
 
-## CDN Caching Strategy
+- Environment variable: `OrchardCore__Media__AmazonS3__ImageCache__BucketName`.
+- `BucketName`, `BasePath`, `CreateBucket`, `RemoveBucket` and `Credentials` come from the `ImageCache` section, but the SDK settings (`Region`, `ServiceURL`, `Profile`, `ForcePathStyle`) are bound from `Media:AmazonS3`, so keep the cache bucket in the same region/endpoint as the media bucket.
+- Useful with ephemeral containers and slow local disks.
+- Cache files are only removed with the tenant when each tenant has its own bucket.
 
-- When fronting media with a CDN, allow sufficient time for CDN PoPs to cache assets before purging the local Media Cache.
-- Each CDN PoP maintains its own cache independently.
-- The Media Cache will re-fetch assets from S3 on demand when a CDN PoP requests an uncached item.
-- CDN providers clear caches on their own schedules; the S3 source must always remain accessible.
-- The Media Cache feature is automatically enabled with Amazon S3 storage and supports purging via the admin dashboard.
-- Local remote-media files use the `wwwroot/{tenant}/ms-cache` folder.
+## Resumable Uploads
+
+When `OrchardCore.Media.Tus` is also enabled, TUS partial uploads are buffered
+with S3 multipart uploads (`S3TusTempStore`) under a `_tus-uploads` prefix, so
+any instance can continue an upload. See `orchardcore-media-gallery` for TUS,
+SignalR and multi-instance guidance.
+
+## Upgrading from 3.x
+
+- Rename `OrchardCore_Media_AmazonS3` to `Media:AmazonS3` and `OrchardCore_Media_AmazonS3_ImageSharp_Cache` to `Media:AmazonS3:ImageCache`, including env vars (`OrchardCore__OrchardCore_Media_AmazonS3__BucketName` → `OrchardCore__Media__AmazonS3__BucketName`). The old names are deprecated but still read; the new name wins when both exist.
+- Use the feature ID `OrchardCore.Media.AmazonS3.ImageCache` in recipes. The obsolete `OrchardCore.Media.AmazonS3.ImageSharpImageCache` ID only enables the new feature.
+- `AwsImageSharpImageCacheOptions` is now `AwsMediaImageCacheOptions`, and resizing uses the built-in NetVips pipeline (no ImageSharp.Web).

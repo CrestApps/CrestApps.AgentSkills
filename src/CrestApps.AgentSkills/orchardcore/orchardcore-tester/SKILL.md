@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tester
-description: Tests Orchard Core CMS features through browser automation. Use when the user needs to build, run, setup, or test Orchard Core functionality including admin features, content management, media library, and module testing. Use this skill when requests mention Orchard Core Feature Testing, Prerequisites, Core Workflow, Step 1 Build, Step 2 Run Application (Background), Get or Create Session Port, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cms.Web, OrchardCore.Cms.Web.csproj, AGENTS.md. It also helps with admin navigation, common features, debugging, setup wizard, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Tests Orchard Core CMS features through browser automation with playwright-cli. Use when the user needs to build, run, set up, or test Orchard Core functionality including admin features, content management, the Vue 3 Media Gallery, and module testing. Covers the Orchard Core 4.0 admin UI including the redesigned admin menu and off-canvas sidebar, breadcrumb page titles, the Ctrl+K quick navigation palette, List and Grid admin list layouts, page size selection, and admin pages without jQuery. Use this skill when requests mention Orchard Core Feature Testing, Core Workflow, Build, Run Application in the background, Session Port, setup wizard, or closely related Orchard Core testing or troubleshooting work. Strong matches include OrchardCore.Cms.Web, OrchardCore.Cms.Web.csproj, AGENTS.md, playwright-cli.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -138,7 +138,7 @@ playwright-cli snapshot
 
 ### Common Test Scenarios
 
-**Test Media Library**:
+**Test Media Library** (Vue 3 Media Gallery backed by the `api/media` endpoints):
 ```bash
 playwright-cli open http://localhost:$port/Admin/Media
 playwright-cli snapshot
@@ -170,9 +170,21 @@ playwright-cli snapshot
 # Check for JavaScript errors
 playwright-cli console error
 
-# Verify page title
+# Verify page title (the admin heading is rendered by the breadcrumb)
 playwright-cli eval "document.title"
+playwright-cli eval "document.querySelector('h1.oc-breadcrumb-title')?.textContent.trim()"
 ```
+
+### Orchard Core 4.0 Admin UI Notes
+
+- **Page title**: the admin `<h1>` is `h1.oc-breadcrumb-title`, under a `nav[aria-label="Breadcrumb"]` trail. Its text is also part of `document.title`.
+- **Admin menu**: `ul#adminMenu`; the current item is `li.current`; items with children expand through `button.nav-toggle`. Below the `md` breakpoint the menu is an off-canvas drawer opened by `button.ta-sidebar-toggler`, so use a desktop-sized viewport or open the drawer first.
+- **Quick navigation**: Ctrl+K (or `#adminQuickNavigationToggle`) opens a palette; type in `#adminQuickNavigationInput`, press Enter to go. Handy to reach pages without walking the menu.
+- **Admin lists**: List or Grid layout (`?layout=Grid` when users may choose), row actions as buttons or an ellipsis menu, bulk **Actions** after selecting rows, optional **Items per page** selector (`?pageSize=`).
+- **No jQuery in the admin**: use DOM APIs in `playwright-cli eval`; `window.jQuery` is undefined on admin pages.
+- **Media Gallery**: a Vue 3 app; uploads go through `api/media` (and TUS when `OrchardCore.Media.Tus` is enabled). Wait for the file list to render before asserting.
+
+See `references/admin-navigation.md` for selectors.
 
 ### Debugging with Log Files
 
@@ -195,7 +207,10 @@ See `references/debugging.md` for more debugging techniques.
 | Admin Dashboard | `/Admin` |
 | Features | `/Admin/Features` |
 | Content Items | `/Admin/Contents/ContentItems` |
+| Content Types | `/Admin/ContentTypes/List` |
 | Media Library | `/Admin/Media` |
+| General Settings | `/Admin/Settings/general` |
+| Admin Settings | `/Admin/Settings/admin` |
 | Users | `/Admin/Users/Index` |
 | Themes | `/Admin/Themes` |
 

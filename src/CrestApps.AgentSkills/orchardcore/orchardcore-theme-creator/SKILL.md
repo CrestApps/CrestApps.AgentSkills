@@ -1,6 +1,6 @@
 ---
 name: orchardcore-theme-creator
-description: Creates new Orchard Core themes with proper structure, manifest, layouts, and assets. Use when the user needs to create a new theme, customize layouts, or set up frontend assets. Use this skill when requests mention Orchard Core Theme Creator, Prerequisites, Theme Creation Workflow, Step 1 Create Theme Directory, Step 2 Create Required Files, Step 3 Create Manifest.cs, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Themes, OrchardCore.DisplayManagement.Manifest, OrchardCore.Modules.Manifest, OrchardCore.Theme.Targets, OrchardCore.Theme.Targets.csproj, OrchardCore.Cms.Web, TheBlogTheme, TheAdmin, TheAgencyTheme, YourThemeName, site.css, site.js. It also helps with assets, theme structure, Step 2 Create Required Files, Step 3 Create Manifest.cs, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Creates new Orchard Core themes with proper structure, manifest, layouts using RenderBodyAsync and RenderSectionAsync, resource tag helpers, Assets.json asset builds, and extra features declared in a theme manifest. Use when the user needs to create a new theme, customize layouts, or set up frontend assets. Use this skill when requests mention Orchard Core Theme Creator, Theme Creation Workflow, Create Theme Directory, Create Manifest.cs, theme project file, theme assets, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.Themes, OrchardCore.DisplayManagement.Manifest, OrchardCore.Modules.Manifest, OrchardCore.Theme.Targets, OrchardCore.Cms.Web, TheBlogTheme, TheTheme, TheAdmin, TheAgencyTheme, Assets.json, site.css, site.js.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -59,6 +59,8 @@ using OrchardCore.Modules.Manifest;
 )]
 ```
 
+**Shipping extra features with the theme:** a theme assembly can also declare `[assembly: Feature(Id = "YourTheme.Widgets", Name = "...", Category = "Theming")]`. In Orchard Core 4.0 the theme still appears on the Themes page and the extra features appear on the Features page; bind their services with `[Feature("YourTheme.Widgets")]` on a `Startup` class.
+
 ### Step 4: Create Project File
 
 ```xml
@@ -83,26 +85,35 @@ using OrchardCore.Modules.Manifest;
 
 Create `Views/Layout.cshtml`:
 
-```html
+```cshtml
 <!DOCTYPE html>
-<html lang="@Orchard.CultureName()">
+<html lang="@Orchard.CultureName()" dir="@Orchard.CultureDir()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@RenderTitleSegments(Site.SiteName, "before")</title>
-    <resources type="StyleSheet" />
+    <style asp-name="bootstrap" version="5" at="Head"></style>
+    <style asp-name="YourTheme" asp-src="~/YourTheme/css/site.min.css" debug-src="~/YourTheme/css/site.css" depends-on="bootstrap:5" at="Head"></style>
+    <script asp-name="bootstrap" version="5" at="Foot"></script>
+    <script asp-name="YourTheme" asp-src="~/YourTheme/js/site.min.js" debug-src="~/YourTheme/js/site.js" at="Foot"></script>
+    <resources type="Header" />
+    @await RenderSectionAsync("HeadMeta", required: false)
 </head>
 <body>
-    <zone Name="Header" />
-    <main>
-        <zone Name="Messages" />
-        <zone Name="Content" />
+    @await RenderSectionAsync("Header", required: false)
+    <main class="container">
+        @await RenderSectionAsync("Messages", required: false)
+        @await RenderBodyAsync()
     </main>
-    <zone Name="Footer" />
+    @await RenderSectionAsync("Footer", required: false)
     <resources type="FootScript" />
 </body>
 </html>
 ```
+
+- `RenderBodyAsync()` renders the `Content` zone; `RenderSectionAsync(name, required: false)` renders any other zone. `<zone name="...">` only **adds** content to a zone, it never renders one.
+- `<resources type="Header" />` renders meta, link, stylesheet, and head script resources; `<resources type="FootScript" />` renders foot scripts.
+- Require every script the theme uses. Orchard Core 4.0 no longer loads jQuery through admin or module scripts; add `<script asp-name="jQuery" at="Foot"></script>` only if the theme needs it.
 
 ### Step 6: Add Assets (Optional)
 
@@ -144,6 +155,7 @@ dotnet run -f net10.0
 | `Header` | Site header |
 | `Navigation` | Main menu |
 | `Messages` | Alerts/notifications |
+| `HeadMeta` | Meta/link tags rendered inside `<head>` |
 | `Content` | Main content |
 | `Sidebar` | Side widgets |
 | `Footer` | Site footer |

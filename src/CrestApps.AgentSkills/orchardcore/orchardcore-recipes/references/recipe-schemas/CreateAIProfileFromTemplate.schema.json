@@ -195,6 +195,22 @@
                 },
                 "additionalProperties": true
               },
+              "AIPersonaMetadata": {
+                "type": "object",
+                "description": "The AI persona this resource links to, by the persona\u0027s technical name. Applied when the AI Personas feature is enabled.",
+                "properties": {
+                  "PersonaId": {
+                    "type": "string",
+                    "description": "Technical name of the linked persona."
+                  },
+                  "Parameters": {
+                    "type": "object",
+                    "description": "Liquid arguments used when rendering the persona instructions.",
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true
+              },
               "AnalyticsMetadata": {
                 "type": "object",
                 "description": "Known analytics and outcome tracking metadata for chat profiles.",

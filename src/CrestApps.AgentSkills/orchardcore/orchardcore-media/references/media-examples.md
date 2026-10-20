@@ -5,45 +5,54 @@
 ### Migration
 
 ```csharp
-public int Create()
+using OrchardCore.ContentManagement.Metadata;
+using OrchardCore.ContentManagement.Metadata.Settings;
+using OrchardCore.Data.Migration;
+using OrchardCore.Media.Settings;
+
+public sealed class Migrations : DataMigration
 {
-    _contentDefinitionManager.AlterTypeDefinition("ImageGallery", type => type
-        .DisplayedAs("Image Gallery")
-        .Creatable()
-        .Listable()
-        .Draftable()
-        .WithPart("TitlePart", part => part
-            .WithPosition("0")
-        )
-        .WithPart("ImageGallery", part => part
-            .WithPosition("1")
-        )
-    );
+    private readonly IContentDefinitionManager _contentDefinitionManager;
 
-    _contentDefinitionManager.AlterPartDefinition("ImageGallery", part => part
-        .WithField("Images", field => field
-            .OfType("MediaField")
-            .WithDisplayName("Gallery Images")
-            .WithSettings(new MediaFieldSettings
-            {
-                Multiple = true,
-                AllowMediaText = true
-            })
-            .WithPosition("0")
-        )
-        .WithField("CoverImage", field => field
-            .OfType("MediaField")
-            .WithDisplayName("Cover Image")
-            .WithSettings(new MediaFieldSettings
-            {
-                Multiple = false,
-                AllowAnchors = true
-            })
-            .WithPosition("1")
-        )
-    );
+    public Migrations(IContentDefinitionManager contentDefinitionManager)
+    {
+        _contentDefinitionManager = contentDefinitionManager;
+    }
 
-    return 1;
+    public async Task<int> CreateAsync()
+    {
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("ImageGallery", type => type
+            .DisplayedAs("Image Gallery")
+            .Creatable()
+            .Listable()
+            .Draftable()
+            .WithPart("TitlePart", part => part.WithPosition("0"))
+            .WithPart("ImageGallery", part => part.WithPosition("1")));
+
+        await _contentDefinitionManager.AlterPartDefinitionAsync("ImageGallery", part => part
+            .WithField("Images", field => field
+                .OfType("MediaField")
+                .WithDisplayName("Gallery Images")
+                .WithEditor("Gallery")
+                .WithSettings(new MediaFieldSettings
+                {
+                    Multiple = true,
+                    AllowMediaText = true,
+                    AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"],
+                })
+                .WithPosition("0"))
+            .WithField("CoverImage", field => field
+                .OfType("MediaField")
+                .WithDisplayName("Cover Image")
+                .WithSettings(new MediaFieldSettings
+                {
+                    Multiple = false,
+                    AllowAnchors = true,
+                })
+                .WithPosition("1")));
+
+        return 1;
+    }
 }
 ```
 
@@ -55,29 +64,29 @@ public int Create()
     {
       "name": "MediaProfiles",
       "MediaProfiles": {
-        "Thumbnail": {
+        "thumbnail": {
           "Hint": "Small thumbnail for listings",
           "Width": 150,
           "Height": 150,
           "Mode": "Crop",
-          "Format": "webp",
+          "Format": "WebP",
           "Quality": 75
         },
-        "Banner": {
+        "banner": {
           "Hint": "Full-width banner image",
           "Width": 1920,
           "Height": 600,
           "Mode": "Crop",
-          "Format": "webp",
+          "Format": "WebP",
           "Quality": 85
         },
-        "Avatar": {
-          "Hint": "User avatar",
+        "avatar": {
+          "Hint": "User avatar on a white background",
           "Width": 200,
           "Height": 200,
-          "Mode": "Crop",
-          "Format": "webp",
-          "Quality": 80
+          "Mode": "Pad",
+          "Format": "Png",
+          "BackgroundColor": "ffffff"
         }
       }
     }
@@ -85,14 +94,33 @@ public int Create()
 }
 ```
 
-## Example 3: Displaying Media in Liquid
+## Example 3: Displaying a Gallery in Liquid
 
 ```liquid
-{% for path in Model.ContentItem.Content.ImageGallery.Images.Paths %}
-    <div class="gallery-item">
-        <img src="{{ path | asset_url | append: '?profile=Thumbnail' }}"
-             data-full="{{ path | asset_url }}"
-             alt="{{ Model.ContentItem.Content.ImageGallery.Images.MediaTexts[forloop.index0] }}" />
-    </div>
+{% assign images = Model.ContentItem.Content.ImageGallery.Images %}
+{% for path in images.Paths %}
+    <a class="gallery-item" href="{{ path | asset_url }}">
+        <img src="{{ path | asset_url | resize_url: profile: 'thumbnail' }}"
+             srcset="{{ path | asset_url | resize_url: width: 400, format: 'webp' }} 400w,
+                     {{ path | asset_url | resize_url: width: 800, format: 'webp' }} 800w"
+             alt="{{ images.MediaTexts[forloop.index0] }}" />
+    </a>
 {% endfor %}
+```
+
+## Example 4: Cropping With the Field Anchor in Razor
+
+```razor
+@using OrchardCore.Media.Fields
+@model OrchardCore.Media.ViewModels.DisplayMediaFieldViewModel
+
+@for (var i = 0; i < Model.Field.Paths.Length; i++)
+{
+    <img asset-src="@Model.Field.Paths[i]"
+         img-width="600"
+         img-height="400"
+         img-resize-mode="Crop"
+         img-anchor="@Model.Field.GetAnchors()[i]"
+         alt="@Model.Field.MediaTexts[i]" />
+}
 ```

@@ -1,6 +1,10 @@
 ---
 name: orchardcore-flow-bagpart
-description: Skill for building page layouts with FlowPart and BagPart in Orchard Core. Covers flow widgets, BagPart for named containers, Blocks Editor configuration, content type setup, Liquid and Razor templating, shape alternates, and layout building patterns. Use this skill when requests mention Orchard Core Flow & BagPart, Building Layouts with FlowPart and BagPart, Enabling Flow Features, Creating a Content Type with FlowPart, Creating a Content Type with Named BagParts, Enabling the Blocks Editor, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Flows, OrchardCore.Widgets, OrchardCore.Flows.ViewModels, FlowPart, BagPart, DataMigration, IContentDefinitionManager, WithPart, TitlePart. It also helps with Creating a Content Type with Named BagParts, Enabling the Blocks Editor, Blocks Editor Settings (BagPart), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for building page layouts with FlowPart and BagPart in Orchard Core. Covers flow widgets, BagPart for named containers, Blocks Editor configuration with categories and thumbnails, content type setup, Liquid and Razor templating, safe rendering of nested HTML, ManageLiquidTemplates for nested Liquid widgets, ES module editors for items added by the Flow and Bag editors, shape alternates, and layout building patterns. Use this skill when requests mention Orchard Core Flow & BagPart, Building Layouts with FlowPart and BagPart, Enabling Flow Features, Creating a Content Type with FlowPart, Creating a Content Type with Named BagParts, Enabling the Blocks Editor or closely related Orchard Core work. Strong matches include work with OrchardCore.Flows, OrchardCore.Widgets, OrchardCore.Flows.ViewModels, FlowPart, BagPart, DataMigration, IContentDefinitionManager, WithPart, TitlePart.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Flow & BagPart - Prompt Templates
@@ -13,7 +17,8 @@ You are an Orchard Core expert. Generate code and configuration for composing pa
 
 - FlowPart and BagPart are provided by the `OrchardCore.Flows` module.
 - **FlowPart** allows embedding arbitrary widget content items inline within a content item (e.g., a page).
-- **BagPart** is similar but lets you restrict which content types can be contained within it via its settings.
+- **BagPart** is similar but lets you restrict which content types (`ContainedContentTypes`) or stereotypes (`ContainedStereotypes`) can be contained within it via its settings.
+- `FlowPartSettings` exposes `ContainedContentTypes`, `CollapseContainedItems`, and `DefaultAlignment`; `BagPartSettings` exposes `ContainedContentTypes`, `ContainedStereotypes`, `DisplayType`, and `CollapseContainedItems`.
 - BagPart can be added as a **named part**, allowing multiple BagParts on a single content type (e.g., `Services`, `Portfolio`, `About`).
 - BagPart items are stored as a single document in the database for efficient retrieval.
 - Empty flows render with shape name `FlowPart_Empty`; empty bags render as `BagPart_Empty`.
@@ -21,7 +26,9 @@ You are an Orchard Core expert. Generate code and configuration for composing pa
 - `FlowPart` and `BagPart` display shapes use `{PartName}` as their differentiator.
 - To hide or move a whole FlowPart or BagPart editor row in the admin UI, use `ContentPart_Edit` with differentiator `{ContentType}-{PartName}`.
 - Inner shapes such as `FlowPart_Edit` and `BagPart_Edit` target only the inner editor content, not the wrapper.
-- The **Blocks Editor** provides a modal-based content type picker as an alternative to the default dropdown. Enable it by setting the editor to `Blocks`.
+- The **Blocks Editor** provides a modal-based content type picker as an alternative to the default dropdown. Enable it by setting the editor to `Blocks`. Picker categories and thumbnails come from `WithCategory()` / `WithThumbnailPath()` on the contained types (see `orchardcore-content-types`).
+- If any contained item has a `LiquidPart`, `LiquidField`, or `FacebookPluginPart`, editing or publishing the container requires the `ManageLiquidTemplates` permission; unauthorized saves (admin, Content API, remote publishing) are rejected in full.
+- Nested HTML and Markdown are stored unsanitized; render nested items through display management, or sanitize explicitly, instead of writing `HtmlBodyPart.Html` with `raw`.
 - Always wrap recipe JSON in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
@@ -196,14 +203,16 @@ To render empty containers with the same template as populated ones:
 
 ### Templating BagPart - Decoupled Approach
 
-Access content items directly through the named BagPart, bypassing display management:
+Access content items directly through the named BagPart, bypassing display
+management. Because the stored HTML is the authored, unsanitized source,
+sanitize it (and process shortcodes if needed) when you output it:
 
 #### Liquid
 
 ```liquid
 {% for service in Model.ContentItem.Content.Services.ContentItems %}
     <h4 class="service-heading">{{ service.DisplayText }}</h4>
-    <p class="text-muted">{{ service.HtmlBodyPart.Html | raw }}</p>
+    <div class="text-muted">{{ service.HtmlBodyPart.Html | shortcode | sanitize_html | raw }}</div>
 {% endfor %}
 ```
 
@@ -213,7 +222,7 @@ Access content items directly through the named BagPart, bypassing display manag
 @foreach (var item in Model.ContentItem.Content.Services.ContentItems)
 {
     <h4 class="service-heading">@item.DisplayText</h4>
-    <p class="text-muted">@Html.Raw(item.Content.HtmlBodyPart.Html)</p>
+    <div class="text-muted">@Orchard.SanitizeHtml((string)item.Content.HtmlBodyPart.Html)</div>
 }
 ```
 
@@ -310,6 +319,24 @@ To hide the whole editor row in the admin UI, use `ContentPart_Edit` and the `{C
 ```
 
 Use `LandingPage-Services` for a named BagPart called `Services`. Use `LandingPage-BagPart` for a standard non-named BagPart.
+
+### Editor Scripts for Contained Items
+
+The Flow and Bag editors insert the editors of new items with AJAX after the
+page has loaded. Built-in field and part editors are ES modules that
+initialize matching elements whenever they appear (media pickers, Autoroute
+and Sitemap toggles, and Leaflet GeoPoint editors now work in newly added
+items). Custom part or field editors used inside flows and bags must do the
+same:
+
+- Load scripts with `<script asp-src="..." type="module" at="Foot"></script>`.
+- Initialize elements found by class or `data-*` attribute, and keep doing so
+  for nodes added later (for example with a `MutationObserver`).
+- Scope lookups to the editor's own prefix (`Html.IdFor(...)`) because the same
+  editor can appear several times on one page.
+- Do not rely on jQuery, which the admin no longer loads implicitly.
+
+See `orchardcore-content-fields` for a complete editor example.
 
 ### Recipe: Creating a Page with FlowPart Content
 

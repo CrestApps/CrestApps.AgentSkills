@@ -1,6 +1,10 @@
 ---
 name: orchardcore-shortcodes
-description: Skill for creating and using shortcodes in Orchard Core. Covers shortcode template creation via admin UI, code-based shortcode providers using delegate and class patterns, built-in shortcodes (image, asset_url, locale), and shortcode integration with content fields. Use this skill when requests mention Orchard Core Shortcodes, Create and Use Shortcodes, Enabling Shortcodes, Shortcode Templates (Admin UI), Template Arguments, Example [display_text] Template, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Shortcodes, OrchardCore.Shortcodes.Templates, OrchardCore.Localization, IShortcodeProvider, HtmlBodyPart, HtmlField, MarkdownBodyPart, MarkdownField, IServiceCollection, AlertShortcodeProvider. It also helps with Template Arguments, Example [display_text] Template, Example [site_name] Template, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and using shortcodes in Orchard Core. Covers shortcode template creation via admin UI, the ShortcodeTemplates recipe step and deployment step, the ManageShortcodeTemplates permission, code-based shortcode providers using delegate and class patterns, built-in shortcodes (image, asset_url, locale), and shortcode rendering before final HTML sanitization in HTML and Markdown parts and fields. Use this skill when requests mention Orchard Core Shortcodes, Create and Use Shortcodes, Enabling Shortcodes, Shortcode Templates (Admin UI), Template Arguments, Example [display_text] Template or closely related Orchard Core work. Strong matches include work with OrchardCore.Shortcodes, OrchardCore.Shortcodes.Templates, OrchardCore.Localization, IShortcodeProvider, HtmlBodyPart, HtmlField, MarkdownBodyPart, MarkdownField, IServiceCollection, AlertShortcodeProvider.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Shortcodes - Prompt Templates
@@ -15,9 +19,10 @@ You are an Orchard Core expert. Generate code, templates, and configuration for 
 - Enable the `OrchardCore.Shortcodes` feature to use shortcodes; enable `OrchardCore.Shortcodes.Templates` for admin-managed templates.
 - Shortcode templates created in the admin UI (_Design → Shortcodes_) use Liquid syntax.
 - Admin-created shortcode templates can override code-based shortcodes with the same name.
+- Managing shortcode templates requires `OrchardCore.Shortcodes.ShortcodesPermissions.ManageShortcodeTemplates` (the old `OrchardCore.Shortcodes.Permissions.ManageShortcodeTemplates` member was removed in 4.0).
 - Code-based shortcodes are registered using `ShortcodeDelegate` (inline lambda) or `IShortcodeProvider` (class-based).
 - Built-in shortcodes include `[image]`, `[asset_url]`, and `[locale]`.
-- Shortcodes are automatically rendered by display drivers for `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField`.
+- Shortcodes are automatically rendered by display drivers for `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField`. Shortcodes run on the rendered HTML (after Markdown conversion) and before final-output sanitization, so markup a shortcode returns is sanitized when the part or field has `SanitizeHtml` enabled.
 - For manual rendering, use the `shortcode` Liquid filter or `Orchard.ShortcodesToHtmlAsync()` Razor helper.
 - All C# classes must use the `sealed` modifier.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
@@ -99,8 +104,35 @@ The following variables are available inside a shortcode Liquid template:
 <span class="text-primary">{{ Content }}</span>
 {% endif %}
 {% endcapture %}
-{{ output | sanitize | raw }}
+{{ output | sanitize_html | raw }}
 ```
+
+### Shortcode Templates via Recipe
+
+The `ShortcodeTemplates` step creates or updates templates by name. `Usage` is
+sanitized on import; `DefaultValue` is the **Return Shortcode** value.
+
+```json
+{
+  "steps": [
+    {
+      "name": "ShortcodeTemplates",
+      "ShortcodeTemplates": {
+        "site_name": {
+          "Content": "{{ Site.SiteName }}",
+          "Hint": "Returns the site name.",
+          "Usage": "[site_name]",
+          "DefaultValue": "[site_name]",
+          "Categories": [ "Site" ]
+        }
+      }
+    }
+  ]
+}
+```
+
+The **All Shortcode Templates** deployment step (`AllShortcodeTemplates`)
+exports every template in the same format.
 
 ### Registering a Shortcode via Delegate
 
@@ -214,16 +246,28 @@ By default, parent cultures match (e.g., `en-CA` matches `[locale en]`). Pass `f
 
 ### Rendering Shortcodes in Templates
 
-Shortcodes are automatically rendered for `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField` shapes. For manual rendering:
+Shortcodes are automatically rendered for `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField` shapes. Prefer rendering the shape, which also applies sanitization:
+
+```liquid
+{{ Model.Content.HtmlBodyPart | shape_render }}
+```
+
+For manual rendering of a raw string, sanitize the result unless the source is trusted, because stored HTML is no longer sanitized on save:
 
 #### Liquid
 
 ```liquid
-{{ Model.ContentItem.Content.RawHtml.Content.Html | shortcode | raw }}
+{{ Model.ContentItem.Content.RawHtml.Content.Html | shortcode | sanitize_html | raw }}
 ```
 
 #### Razor
 
-```csharp
-@Html.Raw(await Orchard.ShortcodesToHtmlAsync((string)Model.ContentItem.Content.RawHtml.Content.Html))
+`ShortcodesToHtmlAsync(html, model)` returns an `HtmlString`; pass the shape
+`Model` to make its `ContentItem` available to the shortcodes:
+
+```cshtml
+@{
+    var html = (await Orchard.ShortcodesToHtmlAsync((string)Model.ContentItem.Content.RawHtml.Content.Html, Model)).ToString();
+}
+@Orchard.SanitizeHtml(html)
 ```

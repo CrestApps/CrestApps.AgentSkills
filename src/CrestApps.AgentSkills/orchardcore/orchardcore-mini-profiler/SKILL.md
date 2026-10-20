@@ -1,6 +1,6 @@
 ---
 name: orchardcore-mini-profiler
-description: Skill for adding the MiniProfiler performance widget to Orchard Core front-end and admin pages. Covers enabling the feature, permissions, database connection profiling, and shape rendering timings. Use this skill when requests mention Orchard Core Mini Profiler, MiniProfiler, performance profiling, request timings, SQL query profiling, slow page diagnosis, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.MiniProfiler, MiniProfilerFilter, MiniProfilerConnectionFactory, CurrentDbProfiler, ShapeStep, ViewMiniProfilerOnFrontEnd, and ViewMiniProfilerOnBackEnd permissions. It also helps with diagnosing slow shapes, profiling YesSql database calls, and the configuration patterns captured in this skill.
+description: Skill for adding the MiniProfiler performance widget to Orchard Core front-end and admin pages. Covers enabling the feature, the ViewMiniProfilerOnFrontEnd and ViewMiniProfilerOnBackEnd permissions, widget placement in the Footer zone and docking on admin pages, shape rendering timings, YesSql SQL profiling with duplicate and error query badges, MiniProfilerOptions configuration (ResultsAuthorize, ShouldProfile, IgnoredPaths, popup options), result storage across multiple instances, custom timings, and troubleshooting. Use this skill when requests mention Orchard Core Mini Profiler, MiniProfiler, performance profiling, request timings, SQL query profiling, duplicate queries, N+1 queries, slow page diagnosis, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.MiniProfiler, MiniProfilerFilter, MiniProfilerConnectionFactory, CurrentDbProfiler, ShapeStep, MiniProfilerOptions, StackExchange.Profiling.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,16 +15,16 @@ You are an Orchard Core expert. Enable and configure the MiniProfiler widget so 
 
 ### Guidelines
 
-- Enable the `OrchardCore.MiniProfiler` feature. It has no content dependencies and is intended for development and diagnostics, not production end users.
-- The MiniProfiler widget only renders for users who hold the relevant permission, so it is safe to leave enabled while restricting visibility by role.
-- Two permissions gate visibility:
-  - `ViewMiniProfilerOnFrontEnd` — show the widget on front-end (themed) pages.
-  - `ViewMiniProfilerOnBackEnd` — show the widget on admin pages.
-  - By default both permissions are granted to the `Administrator` role via a permission stereotype.
-- The module registers early in the pipeline (`Startup.Order = -500`) so `app.UseMiniProfiler()` wraps all downstream middleware and captures the full request timing.
-- A `MiniProfilerFilter` MVC filter starts and stops the profiler around action execution.
-- An `IShapeDisplayEvents` implementation (`ShapeStep`) records per-shape display timings, so you can find slow shapes/templates.
-- Database calls are profiled by wrapping the YesSql `IStore` connection factory with `MiniProfilerConnectionFactory` (backed by `CurrentDbProfiler`), so SQL executed through YesSql appears in the timing breakdown.
+- Enable the `OrchardCore.MiniProfiler` feature per tenant. Use it to investigate a specific problem: profiling adds work to every request of the tenant and exposes route names, SQL, and timings.
+- Two permissions decide whether the widget is added to a page:
+  - `ViewMiniProfilerOnFrontEnd` — front-end (themed) pages.
+  - `ViewMiniProfilerOnBackEnd` — admin pages.
+  - The `Administrator` role receives both by default. Never grant them to `Anonymous`.
+- Widget permissions do **not** protect the stored results. Configure `MiniProfilerOptions.ResultsAuthorize` (or `ResultsAuthorizeAsync`) before enabling the module where untrusted users can reach the site.
+- The module registers early (`Startup.Order = -500`) and calls `app.UseMiniProfiler()` so the profiler wraps all downstream middleware.
+- `MiniProfilerFilter` is an `IAsyncResultFilter` that adds the `MiniProfiler` shape to the layout's `Footer` zone for view and Razor Page results when the user has the matching permission.
+- `ShapeStep` (`IShapeDisplayEvents`) records a `Shape: <shape-type>` step for every shape rendered through display management.
+- The YesSql `IStore` connection factory is wrapped with `MiniProfilerConnectionFactory` (backed by `CurrentDbProfiler`), so SQL executed through YesSql appears as custom timings.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -45,8 +45,6 @@ You are an Orchard Core expert. Enable and configure the MiniProfiler widget so 
 ```
 
 ### Granting Visibility to a Role
-
-Grant one or both permissions so non-administrators can see the widget. In a recipe:
 
 ```json
 {
@@ -70,6 +68,7 @@ Grant one or both permissions so non-administrators can see the widget. In a rec
 ### The Permissions
 
 ```csharp
+using OrchardCore.Localization;
 using OrchardCore.Security.Permissions;
 
 namespace OrchardCore.MiniProfiler;
@@ -77,29 +76,86 @@ namespace OrchardCore.MiniProfiler;
 public sealed class Permissions : IPermissionProvider
 {
     public static readonly Permission ViewMiniProfilerOnFrontEnd =
-        new("ViewMiniProfilerOnFrontEnd", "View Mini Profiler widget on front end pages");
+        new("ViewMiniProfilerOnFrontEnd", LocalizationSource.Create<Permissions>("View Mini Profiler widget on front end pages"));
 
     public static readonly Permission ViewMiniProfilerOnBackEnd =
-        new("ViewMiniProfilerOnBackEnd", "View Mini Profiler widget on back end pages");
+        new("ViewMiniProfilerOnBackEnd", LocalizationSource.Create<Permissions>("View Mini Profiler widget on back end pages"));
 
     // Both permissions default to the Administrator role via GetDefaultStereotypes().
 }
 ```
 
-### How Profiling Is Wired
+### Configure MiniProfiler
 
-- `services.AddMiniProfiler()` registers the underlying StackExchange.Profiling services.
-- `options.Filters.Add<MiniProfilerFilter>()` scopes a profiler step around each MVC action.
-- `services.AddScoped<IShapeDisplayEvents, ShapeStep>()` times each rendered shape.
-- In `Configure`, the current `IStore.Configuration.ConnectionFactory` is wrapped with `MiniProfilerConnectionFactory`, so all YesSql database traffic is measured.
+The module registers the upstream `StackExchange.Profiling.MiniProfilerOptions` in each tenant container. Configure them from the web project with `ConfigureServices()` after `AddOrchardCms()`. The module does not bind `MiniProfilerOptions` from configuration.
+
+```csharp
+using StackExchange.Profiling;
+
+builder.Services
+    .AddOrchardCms()
+    .ConfigureServices(tenantServices =>
+        tenantServices.Configure<MiniProfilerOptions>(options =>
+        {
+            options.IgnoredPaths.Add("/health");
+            options.PopupRenderPosition = RenderPosition.Right;
+
+            // Protect stored results. MiniProfiler routes run before Orchard authentication,
+            // so authenticate explicitly instead of relying on HttpContext.User.
+            options.ResultsAuthorizeAsync = async request =>
+            {
+                var result = await request.HttpContext.AuthenticateAsync();
+
+                return result.Succeeded && result.Principal.IsInRole("Administrator");
+            };
+        }));
+```
+
+Useful options to reduce overhead and noise:
+
+- `ShouldProfile` — limit profiling by environment, identity, path, or endpoint.
+- `IgnoredPaths` — skip health checks or high-volume endpoints.
+- `EnableMvcFilterProfiling`, `EnableMvcViewProfiling`, `MvcFilterMinimumSaveMs`, `MvcViewMinimumSaveMs` — trim MVC timings.
+- `TrackConnectionOpenClose`, `ExcludeStackTraceSnippetFromCustomTimings` — trim SQL detail.
+- Widget options: `PopupRenderPosition`, `PopupShowTrivial`, `PopupShowTimeWithChildren`, `PopupMaxTracesToShow`, `PopupStartHidden`, `PopupToggleKeyboardShortcut`, `ShowControls`, `ColorScheme`.
+
+The shape and YesSql integrations have no separate settings; they are active whenever the feature is enabled.
 
 ### What You See
 
-- A profiler badge is injected into the page for authorized users.
-- Expanding it shows total request time, per-action timings, per-shape display timings, and the SQL queries executed with their durations and (optionally) duplicated-query warnings.
+- On front-end pages the widget uses MiniProfiler's default position (top-left).
+- On admin pages it is docked to the middle of the right edge (left edge in right-to-left languages), clear of the admin menu and top navbar. Its toggle hides or shows the profiles, the browser remembers whether it is collapsed, and it follows the admin light or dark theme.
+- Click a timing to see request, MVC, view, and `Shape: <type>` steps.
+- Click the SQL duration to open the queries view: commands in execution order (`#1`, `#2`, ...) with duration, start offset, time to first result, and the step that ran them. Gaps between queries show which step spent the time.
+  - **Duplicate** marks a command whose text already ran in the same request (missing cache or a query inside a loop).
+  - **Error** marks a command that threw.
+  - A red `!` in the timing tree and on the widget button flags requests and steps with duplicate or failing commands.
+
+### Storage and Multiple Instances
+
+Results are kept in the tenant's in-memory cache for 30 minutes, are lost on restart, and are not shared between instances. Behind a load balancer use session affinity while diagnosing, or set `MiniProfilerOptions.Storage` to a shared `IAsyncStorage` from a MiniProfiler storage package (installed in the web project).
+
+### Custom Timings
+
+```csharp
+using StackExchange.Profiling;
+
+using (MiniProfiler.Current?.Step("Load recommendations"))
+{
+    await recommendationService.LoadAsync();
+}
+```
+
+`MiniProfiler.Current` is `null` when the request is not profiled.
+
+### Troubleshooting
+
+- **No widget**: check the feature is enabled for the tenant, the role has the front-end or back-end permission for that page, the page is an MVC view or Razor Page using an Orchard layout that renders the `Footer` zone, and `ShouldProfile`/`IgnoredPaths` allow the request. APIs and decoupled responses are profiled but get no widget. Check `/mini-profiler-resources` requests, including the tenant URL prefix.
+- **Missing result**: results expire after 30 minutes, are cleared on restart, and live in one instance's cache; also check `ResultsAuthorize`.
+- **Missing SQL or shape timings**: only YesSql calls through the tenant's wrapped connection and shapes rendered by display management are instrumented. Other data access libraries need their own MiniProfiler integration.
 
 ### Notes
 
-- Because it early-wraps the pipeline and profiles the database connection, keep it disabled or permission-restricted in production to avoid overhead and information disclosure.
-- Use it together with `OrchardCore.Diagnostics` (error pages) and `OrchardCore.Logging.Serilog` when investigating performance and failures.
-- For deeper query analysis, look for repeated identical SQL in the timing breakdown — that usually indicates an N+1 access pattern that a batched YesSql query or index would fix.
+- For production-style, always-on measurements of shape rendering, prefer the `OrchardCore.DisplayManagement` activity source and meter with OpenTelemetry (see `orchardcore-display-management`) over MiniProfiler.
+- Use it together with `orchardcore-diagnostics` and `orchardcore-logging-serilog` when investigating performance and failures.
+- Repeated identical SQL (the **Duplicate** badge) usually indicates an N+1 pattern that a batched YesSql query, an index, or a cache would fix.

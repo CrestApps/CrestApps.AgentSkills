@@ -103,6 +103,9 @@ public sealed class MySettingsDisplayDriver : SiteDisplayDriver<MySettings>
 ## Example 5: Dynamic placement provider
 
 ```csharp
+using OrchardCore.DisplayManagement.Descriptors;
+using OrchardCore.DisplayManagement.Handlers;
+
 public sealed class MyPlacementProvider : IShapePlacementProvider
 {
     public Task<IPlacementInfoResolver> BuildPlacementInfoResolverAsync(IBuildShapeContext context)
@@ -116,10 +119,7 @@ public sealed class MyPlacementProvider : IShapePlacementProvider
         {
             if (context.ShapeType == "MyShape")
             {
-                return new PlacementInfo
-                {
-                    Location = "Content:2#General;1%Details;1",
-                };
+                return PlacementInfo.FromLocation("Content:2#General;1%Details;1");
             }
 
             return null;
@@ -173,3 +173,29 @@ Use `ContentPart_Edit` when the whole editor row should disappear, including the
   ]
 }
 ```
+
+## Example 8: Truly first and truly last shapes
+
+`before`/`after` stay inside the numeric range, so a free-text position still sorts after `after`. Use the `start`/`end` sentinels when order must be absolute:
+
+```json
+{
+  "AnnouncementBanner": [
+    {
+      "place": "Content:start"
+    }
+  ],
+  "LegalNotice": [
+    {
+      "place": "Content:end"
+    }
+  ],
+  "RelatedLinks": [
+    {
+      "place": "Content:end.50"
+    }
+  ]
+}
+```
+
+Order inside `Content`: `AnnouncementBanner`, every other shape, `LegalNotice` (`end`), then `RelatedLinks` (`end.50`).

@@ -49,7 +49,7 @@ public sealed class FeaturedProductsDisplayDriver : DisplayDriver<FeaturedProduc
     public override IDisplayResult Display(FeaturedProductsViewModel model, BuildDisplayContext context)
     {
         return View("FeaturedProducts", model)
-            .Location("Content", "Content:5")
+            .Location("Detail", "Content:5")
             .Cache("featured-products", cache => cache
                 .AddTag("contenttype:Product")
                 .AddContext("query")
@@ -104,7 +104,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentHandler<ProductCacheInvalidationHandler>();
+        services.AddScoped<IContentHandler, ProductCacheInvalidationHandler>();
     }
 }
 ```
@@ -226,9 +226,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddResponseCaching();
-
-        services.AddMvc(options =>
+        services.Configure<MvcOptions>(options =>
         {
             options.CacheProfiles.Add("Static", new CacheProfile
             {
@@ -317,12 +315,14 @@ Configure the Redis connection in `appsettings.json`:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Redis": {
+    "Redis": {
       "Configuration": "localhost:6379,abortConnect=false,connectTimeout=5000"
     }
   }
 }
 ```
+
+The same value as an environment variable: `OrchardCore__Redis__Configuration`. The pre-4.0 `OrchardCore_Redis` section name is deprecated.
 
 When `OrchardCore.Redis.Cache` is enabled, it replaces the default in-memory distributed cache with Redis, allowing all `IDistributedCache` consumers and dynamic cache entries to be shared across multiple application instances.
 

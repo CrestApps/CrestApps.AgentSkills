@@ -1,30 +1,31 @@
 ---
 name: orchardcore-data-localization
-description: Skill for managing translation data in Orchard Core. Covers the translation editor UI, translation statistics dashboard, permissions hierarchy, built-in translation providers, custom translation provider implementation, recipe steps for translations, API reference, and Liquid translation filters. Use this skill when requests mention Orchard Core Data Localization, Configure and Manage Data Localization, Enabling Data Localization, Permissions, Built-in Data Providers, Creating a Custom Localization Data Provider, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DataLocalization, OrchardCore.Localization, OrchardCore.ContentLocalization, OrchardCore.Localization.Data. It also helps with Built-in Data Providers, Creating a Custom Localization Data Provider, Localization Key Best Practices, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for managing translation data in Orchard Core with the OrchardCore.DataLocalization module. Covers the Dynamic Translations editor UI, translation statistics dashboard, ViewDynamicTranslations and ManageTranslations permissions with per-culture permissions, built-in translation providers and their contexts, custom ILocalizationDataProvider implementation, the Translations recipe step and deployment steps, IDataLocalizer, TranslationsManager, and the Liquid d filter. Use this skill when requests mention Orchard Core Data Localization, Dynamic Translations, Enabling Data Localization, Permissions, Built-in Data Providers, Creating a Custom Localization Data Provider, Data Localization Filters, translating content type names or permission categories, upgrading data localization to Orchard Core 4, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.DataLocalization and OrchardCore.Localization.Data.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# Orchard Core Data Localization - Prompt Templates
+# Orchard Core Data Localization
 
-## Configure and Manage Data Localization
+## Guidelines
 
-You are an Orchard Core expert. Generate code and configuration for data localization including the translation editor, statistics dashboard, permissions, custom providers, recipe import/export, API usage, and Liquid filters.
-
-### Guidelines
-
-- Enable `OrchardCore.DataLocalization` for database-backed localization of dynamic content (content type names, permission descriptions, custom strings).
-- Use Data Localization for dynamic strings that cannot be handled by static PO files.
-- Use PO files (`OrchardCore.Localization`) for static UI strings in views and code.
-- Use `OrchardCore.ContentLocalization` for localizing user-defined content items (not the same as data localization).
-- Built-in providers cover content type display names, content field display names, and permission descriptions.
+- Enable `OrchardCore.DataLocalization` (depends on `OrchardCore.Localization`)
+  for database-backed translations of dynamic strings such as content type and
+  field display names, admin menu text, and permission categories.
+- Use PO files (`OrchardCore.Localization`, see `orchardcore-localization`) for
+  static UI strings in views and code, including permission descriptions
+  declared with `LocalizationSource.Create(value, typeof(DeclaringType))`.
+- Use `OrchardCore.ContentLocalization` for translating content items.
 - Implement `ILocalizationDataProvider` to expose custom translatable strings.
-- Localization keys must be human-readable display values, not technical identifiers, because untranslated keys are displayed as-is.
-- Use `IDataLocalizer` (aliased as `D`) in Razor views to render translated dynamic strings.
-- Use the `d` Liquid filter to localize dynamic data strings in Liquid templates.
-- Translations are cached automatically; cache is invalidated when translations are updated through the admin UI.
+- Keys must be human-readable display values, because untranslated keys are
+  displayed as-is.
+- Use `IDataLocalizer` (aliased as `D`) in Razor and the `d` filter in Liquid.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
-### Enabling Data Localization
+## Enabling Data Localization
 
 ```json
 {
@@ -33,49 +34,52 @@ You are an Orchard Core expert. Generate code and configuration for data localiz
       "name": "Feature",
       "enable": [
         "OrchardCore.DataLocalization"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
 
-### Permissions
+## Admin UI
+
+**Settings → Localization → Dynamic Translations** opens the translation
+editor: pick a culture, search, filter by category, and edit each string;
+auto-save (on by default) saves after 2 seconds of inactivity. The
+**Statistics** page shows overall, per-culture, and per-category progress
+(green ≥75%, yellow 25–74%, red <25%).
+
+## Permissions
+
+`OrchardCore.Localization.Data.DataLocalizationPermissions` declares:
 
 | Permission | Description |
-|------------|-------------|
-| `ViewTranslations` | View translations and statistics (read-only access) |
-| `ManageTranslations` | Edit translations for all cultures |
-| `ManageTranslations_{culture}` | Edit translations for a specific culture (e.g., `ManageTranslations_fr-FR`) |
+|---|---|
+| `ViewDynamicTranslations` | View translations and statistics (read-only). Implied by `ManageTranslations`. |
+| `ManageTranslations` | Edit translations for all cultures. |
+| `ManageTranslations_{culture}` | Edit one culture, e.g. `ManageTranslations_fr-FR` ("Manage French (France) translations"), generated for each supported culture with `CreateCulturePermission()`. Implied by `ManageTranslations`. |
+| `ManageLocalization` | Legacy, kept for compatibility; implied by `ManageTranslations`. |
 
-#### Permission Hierarchy
+Defaults: **Administrator** gets `ManageTranslations`, **Editor** gets
+`ViewDynamicTranslations`. The admin menu entry and the strings API require
+`ViewDynamicTranslations`, so grant it together with a culture permission to a
+role that should edit only one culture (under **Data Localization** in the role
+editor).
 
-```
-ViewTranslations                      (Read-only access)
-ManageTranslations                    (Full edit access - implies ViewTranslations)
-├── ManageTranslations_fr-FR          (Edit French - implies ViewTranslations)
-├── ManageTranslations_es-ES          (Edit Spanish - implies ViewTranslations)
-└── ManageTranslations_{culture}      (Dynamically generated per supported culture)
-```
-
-Default role assignments:
-
-- **Administrator**: `ManageTranslations` (full access)
-- **Editor**: `ViewTranslations` (read-only)
-
-### Built-in Data Providers
+## Built-in Data Providers
 
 | Provider | Context | Strings Provided |
 |----------|---------|-----------------|
-| Content Type Provider | `Content Types` | Display names of all content types |
-| Content Field Provider | `Content Fields` | Display names of all content fields |
-| Permissions Provider | `Permissions` | Descriptions of all non-template permissions |
-| Admin Menu Provider | `Admin Menus:{MenuName}` | Custom admin-menu and admin-node text for a named menu |
-| Search Provider | `Search` | The site's localized search placeholder text |
+| Content types (`OrchardCore.Contents`) | `Content Types` | Content type display names |
+| Content fields (`OrchardCore.Contents`) | `Content Fields:{PartName}` | Content field display names, grouped by part |
+| Permissions (`OrchardCore.Roles`) | `Permissions` or `Permissions:{Group}` | Permission categories, and descriptions that are not templates and have no PO context |
+| Admin menus (`OrchardCore.AdminMenu`) | `Admin Menus` or `Admin Menus:{MenuName}` | Admin menu and admin node text |
+| Search (`OrchardCore.Search`) | `Search` | Search-related text such as the placeholder |
 
-### Creating a Custom Localization Data Provider
+Built-in permission descriptions now carry a PO context, so they are translated
+with PO files and are not listed here; template-based descriptions such as
+"Edit Article" still are.
 
-Implement `ILocalizationDataProvider` to add your own translatable strings:
+## Creating a Custom Localization Data Provider
 
 ```csharp
 using OrchardCore.Localization.Data;
@@ -86,17 +90,15 @@ public sealed class MenuItemLocalizationDataProvider : ILocalizationDataProvider
     {
         var strings = new List<DataLocalizedString>
         {
-            new DataLocalizedString("Menu Items", "Dashboard", string.Empty),
-            new DataLocalizedString("Menu Items", "User Settings", string.Empty),
-            new DataLocalizedString("Menu Items", "Reports", string.Empty),
+            new("Menu Items", "Dashboard", string.Empty),
+            new("Menu Items", "User Settings", string.Empty),
+            new("Menu Items", "Reports", string.Empty),
         };
 
         return Task.FromResult<IEnumerable<DataLocalizedString>>(strings);
     }
 }
 ```
-
-Register in your module's `Startup.cs`:
 
 ```csharp
 using OrchardCore.Localization.Data;
@@ -110,63 +112,60 @@ public sealed class Startup : StartupBase
 }
 ```
 
-### Localization Key Best Practices
-
-Keys must be human-readable display values because untranslated keys are displayed as-is to users:
+The `DataLocalizedString(context, name, value)` constructor takes the context
+(category), the key, and the value (empty for descriptors). Use the context
+to disambiguate keys; `Group:SubGroup` contexts are shown as sub-groups.
 
 | Key Type | Example Key | Displayed if Untranslated | Result |
 |----------|-------------|---------------------------|--------|
-| ✅ Display value | `"Welcome Message"` | `Welcome Message` | Good |
-| ❌ Technical ID | `"welcome_msg_001"` | `welcome_msg_001` | Bad |
-| ❌ Code constant | `"CONTENT_TYPE_ARTICLE"` | `CONTENT_TYPE_ARTICLE` | Bad |
+| Display value | `"Welcome Message"` | `Welcome Message` | Good |
+| Technical ID | `"welcome_msg_001"` | `welcome_msg_001` | Bad |
+| Code constant | `"CONTENT_TYPE_ARTICLE"` | `CONTENT_TYPE_ARTICLE` | Bad |
 
-Use the context parameter to disambiguate keys that might conflict across categories.
+## Import Translations via Recipe
 
-### Import Translations via Recipe
+The `Translations` step takes a flat `translations` array; entries are merged
+into the existing translations of each culture by context and key.
 
 ```json
 {
   "steps": [
     {
       "name": "Translations",
-      "Translations": {
-        "fr-FR": [
-          { "Context": "Permissions", "Key": "Manage HTTPS", "Value": "Gérer HTTPS" },
-          { "Context": "Content Types", "Key": "Article", "Value": "Article" }
-        ],
-        "es-ES": [
-          { "Context": "Permissions", "Key": "Manage HTTPS", "Value": "Gestionar HTTPS" }
-        ]
-      }
+      "translations": [
+        { "culture": "fr-FR", "context": "Menu Items", "key": "Dashboard", "value": "Tableau de bord" },
+        { "culture": "fr-FR", "context": "Content Types", "key": "Article", "value": "Article" },
+        { "culture": "es-ES", "context": "Content Types", "key": "Article", "value": "Artículo" }
+      ]
     }
   ]
 }
 ```
 
-### Using IDataLocalizer in Razor Views
+The same step also accepts the legacy `DynamicDataTranslations` step name.
 
-Inject `IDataLocalizer` to display translated dynamic strings:
+## Deployment Steps
+
+- **Translations** exports the `Translations` format above, with all or
+  selected cultures (`IncludeAll`, `Cultures`) and optional `Categories`.
+- **All Data Translations** exports every translation as a
+  `DynamicDataTranslations` step.
+
+## Using IDataLocalizer in Razor Views
 
 ```cshtml
 @using OrchardCore.Localization.Data
 @inject IDataLocalizer D
 
 <h1>@D["Article", "Content Types"]</h1>
-<p>@D["Manage HTTPS", "Permissions"]</p>
-```
-
-The output is automatically HTML-encoded by Razor, making it safe against XSS. Translated values should contain plain text only.
-
-#### IDataLocalizer with Arguments
-
-```cshtml
-@using OrchardCore.Localization.Data
-@inject IDataLocalizer D
-
 <p>@D["Hello {0}", "My Context", userName]</p>
 ```
 
-### Comparison: IStringLocalizer vs IDataLocalizer
+`DataLocalizedString` converts implicitly to `string`, and Razor HTML-encodes
+it. Translated values should contain plain text only. `ResourceNotFound` tells
+whether a translation exists. When a breadcrumb or other API needs
+`IHtmlContent`, wrap `.Value ?? string.Empty` in an `HtmlContentString` rather
+than using `Html.Raw`.
 
 | Feature | `IStringLocalizer` (T) | `IDataLocalizer` (D) |
 |---------|------------------------|----------------------|
@@ -174,85 +173,47 @@ The output is automatically HTML-encoded by Razor, making it safe against XSS. T
 | HTML encoding | Auto-encoded by Razor | Auto-encoded by Razor |
 | Pluralization | Supported | Not supported |
 | Arguments | `T["Hello {0}", name]` | `D["Hello {0}", "Context", name]` |
-| Use case | Static UI strings | Dynamic data (content types, permissions) |
+| Use case | Static UI strings | Dynamic data (content types, menus, categories) |
 
-### Liquid Filter: `d`
+## Liquid Filter: `d`
 
-Localizes a dynamic data string using the current culture:
+The `d` filter is documented under **Data Localization Filters** in the Liquid
+reference:
 
 ```liquid
 {{ "Blog" | d: "Content Types" }}
 ```
 
-For `ar` culture, it returns `مدونة`. For unsupported cultures or missing translations, it returns `Blog.Content Types`.
+It returns the translation for the current culture, for example `مدونة` for
+`ar`. For missing translations or unsupported cultures it returns
+`Blog.Content Types`.
 
-### When to Use Each Localization Approach
+## Managing Translations in Code
+
+Inject the scoped `TranslationsManager` (`OrchardCore.DataLocalization.Services`;
+the `ITranslationsManager` interface is not registered). `UpdateTranslationAsync(culture, translations)`
+replaces the translations of a culture, `RemoveTranslationAsync(culture)`
+removes them, and `GetTranslationsDocumentAsync()` returns the cached
+`TranslationsDocument`. The localization cache is refreshed when the document
+changes.
+
+## When to Use Each Localization Approach
 
 | Use Case | Recommended Approach |
 |----------|---------------------|
-| Static UI strings in views/code | PO files (`OrchardCore.Localization`) |
-| Content type/field display names | Data Localization (`OrchardCore.DataLocalization`) |
-| Permission descriptions | Data Localization (`OrchardCore.DataLocalization`) |
-| Admin menu items | Data Localization with custom provider |
+| Static UI strings and declared permission descriptions | PO files (`OrchardCore.Localization`) |
+| Content type/field display names | Data Localization |
+| Permission categories and template-based descriptions | Data Localization |
+| Admin menu items | Data Localization |
 | User-defined content | Content Localization (`OrchardCore.ContentLocalization`) |
-| Database-stored dynamic strings | Data Localization with custom provider |
+| Database-stored dynamic strings | Data Localization with a custom provider |
 
-### API Reference
+## Upgrading from 3.x
 
-#### ILocalizationDataProvider
-
-```csharp
-public interface ILocalizationDataProvider
-{
-    Task<IEnumerable<DataLocalizedString>> GetDescriptorsAsync();
-}
-```
-
-#### DataLocalizedString
-
-```csharp
-public class DataLocalizedString
-{
-    public DataLocalizedString(string context, string name, string value);
-
-    public string Context { get; }  // Category/group name
-    public string Name { get; }     // Original string (key)
-    public string Value { get; }    // Translated value
-}
-```
-
-#### ITranslationsManager
-
-```csharp
-public interface ITranslationsManager
-{
-    Task<TranslationsDocument> LoadTranslationsDocumentAsync();
-    Task<TranslationsDocument> GetTranslationsDocumentAsync();
-    Task RemoveTranslationAsync(string name);
-    Task UpdateTranslationAsync(string name, IEnumerable<Translation> translations);
-}
-```
-
-### Translation Editor Admin UI
-
-Navigate to **Settings → Localization → Dynamic Translations** to use the translation editor:
-
-- **Culture Selector**: Choose which culture to edit translations for.
-- **Search**: Filter strings by original text or translation.
-- **Category Filter**: Focus on a specific category (e.g., Content Types, Permissions).
-- **Auto-save**: Enabled by default, saves after 2 seconds of inactivity.
-- **Save Button**: Manually save all changes.
-
-### Statistics Dashboard
-
-The statistics dashboard at **Settings → Localization → Dynamic Translations → Statistics** shows:
-
-- **Overall Progress**: Total translation progress across all cultures.
-- **By Culture**: Progress bar and completion count for each supported culture.
-- **By Category**: Detailed breakdown per category for a selected culture.
-
-Progress bars are color-coded: 🟢 Green (≥75%), 🟡 Yellow (25–74%), 🔴 Red (<25%).
-
-### Deployment Step
-
-Use the **All Data Translations** deployment step to export all translations for backup or transfer between environments.
+- Built-in permission descriptions are translated with PO files and no longer
+  appear in Data Localization; translations entered for them in Data
+  Localization are ignored. Move them to PO files under the declaring type's
+  context (for example `OrchardCore.Email.EmailPermissions`).
+- `IDataResourceStringProvider` was removed; implement `ILocalizationDataProvider`.
+- The Liquid documentation section "Localization Filters" for `d` is now
+  "Data Localization Filters".

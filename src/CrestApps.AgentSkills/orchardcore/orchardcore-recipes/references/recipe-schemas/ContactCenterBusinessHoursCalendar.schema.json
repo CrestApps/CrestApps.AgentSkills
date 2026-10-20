@@ -1,0 +1,108 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterBusinessHoursCalendar",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterBusinessHoursCalendar\u0027."
+    },
+    "Calendars": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the calendar. When it matches a stored calendar, that calendar is updated. Otherwise a new calendar is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique name of the calendar."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Description of the calendar."
+          },
+          "TimeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Time zone the weekly schedule and holidays are evaluated in. When empty, UTC is used."
+          },
+          "WeeklySchedule": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Day": {
+                  "type": "string",
+                  "enum": [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday"
+                  ],
+                  "description": "The day of the week this window applies to."
+                },
+                "IsOpen": {
+                  "type": "boolean",
+                  "description": "Whether the queue is open on this day."
+                },
+                "OpenMinute": {
+                  "type": "integer",
+                  "description": "Local time, in minutes from midnight, the open window starts."
+                },
+                "CloseMinute": {
+                  "type": "integer",
+                  "description": "Local time, in minutes from midnight (exclusive), the open window ends."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "Per-day open windows that define the weekly schedule."
+          },
+          "Holidays": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A closed date in \u0027yyyy-MM-dd\u0027 format."
+            },
+            "description": "Dates the queue is closed all day regardless of the weekly schedule."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the calendar is enabled. Disabled calendars do not gate routing."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the calendar, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center business-hours calendars to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Calendars"
+  ],
+  "additionalProperties": true
+}

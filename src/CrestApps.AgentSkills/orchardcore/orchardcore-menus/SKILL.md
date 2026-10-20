@@ -1,6 +1,6 @@
 ---
 name: orchardcore-menus
-description: Skill for creating and managing menus in Orchard Core. Covers menu content types, link, content, and HTML menu item types, navigation rendering, menu shape differentiators and alternates, and recipes. Use this skill when requests mention Orchard Core Menus, Create and Manage Navigation Menus, Enabling Menu Features, Menu Item Types, Creating a Menu via Recipe, Multi-Level Navigation Menu, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+description: Skill for creating and managing menus in Orchard Core. Covers menu content types, link, content, and HTML menu item types, the menu Razor tag helper and Liquid shape with caching, menu permissions (ManageMenu, MenuItemPermissionPart), render-time URL validation and HTML sanitization of menu items, navigation rendering, menu shape differentiators and alternates, and recipes. Use this skill when requests mention Orchard Core Menus, Create and Manage Navigation Menus, Enabling Menu Features, Menu Item Types, Creating a Menu via Recipe, Multi-Level Navigation Menu, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -22,6 +22,13 @@ Enable `OrchardCore.Menu`. A menu is a `Menu` content item with
 | `HtmlMenuItem` | Custom markup inside a menu | HTML stored on `HtmlMenuItemPart` |
 
 See `orchardcore-navigation` for `ContentMenuItem` recipe examples and for registering menus from a code-first `INavigationProvider`.
+
+Menus are managed under **Content → Menus**, which is visible to users who can list `Menu` content items. The content-type permission `Edit_Menu` also grants `ManageMenu`, so users who can edit menus can manage their items.
+
+### Render-Time Safety (4.0)
+
+- Link and HTML menu items validate their URLs when rendered, including items created through APIs or imported from older content. Unsafe schemes such as `javascript:` are replaced with an empty URL on a rendering-only copy; stored content is not changed.
+- `HtmlMenuItemPart` stores its HTML exactly as authored and sanitizes it on a cloned item at render time. Like `HtmlBodyPart`, it does not execute Liquid.
 
 ## Recipe
 
@@ -138,3 +145,38 @@ Within a custom menu shape, render the existing menu-item shapes directly:
 
 Render menus directly with the `<menu>` Razor tag helper or the `Menu` Liquid
 shape. Menu content items are not built-in widget types.
+
+## Razor Tag Helper
+
+Import it with `@addTagHelper *, OrchardCore.Menu`, then:
+
+```cshtml
+<menu alias="alias:main-menu" cache-id="main-menu" cache-fixed-duration="00:05:00" cache-tag="alias:main-menu" cache-context="user.roles" />
+```
+
+| Attribute | Description |
+|---|---|
+| `alias` | Alias of the menu to render, e.g. `alias:main-menu`. |
+| `cache-id` | Unique identifier for caching the output. |
+| `cache-context` | Cache contexts, e.g. `user.roles` for permission-based items. |
+| `cache-tag` | Tags used to invalidate the cached entry. |
+| `cache-fixed-duration`, `cache-sliding-duration` | Cache expiration, e.g. `00:05:00`. |
+
+The Liquid `shape` tag accepts the same values with underscores (`cache_id`, `cache_context`, `cache_tag`, `cache_fixed_duration`, `cache_sliding_duration`).
+
+## Marking the Active Item
+
+Menus are usually cached, so mark the current item client-side with the module's script, which adds a class (default `active`) to the parent of the link matching the current URL. In 4.0 it is a plain function, `window.activateLinks(container, options, callback)`, not a jQuery plugin:
+
+```cshtml
+<script asp-src="~/OrchardCore.Menu/Scripts/activate-links.min.js" debug-src="~/OrchardCore.Menu/Scripts/activate-links.js" at="Foot"></script>
+<script at="Foot">
+    document.addEventListener('DOMContentLoaded', function () {
+        activateLinks(document.getElementById('mainNav'), { selector: 'a', traverse: 2 }, function (items) {
+            items.forEach(function (item) { item.closest('.has-treeview')?.classList.add('menu-open'); });
+        });
+    });
+</script>
+```
+
+`traverse` removes up to that many URL segments to activate a less specific link (e.g. `/todo-items` while on `/todo-items/Create`); `selector` targets a child of the link's parent.

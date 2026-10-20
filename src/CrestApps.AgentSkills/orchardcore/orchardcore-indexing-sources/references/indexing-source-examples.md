@@ -15,7 +15,8 @@ services
 ## Generic Source Contracts
 
 The generic registration requires sealed provider implementations of the
-current source contracts:
+current source contracts. `S` is an `IStringLocalizer` injected in the startup
+constructor; `DisplayName` and `Description` are `LocalizedString` values:
 
 ```csharp
 services.AddIndexingSource<
@@ -26,8 +27,8 @@ services.AddIndexingSource<
     "Products",
     options =>
     {
-        options.DisplayName = "Products in Contoso";
-        options.Description = "Create a Contoso index for product records.";
+        options.DisplayName = S["Products in Contoso"];
+        options.Description = S["Create a Contoso index for product records."];
     });
 ```
 
@@ -66,7 +67,7 @@ services.AddIndexingSource<
     ContosoIndexNameProvider>(
     "Contoso",
     "Products",
-    options => options.DisplayName = "Products in Contoso");
+    options => options.DisplayName = S["Products in Contoso"]);
 ```
 
 Implement the three provider manager types and any related index-profile

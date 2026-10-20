@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TelephonyExtension",
+      "description": "Recipe step discriminator. Must be \u0027TelephonyExtension\u0027."
+    },
+    "Extensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the extension. When it matches a stored extension, that extension is updated. Otherwise a new extension is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Catalog name of the extension used for admin display and search. When empty, it is built from the number and the display name."
+          },
+          "Number": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The dialed extension number, for example \u00271001\u0027. It must be unique within the tenant."
+          },
+          "UserName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "User name of the user the extension rings. It is how the user is found on import, because user identifiers differ between environments; an entry whose user does not exist is not imported."
+          },
+          "UserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the user the extension rings. Used to find the user only when \u0027UserName\u0027 is empty, and replaced on import by the identifier of the user that was found."
+          },
+          "DisplayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Name shown to a colleague who calls the extension. When empty, the user name is used."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the extension, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Number"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The internal extensions to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Extensions"
+  ],
+  "additionalProperties": true
+}

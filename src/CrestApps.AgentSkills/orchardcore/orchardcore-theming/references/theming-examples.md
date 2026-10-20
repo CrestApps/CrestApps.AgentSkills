@@ -21,19 +21,20 @@ using OrchardCore.DisplayManagement.Manifest;
 
 ```liquid
 <!DOCTYPE html>
-<html lang="{{ Culture.Name }}">
+<html lang="{{ Culture.Name }}" dir="{{ Culture.Dir }}">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ Model.Title }} - {{ Site.SiteName }}</title>
-    {% resources type: "HeadMeta" %}
-    {% resources type: "HeadLink" %}
-    {% style src: "~/CrestApps.BlogTheme/css/site.css" %}
-    {% resources type: "Stylesheet" %}
+    <title>{% page_title Site.SiteName, position: "before", separator: " - " %}</title>
+    {% style name: "CrestApps.BlogTheme", at: "Head" %}
+    {% script name: "CrestApps.BlogTheme", at: "Foot" %}
+    {% resources type: "Header" %}
+    {% render_section "HeadMeta", required: false %}
 </head>
 <body>
     <header class="site-header">
-        {% zone "Navigation" %}
+        {% shape "menu", alias: "alias:main-menu", cache_id: "main-menu", cache_fixed_duration: "00:05:00", cache_tag: "alias:main-menu", cache_context: "user.roles" %}
+        {% render_section "Navigation", required: false %}
         <div class="container">
             <h1 class="site-title">{{ Site.SiteName }}</h1>
         </div>
@@ -42,16 +43,17 @@ using OrchardCore.DisplayManagement.Manifest;
     <main role="main" class="container">
         <div class="row">
             <div class="col-md-8">
-                {% zone "Content" %}
+                {% render_section "Messages", required: false %}
+                {% render_body %}
             </div>
             <aside class="col-md-4">
-                {% zone "Sidebar" %}
+                {% render_section "Sidebar", required: false %}
             </aside>
         </div>
     </main>
 
     <footer class="site-footer">
-        {% zone "Footer" %}
+        {% render_section "Footer", required: false %}
         <div class="container">
             <p>&copy; {{ "now" | date: "%Y" }} {{ Site.SiteName }}</p>
         </div>
@@ -198,12 +200,12 @@ public sealed class ResourceManagementOptionsConfiguration : IConfigureOptions<R
             .DefineStyle("CrestApps.BlogTheme")
             .SetUrl("~/CrestApps.BlogTheme/css/site.min.css", "~/CrestApps.BlogTheme/css/site.css")
             .SetVersion("1.0")
-            .SetDependencies("bootstrap");
+            .SetDependencies("bootstrap:5");
 
         manifest
             .DefineScript("CrestApps.BlogTheme")
             .SetUrl("~/CrestApps.BlogTheme/js/site.min.js", "~/CrestApps.BlogTheme/js/site.js")
-            .SetDependencies("jquery");
+            .SetDependencies("bootstrap:5");
 
         return manifest;
     }
@@ -230,36 +232,38 @@ public sealed class Startup : StartupBase
 ### Views/Layout.cshtml
 
 ```cshtml
-@inject OrchardCore.IOrchardHelper Orchard
-
 <!DOCTYPE html>
-<html lang="@Orchard.CultureName()">
+<html lang="@Orchard.CultureName()" dir="@Orchard.CultureDir()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@RenderTitleSegments(Site.SiteName)</title>
+    <title>@RenderTitleSegments(Site.SiteName, "before")</title>
+    <style asp-name="CrestApps.BlogTheme" at="Head"></style>
+    <script asp-name="CrestApps.BlogTheme" at="Foot"></script>
+    <resources type="Header" />
     @await RenderSectionAsync("HeadMeta", required: false)
-    <style asp-name="CrestApps.BlogTheme"></style>
-    @RenderSection("Styles", required: false)
 </head>
 <body>
-    @await DisplayAsync(ThemeLayout.Header)
+    @await RenderSectionAsync("Header", required: false)
 
     <div class="container">
         <div class="row">
             <main class="col-md-8">
-                @await DisplayAsync(ThemeLayout.Content)
+                @await RenderSectionAsync("Messages", required: false)
+                @await RenderBodyAsync()
             </main>
-            <aside class="col-md-4">
-                @await DisplayAsync(ThemeLayout.Sidebar)
-            </aside>
+            @if (IsSectionDefined("Sidebar"))
+            {
+                <aside class="col-md-4">
+                    @await RenderSectionAsync("Sidebar", required: false)
+                </aside>
+            }
         </div>
     </div>
 
-    @await DisplayAsync(ThemeLayout.Footer)
+    @await RenderSectionAsync("Footer", required: false)
 
-    <script asp-name="CrestApps.BlogTheme" at="Foot"></script>
-    @RenderSection("Scripts", required: false)
+    <resources type="FootScript" />
 </body>
 </html>
 ```
@@ -300,14 +304,28 @@ using OrchardCore.DisplayManagement.Manifest;
 )]
 ```
 
-Override the admin header by creating `Views/Header.cshtml` in your admin theme:
+Override the admin branding (logo area of the top bar) by creating `Views/AdminBranding.cshtml` in your admin theme:
 
 ```cshtml
-<header class="ta-navbar">
+@using Microsoft.Extensions.Options
+@using OrchardCore.Admin
+@inject IOptions<AdminOptions> AdminOptions
+
+<a class="ta-navbar-brand navbar-brand" href="@Url.Content("~/" + AdminOptions.Value.AdminUrlPrefix)">
     <div class="d-flex align-items-center">
-        <a class="ta-navbar-brand" href="~/admin">
-            <img src="~/CrestApps.CustomAdmin/images/logo.svg" alt="Admin" height="32" />
-        </a>
+        <img src="~/CrestApps.CustomAdmin/images/logo.svg" alt="@Site.SiteName" height="32" class="pe-2" />
+        <span>@Site.SiteName</span>
     </div>
-</header>
+</a>
+```
+
+Rebrand the admin menu colors from the admin theme's stylesheet (Orchard Core 4.0):
+
+```css
+:root {
+    --oc-admin-accent-rgb: 73, 80, 87;
+    --oc-admin-accent-strong-color: #343a40;
+    --oc-admin-menu-bg-color: #f1f3f5;
+    --oc-admin-menu-border-color: #dee2e6;
+}
 ```

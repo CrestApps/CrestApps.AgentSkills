@@ -18,11 +18,13 @@ playwright-cli upload ./test-image.jpg
 playwright-cli snapshot
 ```
 
-### Media Library UI Elements
-- Upload button/dropzone: Look for "Upload" text or drag-drop area
-- Folder tree: Left sidebar navigation
-- Media grid: Main content area with thumbnails
-- Search: Input field for filtering media
+### Media Library UI Elements (Vue 3 Media Gallery)
+- Upload button or drag-and-drop onto the file list
+- Folder tree: folders can be created, renamed, deleted, and files dragged onto them
+- File list with list/thumbnail display modes, sorting, pagination, and a storage-information panel
+- Search: input field for filtering files in the current folder
+- Per-file context menu: Rename, Move, Copy, Delete (with confirmation), Download
+- Uploads call the `api/media` endpoints (cookie + antiforgery by default); check `playwright-cli console error` and the application log when an upload fails. File size and extension limits are validated before upload.
 
 ---
 
@@ -55,6 +57,8 @@ playwright-cli snapshot
 ```
 
 ### Content Item UI Elements
+- List layout: List or Grid (`?layout=Grid` when users may choose); in Grid each field is a column
+- Row actions: buttons, or an ellipsis dropdown when **List actions layout** is `Menu`
 - New button: Creates new content
 - Content type selector: Modal/dropdown after clicking New
 - Title field: Usually first prominent text input
@@ -87,9 +91,9 @@ playwright-cli snapshot
 
 ### Features UI Elements
 - Search box: Filter features by name
-- Category tabs/filters: Group features by category
-- Enable/Disable buttons: Toggle feature state
-- Feature cards: Show name, description, dependencies
+- Features are grouped by category, one admin list per category
+- Enable/Disable buttons per feature
+- Row checkboxes plus the **Actions** bulk menu (**Enable**, **Disable**; there is no **Toggle** action in 4.0)
 
 ---
 
@@ -123,13 +127,13 @@ playwright-cli snapshot
 
 ## Content Types
 
-**URL**: `/Admin/ContentTypes`
+**URL**: `/Admin/ContentTypes/List`
 
 ### Creating a Content Type
 
 ```bash
 # Navigate to Content Types
-playwright-cli open http://localhost:5000/Admin/ContentTypes
+playwright-cli open http://localhost:5000/Admin/ContentTypes/List
 playwright-cli snapshot
 
 # Click Create new type
@@ -180,7 +184,7 @@ playwright-cli snapshot
 ## Verification Patterns
 
 ### Check for Success Messages
-After actions, look for:
+After actions, look for (the page heading is `h1.oc-breadcrumb-title`):
 - Toast notifications (usually top-right)
 - Alert boxes with success styling (green)
 - Page redirect to expected location

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-shape-discovery
-description: Skill for discovering rendered Orchard Core shapes and selecting safe frontend or admin theme overrides. Covers shape debug comments, bindings, alternates, differentiators, display types, field display modes, OrchardCore.Placements, OrchardCore.Templates, OrchardCore.AdminTemplates, OrchardCore.Liquid, and runtime visual theming workflows. Use when an AI must identify the exact shape behind existing HTML, create a targeted template or placement override, or redesign a running Orchard Core tenant without guessing shape names.
+description: Skill for discovering rendered Orchard Core shapes and selecting safe frontend or admin theme overrides. Covers shape debug comments, bindings, alternates, differentiators, display types, field display modes, OrchardCore.Placements, OrchardCore.Templates, OrchardCore.AdminTemplates, OrchardCore.Liquid, shape rendering telemetry for finding slow shapes, and runtime visual theming workflows. Use when an AI must identify the exact shape behind existing HTML, find which shape or template is slow, create a targeted template or placement override, or redesign a running Orchard Core tenant without guessing shape names.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -31,7 +31,9 @@ Use this skill before changing the visual output of an existing Orchard Core sit
 | `OrchardCore.AdminTemplates` | Create admin Liquid shape templates from the admin UI | Overrides shapes rendered by the active admin theme. Treat its management permission as sensitive. |
 | `OrchardCore.Placements` | Move, hide, substitute, alternate, or wrap shapes | Admin-defined rules are stored per tenant and take precedence over theme and module placement rules. |
 | `OrchardCore.Placements.FileStorage` | Store placement rules in a file | Use only when the tenant is configured for file-based placement storage. |
-| `DebugSettings.WriteShapeDebugInformation` | Add shape start/end comments to rendered HTML | Configure in Settings → Debugging → Write shape debug information. |
+| `DebugSettings.WriteShapeDebugInformation` | Add shape start/end comments to rendered HTML | Configure in Settings → Debugging → Write shape debug information. Applies immediately, without a tenant restart. |
+| `OrchardCore.DisplayManagement` activity source and meter | Find which shape types are slow or rendered too often | Collect with OpenTelemetry or `dotnet-counters`; nothing is emitted unless a listener subscribes. |
+| `OrchardCore.MiniProfiler` | Per-request `Shape: <type>` timings and SQL in a browser widget | Restricted by the `ViewMiniProfilerOnFrontEnd` and `ViewMiniProfilerOnBackEnd` permissions. |
 
 Feature names and menu labels can vary with the Orchard Core version and enabled features. Confirm the feature state and use the tenant's Design menu instead of assuming a route.
 
@@ -51,7 +53,7 @@ If the request is not specific, inspect the live page that shows the undesired o
 
 ### 2. Enable shape debug information
 
-Enable the tenant setting **Settings → Debugging → Write shape debug information**. In code, the equivalent setting is:
+Enable the tenant setting **Settings → Debugging → Write shape debug information**. The value flows into `ShapeRenderingOptions` through `IOptionsMonitor`, so the next request renders the markers without a shell release. In code, the equivalent setting is:
 
 ```csharp
 public sealed class DebugSettings
@@ -122,6 +124,16 @@ Use the existing `orchardcore-shapes`, `orchardcore-placement`, `orchardcore-tem
 4. Test both a populated and an empty state for zones, fields, media, and lists.
 5. Check responsive markup and accessibility after visual changes.
 6. Remove temporary debug snippets and disable shape debug information when discovery is complete.
+
+### 6. Find slow shapes (optional)
+
+When the problem is performance rather than markup, collect shape rendering telemetry instead of reading markers. Each rendered shape emits a `Render shape {type}` activity (tags `orchardcore.shape.type`, `orchardcore.shape.binding`), and the meter exposes `orchardcore.display.shapes_rendered` and the `orchardcore.display.shape.duration` histogram by shape type:
+
+```bash
+dotnet-counters monitor --name OrchardCore.Cms.Web --counters OrchardCore.DisplayManagement
+```
+
+Nested shape activities are children of their parent, so a trace shows which zone or wrapper contains the slow shape. Use `orchardcore-mini-profiler` for a per-request view with SQL. See `orchardcore-display-management` for the OpenTelemetry registration.
 
 ## Shape Names, Alternates, and Template Files
 

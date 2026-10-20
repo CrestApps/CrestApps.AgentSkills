@@ -14,9 +14,9 @@ public sealed class Migrations : DataMigration
         _contentDefinitionManager = contentDefinitionManager;
     }
 
-    public int Create()
+    public async Task<int> CreateAsync()
     {
-        _contentDefinitionManager.AlterTypeDefinition("BlogPost", type => type
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("BlogPost", type => type
             .DisplayedAs("Blog Post")
             .Creatable()
             .Listable()
@@ -42,7 +42,7 @@ public sealed class Migrations : DataMigration
             )
         );
 
-        _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
+        await _contentDefinitionManager.AlterPartDefinitionAsync("BlogPost", part => part
             .WithField("Subtitle", field => field
                 .OfType("TextField")
                 .WithDisplayName("Subtitle")
@@ -68,15 +68,16 @@ public sealed class Migrations : DataMigration
 ## Example 2: Widget Content Type
 
 ```csharp
-_contentDefinitionManager.AlterTypeDefinition("HeroBanner", type => type
+await _contentDefinitionManager.AlterTypeDefinitionAsync("HeroBanner", type => type
     .DisplayedAs("Hero Banner")
     .Stereotype("Widget")
+    .WithCategory("Marketing")
     .WithPart("HeroBanner", part => part
         .WithPosition("0")
     )
 );
 
-_contentDefinitionManager.AlterPartDefinition("HeroBanner", part => part
+await _contentDefinitionManager.AlterPartDefinitionAsync("HeroBanner", part => part
     .WithField("Heading", field => field
         .OfType("TextField")
         .WithDisplayName("Heading")

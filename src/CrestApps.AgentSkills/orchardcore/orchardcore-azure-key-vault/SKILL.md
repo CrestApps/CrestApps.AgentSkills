@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-key-vault
-description: Skill for loading Orchard Core app configuration and secrets from Azure Key Vault. Covers the AddOrchardCoreAzureKeyVault configuration extension, DefaultAzureCredential authentication, secret name translation rules, and reload intervals. Use this skill when requests mention Orchard Core Azure Key Vault, secret management, connection string secrets, DefaultAzureCredential, Managed Identity configuration, KeyVaultName or VaultURI settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Configuration.KeyVault, AddOrchardCoreAzureKeyVault, AzureKeyVaultSecretManager, AzureKeyVaultConfigurationOptions, TokenCredential, and the OrchardCore_KeyVault_Azure configuration section. It also helps with host startup wiring, secret naming conventions, and the configuration patterns captured in this skill.
+description: Skill for loading Orchard Core app configuration and secrets from Azure Key Vault. Covers the AddOrchardCoreAzureKeyVault configuration extension for IHostBuilder, IWebHostBuilder and ConfigurationManager, DefaultAzureCredential and custom TokenCredential authentication, the OrchardCore KeyVault Azure configuration section, KeyVaultName, VaultURI and ReloadInterval, AzureKeyVaultSecretManager secret name translation, and Orchard Core 4 secret names for the renamed configuration sections such as Media Azure, DataProtection Azure, Redis and Email Smtp. Use this skill when requests mention Orchard Core Azure Key Vault, secret management, connection string secrets, Managed Identity configuration, OrchardCore.Configuration.KeyVault, upgrading from the OrchardCore_KeyVault_Azure section, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,7 +19,7 @@ You are an Orchard Core expert. Wire Azure Key Vault as a configuration source s
 - Add a package reference to `OrchardCore.Configuration.KeyVault` in the web (startup) project.
 - Register the provider by calling `AddOrchardCoreAzureKeyVault` on the builder. Overloads exist for `IHostBuilder`, `IWebHostBuilder`, and `ConfigurationManager`.
 - Authentication defaults to `DefaultAzureCredential` (Azure Identity). In Azure, prefer a Managed Identity; locally, sign in through Visual Studio, VS Code, or the Azure CLI. You may pass a custom `TokenCredential` to override this.
-- Configure the vault with the `OrchardCore_KeyVault_Azure` section: provide `KeyVaultName` or `VaultURI`, and optionally `ReloadInterval` (in seconds) to poll for changes. Leave `ReloadInterval` blank to disable reloading.
+- Configure the vault with the `OrchardCore:KeyVault:Azure` section (in appsettings or environment variables, since it is read before Key Vault is added): provide `KeyVaultName` or `VaultURI`, and optionally `ReloadInterval` (in seconds) to poll for changes. Leave `ReloadInterval` blank to disable reloading.
 - Secret-name translation: Key Vault forbids `:` and `_`, so Orchard Core's `AzureKeyVaultSecretManager` translates `---` to `_` and `--` to `:` when mapping a secret name back to a configuration key.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -71,16 +71,20 @@ builder.Configuration.AddOrchardCoreAzureKeyVault(credential);
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_KeyVault_Azure": {
-      "KeyVaultName": "my-vault",
-      "VaultURI": "",
-      "ReloadInterval": "60"
+    "KeyVault": {
+      "Azure": {
+        "KeyVaultName": "my-vault",
+        "VaultURI": "",
+        "ReloadInterval": "60"
+      }
     }
   }
 }
 ```
 
-- Provide either `KeyVaultName` (short name) or `VaultURI` (full vault host URI). `VaultURI` takes precedence when set.
+Environment variable form: `OrchardCore__KeyVault__Azure__KeyVaultName=my-vault`.
+
+- Provide either `KeyVaultName` (short name) or `VaultURI` (full vault host URI). `VaultURI` takes precedence when set. A missing or invalid value throws at startup with a message naming the `OrchardCore:KeyVault:Azure:*` key.
 - `ReloadInterval` is a number of seconds; when present the provider re-polls the vault on that interval.
 
 ### Secret Name Translation
@@ -89,7 +93,17 @@ Key Vault secret names cannot contain `:` or `_`. Orchard Core maps them back to
 
 | Key Vault secret name | Resolved configuration key |
 |---|---|
-| `OrchardCore--OrchardCore---Shells---Database--ConnectionString` | `OrchardCore:OrchardCore_Shells_Database:ConnectionString` |
+| `OrchardCore--Shells--Database--ConnectionString` | `OrchardCore:Shells:Database:ConnectionString` |
+| `OrchardCore--Media--Azure--ConnectionString` | `OrchardCore:Media:Azure:ConnectionString` |
+| `OrchardCore--DataProtection--Azure--ConnectionString` | `OrchardCore:DataProtection:Azure:ConnectionString` |
+| `OrchardCore--Redis--Configuration` | `OrchardCore:Redis:Configuration` |
+| `OrchardCore--Email--Smtp--Password` | `OrchardCore:Email:Smtp:Password` |
+| `OrchardCore--SignalR--Azure--ConnectionString` | `OrchardCore:SignalR:Azure:ConnectionString` |
+| `ConnectionStrings--Default` | `ConnectionStrings:Default` |
+
+Orchard Core 4.0 configuration sections are grouped by service without the
+`OrchardCore_` prefix, so most secret names no longer need the triple dash. Use
+`---` only for keys that really contain `_`.
 
 Rules applied by `AzureKeyVaultSecretManager`:
 
@@ -105,3 +119,8 @@ Rules applied by `AzureKeyVaultSecretManager`:
 
 - Because Key Vault is a host-level configuration provider, its values are available to every tenant through the shared host configuration.
 - If a secret does not resolve, verify the double/triple-dash encoding of the secret name and that the authenticating identity has `get`/`list` secret permissions on the vault.
+
+### Upgrading from 3.x
+
+- Rename the `OrchardCore:OrchardCore_KeyVault_Azure` section to `OrchardCore:KeyVault:Azure` (env var `OrchardCore__KeyVault__Azure__KeyVaultName`). The old name is deprecated but still read.
+- Rename secrets that target renamed sections, for example `OrchardCore--OrchardCore---Media---Azure--ConnectionString` to `OrchardCore--Media--Azure--ConnectionString` and `OrchardCore--OrchardCore---Redis--Configuration` to `OrchardCore--Redis--Configuration`. Old section names still bind, and the new name wins when both are present.

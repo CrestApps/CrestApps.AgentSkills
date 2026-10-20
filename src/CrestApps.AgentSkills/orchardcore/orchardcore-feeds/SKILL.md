@@ -1,6 +1,6 @@
 ---
 name: orchardcore-feeds
-description: Skill for exposing Orchard Core content through extensible XML feeds. Covers RSS feed selection, IFeedQueryProvider and IFeedQuery implementations, IFeedItemBuilder population, FeedContext response construction, Lists feed metadata, and custom feed format builders. Use this skill when requests mention Orchard Core Feeds, RSS feeds, Atom feeds, IFeedItemBuilder, feed queries, list feeds, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Feeds, IFeedBuilder, IFeedBuilderProvider, IFeedQueryProvider, IFeedQuery, IFeedItemBuilder, FeedContext, FeedMetadata, and ListFeedQuery. It also helps with feature recipes, RSS URLs, custom format providers, and the code patterns captured in this skill.
+description: Skill for exposing Orchard Core content through extensible XML feeds. Covers RSS feed selection, the list RSS route and auto-discovery link, IFeedQueryProvider and IFeedQuery implementations, IFeedItemBuilder population, FeedContext response construction and contextualizers, Lists feed metadata, custom feed routes, and custom feed format builders such as Atom. Use this skill when requests mention Orchard Core Feeds, RSS feeds, Atom feeds, IFeedItemBuilder, feed queries, list feeds, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Feeds, OrchardCore.Feeds.Core, AddFeeds, IFeedBuilder, IFeedBuilderProvider, IFeedQueryProvider, IFeedQuery, IFeedItemBuilder, FeedContext, FeedMetadata, CommonFeedItemBuilder, and ListFeedQuery. It also helps with feature recipes, RSS URLs, custom format providers, and the code patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,13 +15,13 @@ You are an Orchard Core expert. Generate feed configuration and provider code us
 
 ### Guidelines
 
-- Enable the `OrchardCore.Feeds` feature. The module has no declared feature dependencies.
-- The release/3.0 module registers an RSS 2.0 builder for the `rss` format. It does not include a built-in Atom provider.
+- Enable the `OrchardCore.Feeds` feature. The module has no declared feature dependencies and exposes no feed on its own; other modules (most commonly Lists) describe what to syndicate.
+- `services.AddFeeds()` (in `OrchardCore.Feeds.Core`) registers the RSS 2.0 builder for the `rss` format. There is no built-in Atom provider.
 - Use `IFeedQueryProvider` to match a request and `IFeedQuery` to add source items and channel metadata to `FeedContext`.
-- Use `IFeedItemBuilder` to populate common item elements after the selected query has added feed items.
-- A provider returns a priority. The controller selects the matching format provider and query provider with the highest priority.
-- `FeedController` returns XML and routes requests through the normal Orchard Core module routing conventions. The requested format is supplied as `format`.
-- `OrchardCore.Lists` integrates when both Lists and Feeds are enabled. `ListFeedQuery` supplies list items and `CommonFeedItemBuilder` creates standard RSS item properties.
+- `FeedController` resolves a single `IFeedItemBuilder` (the last registered one). `OrchardCore.Contents` registers `CommonFeedItemBuilder` for `ContentItem` feed items; registering your own `IFeedItemBuilder` replaces it, so only do that deliberately.
+- Providers return a priority. The controller selects the matching format provider and query provider with the highest priority (built-in RSS and list query use `-5`). If either is missing, the controller returns `404`.
+- `FeedController.Index(string format)` is in the `OrchardCore.Feeds` area; the format comes from the route or the `format` query value. The response is `text/xml`.
+- `OrchardCore.Lists` integrates when both Lists and Feeds are enabled. `ListFeedQuery` supplies list items, and lists are served at `/Contents/Lists/{contentItemId}/rss`.
 - `FeedMetadata.DisableRssFeed` and `FeedMetadata.FeedProxyUrl` are supplied by the Lists feed handler for list content.
 - Use `IFeedBuilderProvider` and `IFeedBuilder` to add Atom or another format rather than modifying the built-in RSS provider.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
@@ -58,35 +58,52 @@ The RSS provider matches only `format=rss`. It constructs:
 </rss>
 ```
 
-For a `ContentItem`, `CommonFeedItemBuilder` supplies `title`, `link`, CDATA `description`, `pubDate`, and a permanent-link `guid`. It generates links through MVC URL generation after the feed has been populated.
+For a `ContentItem`, `CommonFeedItemBuilder` supplies `title`, `link`, CDATA `description` (from `BodyAspect`), `pubDate`, and a permanent-link `guid`. Links are generated in contextualizers so they use the current scheme and host. The author is intentionally left empty.
 
-### List Feed Metadata
+### List Feeds
 
-On a list content item, the Lists integration stores these fields under `ListPart`:
+- URL: `/Contents/Lists/{contentItemId}/rss` (route `ListFeed`, area `OrchardCore.Feeds`, default `format = rss`).
+- On the list's detail page, the `ListPartFeed` shape registers `<link rel="alternate" type="application/rss+xml">` for auto-discovery, pointing at the proxy URL when one is set.
+- The list editor's RSS settings are stored under `ListPart`:
 
 | Field | Effect |
 |---|---|
-| `DisableRssFeed` | Prevents `ListFeedQuery` from serving the list as RSS. |
-| `FeedProxyUrl` | Supplies a proxy URL through `FeedMetadata` for a feed-aware consumer. |
-| `FeedItemsCount` | Limits the number of list items included by the Lists feed query. |
+| `DisableRssFeed` | Prevents `ListFeedQuery` from matching and removes the auto-discovery link. |
+| `FeedProxyUrl` | Used as the auto-discovery link instead of the local feed URL (e.g., a FeedBurner proxy). |
+| `FeedItemsCount` | Number of published list items in the feed, newest first. Default `20`; `0` yields no items. |
 
 Configure them from the list feed editor rather than duplicating feed logic in a display driver.
 
 ### Implementing a Custom Feed Query
 
-Implement both interfaces in one scoped service when a custom URL should select a particular set of content.
+Map a route to the feed controller with `format = rss` so the built-in RSS builder matches, then match your query on a route value.
 
 ```csharp
+using Microsoft.AspNetCore.Http;
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
 using OrchardCore.Feeds;
 using OrchardCore.Feeds.Models;
+using YesSql;
 
 namespace MyModule.Feeds;
 
 public sealed class FeaturedFeedQuery : IFeedQueryProvider, IFeedQuery
 {
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ISession _session;
+
+    public FeaturedFeedQuery(IHttpContextAccessor httpContextAccessor, ISession session)
+    {
+        _httpContextAccessor = httpContextAccessor;
+        _session = session;
+    }
+
     public Task<FeedQueryMatch> MatchAsync(FeedContext context)
     {
-        if (!string.Equals(context.Format, "featured-rss", StringComparison.OrdinalIgnoreCase))
+        var feed = _httpContextAccessor.HttpContext?.GetRouteValue("feed") as string;
+
+        if (!string.Equals(feed, "featured", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult<FeedQueryMatch>(null);
         }
@@ -98,39 +115,61 @@ public sealed class FeaturedFeedQuery : IFeedQueryProvider, IFeedQuery
         });
     }
 
-    public Task ExecuteAsync(FeedContext context)
+    public async Task ExecuteAsync(FeedContext context)
     {
         context.Builder.AddProperty(context, null, "title", "Featured products");
         context.Builder.AddProperty(context, null, "description", "Current featured products.");
 
-        return Task.CompletedTask;
+        var items = await _session.Query<ContentItem, ContentItemIndex>(x =>
+                x.ContentType == "Product" && x.Published)
+            .OrderByDescending(x => x.PublishedUtc)
+            .Take(20)
+            .ListAsync();
+
+        foreach (var item in items)
+        {
+            // CommonFeedItemBuilder fills title, link, description, pubDate, and guid.
+            context.Builder.AddItem(context, item);
+        }
     }
 }
 ```
 
-The query must add feed items with `context.Builder.AddItem(context, item)` before `IFeedItemBuilder.PopulateAsync` runs.
+The query must add feed items with `context.Builder.AddItem(context, item)`; the item builder populates them afterwards.
 
-### Registering a Query Provider
+### Registering a Query Provider and Route
 
 ```csharp
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Feeds;
 using OrchardCore.Modules;
 
 namespace MyModule;
 
-public sealed class Startup : StartupBase
+[RequireFeatures("OrchardCore.Feeds")]
+public sealed class FeedsStartup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddScoped<IFeedQueryProvider, FeaturedFeedQuery>();
+    }
+
+    public override void Configure(IApplicationBuilder app, IEndpointRouteBuilder routes, IServiceProvider serviceProvider)
+    {
+        routes.MapAreaControllerRoute(
+            name: "FeaturedFeed",
+            areaName: "OrchardCore.Feeds",
+            pattern: "featured/rss",
+            defaults: new { controller = "Feed", action = "Index", format = "rss", feed = "featured" });
     }
 }
 ```
 
 ### Adding a Custom Atom Format
 
-The built-in provider is RSS-only. An Atom implementation should provide an `IFeedBuilderProvider` that matches a distinct format, then an `IFeedBuilder` that creates the Atom document and its entries.
+The built-in provider is RSS-only. An Atom implementation provides an `IFeedBuilderProvider` that matches a distinct format, then an `IFeedBuilder` that creates the Atom document and its entries.
 
 ```csharp
 using OrchardCore.Feeds;
@@ -162,17 +201,22 @@ Register the provider as a singleton because builder providers are stateless:
 services.AddSingleton<IFeedBuilderProvider, AtomFeedBuilderProvider>();
 ```
 
-`IFeedBuilder.ProcessAsync` owns the root XML document, `AddItem<TItem>` creates an entry, and `AddProperty` appends either a feed-level property when the item is `null` or an item-level property otherwise.
+`IFeedBuilder` members:
+
+- `Task<XDocument> ProcessAsync(FeedContext context, Func<Task> populate)` owns the root XML document and must call `populate`.
+- `FeedItem<TItem> AddItem<TItem>(FeedContext context, TItem item)` creates an entry.
+- `void AddProperty(FeedContext context, FeedItem feedItem, XElement element)` appends a feed-level property when `feedItem` is `null`, or an item-level one otherwise. The `AddProperty(context, feedItem, name, value)` extension builds the `XElement` for you.
+
+Built-in item builders and list queries special-case `context.Format == "rss"`; for other formats they fall back to `AddProperty` calls, so make your builder handle `title`, `link`, `description`, and `pubDate` properties.
 
 ### Feed Pipeline
 
-1. `FeedController` creates a `FeedContext` from the requested `format`.
-2. It chooses the best `IFeedBuilderProvider`.
-3. It chooses the best `IFeedQueryProvider`.
-4. The selected query adds channel data and source items.
-5. Every registered `IFeedItemBuilder` populates items.
-6. Registered contextualizers resolve request-dependent URLs.
-7. The generated `XDocument` is returned as `text/xml`.
+1. `FeedController` creates a `FeedContext` (with the request `IUpdateModel` and `format`).
+2. It chooses the best `IFeedBuilderProvider`, or returns `404`.
+3. It chooses the best `IFeedQueryProvider`, or returns `404`.
+4. The builder's `ProcessAsync` runs the selected query (channel data and items), then the `IFeedItemBuilder`.
+5. Registered contextualizers (`context.Response.Contextualize(...)`) resolve request-dependent URLs with the MVC `Url` helper.
+6. The generated `XDocument` is returned as `text/xml`.
 
 Avoid building absolute URLs before contextualization. Add a `FeedResponse.Contextualize` callback when the URL depends on the current request scheme or host.
 
@@ -180,7 +224,9 @@ Avoid building absolute URLs before contextualization. Add a `FeedResponse.Conte
 
 | Symptom | Check |
 |---|---|
-| Feed returns `404` | Verify a builder and query provider both match the requested format. |
-| Atom is not available | Atom is not built in for release/3.0; register a custom builder provider. |
-| RSS has no items | Ensure the query calls `AddItem` and that an item builder is registered for its item type. |
+| Feed returns `404` | Verify a builder matches the `format` (route default or query string) and a query provider matches the request. |
+| Atom is not available | Atom is not built in; register a custom builder provider. |
+| RSS has no items | Ensure the query calls `AddItem` with `ContentItem` items and that `OrchardCore.Contents` is enabled for `CommonFeedItemBuilder`. |
+| Items lost titles and links | A custom `IFeedItemBuilder` registration replaced `CommonFeedItemBuilder`. |
 | Links are empty or incorrect | Generate them in a response contextualizer using the request-aware URL helper. |
+| List feed missing | Check `DisableRssFeed` on the list and that both Lists and Feeds are enabled. |

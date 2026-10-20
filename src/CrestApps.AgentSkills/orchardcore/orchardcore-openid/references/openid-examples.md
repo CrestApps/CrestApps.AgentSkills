@@ -1,77 +1,79 @@
 # OpenID Connect Examples
 
-## Example 1: Authorization Server with Web Application Client
+## Example 1: Authorization Server with a Confidential Web Client
 
-A complete setup configuring Orchard Core as an OpenID Connect authorization server with a confidential web application client.
-
-### Server Settings Recipe
+### Recipe
 
 ```json
 {
   "steps": [
     {
+      "name": "feature",
+      "enable": [
+        "OrchardCore.OpenId.Server",
+        "OrchardCore.OpenId.Validation"
+      ]
+    },
+    {
       "name": "OpenIdServerSettings",
+      "AccessTokenFormat": "JsonWebToken",
+      "EnableTokenEndpoint": true,
+      "EnableAuthorizationEndpoint": true,
+      "EnableLogoutEndpoint": true,
+      "EnableUserInfoEndpoint": true,
+      "EnablePushedAuthorizationEndpoint": true,
       "AllowAuthorizationCodeFlow": true,
       "AllowClientCredentialsFlow": true,
       "AllowRefreshTokenFlow": true,
-      "UseRollingRefreshTokens": true,
-      "AuthorizationEndpointPath": "/connect/authorize",
-      "TokenEndpointPath": "/connect/token",
-      "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo",
-      "EnablePushedAuthorizationEndpoint": true
-    }
-  ]
-}
-```
-
-### Custom Scope Registration
-
-```json
-{
-  "steps": [
+      "RequireProofKeyForCodeExchange": true,
+      "RequireEndSessionConfirmation": true
+    },
     {
       "name": "OpenIdScope",
       "ScopeName": "portal_api",
       "DisplayName": "Portal API",
       "Description": "Grants access to the customer portal API.",
       "Resources": "portal-resource-server"
-    }
-  ]
-}
-```
-
-### Confidential Web Application Client
-
-```json
-{
-  "steps": [
+    },
     {
       "name": "OpenIdApplication",
       "ClientId": "customer-portal",
       "DisplayName": "Customer Portal",
-      "ClientType": "confidential",
-      "ClientSecret": "portal-secret-value",
+      "Type": "confidential",
+      "ClientSecret": "{{PortalSecret}}",
       "ConsentType": "implicit",
       "AllowAuthorizationCodeFlow": true,
       "AllowRefreshTokenFlow": true,
+      "AllowLogoutEndpoint": true,
+      "RequireProofKeyForCodeExchange": true,
       "RedirectUris": "https://portal.example.com/signin-oidc",
       "PostLogoutRedirectUris": "https://portal.example.com/signout-callback-oidc",
-      "AllowedScopes": [
-        "openid",
-        "profile",
-        "email",
-        "roles",
-        "portal_api"
+      "ScopeEntries": [
+        { "Name": "profile" },
+        { "Name": "email" },
+        { "Name": "roles" },
+        { "Name": "portal_api" }
       ]
+    },
+    {
+      "name": "OpenIdValidationSettings",
+      "Tenant": "Default"
     }
   ]
 }
 ```
 
-### Migration for Server and Client Together
+### Same Setup in a Migration
 
 ```csharp
+using OpenIddict.Abstractions;
+using OrchardCore.Data.Migration;
+using OrchardCore.OpenId.Abstractions.Descriptors;
+using OrchardCore.OpenId.Abstractions.Managers;
+using OrchardCore.OpenId.Services;
+
+namespace MyModule.Migrations;
+
 public sealed class PortalOpenIdMigrations : DataMigration
 {
     private readonly IOpenIdServerService _serverService;
@@ -90,17 +92,16 @@ public sealed class PortalOpenIdMigrations : DataMigration
 
     public async Task<int> CreateAsync()
     {
-        var settings = await _serverService.GetSettingsAsync();
+        var settings = await _serverService.LoadSettingsAsync();
         settings.AllowAuthorizationCodeFlow = true;
         settings.AllowClientCredentialsFlow = true;
         settings.AllowRefreshTokenFlow = true;
-        settings.UseRollingRefreshTokens = true;
+        settings.RequireProofKeyForCodeExchange = true;
         settings.AuthorizationEndpointPath = "/connect/authorize";
         settings.TokenEndpointPath = "/connect/token";
         settings.LogoutEndpointPath = "/connect/logout";
         settings.UserinfoEndpointPath = "/connect/userinfo";
         settings.PushedAuthorizationEndpointPath = "/connect/par";
-        settings.RequireEndSessionConfirmation = true;
         await _serverService.UpdateSettingsAsync(settings);
 
         await _scopeManager.CreateAsync(new OpenIdScopeDescriptor
@@ -122,7 +123,7 @@ public sealed class PortalOpenIdMigrations : DataMigration
             {
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.Endpoints.Logout,
+                OpenIddictConstants.Permissions.Endpoints.EndSession,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
@@ -130,6 +131,10 @@ public sealed class PortalOpenIdMigrations : DataMigration
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "portal_api",
+            },
+            Requirements =
+            {
+                OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange,
             },
             RedirectUris = { new Uri("https://portal.example.com/signin-oidc") },
             PostLogoutRedirectUris = { new Uri("https://portal.example.com/signout-callback-oidc") },
@@ -140,30 +145,9 @@ public sealed class PortalOpenIdMigrations : DataMigration
 }
 ```
 
-## Example 2: Adding Userinfo Claims
+## Example 2: Client Credentials for a Background Service
 
-Implement `IUserInfoClaimsProvider` to append custom claims to the userinfo
-response:
-
-```csharp
-public sealed class TenantUserInfoClaimsProvider : IUserInfoClaimsProvider
-{
-    public Task GenerateAsync(UserInfoClaimsContext context)
-    {
-        context.Claims["tenant"] = "example";
-        return Task.CompletedTask;
-    }
-}
-```
-
-The standard `profile`, `email`, `phone`, and `roles` claims are populated
-before the provider runs.
-
-## Example 3: Client Credentials for Service-to-Service Communication
-
-A background service authenticating with the authorization server using client credentials to call a protected API.
-
-### Service Client Registration Recipe
+### Recipe
 
 ```json
 {
@@ -172,89 +156,71 @@ A background service authenticating with the authorization server using client c
       "name": "OpenIdApplication",
       "ClientId": "background-worker",
       "DisplayName": "Background Worker Service",
-      "ClientType": "confidential",
-      "ClientSecret": "worker-service-secret",
-      "ConsentType": "implicit",
+      "Type": "confidential",
+      "ClientSecret": "{{WorkerSecret}}",
       "AllowClientCredentialsFlow": true,
-      "AllowedScopes": [
-        "api"
+      "RoleEntries": [
+        { "Name": "Editor" }
+      ],
+      "ScopeEntries": [
+        { "Name": "api" }
       ]
     }
   ]
 }
 ```
 
-### Service Client Migration
+The client's `RoleEntries` become the roles of the token, so the `Editor` permissions apply to its API calls.
+
+### Requesting and Using a Token
 
 ```csharp
-public sealed class WorkerClientMigrations : DataMigration
-{
-    private readonly IOpenIdApplicationManager _applicationManager;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 
-    public WorkerClientMigrations(IOpenIdApplicationManager applicationManager)
-    {
-        _applicationManager = applicationManager;
-    }
+namespace MyWorker.Services;
 
-    public async Task<int> CreateAsync()
-    {
-        await _applicationManager.CreateAsync(new OpenIdApplicationDescriptor
-        {
-            ClientId = "background-worker",
-            DisplayName = "Background Worker Service",
-            ClientSecret = "worker-service-secret",
-            ClientType = OpenIddictConstants.ClientTypes.Confidential,
-            ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
-            Permissions =
-            {
-                OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
-                OpenIddictConstants.Permissions.Prefixes.Scope + "api",
-            },
-        });
-
-        return 1;
-    }
-}
-```
-
-### Requesting a Token from the Service
-
-```csharp
-public sealed class TokenService
+public sealed class OrchardApiClient
 {
     private readonly HttpClient _httpClient;
 
-    public TokenService(HttpClient httpClient)
+    public OrchardApiClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
 
-    public async Task<string> GetAccessTokenAsync()
+    public async Task<JsonElement> GetContentItemAsync(string contentItemId, CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://auth.example.com/connect/token");
-        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "client_credentials",
-            ["client_id"] = "background-worker",
-            ["client_secret"] = "worker-service-secret",
-            ["scope"] = "api",
-        });
+        using var tokenResponse = await _httpClient.PostAsync(
+            "https://cms.example.com/connect/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "client_credentials",
+                ["client_id"] = "background-worker",
+                ["client_secret"] = "worker-service-secret",
+                ["scope"] = "api",
+            }),
+            cancellationToken);
 
-        var response = await _httpClient.SendAsync(request);
+        tokenResponse.EnsureSuccessStatusCode();
+
+        var token = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://cms.example.com/api/content/{contentItemId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.GetProperty("access_token").GetString());
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return payload.GetProperty("access_token").GetString()!;
+        return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }
 }
 ```
 
-## Example 4: Public SPA Client with PKCE
+Cache the token until it expires. With Rate Limits enabled, `/connect/token` allows 10 requests per minute per IP, and a `429` means the token is being requested too often.
 
-A single-page application using authorization code flow with Proof Key for Code Exchange.
-
-### SPA Client Registration Recipe
+## Example 3: Public SPA with PKCE and Silent Renew
 
 ```json
 {
@@ -263,81 +229,75 @@ A single-page application using authorization code flow with Proof Key for Code 
       "name": "OpenIdApplication",
       "ClientId": "react-dashboard",
       "DisplayName": "React Dashboard",
-      "ClientType": "public",
+      "Type": "public",
       "ConsentType": "explicit",
       "AllowAuthorizationCodeFlow": true,
       "AllowRefreshTokenFlow": true,
+      "AllowLogoutEndpoint": true,
       "RequireProofKeyForCodeExchange": true,
-      "RedirectUris": "https://dashboard.example.com/callback,https://dashboard.example.com/silent-renew",
+      "RedirectUris": "https://dashboard.example.com/callback https://dashboard.example.com/silent-renew",
       "PostLogoutRedirectUris": "https://dashboard.example.com/logout",
-      "AllowedScopes": [
-        "openid",
-        "profile",
-        "email",
-        "api"
+      "ScopeEntries": [
+        { "Name": "profile" },
+        { "Name": "email" },
+        { "Name": "roles" },
+        { "Name": "api" }
       ]
     }
   ]
 }
 ```
 
-### SPA Client Migration
+Add a CORS policy for `https://dashboard.example.com` (see `orchardcore-cors`) when the SPA calls the API from another origin.
 
-```csharp
-public sealed class SpaClientMigrations : DataMigration
+## Example 4: Logout Without a Confirmation Prompt
+
+Turn off the prompt on the server, then send `id_token_hint` when signing out:
+
+```json
 {
-    private readonly IOpenIdApplicationManager _applicationManager;
-
-    public SpaClientMigrations(IOpenIdApplicationManager applicationManager)
+  "steps": [
     {
-        _applicationManager = applicationManager;
+      "name": "OpenIdServerSettings",
+      "EnableTokenEndpoint": true,
+      "EnableAuthorizationEndpoint": true,
+      "EnableLogoutEndpoint": true,
+      "EnableUserInfoEndpoint": true,
+      "AllowAuthorizationCodeFlow": true,
+      "AllowRefreshTokenFlow": true,
+      "RequireProofKeyForCodeExchange": true,
+      "RequireEndSessionConfirmation": false
     }
-
-    public async Task<int> CreateAsync()
-    {
-        await _applicationManager.CreateAsync(new OpenIdApplicationDescriptor
-        {
-            ClientId = "react-dashboard",
-            DisplayName = "React Dashboard",
-            ClientType = OpenIddictConstants.ClientTypes.Public,
-            ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            Permissions =
-            {
-                OpenIddictConstants.Permissions.Endpoints.Authorization,
-                OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.Endpoints.Logout,
-                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
-                OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
-                OpenIddictConstants.Permissions.ResponseTypes.Code,
-                OpenIddictConstants.Permissions.Scopes.Email,
-                OpenIddictConstants.Permissions.Scopes.Profile,
-                OpenIddictConstants.Permissions.Prefixes.Scope + "api",
-            },
-            Requirements =
-            {
-                OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange,
-            },
-            RedirectUris =
-            {
-                new Uri("https://dashboard.example.com/callback"),
-                new Uri("https://dashboard.example.com/silent-renew"),
-            },
-            PostLogoutRedirectUris =
-            {
-                new Uri("https://dashboard.example.com/logout"),
-            },
-        });
-
-        return 1;
-    }
+  ]
 }
 ```
 
-## Example 5: Protected API with JWT Bearer Validation
+```text
+GET https://cms.example.com/connect/logout?id_token_hint={id_token}&post_logout_redirect_uri=https%3A%2F%2Fdashboard.example.com%2Flogout
+```
 
-A resource server validating tokens issued by an Orchard Core authorization server.
+If the hint is missing, invalid, or was issued for another user, the confirmation prompt is still shown.
 
-### Validation Settings Recipe
+## Example 5: Resource Server on a Separate Tenant or App
+
+Tenant `Api` validates tokens issued by tenant `Auth` in the same application:
+
+```json
+{
+  "steps": [
+    {
+      "name": "feature",
+      "enable": [ "OrchardCore.OpenId.Validation" ]
+    },
+    {
+      "name": "OpenIdValidationSettings",
+      "Tenant": "Auth"
+    }
+  ]
+}
+```
+
+A separate application validates against a remote authority:
 
 ```json
 {
@@ -351,177 +311,24 @@ A resource server validating tokens issued by an Orchard Core authorization serv
 }
 ```
 
-### API Controller with Scoped Authorization
+For remote validation of JWTs, the server must issue `JsonWebToken` access tokens (and `DisableAccessTokenEncryption` when a third-party resource server reads them).
+
+## Example 6: Adding Userinfo Claims
 
 ```csharp
-[ApiController]
-[Route("api/[controller]")]
-[Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
-public sealed class OrdersController : ControllerBase
+using OrchardCore.OpenId.Abstractions.Handlers;
+
+namespace MyModule.Services;
+
+public sealed class TenantUserInfoClaimsProvider : IUserInfoClaimsProvider
 {
-    private readonly IContentManager _contentManager;
-
-    public OrdersController(IContentManager contentManager)
+    public Task GenerateAsync(UserInfoClaimsContext context)
     {
-        _contentManager = contentManager;
+        context.Claims["tenant"] = "example";
+
+        return Task.CompletedTask;
     }
-
-    [HttpGet]
-    public async Task<IActionResult> GetOrders()
-    {
-        var userId = User.FindFirstValue(OpenIddictConstants.Claims.Subject);
-
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var query = await _contentManager.QueryAsync("Order",
-            q => q.Where<ContainedPartIndex>(x => x.ListContentItemId == userId));
-
-        return Ok(query);
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Administrator,OrderManager")]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
-    {
-        var contentItem = await _contentManager.NewAsync("Order");
-        contentItem.Alter<TitlePart>(part => part.Title = request.Title);
-        await _contentManager.CreateAsync(contentItem);
-
-        return CreatedAtAction(nameof(GetOrders), new { id = contentItem.ContentItemId }, contentItem);
-    }
-}
-
-public sealed class CreateOrderRequest
-{
-    public string Title { get; set; } = string.Empty;
 }
 ```
 
-## Example 6: External Azure AD Authentication
-
-Configuring Azure Active Directory as an external identity provider for federated login.
-
-### Azure AD Client Settings Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "OpenIdClientSettings",
-      "Authority": "https://login.microsoftonline.com/{tenant-id}/v2.0",
-      "ClientId": "azure-app-client-id",
-      "ClientSecret": "azure-app-client-secret",
-      "CallbackPath": "/signin-oidc-azure",
-      "SignedOutCallbackPath": "/signout-callback-oidc-azure",
-      "DisplayName": "Azure Active Directory",
-      "Scopes": [
-        "openid",
-        "profile",
-        "email"
-      ]
-    }
-  ]
-}
-```
-
-## Example 7: Complete Multi-Application Setup Recipe
-
-A full recipe deploying an authorization server with multiple clients and scopes in a single step.
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.OpenId",
-        "OrchardCore.OpenId.Server",
-        "OrchardCore.OpenId.Validation"
-      ]
-    },
-    {
-      "name": "OpenIdServerSettings",
-      "AllowAuthorizationCodeFlow": true,
-      "AllowClientCredentialsFlow": true,
-      "AllowRefreshTokenFlow": true,
-      "UseRollingRefreshTokens": true,
-      "AuthorizationEndpointPath": "/connect/authorize",
-      "TokenEndpointPath": "/connect/token",
-      "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo",
-      "EnablePushedAuthorizationEndpoint": true
-    },
-    {
-      "name": "OpenIdScope",
-      "ScopeName": "inventory_api",
-      "DisplayName": "Inventory API",
-      "Description": "Grants access to the inventory management API.",
-      "Resources": "inventory-server"
-    },
-    {
-      "name": "OpenIdScope",
-      "ScopeName": "reporting_api",
-      "DisplayName": "Reporting API",
-      "Description": "Grants access to the reporting API endpoints.",
-      "Resources": "reporting-server"
-    },
-    {
-      "name": "OpenIdApplication",
-      "ClientId": "warehouse-app",
-      "DisplayName": "Warehouse Management App",
-      "ClientType": "confidential",
-      "ClientSecret": "warehouse-app-secret",
-      "ConsentType": "implicit",
-      "AllowAuthorizationCodeFlow": true,
-      "AllowRefreshTokenFlow": true,
-      "RedirectUris": "https://warehouse.example.com/signin-oidc",
-      "PostLogoutRedirectUris": "https://warehouse.example.com/signout-callback-oidc",
-      "AllowedScopes": [
-        "openid",
-        "profile",
-        "roles",
-        "inventory_api"
-      ]
-    },
-    {
-      "name": "OpenIdApplication",
-      "ClientId": "reporting-service",
-      "DisplayName": "Reporting Background Service",
-      "ClientType": "confidential",
-      "ClientSecret": "reporting-service-secret",
-      "ConsentType": "implicit",
-      "AllowClientCredentialsFlow": true,
-      "AllowedScopes": [
-        "inventory_api",
-        "reporting_api"
-      ]
-    },
-    {
-      "name": "OpenIdApplication",
-      "ClientId": "mobile-app",
-      "DisplayName": "Mobile Application",
-      "ClientType": "public",
-      "ConsentType": "explicit",
-      "AllowAuthorizationCodeFlow": true,
-      "AllowRefreshTokenFlow": true,
-      "RequireProofKeyForCodeExchange": true,
-      "RedirectUris": "com.example.mobile:/callback",
-      "PostLogoutRedirectUris": "com.example.mobile:/logout",
-      "AllowedScopes": [
-        "openid",
-        "profile",
-        "email",
-        "inventory_api"
-      ]
-    },
-    {
-      "name": "OpenIdValidationSettings",
-      "Authority": "https://auth.example.com",
-      "Audience": "inventory-server"
-    }
-  ]
-}
-```
+The standard `profile`, `email`, `phone`, and `roles` claims are populated before the provider runs.

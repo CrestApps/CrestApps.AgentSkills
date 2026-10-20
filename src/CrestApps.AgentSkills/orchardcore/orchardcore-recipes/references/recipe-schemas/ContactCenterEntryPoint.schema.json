@@ -1,0 +1,322 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterEntryPoint",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterEntryPoint\u0027."
+    },
+    "EntryPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the entry point. When it matches a stored entry point, that entry point is updated. Otherwise a new entry point is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique name of the entry point."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Description of the entry point."
+          },
+          "Channel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Channel the entry point answers, named as the address capability: \u0027Phone\u0027 for calls. Empty means calls."
+          },
+          "AddressIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Identifiers of the omnichannel addresses whose traffic on the channel this entry point answers. Import the addresses first."
+          },
+          "DialedNumbers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "description": "A typed number."
+            },
+            "description": "Numbers typed on an entry point exported before entry points picked their numbers from the address list. They still route calls; prefer \u0027AddressIds\u0027."
+          },
+          "TargetType": {
+            "type": "string",
+            "enum": [
+              "Queue",
+              "Agent",
+              "AIAgent"
+            ],
+            "description": "Whether calls route to a queue (\u0027TargetQueueId\u0027), ring one agent directly (\u0027TargetAgentId\u0027), or are answered by an AI voice agent (\u0027TargetAIProfileId\u0027, calls only)."
+          },
+          "TargetAIProfileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the AI chat profile that answers calls when \u0027TargetType\u0027 is \u0027AIAgent\u0027."
+          },
+          "TargetAgentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the agent profile calls ring directly when \u0027TargetType\u0027 is \u0027Agent\u0027. There is no queue fallback."
+          },
+          "VoicemailEnabled": {
+            "type": "boolean",
+            "description": "Whether an unanswered direct-to-agent call is sent to the agent\u0027s voicemail. When disabled the caller keeps ringing until answered or they hang up. Applies only when \u0027TargetType\u0027 is \u0027Agent\u0027."
+          },
+          "RingTimeoutSeconds": {
+            "type": "integer",
+            "description": "Seconds a direct-to-agent call rings before it is sent to the agent\u0027s voicemail. Applies only when \u0027TargetType\u0027 is \u0027Agent\u0027 and \u0027VoicemailEnabled\u0027 is true."
+          },
+          "VoicemailGreetingText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Default text-to-speech voicemail greeting for calls through this entry point, used when the agent reached has not recorded their own greeting."
+          },
+          "VoicemailRecipientAgentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the agent profile whose voicemail inbox receives messages left on this line when the call has no agent of its own."
+          },
+          "VoicemailDestination": {
+            "type": "string",
+            "enum": [
+              "AgentInbox",
+              "QueueSharedBox"
+            ],
+            "description": "Where a queue line delivers a message the call has no agent for: the inbox of \u0027VoicemailRecipientAgentId\u0027 or the shared voicemail box of the queue the caller was in. Does not apply to an agent-target entry point."
+          },
+          "IvrFlow": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "RootNodeId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Identifier of the node the caller hears first."
+              },
+              "MaxRetries": {
+                "type": "integer",
+                "description": "How many times a caller may fail to choose before the fallback action takes over."
+              },
+              "FallbackAction": {
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "Kind": {
+                    "type": "string",
+                    "enum": [
+                      "RouteToQueue",
+                      "RouteToAgent",
+                      "Voicemail",
+                      "ExternalTransfer",
+                      "Repeat",
+                      "SubMenu"
+                    ],
+                    "description": "The kind of action."
+                  },
+                  "TargetId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "What the action acts on: a queue identifier, an agent profile identifier, a child node identifier, or an approved external transfer destination identifier."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "What happens when the retries run out."
+              },
+              "Nodes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "NodeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "Identifier other nodes and the flow refer to."
+                    },
+                    "Prompt": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The spoken prompt."
+                    },
+                    "PromptMediaId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "Voice media played instead of speaking the prompt, when configured."
+                    },
+                    "Options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Digit": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The telephone key the caller presses (0-9, * or #)."
+                          },
+                          "Action": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "properties": {
+                              "Kind": {
+                                "type": "string",
+                                "enum": [
+                                  "RouteToQueue",
+                                  "RouteToAgent",
+                                  "Voicemail",
+                                  "ExternalTransfer",
+                                  "Repeat",
+                                  "SubMenu"
+                                ],
+                                "description": "The kind of action."
+                              },
+                              "TargetId": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "What the action acts on: a queue identifier, an agent profile identifier, a child node identifier, or an approved external transfer destination identifier."
+                              }
+                            },
+                            "additionalProperties": true,
+                            "description": "What pressing the key does."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The keys this menu accepts."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The menus of the flow."
+              }
+            },
+            "additionalProperties": true,
+            "description": "Optional menu callers hear before they are routed. An entry point with no flow, or a flow with no nodes, routes straight to its target. The flow is validated as a runnable menu tree on import."
+          },
+          "TargetQueueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the queue calls route to while the entry point is open."
+          },
+          "Priority": {
+            "type": "string",
+            "enum": [
+              "Lowest",
+              "Low",
+              "Normal",
+              "High",
+              "Highest"
+            ],
+            "description": "Priority assigned to calls entering through this entry point."
+          },
+          "BusinessHoursCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the business-hours calendar that gates when the entry point is open. When empty, the entry point is always open."
+          },
+          "ClosedAction": {
+            "type": "string",
+            "enum": [
+              "HoldInQueue",
+              "Voicemail",
+              "Overflow",
+              "Reject"
+            ],
+            "description": "Action taken for calls while the entry point is closed."
+          },
+          "OverflowQueueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the queue used when \u0027ClosedAction\u0027 is \u0027Overflow\u0027."
+          },
+          "WelcomeMessage": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Message spoken once to a caller while the entry point is open, before the IVR menu or the target."
+          },
+          "ClosedMessage": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Message spoken to a caller while the entry point is closed, before the closed action is applied."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the entry point is enabled."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the entry point, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center entry points to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "EntryPoints"
+  ],
+  "additionalProperties": true
+}

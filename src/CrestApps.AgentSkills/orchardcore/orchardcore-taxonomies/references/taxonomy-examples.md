@@ -119,7 +119,7 @@
 ## Example 3: Attaching Taxonomy Fields to Blog Post
 
 ```csharp
-_contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
+await _contentDefinitionManager.AlterPartDefinitionAsync("BlogPost", part => part
     .WithField("Categories", field => field
         .OfType("TaxonomyField")
         .WithDisplayName("Categories")
@@ -146,16 +146,25 @@ _contentDefinitionManager.AlterPartDefinition("BlogPost", part => part
 
 ## Example 4: Filter and Paginate Taxonomy Listings
 
-Orchard Core 3.0 uses the full contents pager for taxonomy term listings.
+Taxonomy term listings use the full contents pager (and honor the `pageSize`
+query string when page size selection is enabled in the General settings).
 Implement `IContentsTaxonomyListFilter` to add module-specific query
 constraints without replacing the built-in pagination:
 
 ```csharp
-public sealed class PublishedTaxonomyListFilter : IContentsTaxonomyListFilter
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
+using OrchardCore.Taxonomies.Core;
+using OrchardCore.Taxonomies.Models;
+using YesSql;
+
+public sealed class RecentTaxonomyListFilter : IContentsTaxonomyListFilter
 {
     public Task FilterAsync(IQuery<ContentItem> query, TermPart termPart)
     {
-        // Add a module-specific restriction to the taxonomy term query.
+        var cutoff = DateTime.UtcNow.AddYears(-1);
+        query.With<ContentItemIndex>(x => x.PublishedUtc > cutoff);
+
         return Task.CompletedTask;
     }
 }

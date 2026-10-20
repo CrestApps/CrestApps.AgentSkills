@@ -1,39 +1,39 @@
 ---
 name: orchardcore-sms
-description: Skill for configuring SMS messaging in Orchard Core. Covers SMS provider setup (Log, Twilio, Azure Communication Services), ISmsService for programmatic sending, custom SMS provider implementation, workflow SMS activities, notification integration, and provider configuration. Use this skill when requests mention Orchard Core SMS, Configure and Send SMS Messages, Available SMS Providers, Enabling SMS Features, Configuring Twilio, Configuring Azure Communication Services via Admin UI, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Sms, OrchardCore.Sms.Azure, OrchardCore.Notifications.Sms, OrchardCore.Settings, OrchardCore.Workflows. It also helps with Configuring Twilio, Configuring Azure Communication Services via Admin UI, Configuring Default Azure Communication Services via, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring SMS messaging in Orchard Core. Covers SMS provider setup (Log, Twilio, Azure Communication Services), SmsSettings and TwilioSettings recipes, ISmsService and SmsMessage for programmatic sending including the From number, custom ISmsProvider implementation, SmsProviderOptions and TwilioOptions read through IOptionsMonitor, the SMS Task workflow activity with its From Phone Number option, SMS notifications, the Twilio health check, and SmsPermissions. Use this skill when requests mention Orchard Core SMS, Configure and Send SMS Messages, Available SMS Providers, Enabling SMS Features, Configuring Twilio, Configuring Azure Communication Services via Admin UI, custom SMS provider, AddSmsProvider, AddSmsProviderOptionsConfiguration, upgrading SMS code to Orchard Core 4, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Sms, OrchardCore.Sms.Azure, and OrchardCore.Notifications.Sms.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# Orchard Core SMS - Prompt Templates
+# Orchard Core SMS
 
-## Configure and Send SMS Messages
+## Guidelines
 
-You are an Orchard Core expert. Generate code and configuration for SMS messaging including provider setup, programmatic sending, custom provider implementation, workflow integration, and SMS notifications.
-
-### Guidelines
-
-- Enable `OrchardCore.Sms` to access SMS settings and provider configuration.
-- The built-in providers are `Log` (debugging only) and `Twilio` (production).
-- The `OrchardCore.Sms.Azure` feature adds Azure Communication Services as an additional provider.
-- After enabling the SMS feature, you must configure the default provider before sending messages.
-- Use `ISmsService` to send SMS messages programmatically.
-- Use `ISmsProvider` to implement custom SMS providers.
-- Register simple providers with `AddSmsProvider<T>("TechnicalName")`.
-- Register complex providers with settings using `AddSmsProviderOptionsConfiguration<T>()`.
-- When both `SMS` and `Workflows` features are enabled, a "Send SMS" workflow task becomes available.
-- Enable `OrchardCore.Notifications.Sms` for user SMS notifications based on preferences.
+- Enable `OrchardCore.Sms` to get **Settings → Communication → SMS**, guarded by
+  `OrchardCore.Sms.SmsPermissions.ManageSmsSettings`.
+- Configure and select a default provider before sending; until then
+  `ISmsService` returns a failed `Result`.
+- Use `ISmsService` to send; implement `ISmsProvider` for new providers.
+- `SmsProviderOptions`, `TwilioOptions`, and `AzureSmsOptions` are refreshed from
+  site settings without a shell release; read them with
+  `IOptionsMonitor<T>.CurrentValue`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except for View Models.
 
-### Available SMS Providers
+## Available SMS Providers
 
 | Provider | Feature | Description |
 |----------|---------|-------------|
-| `Log` | `OrchardCore.Sms` | Writes SMS messages to application logs. For debugging only — never use in production. |
-| `Twilio` | `OrchardCore.Sms` | Sends SMS via the Twilio service. Requires a Twilio account with SID, auth token, and phone number. |
-| `Azure` | `OrchardCore.Sms.Azure` | Tenant-specific Azure Communication Services SMS. Configure per tenant via admin settings. |
-| `DefaultAzure` | `OrchardCore.Sms.Azure` | Default Azure Communication Services configuration shared across all tenants. Configured via `appsettings.json`. |
+| `Log` | `OrchardCore.Sms` | Writes messages to the log. Registered only when the host environment is `Development`. |
+| `Twilio` | `OrchardCore.Sms` | Sends through Twilio. Requires an account SID, auth token, and phone number. |
+| `Azure` | `OrchardCore.Sms.Azure` | Tenant-specific Azure Communication Services settings. |
+| `DefaultAzure` | `OrchardCore.Sms.Azure` | Azure Communication Services from `OrchardCore:Sms:Azure` configuration. |
 
-### Enabling SMS Features
+See `orchardcore-sms-azure` for the Azure providers.
+
+## Enable and Configure Twilio
 
 ```json
 {
@@ -42,56 +42,28 @@ You are an Orchard Core expert. Generate code and configuration for SMS messagin
       "name": "Feature",
       "enable": [
         "OrchardCore.Sms"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-To also enable Azure Communication Services:
-
-```json
-{
-  "steps": [
+      ]
+    },
     {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Sms",
-        "OrchardCore.Sms.Azure"
-      ],
-      "disable": []
+      "name": "Settings",
+      "SmsSettings": {
+        "DefaultProviderName": "Twilio"
+      },
+      "TwilioSettings": {
+        "IsEnabled": true,
+        "PhoneNumber": "+15555550123",
+        "AccountSID": "your-account-sid"
+      }
     }
   ]
 }
 ```
 
-### Configuring Twilio
+The admin UI (**Twilio** tab) encrypts `AuthToken` with Data Protection, so
+enter the token there instead of in a recipe. Then pick the default on the
+**Providers** tab.
 
-Navigate to **Settings → Communication → SMS**, click the **Twilio** tab, enable the checkbox, and provide your Twilio account info. Then in the **Providers** tab, select Twilio as the default provider.
-
-### Configuring Azure Communication Services via Admin UI
-
-Enable the `OrchardCore.Sms.Azure` feature. Navigate to **Settings → Communication → SMS** and click the **Azure Communication Services** tab to configure the connection string and phone number per tenant.
-
-### Configuring Default Azure Communication Services via appsettings.json
-
-The `DefaultAzure` provider is configured through the configuration provider and applies to all tenants. It only appears when the configuration is present:
-
-```json
-{
-  "OrchardCore_Sms_AzureCommunicationServices": {
-    "PhoneNumber": "+18005551234",
-    "ConnectionString": "endpoint=https://your-acs-resource.communication.azure.com/;accesskey=your-access-key"
-  }
-}
-```
-
-The `DefaultAzure` provider cannot be configured through admin settings — use configuration providers only.
-
-### Sending SMS Programmatically with ISmsService
-
-Inject `ISmsService` and call `SendAsync` to send an SMS message:
+## Sending SMS Programmatically
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
@@ -122,7 +94,7 @@ public sealed class NotificationController : Controller
 
         if (result.Succeeded)
         {
-            return Ok(new { success = true, message = "SMS sent successfully." });
+            return Ok(new { success = true });
         }
 
         return BadRequest(new { success = false, errors = result.Errors });
@@ -130,54 +102,57 @@ public sealed class NotificationController : Controller
 }
 ```
 
-### Creating a Custom SMS Provider (Simple)
+`SmsMessage` has `To`, `Body`, and an optional `From`; when `From` is empty the
+provider's configured phone number is used. The
+`SendAsync(to, body, cancellationToken)` extension builds the message for
+simple cases. Use E.164 numbers such as `+15555550123`.
 
-For providers that do not require settings, implement `ISmsProvider` and register with `AddSmsProvider<T>`:
+## Creating a Custom SMS Provider (Simple)
+
+`ISmsProvider` requires a `Name` and `SendAsync`. Register providers that need
+no settings with `AddSmsProvider<T>("TechnicalName")`:
 
 ```csharp
+using System.Net.Http.Json;
+using Microsoft.Extensions.Localization;
 using OrchardCore.Infrastructure;
 using OrchardCore.Sms;
-using Microsoft.Extensions.Localization;
 
 public sealed class WebhookSmsProvider : ISmsProvider
 {
+    public const string TechnicalName = "Webhook";
+
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IStringLocalizer<WebhookSmsProvider> _localizer;
+
+    internal readonly IStringLocalizer S;
 
     public WebhookSmsProvider(
         IHttpClientFactory httpClientFactory,
-        IStringLocalizer<WebhookSmsProvider> localizer)
+        IStringLocalizer<WebhookSmsProvider> stringLocalizer)
     {
         _httpClientFactory = httpClientFactory;
-        _localizer = localizer;
+        S = stringLocalizer;
     }
+
+    public LocalizedString Name => S["Webhook"];
 
     public async Task<Result> SendAsync(
         SmsMessage message,
         CancellationToken cancellationToken = default)
     {
-        var client = _httpClientFactory.CreateClient("SmsWebhook");
+        var client = _httpClientFactory.CreateClient(TechnicalName);
 
         var response = await client.PostAsJsonAsync(
             "/api/sms/send",
-            new
-            {
-                to = message.To,
-                body = message.Body,
-            },
+            new { from = message.From, to = message.To, body = message.Body },
             cancellationToken);
 
-        if (response.IsSuccessStatusCode)
-        {
-            return Result.Success();
-        }
-
-        return Result.Failed(_localizer["Failed to send SMS via webhook."]);
+        return response.IsSuccessStatusCode
+            ? Result.Success()
+            : Result.Failed(S["Failed to send SMS via webhook."]);
     }
 }
 ```
-
-Register in `Startup.cs`:
 
 ```csharp
 using OrchardCore.Sms;
@@ -186,65 +161,93 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddSmsProvider<WebhookSmsProvider>("Webhook");
+        services.AddHttpClient(WebhookSmsProvider.TechnicalName, client =>
+            client.BaseAddress = new Uri("https://sms.example.com"));
+
+        services.AddSmsProvider<WebhookSmsProvider>(WebhookSmsProvider.TechnicalName);
     }
 }
 ```
 
-### Creating a Custom SMS Provider (Complex, with Settings)
+## Creating a Custom SMS Provider (Settings-backed)
 
-For providers with configurable settings, implement `IConfigureOptions<SmsProviderOptions>`:
+When availability depends on site settings, build options from the settings,
+read them through `IOptionsMonitor<T>`, and contribute the provider with
+`IConfigureOptions<SmsProviderOptions>`. This mirrors the built-in Twilio
+provider.
 
 ```csharp
 using Microsoft.Extensions.Options;
 using OrchardCore.Settings;
 using OrchardCore.Sms;
 
-public sealed class CustomProviderOptionsConfiguration : IConfigureOptions<SmsProviderOptions>
+public sealed class CustomSmsSettings
+{
+    public bool IsEnabled { get; set; }
+}
+
+public sealed class CustomSmsOptions
+{
+    public bool IsEnabled { get; set; }
+}
+
+public sealed class CustomSmsOptionsConfiguration : IConfigureOptions<CustomSmsOptions>
 {
     private readonly ISiteService _siteService;
 
-    public CustomProviderOptionsConfiguration(ISiteService siteService)
+    public CustomSmsOptionsConfiguration(ISiteService siteService)
     {
         _siteService = siteService;
     }
 
+    public void Configure(CustomSmsOptions options)
+        => options.IsEnabled = _siteService.GetSettings<CustomSmsSettings>().IsEnabled;
+}
+
+public sealed class CustomProviderOptionsConfiguration : IConfigureOptions<SmsProviderOptions>
+{
+    private readonly IOptionsMonitor<CustomSmsOptions> _customOptions;
+
+    public CustomProviderOptionsConfiguration(IOptionsMonitor<CustomSmsOptions> customOptions)
+    {
+        _customOptions = customOptions;
+    }
+
     public void Configure(SmsProviderOptions options)
     {
-        var typeOptions = new SmsProviderTypeOptions(typeof(CustomSmsProvider));
-
-        // Read-only access is fine here. Use LoadSiteSettingsAsync() only when updating site settings.
-        var site = _siteService.GetSiteSettingsAsync().GetAwaiter().GetResult();
-
-        if (!site.TryGet<CustomSmsSettings>(out var settings))
+        options.TryAddProvider("CustomProvider", new SmsProviderTypeOptions(typeof(CustomSmsProvider))
         {
-            settings = new CustomSmsSettings();
-        }
-
-        typeOptions.IsEnabled = settings.IsEnabled;
-
-        options.TryAddProvider("CustomProvider", typeOptions);
+            IsEnabled = _customOptions.CurrentValue.IsEnabled,
+        });
     }
 }
-```
 
-Register in `Startup.cs`:
-
-```csharp
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddSmsProviderOptionsConfiguration<CustomProviderOptionsConfiguration>();
+        services
+            .AddSignalOptionsChangeTokenSource<CustomSmsOptions>()
+            .AddTransient<IConfigureOptions<CustomSmsOptions>, CustomSmsOptionsConfiguration>()
+            .AddSmsProviderOptionsConfiguration<CustomProviderOptionsConfiguration>();
     }
 }
 ```
 
-### Workflow SMS Activity
+`CustomSmsProvider` injects `IOptionsMonitor<CustomSmsOptions>`. In the
+settings display driver, after a successful save, inject
+`IOptionsUpdateNotifier` (`OrchardCore.Environment.Options`) and call
+`RequestUpdate<CustomSmsOptions>().RequestUpdate<SmsProviderOptions>()` so the
+monitors refresh after the session commits.
 
-When both `OrchardCore.Sms` and `OrchardCore.Workflows` features are enabled, a **Send SMS** workflow task becomes available. This task allows sending SMS messages as part of a workflow without writing code.
+## Workflow SMS Activity
 
-Enable both features:
+With `OrchardCore.Sms` and `OrchardCore.Workflows` enabled, the **SMS Task**
+activity (category **Messaging**, outcomes `Done` and `Failed`) sends a message.
+Its fields support Liquid: **Phone Number** (recipient), the optional **From
+Phone Number** (with country code, overriding the provider's number), and
+**Body**. The persisted activity properties are `PhoneNumber`, `FromNumber`, and
+`Body`; the send result is stored in `LastResult`.
 
 ```json
 {
@@ -254,16 +257,16 @@ Enable both features:
       "enable": [
         "OrchardCore.Sms",
         "OrchardCore.Workflows"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
 
-### SMS Notifications
+## SMS Notifications
 
-Enable the `OrchardCore.Notifications.Sms` feature to allow sending user notifications via SMS based on user preferences. This integrates with the Orchard Core notification system.
+Enable `OrchardCore.Notifications.Sms` to deliver user notifications by SMS
+according to user preferences (see `orchardcore-notifications`).
 
 ```json
 {
@@ -274,9 +277,24 @@ Enable the `OrchardCore.Notifications.Sms` feature to allow sending user notific
         "OrchardCore.Sms",
         "OrchardCore.Notifications",
         "OrchardCore.Notifications.Sms"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
+
+## Health Checks
+
+With `OrchardCore.HealthChecks` enabled, the SMS module adds a health check that
+reports the status of the Twilio SMS service (see `orchardcore-health-checks`).
+
+## Upgrading from 3.x
+
+- `IOptions<SmsProviderOptions>`, `IOptions<TwilioOptions>`, and
+  `IOptions<AzureSmsOptions>` → `IOptionsMonitor<T>.CurrentValue`; settings
+  changes no longer release the shell.
+- `OrchardCore.Sms.SmsPermissionProvider.ManageSmsSettings` was removed; use
+  `OrchardCore.Sms.SmsPermissions.ManageSmsSettings`.
+- `OrchardCore_Sms_AzureCommunicationServices` → `OrchardCore:Sms:Azure`.
+- The SMS Task gained the optional **From Phone Number** (`FromNumber`) field
+  and now honors workflow cancellation.

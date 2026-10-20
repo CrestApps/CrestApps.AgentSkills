@@ -1,6 +1,10 @@
 ---
 name: orchardcore-custom-user-settings
-description: Skill for creating custom user settings sections in Orchard Core. Covers CustomUserSettings stereotype, tab-based organization for user editor, Liquid access patterns for user properties, placement customization, and SectionDisplayDriver extension. Use this skill when requests mention Orchard Core Custom User Settings, Create Custom User Settings, Enabling Custom User Settings, Creating a Custom User Settings Type, Creating via Recipe, Accessing Custom User Settings in Liquid, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Users.CustomUserSettings, OrchardCore.Users, CustomUserSettings, SectionDisplayDriver, DataMigration, IContentDefinitionManager, UserProfile, WithPart. It also helps with Creating via Recipe, Accessing Custom User Settings in Liquid, Accessing Custom User Settings in Code, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating custom user settings sections in Orchard Core. Covers the CustomUserSettings stereotype, tab-based organization in the user editor, per-type ManageOwnCustomUserSettings permissions, Liquid and code access through user Properties and CustomUserSettingsService, SummaryAdmin display in the users list, placement customization, the custom-user-settings recipe step and deployment step, and SectionDisplayDriver extension. Use this skill when requests mention Orchard Core Custom User Settings, Creating a Custom User Settings Type, Creating via Recipe, Importing user settings values, Accessing Custom User Settings in Liquid, showing user profile fields in the users list, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Users.CustomUserSettings, CustomUserSettings, CustomUserSettingsService, SectionDisplayDriver, IContentDefinitionManager, and UserProfile.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Custom User Settings - Prompt Templates
@@ -17,8 +21,10 @@ You are an Orchard Core expert. Generate code and configuration for creating cus
 - Do **not** mark existing content types with the `CustomUserSettings` stereotype; this will break existing content items of that type.
 - Each section appears as a separate tab in the user editor (_Access Control → Users → Edit_).
 - Custom user settings are composed of parts and fields like any other content type.
+- Each section gets a `ManageOwnCustomUserSettings_{ContentTypeName}` permission (implied by `ManageUsers`); a section's editor and summary render only for users holding it.
 - Access user settings in Liquid by loading the user and accessing `user.Properties`.
-- Placement can be customized to move sections out of tabs using the `CustomUserSettings-PartDefinitionName` differentiator.
+- Placement can be customized to move sections out of tabs using the `CustomUserSettings-{ContentTypeName}` differentiator.
+- Sections can also be shown in the users admin list (`SummaryAdmin`); they are hidden there by default.
 - Extend user properties programmatically using `SectionDisplayDriver<User, TSection>`.
 - All C# classes must use the `sealed` modifier, except View Models.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
@@ -172,17 +178,38 @@ Load the user and access properties through the `Properties` object:
 
 The property path follows the pattern: `user.Properties.{ContentTypeName}.{PartName}.{FieldName}.{ValueProperty}`.
 
+### Granting Access to a Section
+
+Users edit their own section only with the matching permission. For a `UserProfile` type:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Roles",
+      "Roles": [
+        {
+          "Name": "Authenticated",
+          "PermissionBehavior": "Add",
+          "Permissions": [
+            "ManageOwnCustomUserSettings_UserProfile"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
 ### Accessing Custom User Settings in Code
 
 ```csharp
 public sealed class UserProfileService
 {
-    private readonly IUserService _userService;
     private readonly UserManager<IUser> _userManager;
 
-    public UserProfileService(IUserService userService, UserManager<IUser> userManager)
+    public UserProfileService(UserManager<IUser> userManager)
     {
-        _userService = userService;
         _userManager = userManager;
     }
 
@@ -207,9 +234,51 @@ public sealed class UserProfileService
 }
 ```
 
+`CustomUserSettingsService` (namespace `OrchardCore.Users.Services`, package `OrchardCore.Users.Core`) returns a section as a `ContentItem` merged with the current type definition, which is safer than reading raw JSON:
+
+```csharp
+var settingsType = await _customUserSettingsService.GetSettingsTypeAsync("UserProfile");
+var profile = await _customUserSettingsService.GetSettingsAsync(user, settingsType);
+var firstName = profile.Content.UserProfile.FirstName.Text;
+
+// All users' sections of a type, keyed by user ID.
+var allProfiles = await _customUserSettingsService.GetSettingsAsync("UserProfile");
+```
+
+### Importing and Exporting Values
+
+With `OrchardCore.Deployment`, the **Custom User Settings** deployment step (`IncludeAll` or selected `SettingsTypeNames`) exports every user's sections. The matching recipe step is `custom-user-settings`; each entry targets a user by `userId`, and each content item replaces that user's section of the same `ContentType`:
+
+```json
+{
+  "steps": [
+    {
+      "name": "custom-user-settings",
+      "custom-user-settings": [
+        {
+          "userId": "4kxfx7ctgc9y6ag0dk1tb7jx0r",
+          "user-custom-user-settings": [
+            {
+              "ContentItemId": "4p1xr5f2k3jvg0q7a2zcbpsnfa",
+              "ContentType": "UserProfile",
+              "UserProfile": {
+                "FirstName": { "Text": "Ada" },
+                "LastName": { "Text": "Lovelace" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Users that do not exist are skipped. Define the content type first (`ContentDefinition` step) in the same or an earlier recipe.
+
 ### Placement Customization
 
-By default, each custom user settings section is placed in its own tab in the user editor. To customize placement (e.g., move out of the tab):
+By default, each custom user settings section is placed in its own tab in the user editor. The differentiator uses the content type name (which usually equals the part name). To customize placement (e.g., move out of the tab):
 
 ```json
 {
@@ -222,7 +291,7 @@ By default, each custom user settings section is placed in its own tab in the us
 }
 ```
 
-The `differentiator` format is `CustomUserSettings-{PartDefinitionName}`.
+The `differentiator` format is `CustomUserSettings-{ContentTypeName}`.
 
 ### Placement Examples
 
@@ -252,6 +321,24 @@ The `differentiator` format is `CustomUserSettings-{PartDefinitionName}`.
 }
 ```
 
+#### Show a section in the users admin list
+
+Orchard Core 4.0 builds a `CustomUserSettings_SummaryAdmin` shape per section for the `SummaryAdmin` and `SummaryAdminGrid` display types, hidden by default. Place it to show it in the users list (only for viewers holding the section permission):
+
+```json
+{
+  "CustomUserSettings_SummaryAdmin": [
+    {
+      "displayType": "SummaryAdmin",
+      "differentiator": "CustomUserSettings-UserProfile",
+      "place": "Description:10"
+    }
+  ]
+}
+```
+
+The section content item is rendered with the `SummaryAdmin` display type, so add `SummaryAdmin` placement or templates for its fields as needed.
+
 ### SectionDisplayDriver Extension
 
 For more advanced scenarios, extend user properties programmatically by implementing a `SectionDisplayDriver<User, TSection>`:
@@ -270,11 +357,11 @@ public sealed class UserProfileDisplayDriver : SectionDisplayDriver<User, UserPr
 {
     public override IDisplayResult Edit(User model, UserProfile section, BuildEditorContext context)
     {
-        return Initialize<UserProfileViewModel>("UserProfile_Edit", viewModel =>
+        return Initialize<UserProfileViewModel, UserProfile>("UserProfile_Edit", static (viewModel, section) =>
         {
             viewModel.DisplayName = section.DisplayName;
             viewModel.Location = section.Location;
-        }).Location("Content:5#Profile");
+        }, section).Location("Content:5#Profile");
     }
 
     public override async Task<IDisplayResult> UpdateAsync(User model, UserProfile section, UpdateEditorContext context)
@@ -298,7 +385,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IDisplayDriver<User>, UserProfileDisplayDriver>();
+        services.AddDisplayDriver<User, UserProfileDisplayDriver>();
     }
 }
 ```

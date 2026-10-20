@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-parts
-description: Skill for adding and configuring common built-in Orchard Core content parts. Covers selected settings, Liquid rendering, migration patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Title, OrchardCore.Autoroute, OrchardCore.Html, HtmlBodyPartSettings, OrchardCore.Markdown, MarkdownBodyPartSettings, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview. It also helps with content parts examples, TitlePart Settings, TitlePart Migration, TitlePart with Generated Title, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for adding and configuring common built-in Orchard Core content parts. Covers selected settings, LiquidPart, HTML and Markdown body sanitization, TitlePart patterns on publish, migration patterns, and recipe configuration. Use this skill when requests mention Orchard Core Content Parts, Add and Configure Content Parts, General Pattern for Attaching a Part, TitlePart, TitlePart Settings, TitlePart Migration or closely related Orchard Core work. Strong matches include work with OrchardCore.Title, OrchardCore.Liquid, LiquidPart, OrchardCore.Autoroute, OrchardCore.Html, HtmlBodyPartSettings, OrchardCore.Markdown, MarkdownBodyPartSettings, OrchardCore.Lists, OrchardCore.Flows, OrchardCore.Alias, OrchardCore.PublishLater, OrchardCore.ContentLocalization, OrchardCore.Taxonomies, OrchardCore.Seo, OrchardCore.ContentPreview.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -49,7 +49,7 @@ Provides a title/display text for a content item. Feature: `OrchardCore.Title`.
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `Options` | TitlePartOptions | `Editable` | Title behavior: `Editable`, `GeneratedDisabled`, `GeneratedHidden`, `EditableRequired`. |
-| `Pattern` | string | `""` | Liquid pattern to generate the title (used with `GeneratedDisabled` or `GeneratedHidden`). |
+| `Pattern` | string | `null` | Liquid pattern to generate the title (used with `GeneratedDisabled` or `GeneratedHidden`). |
 | `RenderTitle` | bool | `true` | Whether to render the title in the content shape. |
 | `Placeholder` | string | `""` | Placeholder for the title editor. |
 
@@ -69,6 +69,10 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 ```
 
 ### TitlePart with Generated Title
+
+A generated title is evaluated when the item is created or updated and also
+when a version is published (for example when republishing an unpublished
+item), at most once per content item per request.
 
 ```csharp
 await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type => type
@@ -125,22 +129,21 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 Provides a rich HTML body editor. Feature: `OrchardCore.Html`.
 
-`RenderLiquid` and `SanitizeHtml` are independent settings. Liquid can be
-rendered while sanitization remains enabled, or both can be disabled when the
-content is trusted and must remain unchanged.
+The authored HTML is stored unchanged. On display it is processed for
+shortcodes and then sanitized when `SanitizeHtml` is enabled. Liquid syntax is
+not executed; use `LiquidPart` for templated bodies. See `orchardcore-html`.
 
 ### HtmlBodyPart Settings
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `SanitizeHtml` | bool | `true` | Whether to sanitize HTML content. |
-| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering the HTML. |
+| `SanitizeHtml` | bool | `true` | Whether to sanitize the final rendered HTML. |
 
 ### HtmlBodyPart Editors
 
 | Editor | Description |
 |---|---|
-| *(default)* | Standard rich text editor. |
+| `Default` | Plain text area. |
 | `Wysiwyg` | WYSIWYG HTML editor. |
 | `Trumbowyg` | Trumbowyg WYSIWYG editor. |
 | `Monaco` | Monaco code editor. |
@@ -154,8 +157,7 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
         .WithEditor("Wysiwyg")
         .WithSettings(new HtmlBodyPartSettings
         {
-            SanitizeHtml = true,
-            RenderLiquid = false
+            SanitizeHtml = true
         })
     )
 );
@@ -167,16 +169,15 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 Provides a Markdown body editor. Feature: `OrchardCore.Markdown`.
 
-`RenderLiquid` and `SanitizeHtml` are independent settings. Liquid is
-evaluated before Markdown output is rendered, while sanitization controls the
-resulting HTML.
+The authored Markdown is stored unchanged, converted to HTML on display,
+processed for shortcodes, and then sanitized when `SanitizeHtml` is enabled.
+Liquid in it is not executed. See `orchardcore-markdown`.
 
 ### MarkdownBodyPart Settings
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `SanitizeHtml` | bool | `true` | Whether to sanitize HTML output. |
-| `RenderLiquid` | bool | `false` | Whether to evaluate Liquid before rendering Markdown. |
+| `SanitizeHtml` | bool | `true` | Whether to sanitize the final HTML output. |
 
 ### MarkdownBodyPart Migration
 
@@ -186,9 +187,26 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
         .WithPosition("2")
         .WithSettings(new MarkdownBodyPartSettings
         {
-            SanitizeHtml = true,
-            RenderLiquid = false
+            SanitizeHtml = true
         })
+    )
+);
+```
+
+---
+
+## LiquidPart
+
+Stores a Liquid body in `LiquidPart.Liquid` and renders it on display, in the
+body aspect, and in GraphQL. Feature: `OrchardCore.Liquid`. It has no settings
+and no sanitize option. Editing it, or any item that contains it (including
+widgets nested in `FlowPart` or `BagPart`), requires the security-critical
+`ManageLiquidTemplates` permission. See `orchardcore-liquid`.
+
+```csharp
+await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type => type
+    .WithPart("LiquidPart", part => part
+        .WithPosition("2")
     )
 );
 ```
@@ -205,8 +223,8 @@ Makes a content type a container for other content items. Feature: `OrchardCore.
 |---|---|---|---|
 | `PageSize` | int | `10` | Number of items to display per page. |
 | `EnableOrdering` | bool | `false` | Whether to allow manual ordering. |
-| `ContainedContentTypes` | string[] | `[]` | Content types that can be contained. |
-| `ShowHeader` | bool | `true` | Whether to show the list header. |
+| `ContainedContentTypes` | string[] | `null` | Content types that can be contained. |
+| `ShowHeader` | bool | `false` | Whether to show the list header. |
 | `ShowFullPager` | bool | `false` | Whether to render the full pager. |
 
 ### ListPart Migration
@@ -265,7 +283,7 @@ A container part allowing nested content items within a content item. Feature: `
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `ContainedContentTypes` | string[] | `[]` | Content types that can be added to the bag. |
-| `DisplayType` | string | `"Detail"` | Display type for rendering bag items. |
+| `DisplayType` | string | `null` | Display type for rendering bag items (`Detail` when not set). |
 | `ContainedStereotypes` | string[] | `[]` | Stereotypes allowed in the bag. |
 | `CollapseContainedItems` | bool | `false` | Whether contained editors start collapsed. |
 
@@ -273,7 +291,7 @@ A container part allowing nested content items within a content item. Feature: `
 
 ```csharp
 await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type => type
-    .WithPart("BagPart", "{{BagPartName}}", part => part
+    .WithPart("{{BagPartName}}", "BagPart", part => part
         .WithDisplayName("{{DisplayName}}")
         .WithPosition("4")
         .WithSettings(new BagPartSettings
@@ -294,7 +312,8 @@ Provides an alias identifier for a content item. Feature: `OrchardCore.Alias`.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `Pattern` | string | `""` | Liquid pattern to generate the alias. |
+| `Pattern` | string | `"{{ Model.ContentItem.DisplayText \| slugify }}"` | Liquid pattern to generate the alias. |
+| `Options` | AliasPartOptions | `Editable` | `Editable` or `GeneratedDisabled`. |
 
 ### AliasPart Migration
 
@@ -348,25 +367,38 @@ await _contentDefinitionManager.AlterTypeDefinitionAsync("{{ContentType}}", type
 
 Makes a content type act as a taxonomy container. Feature: `OrchardCore.Taxonomies`.
 
-### TaxonomyPart Settings
-
-| Setting | Type | Default | Description |
-|---|---|---|---|
-| `TermContentType` | string | `""` | The content type to use for terms. |
+`TaxonomyPart` has no type-level settings. `TermContentType` and `Terms` are
+stored on each taxonomy content item (`TaxonomyPart.TermContentType`), chosen
+when the taxonomy is created or set in recipe content.
 
 ### TaxonomyPart Migration
 
 ```csharp
 await _contentDefinitionManager.AlterTypeDefinitionAsync("{{TaxonomyType}}", type => type
     .WithPart("TitlePart", part => part.WithPosition("0"))
-    .WithPart("TaxonomyPart", part => part
-        .WithPosition("1")
-        .WithSettings(new TaxonomyPartSettings
-        {
-            TermContentType = "{{TermContentType}}"
-        })
-    )
+    .WithPart("TaxonomyPart", part => part.WithPosition("1"))
 );
+```
+
+```json
+{
+  "steps": [
+    {
+      "name": "Content",
+      "data": [
+        {
+          "ContentItemId": "[js:uuid()]",
+          "ContentType": "Taxonomy",
+          "DisplayText": "Categories",
+          "Latest": true,
+          "Published": true,
+          "TitlePart": { "Title": "Categories" },
+          "TaxonomyPart": { "TermContentType": "{{TermContentType}}", "Terms": [] }
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ---
@@ -465,5 +497,17 @@ For local project references to third-party modules:
   <ProjectReference Include="../ThirdParty.Module/ThirdParty.Module.csproj" />
 </ItemGroup>
 ```
+
+## Upgrading from 3.x
+
+- `HtmlBodyPartSettings.RenderLiquid` and `MarkdownBodyPartSettings.RenderLiquid`
+  were removed. Existing Liquid stays stored but renders as text; startup logs
+  a warning per affected type. Move that content to `LiquidPart`.
+- HTML and Markdown bodies are sanitized only when rendered. Render the part
+  shape instead of writing `HtmlBodyPart.Html` with `raw`.
+- Part editors injected by Flow and Bag editors are ES modules; custom part
+  editor scripts must also initialize editors added after page load.
+- Content part handler and display driver resolvers return the same list for
+  the whole scope; copy it before adding or removing items.
 
 For field settings and editor choices, see `orchardcore-content-fields`. For routing options, see `orchardcore-autoroute`.

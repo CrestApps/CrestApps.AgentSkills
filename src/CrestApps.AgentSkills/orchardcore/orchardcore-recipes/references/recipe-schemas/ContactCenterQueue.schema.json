@@ -1,0 +1,293 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterQueue",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterQueue\u0027."
+    },
+    "Queues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the queue. When it matches a stored queue, that queue is updated. Otherwise a new queue is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "QueueGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional queue-group identifier used for catalog organization and reporting. Queue groups do not affect routing."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique name of the queue."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Description of the queue."
+          },
+          "DefaultPriority": {
+            "type": "string",
+            "enum": [
+              "Lowest",
+              "Low",
+              "Normal",
+              "High",
+              "Highest"
+            ],
+            "description": "Default priority applied to items added to the queue."
+          },
+          "RoutingStrategy": {
+            "type": "string",
+            "enum": [
+              "LongestIdle",
+              "RoundRobin",
+              "LeastBusy"
+            ],
+            "description": "Strategy used to choose which available agent receives the next queued item."
+          },
+          "PreferStickyAgent": {
+            "type": "boolean",
+            "description": "Whether routing prefers the activity\u0027s last assigned user when that agent is eligible and available."
+          },
+          "EnableSlaAging": {
+            "type": "boolean",
+            "description": "Whether a waiting item\u0027s effective priority increases the longer it waits beyond the SLA threshold."
+          },
+          "SlaThresholdSeconds": {
+            "type": "integer",
+            "description": "Service-level threshold, in seconds, after which a waiting item breaches SLA."
+          },
+          "ReservationTimeoutSeconds": {
+            "type": "integer",
+            "description": "Seconds a reservation remains valid before it expires and the item is re-queued."
+          },
+          "UnansweredOfferAction": {
+            "type": "string",
+            "enum": [
+              "Requeue",
+              "Voicemail",
+              "Reject"
+            ],
+            "description": "What happens when an offered reservation expires before the agent accepts it."
+          },
+          "BusinessHoursCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the business-hours calendar that gates when the queue routes work. When empty, the queue routes around the clock."
+          },
+          "AfterHoursAction": {
+            "type": "string",
+            "enum": [
+              "HoldInQueue",
+              "Overflow"
+            ],
+            "description": "Action taken for waiting items while the queue\u0027s business-hours calendar reports closed."
+          },
+          "OverflowQueueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the queue that receives overflowed items. When empty, overflow is disabled."
+          },
+          "OverflowAfterSeconds": {
+            "type": "integer",
+            "description": "Seconds an item may wait before it overflows to the overflow queue. Zero disables wait-time overflow."
+          },
+          "RequiredSkills": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A skill identifier required to handle work from this queue."
+            },
+            "description": "Skills required to be eligible to handle work from this queue."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the queue is enabled for routing."
+          },
+          "InboundChannelEndpointId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the inbound channel endpoint (dialed number or DID) whose calls are routed to this queue."
+          },
+          "FirstResponseTargetSeconds": {
+            "type": "integer",
+            "description": "Seconds a messaging contact may wait for a first reply on this queue before the thread is treated as breached. Zero disables the first-response target."
+          },
+          "SkillRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "SkillId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Identifier of the skill the requirement describes."
+                },
+                "MinimumProficiency": {
+                  "type": "integer",
+                  "description": "Proficiency an agent must reach to satisfy the requirement."
+                },
+                "Required": {
+                  "type": "boolean",
+                  "description": "Whether an agent who does not meet the requirement is excluded. When false, the requirement is a preference that ranks candidates instead of eliminating them."
+                },
+                "RelaxAfterSeconds": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ],
+                  "description": "Seconds a contact may wait before the requirement is dropped, or null when it never is."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "What the queue needs from the agent who takes its work: the proficiency of each skill, whether it is required or preferred, and when it relaxes. Skills listed only in \u0027RequiredSkills\u0027 are read as hard requirements at the default proficiency."
+          },
+          "OverflowTargets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "QueueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Identifier of the queue a waiting caller moves to."
+                },
+                "AfterSeconds": {
+                  "type": "integer",
+                  "description": "Seconds the caller must have waited before this hop applies."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "Ordered overflow chain describing where a waiting caller widens to and after how long. It supersedes the single \u0027OverflowQueueId\u0027 hop."
+          },
+          "MaxWaitSeconds": {
+            "type": "integer",
+            "description": "Longest time, in seconds, the queue makes anybody wait. Zero means no limit."
+          },
+          "MaxWaitAction": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Voicemail",
+              "Overflow"
+            ],
+            "description": "What happens to a caller who reaches \u0027MaxWaitSeconds\u0027."
+          },
+          "MaxQueueSize": {
+            "type": "integer",
+            "description": "How many callers may wait at once. Zero means no limit."
+          },
+          "QueueFullAction": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Voicemail",
+              "Overflow"
+            ],
+            "description": "What happens to a caller who arrives at a full queue."
+          },
+          "Treatment": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "WelcomeMessage": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Message played once when the caller enters the queue."
+              },
+              "AnnouncementIntervalSeconds": {
+                "type": "integer",
+                "description": "How often, in seconds, the periodic announcement repeats. Zero means never."
+              },
+              "AnnouncePosition": {
+                "type": "boolean",
+                "description": "Whether the announcement states the caller\u0027s position in line."
+              },
+              "AnnounceEstimatedWait": {
+                "type": "boolean",
+                "description": "Whether the announcement states the estimated wait."
+              },
+              "HoldMusicMediaId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Voice media reference of the hold music."
+              },
+              "CallbackDtmfKey": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Single telephone key that accepts a callback, or null when no callback is offered."
+              },
+              "CallbackOfferAfterSeconds": {
+                "type": "integer",
+                "description": "Seconds the caller waits before the callback is offered."
+              },
+              "MinimumEstimateSeconds": {
+                "type": "integer",
+                "description": "Shortest wait, in seconds, the queue quotes."
+              },
+              "MaximumEstimateSeconds": {
+                "type": "integer",
+                "description": "Longest wait, in seconds, the queue quotes. Past it the announcement says nothing about time."
+              },
+              "AverageHandleTimeSeconds": {
+                "type": "integer",
+                "description": "Configured average handle time, in seconds, used to estimate the wait."
+              }
+            },
+            "additionalProperties": true,
+            "description": "What callers hear while they wait: the welcome message, periodic announcements, hold music and the callback offer."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the queue, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center queues to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Queues"
+  ],
+  "additionalProperties": true
+}

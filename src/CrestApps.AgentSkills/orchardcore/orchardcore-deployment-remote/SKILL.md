@@ -1,6 +1,6 @@
 ---
 name: orchardcore-deployment-remote
-description: Skill for configuring remote deployment import and export in Orchard Core. Covers RemoteInstance, RemoteClient, RemoteInstanceService, RemoteClientService, deployment targets, API key handling, and remote deployment administration. Use this skill when requests mention Orchard Core Remote Deployment, remote import, remote export, RemoteInstance, RemoteClient, deployment API client, remote deployment target, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Deployment.Remote, OrchardCore.Deployment, IDeploymentTargetProvider, RemoteInstanceDeploymentTargetProvider, RemoteInstanceService, RemoteClientService, ExportRemoteInstanceController, and ImportRemoteInstanceController. It also helps with secure API keys, tenant configuration, and the source-backed patterns captured in this skill.
+description: Skill for configuring remote deployment import and export in Orchard Core. Covers RemoteInstance, RemoteClient, RemoteInstanceService, RemoteClientService, the remote import endpoint, API key handling, DeploymentPermissions, upload validation of imported packages, and remote deployment administration. Use this skill when requests mention Orchard Core Remote Deployment, remote import, remote export, RemoteInstance, RemoteClient, deployment API client, remote deployment target, ImportRemoteInstance, ManageRemoteInstances, ExportRemoteInstances, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Deployment.Remote, OrchardCore.Deployment, IDeploymentTargetProvider, RemoteInstanceDeploymentTargetProvider, RemoteInstanceService, RemoteClientService, ExportRemoteInstanceController, and ImportRemoteInstanceController.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -25,6 +25,7 @@ operations because they can move site configuration and content.
 - `RemoteClientService` protects client API keys with a time-limited data protector before persistence.
 - `RemoteInstanceService` stores remote instance data through its document manager.
 - Never copy an API key into public recipes, theme files, or application logs.
+- Manage clients and instances under **Tools** → **Deployments** → **Remote Clients** and **Remote Instances**.
 - Test with a non-production tenant before exchanging a production deployment plan.
 
 ## Enable Remote Deployment
@@ -44,6 +45,19 @@ operations because they can move site configuration and content.
 }
 ```
 
+## Permissions
+
+All remote permissions are static members of `OrchardCore.Deployment.DeploymentPermissions` and are granted to `Administrator` by default:
+
+| Member | Name | Purpose |
+|---|---|---|
+| `ManageRemoteInstances` | Manage remote instances | Create, edit, and delete remote instances (and see their API keys). |
+| `ManageRemoteClients` | Manage remote clients | Create, edit, and delete remote clients on the destination. |
+| `ExportRemoteInstances` | Export to remote instances | Deploy to a remote instance. |
+| `Export` | Export Data | Required to execute any deployment plan, including to a remote instance. |
+
+Grant `Export` and `ExportRemoteInstances` without `ManageRemoteInstances` to operators who may deploy but must not create or reveal credentials.
+
 ## Remote Clients and Instances
 
 A destination remote client is represented by `RemoteClient`:
@@ -59,7 +73,7 @@ A source remote instance is represented by `RemoteInstance`:
 | Property | Meaning |
 |---|---|
 | `Name` | Admin-facing instance name. |
-| `Url` | Remote Orchard base URL. |
+| `Url` | Remote import endpoint, e.g. `https://example.com/OrchardCore.Deployment.Remote/ImportRemoteInstance/Import` (add the tenant URL prefix for a non-default tenant). |
 | `ClientName` | Destination client identity. |
 | `ApiKey` | Credential used against the remote client. |
 
@@ -76,6 +90,14 @@ accepts its credentials.
 4. Build and validate a deployment plan on the source.
 5. Select the remote instance as the deployment target and export.
 6. Inspect the target site and deployment results before relying on automation.
+
+The source builds a `.zip` package and sends it as a multipart `POST`. The
+destination validates the client name and API key, runs the uploaded package
+through the file upload security pipeline (`FileCreationService`, so an
+enabled antivirus scanner such as `OrchardCore.Antivirus.ClamAV` can reject
+it), writes it under the tenant-scoped temporary directory
+(`ITempDirectoryProvider`, `OrchardCore:TempDirectory:Path`), and executes
+`Recipe.json`. A rejected upload returns `400 Bad Request` with the reason.
 
 The module exposes import and export controllers plus the remote instance
 deployment target provider. Prefer the user interface for normal operations so
@@ -113,8 +135,10 @@ list directly.
 
 ## Security and Troubleshooting
 
-On failure, verify remote URL reachability, TLS certificates, client name,
-credential pairing, enabled features, and permissions. Rotate an API key by
+On failure, verify remote URL reachability (endpoint path and tenant prefix),
+TLS certificates, client name, credential pairing, enabled features,
+permissions, reverse-proxy limits on multipart `POST` size, and upload
+validation errors in the destination logs. Rotate an API key by
 updating both the remote client and every associated remote instance. Treat a
 deployment payload as sensitive until its content and target are confirmed.
 
@@ -150,3 +174,9 @@ and validate the target in a staging tenant.
 
 Remote deployment is appropriate for deliberate administration. It is not a
 general-purpose replication protocol or a substitute for database backups.
+
+## Upgrading from 3.x
+
+- `OrchardCore.Deployment.Remote.Permissions.ManageRemoteInstances`, `ManageRemoteClients`, and `Export` were removed. Use `DeploymentPermissions.ManageRemoteInstances`, `DeploymentPermissions.ManageRemoteClients`, and `DeploymentPermissions.ExportRemoteInstances`. Stored role permission names are unchanged.
+- Remote export and import archives use `ITempDirectoryProvider` instead of `Path.GetTempPath()`; set `OrchardCore:TempDirectory:Path` when the system temp volume is small.
+- Imported packages now pass through `FileCreationService`, so file upload security handlers can reject them.

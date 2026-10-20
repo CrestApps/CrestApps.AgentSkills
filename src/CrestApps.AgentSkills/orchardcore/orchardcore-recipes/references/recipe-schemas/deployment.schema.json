@@ -23,6 +23,7 @@
                 "Type": {
                   "type": "string",
                   "examples": [
+                    "AIPersonaDeploymentStep",
                     "AllAdminTemplatesDeploymentStep",
                     "AllContentDeploymentStep",
                     "AllFeaturesDeploymentStep",
@@ -70,6 +71,40 @@
               "additionalProperties": true,
               "description": "A deployment step that belongs to the plan.",
               "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AIPersonaDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "AI Personas step. Exports all or the selected saved AI personas. Persona files ship with the code and are not exported. Payload for the \u0027AIPersonaDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all saved AI personas and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "PersonaIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The item ids of the saved AI personas to export when IncludeAll is false."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
                 {
                   "if": {
                     "properties": {
