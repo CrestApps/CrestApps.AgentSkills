@@ -1,6 +1,10 @@
 ---
 name: orchardcore-markdown
-description: Skill for using MarkdownBodyPart in Orchard Core. Covers Markdown content editing, shape templates for Liquid and Razor, custom editor configurations, Markdown sanitization, Markdig extension pipeline, and available editor options. Use this skill when requests mention Orchard Core Markdown, Use MarkdownBodyPart for Content Editing, Enabling Markdown, Attaching MarkdownBodyPart to a Content Type, Shapes, MarkdownBodyPartViewModel Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Markdown, OrchardCore.Markdown.ViewModels, MarkdownBodyPart, MarkdownField, DataMigration, IContentDefinitionManager, WithPart, TitlePart, TypePartSettings, MarkdownBodyPartSettings, ContentPart, PartFieldDefinition. It also helps with Shapes, MarkdownBodyPartViewModel Properties, MarkdownBodyPart Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for using MarkdownBodyPart and MarkdownField in Orchard Core. Covers Markdown content editing, shape templates for Liquid and Razor, custom editor configurations, final-output Markdown sanitization, shortcodes, the Markdig extension pipeline, the OrchardCore Markdown configuration section, IMarkdownService, IMarkdownDisplayService, the markdownify filter, and migrating away from RenderLiquid. Use this skill when requests mention Orchard Core Markdown, Use MarkdownBodyPart for Content Editing, Enabling Markdown, Attaching MarkdownBodyPart to a Content Type, Shapes, MarkdownBodyPartViewModel Properties, MarkdownToHtmlAsync, MarkdownPipelineOptions, ConfigureMarkdownPipeline, DefaultMarkdownService or closely related Orchard Core work. Strong matches include work with OrchardCore.Markdown, OrchardCore.Markdown.ViewModels, MarkdownBodyPart, MarkdownField, MarkdownBodyPartSettings, MarkdownFieldSettings, TypePartSettings, PartFieldDefinition.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Markdown - Prompt Templates
@@ -12,13 +16,12 @@ You are an Orchard Core expert. Generate code, templates, and configuration for 
 ### Guidelines
 
 - Enable the `OrchardCore.Markdown` feature to use `MarkdownBodyPart` and `MarkdownField`.
-- `MarkdownBodyPart` stores Markdown content and converts it to HTML for rendering.
-- Shape templates use the `MarkdownBodyPartViewModel` model with `Markdown` and `Html` properties.
-- Markdown content can include Liquid tags that are processed before Markdown conversion.
-- HTML output is sanitized by default; disable via the `Sanitize HTML` part setting.
-- The Markdig pipeline is configurable via `appsettings.json` extensions or `ConfigureMarkdownPipeline` in code.
-- Two built-in editors are available: `Default` (plain text area) and `Wysiwyg` (rich editing experience).
-- Custom editors can be added by creating `Markdown_Option__{Name}` and `Markdown_Edit__{Name}` shape templates.
+- The authored Markdown is persisted exactly as entered. On display it is converted to HTML, shortcodes are processed, and the final HTML is sanitized when `SanitizeHtml` is enabled (the default).
+- Liquid in Markdown is not executed; use `LiquidPart` or `LiquidField` when content needs Liquid.
+- Shape templates use `MarkdownBodyPartViewModel` / `MarkdownFieldViewModel`, whose `Html` is the final rendered output and whose `Markdown` is the authored source.
+- The Markdig pipeline is configured with the `OrchardCore:Markdown:Extensions` setting or `ConfigureMarkdownPipeline` in code, and built once per tenant.
+- Two built-in editors are available: `Default` (plain text area) and `Wysiwyg`.
+- Custom editors are added by creating `Markdown_Option__{Name}` and `Markdown_Edit__{Name}` shape templates.
 - All C# classes must use the `sealed` modifier, except View Models.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 
@@ -62,6 +65,10 @@ public sealed class Migrations : DataMigration
             .WithPart("MarkdownBodyPart", part => part
                 .WithPosition("1")
                 .WithEditor("Wysiwyg")
+                .WithSettings(new MarkdownBodyPartSettings
+                {
+                    SanitizeHtml = true,
+                })
             )
         );
 
@@ -70,9 +77,11 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-### Shapes
+`MarkdownBodyPartSettings` and `MarkdownFieldSettings` only expose
+`SanitizeHtml`. The Wysiwyg editors accept `Options` through
+`MarkdownBodyPartWysiwygEditorSettings` and `MarkdownFieldWysiwygEditorSettings`.
 
-The following shapes are rendered when `MarkdownBodyPart` is attached to a content type:
+### Shapes
 
 | Shape Name         | Display Type | Default Location | Model Type                  |
 |--------------------|--------------|------------------|-----------------------------|
@@ -81,33 +90,31 @@ The following shapes are rendered when `MarkdownBodyPart` is attached to a conte
 
 ### MarkdownBodyPartViewModel Properties
 
-| Property           | Type                       | Description                                              |
-|--------------------|----------------------------|----------------------------------------------------------|
-| `Markdown`         | `string`                   | The Markdown value after all tokens have been processed. |
-| `Html`             | `string`                   | The HTML content resulting from the Markdown source.     |
-| `ContentItem`      | `ContentItem`              | The content item of the part.                            |
-| `MarkdownBodyPart` | `MarkdownBodyPart`         | The `MarkdownBodyPart` instance.                         |
-| `TypePartSettings` | `MarkdownBodyPartSettings` | The settings of the part.                                |
+| Property           | Type                       | Description                                                       |
+|--------------------|----------------------------|-------------------------------------------------------------------|
+| `Markdown`         | `string`                   | The exact authored Markdown source.                               |
+| `Html`             | `string`                   | The HTML after Markdown conversion, shortcodes, and sanitization. |
+| `ContentItem`      | `ContentItem`              | The content item of the part.                                     |
+| `MarkdownBodyPart` | `MarkdownBodyPart`         | The `MarkdownBodyPart` instance.                                  |
+| `TypePartSettings` | `MarkdownBodyPartSettings` | The settings of the part.                                         |
 
-### MarkdownBodyPart Properties
-
-| Property      | Type          | Description                                                                |
-|---------------|---------------|----------------------------------------------------------------------------|
-| `Markdown`    | `string`      | Raw Markdown content. May contain Liquid tags; prefer rendering the shape. |
-| `Content`     | `JObject`     | The raw content of the part.                                               |
-| `ContentItem` | `ContentItem` | The content item containing this part.                                     |
+`MarkdownBodyPart.Markdown` is the authored source. Liquid syntax in it is
+plain text.
 
 ### MarkdownField Properties
 
 The `MarkdownFieldViewModel` is used when a `MarkdownField` is attached to a content part:
 
-| Property              | Type                         | Description                                             |
-|-----------------------|------------------------------|---------------------------------------------------------|
-| `Markdown`            | `string`                     | The Markdown value once all tokens have been processed. |
-| `Html`                | `string`                     | The HTML content resulting from the Markdown source.    |
-| `Field`               | `MarkdownField`              | The `MarkdownField` instance.                           |
-| `Part`                | `ContentPart`                | The part this field is attached to.                     |
-| `PartFieldDefinition` | `ContentPartFieldDefinition` | The part field definition.                              |
+| Property              | Type                         | Description                                                       |
+|-----------------------|------------------------------|-------------------------------------------------------------------|
+| `Markdown`            | `string`                     | The exact authored Markdown source.                               |
+| `Html`                | `string`                     | The HTML after Markdown conversion, shortcodes, and sanitization. |
+| `Field`               | `MarkdownField`              | The `MarkdownField` instance.                                     |
+| `Part`                | `ContentPart`                | The part this field is attached to.                               |
+| `PartFieldDefinition` | `ContentPartFieldDefinition` | The part field definition.                                        |
+
+The same pipeline applies to Detail, Summary, preview, `BodyAspect`, and the
+GraphQL `html` field.
 
 ### Shape Template (Liquid)
 
@@ -125,6 +132,13 @@ Override the summary display at `Views/MarkdownBodyPart.Summary.liquid`:
 <p>{{ Model.Html | strip_html | truncate: 200 }}</p>
 ```
 
+Convert an arbitrary Markdown string in Liquid with `markdownify`, which
+always sanitizes its output:
+
+```liquid
+{{ "### Services" | markdownify | raw }}
+```
+
 ### Shape Template (Razor)
 
 Override the detail display at `Views/MarkdownBodyPart.cshtml`:
@@ -139,22 +153,46 @@ Override the detail display at `Views/MarkdownBodyPart.cshtml`:
 
 ### Razor Helper for Manual Rendering
 
-Use `MarkdownToHtmlAsync` to convert Markdown strings in Razor views:
+`MarkdownToHtmlAsync(string markdown, bool sanitize = true)` converts Markdown,
+processes shortcodes, and sanitizes the final HTML unless `sanitize` is `false`:
 
 ```cshtml
-@* Basic rendering (sanitized by default) *@
 @await Orchard.MarkdownToHtmlAsync((string)Model.ContentItem.Content.MarkdownParagraph.Content.Markdown)
 
-@* Disable sanitization *@
+@* Trusted output only *@
 @await Orchard.MarkdownToHtmlAsync((string)Model.ContentItem.Content.MarkdownParagraph.Content.Markdown, sanitize: false)
-
-@* Render embedded Liquid before converting Markdown *@
-@await Orchard.MarkdownToHtmlAsync((string)Model.ContentItem.Content.MarkdownParagraph.Content.Markdown, renderLiquid: true)
 ```
+
+### Rendering from Code
+
+| Service | Lifetime | Purpose |
+|---|---|---|
+| `IMarkdownService` (`DefaultMarkdownService`) | Singleton | `ToHtml(markdown)` with the tenant Markdig pipeline only. |
+| `IMarkdownDisplayService` | Scoped | `ToHtmlAsync(markdown, shortcodeContext, sanitizeHtml)` — Markdown, then shortcodes, then sanitization. |
+
+```csharp
+var html = await _markdownDisplayService.ToHtmlAsync(
+    markdown,
+    new Shortcodes.Context { ["ContentItem"] = contentItem },
+    sanitizeHtml: true);
+```
+
+`DefaultMarkdownService` builds its pipeline once, in its constructor, from
+`IOptions<MarkdownPipelineOptions>`. A replacement `IMarkdownService` should
+also be thread-safe and registered as a singleton.
 
 ### Sanitization
 
-Markdown output is sanitized by default during content rendering via Display Management. Disable sanitization per content type by unchecking `Sanitize HTML` in the MarkdownBody Part settings, or configure the HTML Sanitizer globally.
+Disable sanitization per content type by unchecking `Sanitize HTML` in the
+MarkdownBody Part (or MarkdownField) settings, or allow extra attributes in the
+HTML Sanitizer. For example, `autoidentifiers` needs the `id` attribute:
+
+```csharp
+builder.Services
+    .AddOrchardCms()
+    .ConfigureServices(tenantServices =>
+        tenantServices.ConfigureHtmlSanitizer(sanitizer => sanitizer.AllowedAttributes.Add("id")));
+```
 
 ### Editors
 
@@ -191,14 +229,23 @@ Create a file `Markdown-{Name}.Edit.cshtml` to render the editor:
 </fieldset>
 ```
 
+Override the built-in editors with `Markdown.Edit.cshtml` (Default) or
+`Markdown-Wysiwyg.Edit.cshtml`. Editor scripts should be ES modules that also
+initialize editors injected later by Flow and Bag editors; admin pages no
+longer load jQuery implicitly.
+
 ### Markdown Configuration (appsettings.json)
 
-Configure Markdig extensions via `appsettings.json`:
+Configure Markdig extensions under `OrchardCore:Markdown` (the default is
+`nohtml+advanced`; the old `OrchardCore_Markdown` section is deprecated but
+still read). Per-tenant values go under `OrchardCore:{TenantName}:Markdown`.
 
 ```json
 {
-  "OrchardCore_Markdown": {
-    "Extensions": "nohtml+advanced"
+  "OrchardCore": {
+    "Markdown": {
+      "Extensions": "nohtml+advanced"
+    }
   }
 }
 ```
@@ -224,13 +271,17 @@ Configure Markdig extensions via `appsettings.json`:
 | `mathematics`       | Mathematical expressions.                                          |
 | `bootstrap`         | Bootstrap CSS class support.                                       |
 | `medialinks`        | Extended image links for video/audio.                              |
-| `smartypants`       | Smart typography (curly quotes, dashes).                            |
+| `smartypants`       | Smart typography (curly quotes, dashes).                           |
 | `autoidentifiers`   | Auto-generate heading IDs.                                         |
 | `tasklists`         | Task list checkboxes.                                              |
 | `diagrams`          | Diagram rendering.                                                 |
 | `nofollowlinks`     | Add `rel=nofollow` to all links.                                   |
+| `noopenerlinks`     | Add `rel=noopener` to all links.                                   |
+| `noreferrerlinks`   | Add `rel=noreferrer` to all links.                                 |
 | `nohtml`            | Disable raw HTML in Markdown.                                      |
-| `autolinks`         | Auto-link URLs (`http://`, `https://`, `mailto:`).                 |
+| `yaml`              | Parse YAML front matter.                                           |
+| `nonascii-noescape` | Do not %-escape non-ASCII characters in URIs.                      |
+| `autolinks`         | Auto-link URLs (`http://`, `https://`, `ftp://`, `mailto:`, `www.`). |
 | `globalization`     | Right-to-left content support.                                     |
 
 ### Pipeline Configuration in Code
@@ -258,3 +309,20 @@ services
             o.Configure.Clear();
         }));
 ```
+
+Pipeline options are read once when the tenant shell is built; restart or
+release the tenant after changing them.
+
+### Upgrading from 3.x
+
+- `MarkdownBodyPartSettings.RenderLiquid` and `MarkdownFieldSettings.RenderLiquid`
+  were removed. Liquid in existing Markdown stays stored but renders as text;
+  tenant startup logs a warning per affected part and field. Move that content
+  to `LiquidPart` or `LiquidField`.
+- `MarkdownToHtmlAsync(markdown, sanitize, renderLiquid)` lost its
+  `renderLiquid` parameter.
+- Sanitization runs on the final HTML only; stored Markdown is no longer
+  rewritten on save.
+- `DefaultMarkdownService` is a singleton whose constructor only takes
+  `IOptions<MarkdownPipelineOptions>`; update subclasses or custom registrations.
+- Rename the `OrchardCore_Markdown` section to `OrchardCore:Markdown`.

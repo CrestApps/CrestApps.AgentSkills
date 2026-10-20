@@ -1,6 +1,10 @@
 ---
 name: orchardcore-admin-dashboard
-description: Skill for creating admin dashboard widgets in Orchard Core. Covers the DashboardWidget stereotype, widget position and sizing, custom dashboard widget content types, widget template customization, and dashboard layout configuration. Use this skill when requests mention Orchard Core Admin Dashboard, Create and Configure Dashboard Widgets, Enabling Admin Dashboard, Widget Configuration Properties, Creating a Dashboard Widget Content Type via Recipe, Creating a Dashboard Widget Content Type via Migration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AdminDashboard, OrchardCore.ContentManagement.Metadata. It also helps with Creating a Dashboard Widget Content Type via Recipe, Creating a Dashboard Widget Content Type via Migration, Creating a Dashboard Widget Content Item via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating admin dashboard widgets in Orchard Core. Covers the DashboardWidget stereotype, DashboardPart position and sizing, the built-in HtmlDashboardWidget, ContentsMetadata and ContentsTags widget types, custom widget content types via recipe or migration, arranging widgets in Manage Dashboard mode, widget template customization, provisioning widgets with recipes, dashboard permissions, the DashboardBreadcrumbProvider Dashboard ancestor, and the AdminDashboardContent shape used when the feature is disabled. Use this skill when requests mention Orchard Core Admin Dashboard, Create and Configure Dashboard Widgets, Enabling Admin Dashboard, Widget Configuration Properties, dashboard widget recipes, Dashboard breadcrumb, or related implementation, setup, or troubleshooting work. Strong matches include OrchardCore.AdminDashboard, DashboardPart, DashboardBreadcrumbProvider, AccessAdminDashboard, ManageAdminDashboard.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Admin Dashboard - Prompt Templates
@@ -11,13 +15,15 @@ You are an Orchard Core expert. Generate admin dashboard widgets, content types,
 
 ### Guidelines
 
-- Enable `OrchardCore.AdminDashboard` for admin dashboard widget support.
-- Dashboard widgets are content items with the `DashboardWidget` stereotype.
+- Enable `OrchardCore.AdminDashboard` for admin dashboard widget support. It replaces the default `/admin` landing page with the widget dashboard.
+- Dashboard widgets are content items with the `DashboardWidget` stereotype, so they can be edited, secured, versioned, and localized like any other content.
+- Built-in widget types: `HtmlDashboardWidget` (an `HtmlBodyPart` body for links or notes), `ContentsMetadata`, and `ContentsTags`. The module also ships a `dashboard-widgets-samples` recipe.
 - To create a widget content type, set its stereotype to `DashboardWidget`.
 - `DashboardPart` is added automatically to every `DashboardWidget` type and stores `Position`, `Width`, and `Height`.
-- Width and Height are unconstrained `double` grid-span values; the responsive dashboard layout determines how they render.
-- `ManageAdminDashboard` permission is required to manage (add/edit/remove) widgets.
-- `AccessAdminDashboard` permission is required for users without `ManageAdminDashboard` to view the dashboard.
+- `Position`, `Width`, and `Height` are `double` values (defaults `0`, `1.0`, `1.0`). The grid has 6 columns on large screens (3 on tablets, 1 on phones), so a `Width` of `1` is one sixth and `6` is the full width; use whole numbers from 1 to 6 for `Width` and `Height`.
+- In **Manage Dashboard** mode, drag a widget by its handle to change its `Position` and resize it to change `Width` and `Height`; both the latest and published versions are updated.
+- `ManageAdminDashboard` permission is required to manage (add/edit/arrange/remove) widgets; it implies `AccessAdminDashboard`.
+- `AccessAdminDashboard` permission is required for users without `ManageAdminDashboard` to view the dashboard. By default it is granted to Editor, Moderator, Author, and Contributor; Administrator has both.
 - Users with only `AccessAdminDashboard` also need `ViewContent` or the applicable per-content-type view permission to see a widget.
 - Customize widget appearance with templates named `DashboardWidget-{ContentType}.DetailAdmin.cshtml`.
 - Always seal classes.
@@ -43,8 +49,8 @@ You are an Orchard Core expert. Generate admin dashboard widgets, content types,
 | Property | Type | Range | Description |
 |----------|------|-------|-------------|
 | `Position` | Numeric | Any | Controls the widget's order on the page. Lower values appear first. |
-| `Width` | Double | Any | Grid-column span used by the responsive dashboard layout. The default is `1.0`; Orchard Core does not enforce a fixed range. |
-| `Height` | Double | Any | Grid-row span used by the responsive dashboard layout. The default is `1.0`; Orchard Core does not enforce a fixed range. |
+| `Width` | Double | 1 to 6 | Grid-column span; `1` is one sixth of a large screen, `6` the full width. Default `1.0`. Not validated server-side. |
+| `Height` | Double | 1 to 6 | Grid-row span. Default `1.0`. Not validated server-side. |
 
 ### Creating a Dashboard Widget Content Type via Recipe
 
@@ -142,6 +148,11 @@ public sealed class DashboardMigrations : DataMigration
           "DisplayText": "{{WidgetTitle}}",
           "Latest": true,
           "Published": true,
+          "DashboardPart": {
+            "Position": 0.0,
+            "Width": 2.0,
+            "Height": 1.0
+          },
           "TitlePart": {
             "Title": "{{WidgetTitle}}"
           },
@@ -203,8 +214,8 @@ Create a template named `DashboardWidget-{{ContentType}}.DetailAdmin.cshtml` whe
 
 | Permission | Description |
 |------------|-------------|
-| `ManageAdminDashboard` | Add, edit, and remove dashboard widgets. Includes dashboard access. |
-| `AccessAdminDashboard` | View the admin dashboard when the user does not manage it. |
+| `ManageAdminDashboard` | Add, edit, arrange, and remove dashboard widgets. Implies `AccessAdminDashboard`. |
+| `AccessAdminDashboard` | View the admin dashboard when the user does not manage it. Static member `OrchardCore.AdminDashboard.Permissions.AccessAdminDashboard`. |
 | `ViewContent` | Required, with `AccessAdminDashboard`, unless a per-content-type view permission grants access. |
 
 ### Dashboard Widget with Custom Part via Migration
@@ -259,3 +270,19 @@ public sealed class StatsDashboardMigrations : DataMigration
 3. Click the **Manage Dashboard** button.
 4. Click **Add Widget** and select your dashboard widget content type.
 5. Fill in the form, set Position, Width, and Height, then click **Publish**.
+
+### Dashboard Breadcrumb Ancestor
+
+The feature registers `OrchardCore.AdminDashboard.Services.DashboardBreadcrumbProvider` with `services.AddBreadcrumbProvider<DashboardBreadcrumbProvider>()`. On admin requests with a visible trail it inserts a localized **Dashboard** ancestor (ID `Dashboard`, URL `"~/" + AdminOptions.AdminUrlPrefix`, permission `AccessAdminDashboard`) at index `0`, unless the trail is named `Dashboard` or already has a `Dashboard` ancestor. So `Manage Content › Edit Article` becomes `Dashboard › Manage Content › Edit Article`. Users without access see the node as plain text; front-end trails and hidden admin trails (**Show breadcrumb** off) are not affected.
+
+The dashboard page declares its own trail, which prevents a duplicate ancestor:
+
+```razor
+<breadcrumb name="Dashboard" title="@T["Dashboard"]" />
+```
+
+Restyle its current node with `BreadcrumbItem-Dashboard-Title.cshtml` (or `BreadcrumbItem-Dashboard-Title.DetailAdmin.cshtml`). See `orchardcore-breadcrumbs` for the provider contract.
+
+### Admin Home Page Without This Feature
+
+When `OrchardCore.AdminDashboard` is disabled, `/admin` renders the `AdminDashboard` shape of `OrchardCore.Admin`, whose `AdminDashboardContent` child shape collects positioned content from shape table providers (see `orchardcore-admin`).

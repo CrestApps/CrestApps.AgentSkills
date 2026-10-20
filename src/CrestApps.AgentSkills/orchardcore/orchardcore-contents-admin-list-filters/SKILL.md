@@ -1,6 +1,6 @@
 ---
 name: orchardcore-contents-admin-list-filters
-description: Skill for adding custom filters to the Orchard Core content items admin list. Covers implementing IContentsAdminListFilterProvider to add searchable terms to the content admin search box, registering the provider in Startup, and documenting the filter in the Available Filters dialog with a DisplayDriver<ContentOptionsViewModel> Thumbnail card. Use this skill when requests mention custom content admin list filters, IContentsAdminListFilterProvider, QueryEngineBuilder<ContentItem>, WithNamedTerm, WithDefaultTerm, ContentsAdminListFilterOptions, the content items Filters dropdown or Filter syntax dialog, ContentOptionsViewModel filter cards, ContentsAdminFilters Thumbnail views, or closely related Orchard Core content admin list search work. Strong matches include OrchardCore.Contents, IContentsAdminListFilterProvider, ContentOptionsViewModel, ContentsAdminListFilterOptions.DefaultTermNames, and ContentsAdminFilters-*.Thumbnail.cshtml.
+description: Skill for adding custom filters to the Orchard Core content items admin list. Covers IContentsAdminListFilterProvider search terms, ContentsAdminListFilterOptions default terms per content type or stereotype and exact match, scoping the list to several content types or stereotypes with the contentTypeId and stereotype query string values, and documenting filters in the redesigned Available Filters dialog with a DisplayDriver<ContentOptionsViewModel> Thumbnail card. Use this skill when requests mention custom content admin list filters, IContentsAdminListFilterProvider, QueryEngineBuilder<ContentItem>, WithNamedTerm, WithDefaultTerm, ContentsAdminListFilterOptions, DefaultTermNames, UseExactMatch, the Filter syntax dialog, ContentOptionsViewModel filter cards, ContentsAdminFilters Thumbnail views, upgrading filter cards to Orchard Core 4.0, or closely related content admin list search work. Strong matches include OrchardCore.Contents, ContentsAdminList, and ContentsAdminFilters-*.Thumbnail.cshtml.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,11 +20,13 @@ You are an Orchard Core expert. The content items admin list (**Content → Cont
 - Build terms against `QueryEngineBuilder<ContentItem>`. Filter against a YesSql index (`ContentItemIndex` or a custom index), not against materialized content items.
 - Use `WithNamedTerm("token", ...)` for a token the user types as `token:value`. Use `WithDefaultTerm("token", ...)` for the term applied to bare text with no prefix; register at most one default term.
 - Use `OneCondition` for a term that accepts a single value (the `fa-minus`/**Single** icon). Use `ManyCondition` for a term that supports the `AND`, `OR`, and `NOT` operators and groups (the `fa-bars`/**Multiple** icon), and supply both the matching and the negated predicate.
-- To let an existing named term also be entered without its prefix, add it through `ContentsAdminListFilterOptions.DefaultTermNames`. This documents the `fa-check`/**Default** capability.
+- Bare text is routed to the default term, `text` (`ContentsAdminListFilterOptions.DefaultTermName`). To route bare text to another term when the list is scoped to a content type or stereotype, map it in `ContentsAdminListFilterOptions.DefaultTermNames` (a dictionary keyed by content type or stereotype name, valued by term name). Mark that term's card with the `fa-check`/**Default** icon.
+- Set `ContentsAdminListFilterOptions.UseExactMatch = true` to quote bare search text as a single exact-match term, unless the text uses `AND` or `OR`.
 - Document the filter by implementing `DisplayDriver<ContentOptionsViewModel>` and returning a `View(...)` in the `Content` zone of the `Thumbnail` display type; register it with `services.AddDisplayDriver<ContentOptionsViewModel, T>()`.
 - The shape type `ContentsAdminFilters_Thumbnail__<Name>` resolves to `Views/Items/ContentsAdminFilters-<Name>.Thumbnail.cshtml`. The card wrapper and grid are supplied for you; the view only renders the card's inner content.
 - Use the same capability icons the built-in filters use so the shared legend at the bottom of the dialog stays accurate: `fa-check` (**Default**), `fa-minus` (**Single**), `fa-bars` (**Multiple**).
-- The same pattern documents the [users admin list](../orchardcore-users-admin-list-filters/SKILL.md) (`UserIndexOptions`) and the audit trail admin list (`AuditTrailIndexOptions`); only the model type differs.
+- The same pattern documents the users admin list (`UserIndexOptions`, see `orchardcore-users-admin-list-filters`) and the audit trail admin list (`AuditTrailIndexOptions`, see `orchardcore-audit-trail`); only the model type differs.
+- In Orchard Core 4.0 the content items list renders through the shared `AdminList` shape under the list name `Contents` (`ContentsAdminList.Name`), so it follows the site's List/Grid layout. To add columns or change how rows render, see `orchardcore-admin-lists`; filters and filter cards are unaffected by the layout.
 
 ## Register the filter logic
 
@@ -80,14 +82,33 @@ public sealed class Startup : StartupBase
 }
 ```
 
-To let the `product` term also be entered as bare text (no `product:` prefix), register it as a default term:
+To route bare text (no prefix) to the `product` term while the list is scoped to the `Product` content type (or to a stereotype), map it in `DefaultTermNames`. Other lists keep using the `text` term:
 
 ```csharp
+using OrchardCore.Contents;
+
 services.Configure<ContentsAdminListFilterOptions>(options =>
 {
-    options.DefaultTermNames.Add("product");
+    // Key: content type or stereotype name. Value: term name used for bare text.
+    options.DefaultTermNames.Add("Product", "product");
+
+    // Optional: treat bare text as one quoted, exact-match term.
+    options.UseExactMatch = true;
 });
 ```
+
+## Scope the list to content types or stereotypes
+
+The `ListContentItems` action (`/Admin/Contents/ContentItems/{contentTypeId?}`) accepts several content types or stereotypes, as repeated or comma-separated query string values. Use these URLs in admin menu links:
+
+```text
+/Admin/Contents/ContentItems/Article
+/Admin/Contents/ContentItems?contentTypeId=Article&contentTypeId=BlogPost
+/Admin/Contents/ContentItems?contentTypeId=Article,BlogPost
+/Admin/Contents/ContentItems?stereotype=Widget,Page
+```
+
+A list scoped to a single content type or stereotype uses its `DefaultTermNames` entry for bare text. The content types and stereotypes the list is filtered by are passed to admin list column providers under `ContentsAdminList.ContentTypesKey` and `ContentsAdminList.StereotypesKey`.
 
 ## Register the filter card
 
@@ -145,12 +166,36 @@ Choose the icon that matches the term's capability, and match the `title` text t
 | − | `fa-minus` | **Single** — accepts a single value | `OneCondition` |
 | ☰ | `fa-bars` | **Multiple** — supports `AND`, `OR`, `NOT`, and groups | `ManyCondition` |
 
+If you also override the dialog's grid container (`ContentOptionsViewModel.Thumbnail.cshtml`) or the card wrapper (`ContentsAdminFilters-Card.Thumbnail.cshtml`), match the built-in markup, which emits `row row-cols-*` for the grid and `col > card h-100` for each card.
+
+## Upgrading from 3.x
+
+- The **Available Filters** dialog is now a `modal-xl` grid of cards, and a Thumbnail template renders only the card's inner content. Old cards still render but look out of place.
+- Before (3.x):
+
+```html
+<div class="ocat-wrapper">
+    <h4 class="card-title ocat-label">@T["Product"]</h4>
+    <div class="ocat-end">
+        <pre>@(term?.ToString() ?? "product:...")</pre>
+    </div>
+</div>
+<p>@T["Filters on a product serial number."]</p>
+<div class="d-block text-end">
+    <span><i class="fa-solid fa-sm fa-minus text-primary" aria-hidden="true"></i></span>
+</div>
+```
+
+- After (4.0): title and capability icons on the first line, the token in a `<code>` line, and the description last, as shown in [The card template](#the-card-template).
+- `contentTypeId` and `stereotype` now accept several values; single-value routes and query strings work as before.
+- A theme or module that overrides the content items list page must render the `List` context of `ListContentsViewModel` with the `<admin-list>` tag helper (see `orchardcore-admin-lists`). Row templates such as `Content-BlogPost.SummaryAdmin.cshtml` only apply in the `List` layout.
+
 ## Troubleshooting
 
 - If typing `product:...` returns unfiltered results, confirm the `IContentsAdminListFilterProvider` is registered with `AddScoped` and the term name matches the token exactly (case-insensitive).
 - If the term filters but no card appears in the **Available Filters** dialog, register the `DisplayDriver<ContentOptionsViewModel>` with `AddDisplayDriver` and verify the view path is `Views/Items/ContentsAdminFilters-<Name>.Thumbnail.cshtml`.
 - If the card renders but the token line is empty, ensure the `TermName` passed to `FilterResult.FirstOrDefault` matches the token used in `WithNamedTerm`/`WithDefaultTerm`.
-- If bare text is not matched by your term, register it in `ContentsAdminListFilterOptions.DefaultTermNames` or define it with `WithDefaultTerm`.
+- If bare text is not matched by your term, map the content type or stereotype to it in `ContentsAdminListFilterOptions.DefaultTermNames` and open the list scoped to that type, or replace the default `text` term with `WithDefaultTerm`.
 - Filter against a persisted YesSql index. Predicates over in-memory content properties are not translated to SQL and will not filter.
 
 See [references/contents-admin-list-filters-examples.md](references/contents-admin-list-filters-examples.md) for a complete end-to-end example.

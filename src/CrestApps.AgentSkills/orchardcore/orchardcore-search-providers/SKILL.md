@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-providers
-description: Skill for implementing custom search providers in Orchard Core. Covers provider module structure, index source contracts, index profile handlers, provider services, OrchardCore.Search integration, permissions, admin actions, and custom provider implementations that follow OrchardCore.Elasticsearch. Use this skill when requests mention Orchard Core Search Providers, Create a new search provider, Implement custom search support, AddSearchService registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Search, AddSearchService, AddIndexingSource, IIndexManager, IDocumentIndexManager, IIndexNameProvider, IndexProfileHandlerBase, ElasticsearchService, and AddElasticsearchServices. It also helps with custom provider examples, OrchardCore.Search integration, recipe steps, and the code patterns captured in this skill.
+description: Skill for implementing custom search providers in Orchard Core. Covers provider module structure, index source contracts, index profile handlers, provider services, OrchardCore.Search integration, permissions with LocalizationSource descriptions, admin action authorization, API endpoint names, provider configuration sections under OrchardCore Search, settings-backed options with IOptionsMonitor and AddSignalOptionsChangeTokenSource, and custom provider implementations that follow OrchardCore.Elasticsearch. Use this skill when requests mention Orchard Core Search Providers, Create a new search provider, Implement custom search support, AddSearchService registration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Search, AddSearchService, AddIndexingSource, IIndexManager, IDocumentIndexManager, IIndexNameProvider, IndexProfileHandlerBase, ElasticsearchService, and AddElasticsearchServices.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -34,7 +34,12 @@ You are an Orchard Core expert. Generate code and configuration for implementing
 - Use `IndexingPermissions.QuerySearchIndex` and the dynamic
   `QueryIndex_{name}` permissions for index access instead of defining a
   second generic query-index permission.
-- If the provider exposes query definitions, register the query source and query handler in the main startup.
+- If the provider exposes query definitions, register the query source and query handler in the main startup. GraphQL fields for named queries must call `fieldType.RequirePermission(QueryPermissions.CreatePermissionForQuery(query.Name))`, as the built-in providers do since Orchard Core 4.0.
+- Read connection settings from a section grouped under `Search`, such as `OrchardCore:Search:OpenSearch` (the Orchard Core 4.0 convention, next to `Search:Elasticsearch` and `Search:AzureAISearch`). Do not use an `OrchardCore_*` prefixed section name. Ship a `ConfigurationSchema.json` in the package for `appsettings.json` IntelliSense if possible.
+- When provider options can also be edited from site settings, read them with `IOptionsMonitor<TOptions>.CurrentValue`, register `services.AddSignalOptionsChangeTokenSource<TOptions>()`, and call `IOptionsUpdateNotifier.RequestUpdate<TOptions>()` after the settings are saved (the Azure AI Search pattern).
+- Declare permissions with `LocalizationSource.Create(description, typeof(DeclaringType))` descriptions, and imply the provider's manage permission by `IndexingPermissions.ManageIndexes`.
+- Authorize every admin action explicitly; Orchard Core 4.0 fixed Elasticsearch admin actions (index info, query) that skipped the check.
+- Give API actions stable `[EndpointName]` values per verb (for example `ApiGetOpenSearchContent` and `ApiPostOpenSearchContent`) so the OpenAPI document is valid.
 - Keep examples focused on the latest Orchard Core implementation and omit backward-compatibility guidance.
 - All C# classes must use the `sealed` modifier.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
@@ -176,7 +181,8 @@ public sealed class Startup : StartupBase
 
         services.Configure<OpenSearchOptions>(options =>
         {
-            var configuration = _shellConfiguration.GetSection(OpenSearchConnectionOptionsConfigurations.ConfigSectionName);
+            // "Search:OpenSearch", nested in the OrchardCore section of the shell configuration.
+            var configuration = _shellConfiguration.GetSection(OpenSearchConnectionOptionsConfigurations.SectionName);
 
             options.AddIndexPrefix(configuration);
             options.AddAnalyzers(configuration);
@@ -218,6 +224,50 @@ public sealed class SearchStartup : StartupBase
 ```
 
 This is the current Orchard Core pattern used by Elasticsearch, Lucene, and Azure AI Search.
+
+### Permission Provider
+
+```csharp
+using OrchardCore.Indexing.Core;
+using OrchardCore.Localization;
+using OrchardCore.Security.Permissions;
+
+namespace OrchardCore.OpenSearch;
+
+public static class OpenSearchPermissions
+{
+    public static readonly Permission ManageOpenSearchIndexes = new(
+        "ManageOpenSearchIndexes",
+        LocalizationSource.Create("Manage OpenSearch Indexes", typeof(OpenSearchPermissions)),
+        [IndexingPermissions.ManageIndexes]);
+
+    public static readonly Permission QueryOpenSearchApi = new(
+        "QueryOpenSearchApi",
+        LocalizationSource.Create("Query OpenSearch Api", typeof(OpenSearchPermissions)),
+        [ManageOpenSearchIndexes]);
+}
+
+public sealed class PermissionProvider : IPermissionProvider
+{
+    private readonly IEnumerable<Permission> _allPermissions =
+    [
+        OpenSearchPermissions.ManageOpenSearchIndexes,
+        OpenSearchPermissions.QueryOpenSearchApi,
+    ];
+
+    public Task<IEnumerable<Permission>> GetPermissionsAsync()
+        => Task.FromResult(_allPermissions);
+
+    public IEnumerable<PermissionStereotype> GetDefaultStereotypes() =>
+    [
+        new PermissionStereotype
+        {
+            Name = OrchardCoreConstants.Roles.Administrator,
+            Permissions = _allPermissions,
+        },
+    ];
+}
+```
 
 The generic indexing authorization is centralized in
 `OrchardCore.Indexing.Core.IndexingPermissions`. Provider-specific permissions
@@ -331,6 +381,29 @@ Add one only when the provider needs provider-specific actions such as:
 - running diagnostics or custom actions that do not belong in the generic index profile UI
 
 If the provider only needs normal index-profile editing, lifecycle operations, and search registration, the display driver and handler pattern is enough.
+
+When you do add one, check the provider's manage permission at the start of every action, including read-only ones:
+
+```csharp
+[Admin("OpenSearch/indexinfo/{id}", "OpenSearch.IndexInfo")]
+public async Task<IActionResult> IndexInfo(string id)
+{
+    if (!await _authorizationService.AuthorizeAsync(User, OpenSearchPermissions.ManageOpenSearchIndexes))
+    {
+        return Forbid();
+    }
+
+    var index = await _indexProfileStore.FindByIdAsync(id);
+
+    if (index is null)
+    {
+        return NotFound();
+    }
+
+    // ...
+    return View();
+}
+```
 
 ### Deployment Guidance
 

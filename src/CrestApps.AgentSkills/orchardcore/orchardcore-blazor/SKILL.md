@@ -1,6 +1,10 @@
 ---
 name: orchardcore-blazor
-description: Skill for building Blazor CMS applications with Orchard Core. Covers Blazor SSR and Server Interactive rendering, Razor class library structure, Blazor component architecture (App, Layout, NavMenu, Router), content integration with IContentHandleManager, dependency injection in Blazor pages, loading CMS content in Blazor components, SEO and alias handling, and multi-tenant support. Use this skill when requests mention Orchard Core Blazor CMS, Building Blazor Applications with Orchard Core, Solution Structure, Create the Solution from CLI, Razor Class Library Project File, Program.cs — Orchard Core with Blazor Pipeline, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. It also helps with Razor Class Library Project File, Program.cs — Orchard Core with Blazor Pipeline, App.razor — Root Component, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for building Blazor CMS applications with Orchard Core. Covers Blazor SSR and Server Interactive rendering, Razor class library structure, Blazor components (App, Layout, NavMenu, Router), content integration with IContentHandleManager and IContentManager, sanitized body HTML with BodyAspect, dependency injection in Blazor pages, SEO and alias handling, and multi-tenant base URLs. Use this skill when requests mention Orchard Core Blazor CMS, Building Blazor Applications with Orchard Core, Solution Structure, Razor Class Library Project File, Program.cs with the Orchard Core Blazor pipeline, App.razor, or closely related Orchard Core implementation or troubleshooting work. Strong matches include AddRazorComponents, MapRazorComponents, AddInteractiveServerComponents, IContentHandleManager, IContentManager, BodyAspect, ISiteService, NavigationManager, StreamRendering.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Blazor CMS - Prompt Templates
@@ -17,7 +21,8 @@ You are an Orchard Core expert. Generate code and configuration for building Bla
 - Use the **Headless site** recipe when setting up an Orchard Core instance for Blazor front-end consumption.
 - Register Blazor services and map Razor components inside `AddOrchardCms()` using `.ConfigureServices()` and `.Configure()` — do not register them outside of the Orchard Core pipeline.
 - Use `IContentHandleManager` to resolve a content item ID from an alias handle, then use `IContentManager` to load the content item.
-- Use `IContentManager.PopulateAspectAsync<BodyAspect>(contentItem)` to extract rendered body HTML from content items.
+- Use `IContentManager.PopulateAspectAsync<BodyAspect>(contentItem)` to extract rendered body HTML from content items. In Orchard Core 4.0 HTML and Markdown are stored exactly as authored and sanitized only when rendered, so `BodyAspect` returns sanitized HTML (when `SanitizeHtml` is enabled) while raw `HtmlBodyPart.Html` / `MarkdownBodyPart.Markdown` values are unsanitized source. Never inject raw part values as `MarkupString`.
+- `HtmlBodyPart`, `MarkdownBodyPart`, `HtmlField` and `MarkdownField` no longer execute Liquid; use `LiquidPart` or `LiquidField` for templated content.
 - Use `ISiteService.GetSiteSettingsAsync()` for read-only site-level settings like `SiteName`; use `LoadSiteSettingsAsync()` before modifying and saving site settings.
 - Add `@attribute [StreamRendering]` to Blazor pages to enable streaming rendering for async content loading.
 - For multi-tenant support, dynamically set the `<base href>` tag using `NavigationManager.BaseUri` to reflect tenant-specific URL prefixes.

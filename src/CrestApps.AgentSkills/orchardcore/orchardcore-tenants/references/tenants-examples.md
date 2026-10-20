@@ -18,8 +18,8 @@ dotnet run
 ```
 
 After setup, create a Blog tenant:
-1. Go to **Configuration > Tenants**.
-2. Click **Create Tenant**.
+1. Go to **Multi-Tenancy > Tenants**.
+2. Click **Add Tenant**.
 3. Fill in:
    - **Name**: Blog
    - **URL Prefix**: blog
@@ -31,43 +31,21 @@ After setup, create a Blog tenant:
    - **Admin**: admin / Password123!
 6. Access the blog at `https://localhost:5001/blog`.
 
-## Example 2: Creating Multiple Tenants via Recipe
+## Example 2: Creating Multiple Tenants via the Tenants API
 
-```json
-{
-  "steps": [
-    {
-      "name": "Tenants",
-      "Tenants": [
-        {
-          "Name": "Marketing",
-          "RequestUrlPrefix": "marketing",
-          "RequestUrlHost": "",
-          "State": "Uninitialized",
-          "FeatureProfiles": [],
-          "Description": "Marketing department site"
-        },
-        {
-          "Name": "Engineering",
-          "RequestUrlPrefix": "engineering",
-          "RequestUrlHost": "",
-          "State": "Uninitialized",
-          "FeatureProfiles": [],
-          "Description": "Engineering department site"
-        },
-        {
-          "Name": "Sales",
-          "RequestUrlPrefix": "sales",
-          "RequestUrlHost": "",
-          "State": "Uninitialized",
-          "FeatureProfiles": [],
-          "Description": "Sales department site"
-        }
-      ]
-    }
-  ]
-}
+There is no recipe step that creates tenants. Use the Tenants API (or the **Create Tenant Task** workflow activity) with a token that has `ManageTenants`:
+
+```bash
+for tenant in Marketing Engineering Sales; do
+  prefix=$(echo "$tenant" | tr '[:upper:]' '[:lower:]')
+  curl -X POST https://localhost:5001/api/tenants/create \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{token}}" \
+    -d "{ \"Name\": \"$tenant\", \"RequestUrlPrefix\": \"$prefix\", \"Description\": \"$tenant department site\", \"RecipeName\": \"Blog\", \"DatabaseProvider\": \"Sqlite\" }"
+done
 ```
+
+Each request is validated with `ITenantValidator`; a `400 Bad Request` lists the errors (invalid name, duplicate prefix and host, unknown feature profile).
 
 ## Example 3: Tenant-Aware Service
 
@@ -104,7 +82,7 @@ share a database:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Tenants": {
+    "Tenants": {
       "RequireTablePrefix": true,
       "TablePrefixPattern": "tenant_{{ ShellSettings.Name }}",
       "SchemaPattern": "{{ ShellSettings.Name }}"

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-deferred-tasks
-description: Skill for running fire-and-forget work after a request in Orchard Core using HttpBackgroundJob.ExecuteAfterEndOfRequestAsync and ShellScope.AddDeferredTask. Covers deferring work until the current YesSql session is committed, running in a fresh isolated ShellScope, restoring the current user, and choosing between deferred tasks and after-request background jobs. Use this skill when requests mention Orchard Core HttpBackgroundJob, ExecuteAfterEndOfRequestAsync, ShellScope.AddDeferredTask, AddDeferredSignal, RegisterBeforeDispose, running code after the session is saved, fire-and-forget after a request, or closely related Orchard Core setup or troubleshooting work. Strong matches include OrchardCore.BackgroundJobs, OrchardCore.Environment.Shell.Scope, OrchardCore.Abstractions, ShellScope, IShellHost, IDocumentStore, IHttpContextAccessor, and combining a deferred task with a background job so work runs only after the session commit.
+description: Skill for running fire-and-forget work after a request in Orchard Core using HttpBackgroundJob.ExecuteAfterEndOfRequestAsync and ShellScope.AddDeferredTask. Covers deferring work until the YesSql session is committed, running in a fresh isolated ShellScope, restoring the current user, deferred signals, IDocumentStore.AfterCommitSuccess, the IOptionsUpdateNotifier post-commit options refresh, and choosing between deferred tasks, after-request jobs and background tasks. Use this skill when requests mention Orchard Core HttpBackgroundJob, ExecuteAfterEndOfRequestAsync, ShellScope.AddDeferredTask, AddDeferredSignal, RegisterBeforeDispose, running code after the session is saved, or closely related Orchard Core troubleshooting work. Strong matches include OrchardCore.BackgroundJobs, OrchardCore.Environment.Shell.Scope, ShellScope, IShellHost, IDocumentStore, ISignal, IHttpContextAccessor.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -31,6 +31,9 @@ of a request, without adding a scheduled `IBackgroundTask`. Both live in the
 | Run after the response is sent, do not block the client | `HttpBackgroundJob.ExecuteAfterEndOfRequestAsync` |
 | Only send an invalidation signal after commit | `ShellScope.AddDeferredSignal` |
 | Run something as the scope disposes (no new scope) | `ShellScope.RegisterBeforeDispose` |
+| Run only if the document store commit succeeded | `IDocumentStore.AfterCommitSuccess<T>()` |
+| Refresh `IOptionsMonitor<T>` after settings are saved | `IOptionsUpdateNotifier.RequestUpdate<T>()` |
+| Recurring or scheduled work | `IBackgroundTask` (see `orchardcore-background-tasks`) |
 
 ## Why "after the session is saved" works
 
@@ -126,6 +129,7 @@ ShellScope.AddDeferredTask(async scope =>
   client; add your own logging and compensation.
 - No feature needs to be enabled — these are framework primitives in
   `OrchardCore.Abstractions`, referenced transitively by modules.
+- Deferred tasks and after-request jobs are not scheduled background tasks: the `OrchardCore:BackgroundService` section (`PollingTime`, `MinimumIdleTime`, `ShellWarmup`; `OrchardCore_BackgroundService` before 4.0) does not affect them.
 - All C# classes in examples are sealed except View Models.
 
 See `references/deferred-tasks-examples.md` for content-handler, controller, and

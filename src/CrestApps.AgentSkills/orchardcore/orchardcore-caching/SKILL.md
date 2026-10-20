@@ -1,6 +1,6 @@
 ---
 name: orchardcore-caching
-description: Skill for configuring and managing caching in Orchard Core. Covers response compression, dynamic cache, shape caching, cache tag helpers, ISignal-based invalidation, distributed cache with Redis, cache profiles, and CacheContext dependencies. Use this skill when requests mention Orchard Core Caching, Configure and Manage Caching, Enabling Caching Features, Response Compression, Dynamic Cache (Shape-Level Caching), Shape Cache Tag Helper (Razor), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ResponseCompression, OrchardCore.DynamicCache, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Environment.Cache, OrchardCore.ContentManagement. It also helps with caching examples, Dynamic Cache (Shape-Level Caching), Shape Cache Tag Helper (Razor), Liquid Cache Block, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring and managing caching in Orchard Core. Covers response compression (OrchardCore.ResponseCompression), dynamic cache, shape caching, cache tag helpers, ISignal-based invalidation, ITagCache, IDynamicCacheService, IDistributedCache with the OrchardCore.Redis.Cache feature and the OrchardCore Redis configuration section, cache profiles and Cache-Control headers, caching content items with JConvert, and CacheContext dependencies. Use this skill when requests mention Orchard Core Caching, Enabling Caching Features, Response Compression, Dynamic Cache (Shape-Level Caching), Shape Cache Tag Helper (Razor), Liquid Cache Block, distributed cache, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.ResponseCompression, OrchardCore.DynamicCache, OrchardCore.Redis, OrchardCore.Environment.Cache, OrchardCore.ContentManagement.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -44,7 +44,12 @@ You are an Orchard Core expert. Generate code and configuration for caching stra
 
 ### Response Compression
 
-Enable `OrchardCore.ResponseCompression` to add gzip and Brotli compression to HTTP responses. This module registers `ResponseCompressionMiddleware` and does not require additional code. Configure compression providers in `Startup` if custom settings are needed:
+Enable `OrchardCore.ResponseCompression` to compress HTTP responses for the tenant. The module calls `AddResponseCompression(options => options.EnableForHttps = true)` with the ASP.NET Core default providers and adds `UseResponseCompression()` early in the pipeline (`Startup.Order = -5`); no code is required.
+
+- Prefer compression at the reverse proxy, web server, or CDN when one is in front of the application; use this module when the app is exposed directly.
+- Because it compresses HTTPS responses, evaluate the BREACH risk for pages that mix secrets (antiforgery tokens, personal data) with attacker-controlled input before enabling it.
+
+Tune the default providers from a startup class if needed:
 
 ```csharp
 public sealed class Startup : StartupBase
@@ -231,38 +236,20 @@ public sealed class WidgetCacheManager
 
 ### Redis Distributed Cache Configuration
 
-To use Redis as the distributed cache backend, add the `Microsoft.Extensions.Caching.StackExchangeRedis` package to the web project and configure it:
-
-```csharp
-public sealed class Startup : StartupBase
-{
-    private readonly IConfiguration _configuration;
-
-    public Startup(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = _configuration["Redis:ConnectionString"];
-            options.InstanceName = "orchardcore-";
-        });
-    }
-}
-```
-
-Corresponding `appsettings.json`:
+Enable the `OrchardCore.Redis` and `OrchardCore.Redis.Cache` features (package `OrchardCore.Redis`, installed in the web project when not using the full CMS targets). `OrchardCore.Redis.Cache` replaces the default in-memory `IDistributedCache` for the tenant, so dynamic cache entries and every `IDistributedCache` consumer are shared across instances. Add `OrchardCore.Redis.Bus` to make `ISignal` distributed.
 
 ```json
 {
-  "Redis": {
-    "ConnectionString": "localhost:6379,abortConnect=false,connectTimeout=5000"
+  "OrchardCore": {
+    "Redis": {
+      "Configuration": "localhost:6379,abortConnect=false,connectTimeout=5000",
+      "InstancePrefix": "MyApp:"
+    }
   }
 }
 ```
+
+Environment variable form: `OrchardCore__Redis__Configuration`. The former `OrchardCore_Redis` section name still works but is deprecated. See `orchardcore-redis`.
 
 ### Cache Profiles and Cache-Control Headers
 
@@ -273,9 +260,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddResponseCaching();
-
-        services.AddMvc(options =>
+        services.Configure<MvcOptions>(options =>
         {
             options.CacheProfiles.Add("Default", new CacheProfile
             {
@@ -294,6 +279,8 @@ public sealed class Startup : StartupBase
     }
 }
 ```
+
+`[ResponseCache]` only emits `Cache-Control` headers. Server-side response caching additionally needs `services.AddResponseCaching()` and `app.UseResponseCaching()`; never cache personalized or authenticated responses that way.
 
 Apply a cache profile to a controller or action:
 
@@ -322,22 +309,18 @@ Combine `IDistributedCache` with content queries to avoid repeated database call
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using OrchardCore.ContentManagement;
-using OrchardCore.Environment.Cache;
 
 public sealed class CachedArticleService
 {
     private readonly IContentManager _contentManager;
     private readonly IDistributedCache _distributedCache;
-    private readonly ITagCache _tagCache;
 
     public CachedArticleService(
         IContentManager contentManager,
-        IDistributedCache distributedCache,
-        ITagCache tagCache)
+        IDistributedCache distributedCache)
     {
         _contentManager = contentManager;
         _distributedCache = distributedCache;
-        _tagCache = tagCache;
     }
 
     public async Task<ContentItem?> GetPublishedArticleAsync(string contentItemId)
@@ -347,7 +330,8 @@ public sealed class CachedArticleService
 
         if (cached is not null)
         {
-            return JsonSerializer.Deserialize<ContentItem>(cached);
+            // JConvert uses Orchard Core's JSON options, required for ContentItem.
+            return JConvert.DeserializeObject<ContentItem>(cached);
         }
 
         var article = await _contentManager.GetAsync(
@@ -361,7 +345,7 @@ public sealed class CachedArticleService
 
         await _distributedCache.SetStringAsync(
             cacheKey,
-            JsonSerializer.Serialize(article),
+            JConvert.SerializeObject(article),
             new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
@@ -370,10 +354,8 @@ public sealed class CachedArticleService
         return article;
     }
 
-    public async Task InvalidateArticleCacheAsync()
-    {
-        await _distributedCache.RemoveAsync("published-articles");
-        await _tagCache.RemoveTagAsync("contenttype:Article");
-    }
+    // Call from a content handler (PublishedAsync, UnpublishedAsync, RemovedAsync).
+    public Task InvalidateArticleAsync(string contentItemId)
+        => _distributedCache.RemoveAsync($"published-article:{contentItemId}");
 }
 ```

@@ -1,59 +1,60 @@
 # Site Settings Examples
 
-## Example 1: Social Media Settings
+These examples use code-defined settings sections (plain classes stored in `ISite.Properties`). For admin-defined sections built from content types, see `orchardcore-custom-settings`.
 
-A custom settings section for managing social media links displayed across the site.
+## Example 1: Complete Settings Group with Its Own Permission
 
-### Content Part
+### Settings, Permissions, and View Model
 
 ```csharp
-public sealed class SocialMediaSettings : ContentPart
+using OrchardCore.Localization;
+using OrchardCore.Security.Permissions;
+
+namespace Contoso.SocialMedia;
+
+public sealed class SocialMediaSettings
 {
     public string FacebookUrl { get; set; }
 
-    public string TwitterHandle { get; set; }
+    public string XHandle { get; set; }
 
     public string LinkedInUrl { get; set; }
 
     public bool ShowSocialLinks { get; set; }
 }
-```
 
-### Migration
-
-```csharp
-public sealed class SocialMediaMigrations : DataMigration
+public static class SocialMediaPermissions
 {
-    private readonly IContentDefinitionManager _contentDefinitionManager;
-
-    public SocialMediaMigrations(IContentDefinitionManager contentDefinitionManager)
-    {
-        _contentDefinitionManager = contentDefinitionManager;
-    }
-
-    public async Task<int> CreateAsync()
-    {
-        await _contentDefinitionManager.AlterTypeDefinitionAsync("SocialMediaSettings", type => type
-            .DisplayedAs("Social Media Settings")
-            .Stereotype("CustomSettings")
-            .WithPart("SocialMediaSettings", part => part
-                .WithPosition("0")
-            )
-        );
-
-        return 1;
-    }
+    public static readonly Permission ManageSocialMediaSettings = new(
+        "ManageSocialMediaSettings",
+        LocalizationSource.Create("Manage social media settings", typeof(SocialMediaPermissions)));
 }
-```
 
-### View Model
+public sealed class Permissions : IPermissionProvider
+{
+    private readonly IEnumerable<Permission> _allPermissions =
+    [
+        SocialMediaPermissions.ManageSocialMediaSettings,
+    ];
 
-```csharp
+    public Task<IEnumerable<Permission>> GetPermissionsAsync()
+        => Task.FromResult(_allPermissions);
+
+    public IEnumerable<PermissionStereotype> GetDefaultStereotypes() =>
+    [
+        new PermissionStereotype
+        {
+            Name = OrchardCoreConstants.Roles.Administrator,
+            Permissions = _allPermissions,
+        },
+    ];
+}
+
 public class SocialMediaSettingsViewModel
 {
     public string FacebookUrl { get; set; }
 
-    public string TwitterHandle { get; set; }
+    public string XHandle { get; set; }
 
     public string LinkedInUrl { get; set; }
 
@@ -66,133 +67,86 @@ public class SocialMediaSettingsViewModel
 ```csharp
 public sealed class SocialMediaSettingsDisplayDriver : SiteDisplayDriver<SocialMediaSettings>
 {
+    public const string GroupId = "social-media";
+
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthorizationService _authorizationService;
-    private readonly IShellReleaseManager _shellReleaseManager;
-
-    protected override string SettingsGroupId
-        => "social-media";
 
     public SocialMediaSettingsDisplayDriver(
         IHttpContextAccessor httpContextAccessor,
-        IAuthorizationService authorizationService,
-        IShellReleaseManager shellReleaseManager)
+        IAuthorizationService authorizationService)
     {
         _httpContextAccessor = httpContextAccessor;
         _authorizationService = authorizationService;
-        _shellReleaseManager = shellReleaseManager;
     }
+
+    protected override string SettingsGroupId
+        => GroupId;
 
     public override async Task<IDisplayResult> EditAsync(ISite site, SocialMediaSettings settings, BuildEditorContext context)
     {
-        var user = _httpContextAccessor.HttpContext?.User;
-
-        if (!await _authorizationService.AuthorizeAsync(user, SocialMediaPermissions.ManageSocialMediaSettings))
+        if (!await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext?.User, SocialMediaPermissions.ManageSocialMediaSettings))
         {
             return null;
         }
 
-        context.AddTenantReloadWarningWrapper();
-
-        return Initialize<SocialMediaSettingsViewModel>("SocialMediaSettings_Edit", viewModel =>
+        return Initialize<SocialMediaSettingsViewModel, SocialMediaSettings>("SocialMediaSettings_Edit", static (model, settings) =>
         {
-            viewModel.FacebookUrl = settings.FacebookUrl;
-            viewModel.TwitterHandle = settings.TwitterHandle;
-            viewModel.LinkedInUrl = settings.LinkedInUrl;
-            viewModel.ShowSocialLinks = settings.ShowSocialLinks;
-        }).Location("Content:5")
+            model.FacebookUrl = settings.FacebookUrl;
+            model.XHandle = settings.XHandle;
+            model.LinkedInUrl = settings.LinkedInUrl;
+            model.ShowSocialLinks = settings.ShowSocialLinks;
+        }, settings).Location("Content:5")
         .OnGroup(SettingsGroupId);
     }
 
     public override async Task<IDisplayResult> UpdateAsync(ISite site, SocialMediaSettings settings, UpdateEditorContext context)
     {
-        var user = _httpContextAccessor.HttpContext?.User;
-
-        if (!await _authorizationService.AuthorizeAsync(user, SocialMediaPermissions.ManageSocialMediaSettings))
+        if (!await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext?.User, SocialMediaPermissions.ManageSocialMediaSettings))
         {
             return null;
         }
 
-        var viewModel = new SocialMediaSettingsViewModel();
+        var model = new SocialMediaSettingsViewModel();
 
-        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
+        await context.Updater.TryUpdateModelAsync(model, Prefix);
 
-        if (settings.FacebookUrl != viewModel.FacebookUrl ||
-            settings.TwitterHandle != viewModel.TwitterHandle ||
-            settings.LinkedInUrl != viewModel.LinkedInUrl ||
-            settings.ShowSocialLinks != viewModel.ShowSocialLinks)
-        {
-            _shellReleaseManager.RequestRelease();
-        }
-
-        settings.FacebookUrl = viewModel.FacebookUrl;
-        settings.TwitterHandle = viewModel.TwitterHandle;
-        settings.LinkedInUrl = viewModel.LinkedInUrl;
-        settings.ShowSocialLinks = viewModel.ShowSocialLinks;
+        settings.FacebookUrl = model.FacebookUrl?.Trim();
+        settings.XHandle = model.XHandle?.Trim();
+        settings.LinkedInUrl = model.LinkedInUrl?.Trim();
+        settings.ShowSocialLinks = model.ShowSocialLinks;
 
         return await EditAsync(site, settings, context);
     }
 }
 ```
 
-### Permissions
+### Admin Menu
 
 ```csharp
-public sealed class SocialMediaPermissions : IPermissionProvider
+public sealed class AdminMenu : AdminNavigationProvider
 {
-    public static readonly Permission ManageSocialMediaSettings = new(
-        "ManageSocialMediaSettings",
-        "Manage Social Media Settings"
-    );
-
-    public Task<IEnumerable<Permission>> GetPermissionsAsync()
+    private static readonly RouteValueDictionary s_routeValues = new()
     {
-        return Task.FromResult<IEnumerable<Permission>>(
-        [
-            ManageSocialMediaSettings,
-        ]);
-    }
+        { "area", "OrchardCore.Settings" },
+        { "groupId", SocialMediaSettingsDisplayDriver.GroupId },
+    };
 
-    public IEnumerable<PermissionStereotype> GetDefaultStereotypes()
-    {
-        return
-        [
-            new PermissionStereotype
-            {
-                Name = "Administrator",
-                Permissions = [ManageSocialMediaSettings],
-            },
-        ];
-    }
-}
-```
-
-### Admin Navigation
-
-```csharp
-public sealed class SocialMediaAdminMenu : INavigationProvider
-{
     internal readonly IStringLocalizer S;
 
-    public SocialMediaAdminMenu(IStringLocalizer<SocialMediaAdminMenu> localizer)
+    public AdminMenu(IStringLocalizer<AdminMenu> stringLocalizer)
     {
-        S = localizer;
+        S = stringLocalizer;
     }
 
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
-        if (!NavigationHelper.IsAdminMenu(name))
-        {
-            return ValueTask.CompletedTask;
-        }
-
         builder
             .Add(S["Settings"], settings => settings
                 .Add(S["Social Media"], S["Social Media"].PrefixPosition(), entry => entry
-                    .AddClass("social-media")
-                    .Id("socialmedia")
+                    .Id("socialMediaSettings")
+                    .Action("Index", "Admin", s_routeValues)
                     .Permission(SocialMediaPermissions.ManageSocialMediaSettings)
-                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "social-media" })
                     .LocalNav()
                 )
             );
@@ -202,62 +156,67 @@ public sealed class SocialMediaAdminMenu : INavigationProvider
 }
 ```
 
-### Startup Registration
+### Startup
 
 ```csharp
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentPart<SocialMediaSettings>();
         services.AddSiteDisplayDriver<SocialMediaSettingsDisplayDriver>();
-        services.AddNavigationProvider<SocialMediaAdminMenu>();
-        services.AddScoped<IPermissionProvider, SocialMediaPermissions>();
+        services.AddSiteSettingsPermission(SocialMediaSettingsDisplayDriver.GroupId, SocialMediaPermissions.ManageSocialMediaSettings);
+        services.AddPermissionProvider<Permissions>();
+        services.AddNavigationProvider<AdminMenu>();
+    }
+}
+
+[RequireFeatures("OrchardCore.Deployment")]
+public sealed class DeploymentStartup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSiteSettingsPropertyDeploymentStep<SocialMediaSettings, DeploymentStartup>(
+            S => S["Social media settings"],
+            S => S["Exports the social media settings."]);
     }
 }
 ```
 
-### Razor View (SocialMediaSettings_Edit.cshtml)
+### Razor View (`Views/SocialMediaSettings.Edit.cshtml`)
 
 ```html
 @model SocialMediaSettingsViewModel
 
-<div class="ocat-wrapper" asp-validation-class-for="FacebookUrl">
-    <label asp-for="FacebookUrl" class="ocat-label">Facebook URL</label>
-    <div class="ocat-end">
-        <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
-        <span asp-validation-for="FacebookUrl"></span>
-    </div>
+<div class="mb-3" asp-validation-class-for="FacebookUrl">
+    <label asp-for="FacebookUrl" class="form-label">@T["Facebook URL"]</label>
+    <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
+    <span asp-validation-for="FacebookUrl"></span>
 </div>
 
-<div class="ocat-wrapper" asp-validation-class-for="TwitterHandle">
-    <label asp-for="TwitterHandle" class="ocat-label">Twitter Handle</label>
-    <div class="ocat-end">
-        <div class="input-group">
-            <span class="input-group-text">@@</span>
-            <input asp-for="TwitterHandle" class="form-control" placeholder="yourhandle" />
-        </div>
-        <span asp-validation-for="TwitterHandle"></span>
+<div class="mb-3" asp-validation-class-for="XHandle">
+    <label asp-for="XHandle" class="form-label">@T["X handle"]</label>
+    <div class="input-group">
+        <span class="input-group-text">@@</span>
+        <input asp-for="XHandle" class="form-control" />
     </div>
+    <span asp-validation-for="XHandle"></span>
 </div>
 
-<div class="ocat-wrapper" asp-validation-class-for="LinkedInUrl">
-    <label asp-for="LinkedInUrl" class="ocat-label">LinkedIn URL</label>
-    <div class="ocat-end">
-        <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/company/yourcompany" />
-        <span asp-validation-for="LinkedInUrl"></span>
-    </div>
+<div class="mb-3" asp-validation-class-for="LinkedInUrl">
+    <label asp-for="LinkedInUrl" class="form-label">@T["LinkedIn URL"]</label>
+    <input asp-for="LinkedInUrl" class="form-control" />
+    <span asp-validation-for="LinkedInUrl"></span>
 </div>
 
-<div class="ocat-wrapper" asp-validation-class-for="ShowSocialLinks">
-    <div class="ocat-end-offset">
-        <div class="form-check">
-            <input asp-for="ShowSocialLinks" class="form-check-input" />
-            <label asp-for="ShowSocialLinks" class="form-check-label">Display social media links on the site</label>
-        </div>
+<div class="mb-3">
+    <div class="form-check">
+        <input asp-for="ShowSocialLinks" class="form-check-input" />
+        <label asp-for="ShowSocialLinks" class="form-check-label">@T["Display social media links on the site"]</label>
     </div>
 </div>
 ```
+
+The view has no inline script. If an editor needs one, use `<script at="Foot" type="module">` with native DOM APIs; the admin no longer loads jQuery.
 
 ### Reading in a View Component
 
@@ -287,153 +246,114 @@ public sealed class SocialLinksViewComponent : ViewComponent
 
 ---
 
-## Example 2: Analytics Tracking Settings with Content Fields
+## Example 2: Settings Validation
 
-A settings section that uses content fields for a media logo and configurable tracking script.
-
-### Migration
+Add model errors in `UpdateAsync`; the settings controller does not save the site document when the model state is invalid.
 
 ```csharp
-public sealed class AnalyticsMigrations : DataMigration
+public sealed class ApiGatewaySettingsDisplayDriver : SiteDisplayDriver<ApiGatewaySettings>
 {
-    private readonly IContentDefinitionManager _contentDefinitionManager;
+    public const string GroupId = "api-gateway";
 
-    public AnalyticsMigrations(IContentDefinitionManager contentDefinitionManager)
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly IOptionsUpdateNotifier _optionsUpdateNotifier;
+
+    internal readonly IStringLocalizer S;
+
+    public ApiGatewaySettingsDisplayDriver(
+        IHttpContextAccessor httpContextAccessor,
+        IAuthorizationService authorizationService,
+        IOptionsUpdateNotifier optionsUpdateNotifier,
+        IStringLocalizer<ApiGatewaySettingsDisplayDriver> stringLocalizer)
     {
-        _contentDefinitionManager = contentDefinitionManager;
+        _httpContextAccessor = httpContextAccessor;
+        _authorizationService = authorizationService;
+        _optionsUpdateNotifier = optionsUpdateNotifier;
+        S = stringLocalizer;
     }
 
-    public async Task<int> CreateAsync()
+    protected override string SettingsGroupId
+        => GroupId;
+
+    public override async Task<IDisplayResult> EditAsync(ISite site, ApiGatewaySettings settings, BuildEditorContext context)
     {
-        await _contentDefinitionManager.AlterTypeDefinitionAsync("AnalyticsSettings", type => type
-            .DisplayedAs("Analytics Settings")
-            .Stereotype("CustomSettings")
-            .WithPart("AnalyticsSettings", part => part
-                .WithPosition("0")
-            )
-        );
+        if (!await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext?.User, ApiGatewayPermissions.ManageApiGatewaySettings))
+        {
+            return null;
+        }
 
-        await _contentDefinitionManager.AlterPartDefinitionAsync("AnalyticsSettings", part => part
-            .WithField("TrackingId", field => field
-                .OfType("TextField")
-                .WithDisplayName("Tracking ID")
-                .WithPosition("0")
-                .WithSettings(new TextFieldSettings
-                {
-                    Hint = "Enter the analytics tracking ID (e.g., G-XXXXXXXXXX).",
-                })
-            )
-            .WithField("EnableTracking", field => field
-                .OfType("BooleanField")
-                .WithDisplayName("Enable Tracking")
-                .WithPosition("1")
-            )
-            .WithField("ConsentBannerLogo", field => field
-                .OfType("MediaField")
-                .WithDisplayName("Consent Banner Logo")
-                .WithPosition("2")
-            )
-        );
-
-        return 1;
+        return Initialize<ApiGatewaySettingsViewModel, ApiGatewaySettings>("ApiGatewaySettings_Edit", static (model, settings) =>
+        {
+            model.Endpoint = settings.Endpoint;
+            model.TimeoutSeconds = settings.TimeoutSeconds;
+        }, settings).Location("Content:5")
+        .OnGroup(SettingsGroupId);
     }
+
+    public override async Task<IDisplayResult> UpdateAsync(ISite site, ApiGatewaySettings settings, UpdateEditorContext context)
+    {
+        if (!await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext?.User, ApiGatewayPermissions.ManageApiGatewaySettings))
+        {
+            return null;
+        }
+
+        var model = new ApiGatewaySettingsViewModel();
+
+        await context.Updater.TryUpdateModelAsync(model, Prefix);
+
+        if (!Uri.TryCreate(model.Endpoint, UriKind.Absolute, out _))
+        {
+            context.Updater.ModelState.AddModelError(Prefix, nameof(model.Endpoint), S["A valid absolute endpoint URL is required."]);
+        }
+
+        if (model.TimeoutSeconds is < 1 or > 300)
+        {
+            context.Updater.ModelState.AddModelError(Prefix, nameof(model.TimeoutSeconds), S["The timeout must be between 1 and 300 seconds."]);
+        }
+
+        if (context.Updater.ModelState.IsValid)
+        {
+            if (settings.Endpoint != model.Endpoint || settings.TimeoutSeconds != model.TimeoutSeconds)
+            {
+                _optionsUpdateNotifier.RequestUpdate<ApiGatewayOptions>();
+            }
+
+            settings.Endpoint = model.Endpoint;
+            settings.TimeoutSeconds = model.TimeoutSeconds;
+        }
+
+        return await EditAsync(site, settings, context);
+    }
+}
+
+public sealed class ApiGatewaySettings
+{
+    public string Endpoint { get; set; }
+
+    public int TimeoutSeconds { get; set; } = 30;
+}
+
+public class ApiGatewaySettingsViewModel
+{
+    public string Endpoint { get; set; }
+
+    public int TimeoutSeconds { get; set; }
+}
+
+public static class ApiGatewayPermissions
+{
+    public static readonly Permission ManageApiGatewaySettings = new(
+        "ManageApiGatewaySettings",
+        LocalizationSource.Create("Manage API gateway settings", typeof(ApiGatewayPermissions)));
 }
 ```
 
-When using content fields in a custom settings type, the fields are rendered automatically by their own display drivers. You do not need to create a custom `SiteDisplayDriver<TSettings>` just to render the field editors.
+`ApiGatewayOptions` is registered with `AddSignalOptionsChangeTokenSource<ApiGatewayOptions>()` and an `IConfigureOptions<ApiGatewayOptions>` that reads `ISiteService.GetSettings<ApiGatewaySettings>()`, as shown in `SKILL.md`.
 
 ---
 
-## Example 3: Configuring Site Settings via Recipe
-
-### Setting Built-In Properties
-
-```json
-{
-    "steps": [
-        {
-            "name": "Settings",
-            "SiteName": "Contoso Corporate Portal",
-            "BaseUrl": "https://www.contoso.com",
-            "TimeZoneId": "Europe/London",
-            "Culture": "en-GB",
-            "PageSize": 15,
-            "UseCdn": false
-        }
-    ]
-}
-```
-
-### Setting Custom Settings Values
-
-```json
-{
-    "steps": [
-        {
-            "name": "custom-settings",
-            "SocialMediaSettings": {
-                "ContentItemId": "[js:uuid()]",
-                "ContentType": "SocialMediaSettings",
-                "SocialMediaSettings": {
-                    "FacebookUrl": "https://facebook.com/contoso",
-                    "TwitterHandle": "contoso",
-                    "LinkedInUrl": "https://linkedin.com/company/contoso",
-                    "ShowSocialLinks": true
-                }
-            }
-        }
-    ]
-}
-```
-
-### Combined Recipe for Full Site Setup
-
-```json
-{
-    "steps": [
-        {
-            "name": "Settings",
-            "SiteName": "Contoso Corporate Portal",
-            "BaseUrl": "https://www.contoso.com",
-            "TimeZoneId": "Europe/London",
-            "Culture": "en-GB",
-            "PageSize": 15,
-            "UseCdn": true
-        },
-        {
-            "name": "custom-settings",
-            "SocialMediaSettings": {
-                "ContentItemId": "[js:uuid()]",
-                "ContentType": "SocialMediaSettings",
-                "SocialMediaSettings": {
-                    "FacebookUrl": "https://facebook.com/contoso",
-                    "TwitterHandle": "contoso",
-                    "LinkedInUrl": "https://linkedin.com/company/contoso",
-                    "ShowSocialLinks": true
-                }
-            },
-            "AnalyticsSettings": {
-                "ContentItemId": "[js:uuid()]",
-                "ContentType": "AnalyticsSettings",
-                "AnalyticsSettings": {
-                    "TrackingId": {
-                        "Text": "G-ABC123XYZ"
-                    },
-                    "EnableTracking": {
-                        "Value": true
-                    }
-                }
-            }
-        }
-    ]
-}
-```
-
----
-
-## Example 4: Reading Settings in a Middleware
-
-A middleware that reads custom settings to inject a response header on every request.
+## Example 3: Reading Settings in a Middleware
 
 ```csharp
 public sealed class SecurityHeadersMiddleware
@@ -445,172 +365,85 @@ public sealed class SecurityHeadersMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, ISiteService siteService)
     {
-        var siteService = context.RequestServices.GetRequiredService<ISiteService>();
         var site = await siteService.GetSiteSettingsAsync();
 
-        if (site.TryGet<SecurityHeaderSettings>(out var settings))
+        if (site.TryGet<SecurityHeaderSettings>(out var settings) &&
+            !string.IsNullOrEmpty(settings.ContentSecurityPolicy))
         {
-            if (!string.IsNullOrEmpty(settings.ContentSecurityPolicy))
-            {
-                context.Response.Headers["Content-Security-Policy"] = settings.ContentSecurityPolicy;
-            }
-
-            if (settings.EnableStrictTransportSecurity)
-            {
-                context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
-            }
+            context.Response.Headers.ContentSecurityPolicy = settings.ContentSecurityPolicy;
         }
 
         await _next(context);
     }
 }
-```
 
-This middleware is read-only, so `GetSiteSettingsAsync()` is correct here. Switch to `LoadSiteSettingsAsync()` only when you plan to mutate the site document and call `UpdateSiteSettingsAsync()`.
-
-### Content Part
-
-```csharp
-public sealed class SecurityHeaderSettings : ContentPart
+public sealed class SecurityHeaderSettings
 {
     public string ContentSecurityPolicy { get; set; }
-
-    public bool EnableStrictTransportSecurity { get; set; }
 }
+```
+
+`GetSiteSettingsAsync()` is correct for read-only access; switch to `LoadSiteSettingsAsync()` only when you mutate and save the document.
+
+---
+
+## Example 4: Recipes
+
+### Built-In Properties and a Code-Defined Section
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "SiteName": "Contoso Corporate Portal",
+      "BaseUrl": "https://www.contoso.com",
+      "TimeZoneId": "Europe/London",
+      "PageSize": 15,
+      "MaxPageSize": 100,
+      "AllowPageSizeSelection": true,
+      "PageSizeOptions": [ 15, 30, 60 ],
+      "UseCdn": false,
+      "SocialMediaSettings": {
+        "FacebookUrl": "https://facebook.com/contoso",
+        "XHandle": "contoso",
+        "LinkedInUrl": "https://linkedin.com/company/contoso",
+        "ShowSocialLinks": true
+      }
+    }
+  ]
+}
+```
+
+Keys that are not built-in `ISite` properties are copied as-is into `ISite.Properties`, so the section name must match the settings class name read with `TryGet<T>()`.
+
+### Allowing a Section in Liquid
+
+```json
+{
+  "OrchardCore": {
+    "Liquid": {
+      "PermittedSiteProperties": [ "SocialMediaSettings" ]
+    }
+  }
+}
+```
+
+```liquid
+{% assign social = Site.Properties.SocialMediaSettings %}
+{% if social.ShowSocialLinks %}
+  <a href="https://x.com/{{ social.XHandle }}">X</a>
+{% endif %}
 ```
 
 ---
 
-## Example 5: Settings with Validation
-
-A display driver that validates user input before saving settings.
-
-```csharp
-public sealed class SmtpSettingsDisplayDriver : SiteDisplayDriver<SmtpSettings>
-{
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IAuthorizationService _authorizationService;
-    private readonly IShellReleaseManager _shellReleaseManager;
-
-    protected override string SettingsGroupId
-        => "smtp";
-
-    public SmtpSettingsDisplayDriver(
-        IHttpContextAccessor httpContextAccessor,
-        IAuthorizationService authorizationService,
-        IShellReleaseManager shellReleaseManager)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _authorizationService = authorizationService;
-        _shellReleaseManager = shellReleaseManager;
-    }
-
-    public override async Task<IDisplayResult> EditAsync(ISite site, SmtpSettings settings, BuildEditorContext context)
-    {
-        var user = _httpContextAccessor.HttpContext?.User;
-
-        if (!await _authorizationService.AuthorizeAsync(user, SmtpPermissions.ManageSmtpSettings))
-        {
-            return null;
-        }
-
-        context.AddTenantReloadWarningWrapper();
-
-        return Initialize<SmtpSettingsViewModel>("SmtpSettings_Edit", viewModel =>
-        {
-            viewModel.Host = settings.Host;
-            viewModel.Port = settings.Port;
-            viewModel.EnableSsl = settings.EnableSsl;
-            viewModel.FromAddress = settings.FromAddress;
-        }).Location("Content:5")
-        .OnGroup(SettingsGroupId);
-    }
-
-    public override async Task<IDisplayResult> UpdateAsync(ISite site, SmtpSettings settings, UpdateEditorContext context)
-    {
-        var user = _httpContextAccessor.HttpContext?.User;
-
-        if (!await _authorizationService.AuthorizeAsync(user, SmtpPermissions.ManageSmtpSettings))
-        {
-            return null;
-        }
-
-        var viewModel = new SmtpSettingsViewModel();
-
-        await context.Updater.TryUpdateModelAsync(viewModel, Prefix);
-
-        if (string.IsNullOrWhiteSpace(viewModel.Host))
-        {
-            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Host), "SMTP host is required.");
-        }
-
-        if (viewModel.Port <= 0 || viewModel.Port > 65535)
-        {
-            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.Port), "Port must be between 1 and 65535.");
-        }
-
-        if (string.IsNullOrWhiteSpace(viewModel.FromAddress) || !viewModel.FromAddress.Contains('@'))
-        {
-            context.Updater.ModelState.AddModelError(Prefix, nameof(viewModel.FromAddress), "A valid from address is required.");
-        }
-
-        if (context.Updater.ModelState.IsValid)
-        {
-            if (settings.Host != viewModel.Host ||
-                settings.Port != viewModel.Port ||
-                settings.EnableSsl != viewModel.EnableSsl ||
-                settings.FromAddress != viewModel.FromAddress)
-            {
-                _shellReleaseManager.RequestRelease();
-            }
-
-            settings.Host = viewModel.Host;
-            settings.Port = viewModel.Port;
-            settings.EnableSsl = viewModel.EnableSsl;
-            settings.FromAddress = viewModel.FromAddress;
-        }
-
-        return await EditAsync(site, settings, context);
-    }
-}
-```
-
-### Content Part and View Model
-
-```csharp
-public sealed class SmtpSettings : ContentPart
-{
-    public string Host { get; set; }
-
-    public int Port { get; set; } = 587;
-
-    public bool EnableSsl { get; set; } = true;
-
-    public string FromAddress { get; set; }
-}
-
-public class SmtpSettingsViewModel
-{
-    public string Host { get; set; }
-
-    public int Port { get; set; }
-
-    public bool EnableSsl { get; set; }
-
-    public string FromAddress { get; set; }
-}
-```
-
----
-
-## Example 6: Accessing Settings in a Razor View via Injection
+## Example 5: Razor View Injection
 
 ```html
 @using OrchardCore.Settings
-@using OrchardCore.ContentManagement
-
 @inject ISiteService SiteService
 
 @{
@@ -619,29 +452,19 @@ public class SmtpSettingsViewModel
 }
 
 <footer>
-    <p>&copy; @DateTime.Now.Year @site.SiteName</p>
+    <p>&copy; @DateTime.UtcNow.Year @site.SiteName</p>
 
     @if (hasSocialSettings && socialSettings.ShowSocialLinks)
     {
-        <nav aria-label="Social media links">
+        <nav aria-label="@T["Social media links"]">
             <ul class="list-inline">
                 @if (!string.IsNullOrEmpty(socialSettings.FacebookUrl))
                 {
-                    <li class="list-inline-item">
-                        <a href="@socialSettings.FacebookUrl" target="_blank" rel="noopener">Facebook</a>
-                    </li>
-                }
-                @if (!string.IsNullOrEmpty(socialSettings.TwitterHandle))
-                {
-                    <li class="list-inline-item">
-                        <a href="https://twitter.com/@socialSettings.TwitterHandle" target="_blank" rel="noopener">Twitter</a>
-                    </li>
+                    <li class="list-inline-item"><a href="@socialSettings.FacebookUrl" target="_blank" rel="noopener">Facebook</a></li>
                 }
                 @if (!string.IsNullOrEmpty(socialSettings.LinkedInUrl))
                 {
-                    <li class="list-inline-item">
-                        <a href="@socialSettings.LinkedInUrl" target="_blank" rel="noopener">LinkedIn</a>
-                    </li>
+                    <li class="list-inline-item"><a href="@socialSettings.LinkedInUrl" target="_blank" rel="noopener">LinkedIn</a></li>
                 }
             </ul>
         </nav>

@@ -1,26 +1,32 @@
 ---
 name: orchardcore-custom-settings
-description: Skill for creating custom site settings in Orchard Core using the CustomSettings stereotype. Covers creating settings content types, defining permissions, accessing settings via ISiteService, Liquid property access, and recipe-based configuration of custom settings. Use this skill when requests mention Orchard Core Custom Settings, Create Custom Site Settings, Enabling Custom Settings, Creating a Custom Settings Type via Code, Accessing Custom Settings in Code, Accessing Custom Settings in Controllers, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.CustomSettings, CustomSettings, ISiteService, ContentPart, DataMigration, IContentDefinitionManager, WithPart. It also helps with Accessing Custom Settings in Code, Accessing Custom Settings in Controllers, Accessing Custom Settings in Liquid, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating admin-defined custom site settings in Orchard Core using the CustomSettings stereotype. Covers settings content types in code or recipes, the per-section ManageCustomSettings permission, GetCustomSettingsAsync, Liquid access through Site.Properties and the PermittedSiteProperties allow list, rendering stored HTML safely with sanitize_html, the custom-settings recipe step, the Custom Settings deployment step, and when to use a code-defined SiteDisplayDriver instead. Use this skill when requests mention Orchard Core Custom Settings, Create Custom Site Settings, Accessing Custom Settings in Code or Liquid, Site.Properties is empty, or closely related Orchard Core implementation, upgrade, or troubleshooting work. Strong matches include OrchardCore.CustomSettings, CustomSettings stereotype, ISiteService, GetCustomSettingsAsync, ContentPart, DataMigration, IContentDefinitionManager, SettingsLiquidOptions, PermittedSiteProperties.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Custom Settings - Prompt Templates
 
 ## Create Custom Site Settings
 
-You are an Orchard Core expert. Generate code and configuration for creating custom site-wide settings sections using the `CustomSettings` stereotype.
+You are an Orchard Core expert. Generate code and configuration for creating site-wide settings sections using the `CustomSettings` stereotype.
 
 ### Guidelines
 
 - Enable the `OrchardCore.CustomSettings` feature to use custom site settings.
-- Custom settings are organized in sections, each represented by a content type with the `CustomSettings` stereotype.
-- When creating a custom settings content type, disable `Creatable`, `Listable`, `Draftable`, and `Securable` metadata — they do not apply.
-- Do **not** mark existing content types with the `CustomSettings` stereotype; this will break existing content items of that type.
-- Custom settings sections appear in the _Settings_ menu alongside module-provided settings.
-- Each section gets a dedicated permission under the `OrchardCore.CustomSettings` feature group in the Roles editor.
-- Access custom settings in code via `ISiteService.GetCustomSettingsAsync("TypeName")`, which returns a `ContentItem`.
-- Access custom settings in Liquid via `{{ Site.Properties.TypeName.PartName }}`.
-- Custom settings are stored as named JSON properties inside the site document.
-- All C# classes must use the `sealed` modifier, except View Models.
+- Each custom settings section is a content type with the `CustomSettings` stereotype, made of parts and fields like any other content type.
+- For this stereotype the type editor hides the `Creatable`, `Listable`, `Draftable`, and `Versionable` options; also leave `Securable` off, since each section gets its own permission.
+- Do **not** mark an existing content type with the `CustomSettings` stereotype; this breaks existing content items of that type.
+- Sections appear under **Settings** in the admin, next to module-provided settings.
+- Each section gets a `ManageCustomSettings_{TypeName}` permission under the `OrchardCore.CustomSettings` group of the Roles editor; it has no default role stereotype.
+- The section is stored as a `ContentItem` named after the type in the site document `Properties`.
+- Read it in code with `ISiteService.GetCustomSettingsAsync("TypeName")` (from `OrchardCore.Contents.Core`).
+- In Orchard Core 4.0, `{{ Site.Properties }}` is redacted in Liquid. List each section in `OrchardCore:Liquid:PermittedSiteProperties` before reading it from Liquid.
+- `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart`, and `MarkdownField` no longer execute Liquid; use `LiquidPart` or `LiquidField` for templated content.
+- When the settings are owned by a module (fixed schema, validation, secrets, typed options), prefer a code-defined `SiteDisplayDriver<TSettings>`; see `orchardcore-site-settings`.
+- All C# classes must use the `sealed` modifier, except view models.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 
 ### Enabling Custom Settings
@@ -52,7 +58,7 @@ public sealed class {{SettingsPartName}} : ContentPart
 }
 ```
 
-#### Step 2: Register the Content Type with CustomSettings Stereotype
+#### Step 2: Register the Content Type with the CustomSettings Stereotype
 
 ```csharp
 public sealed class Migrations : DataMigration
@@ -79,17 +85,18 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-The `CustomSettings` stereotype tells Orchard Core this content type represents a site settings section rather than a regular content item.
-
 #### Step 3: Register Services in Startup
 
 ```csharp
+[RequireFeatures("OrchardCore.CustomSettings")]
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddContentPart<{{SettingsPartName}}>()
             .UseDisplayDriver<{{SettingsPartName}}DisplayDriver>();
+
+        services.AddDataMigration<Migrations>();
     }
 }
 ```
@@ -97,21 +104,19 @@ public sealed class Startup : StartupBase
 Registering a typed part only supplies its CLR model. Add a display driver when its CLR properties need an editor:
 
 ```csharp
-public sealed class {{SettingsPartName}}DisplayDriver
-    : ContentPartDisplayDriver<{{SettingsPartName}}>
+public sealed class {{SettingsPartName}}DisplayDriver : ContentPartDisplayDriver<{{SettingsPartName}}>
 {
     public override IDisplayResult Edit({{SettingsPartName}} part, BuildPartEditorContext context)
-        => Initialize<{{SettingsPartName}}ViewModel>("{{SettingsPartName}}_Edit", model =>
+        => Initialize<{{SettingsPartName}}ViewModel, {{SettingsPartName}}>("{{SettingsPartName}}_Edit", static (model, part) =>
         {
             model.{{PropertyName}} = part.{{PropertyName}};
             model.{{BoolPropertyName}} = part.{{BoolPropertyName}};
-        });
+        }, part);
 
-    public override async Task<IDisplayResult> UpdateAsync(
-        {{SettingsPartName}} part,
-        UpdatePartEditorContext context)
+    public override async Task<IDisplayResult> UpdateAsync({{SettingsPartName}} part, UpdatePartEditorContext context)
     {
         var model = new {{SettingsPartName}}ViewModel();
+
         await context.Updater.TryUpdateModelAsync(model, Prefix);
 
         part.{{PropertyName}} = model.{{PropertyName}};
@@ -124,13 +129,14 @@ public sealed class {{SettingsPartName}}DisplayDriver
 public class {{SettingsPartName}}ViewModel
 {
     public string {{PropertyName}} { get; set; }
+
     public bool {{BoolPropertyName}} { get; set; }
 }
 ```
 
-### Accessing Custom Settings in Code
+Content fields attached to the part (Media, Html, Link, ...) are rendered by their own drivers; no extra driver code is needed for them.
 
-Use `ISiteService.GetCustomSettingsAsync()` to retrieve a custom settings section as a `ContentItem`:
+### Accessing Custom Settings in Code
 
 ```csharp
 public sealed class MyService
@@ -151,18 +157,16 @@ public sealed class MyService
 }
 ```
 
-Alternatively, read the named custom settings content item from the site document:
+Without the extension method:
 
 ```csharp
 var siteSettings = await _siteService.GetSiteSettingsAsync();
-
-if (siteSettings.TryGet<ContentItem>("{{SettingsTypeName}}", out var settingsItem))
-{
-    // Use settingsItem here.
-}
+var settingsItem = siteSettings.GetOrCreate<ContentItem>("{{SettingsTypeName}}");
 ```
 
-Use `GetSiteSettingsAsync()` for read-only access. If you plan to modify the site document and then call `UpdateSiteSettingsAsync()`, load a mutable copy first with `LoadSiteSettingsAsync()`.
+`GetCustomSettingsAsync()` returns the cached instance; do not modify it. To change a section in code, use `LoadSiteSettingsAsync()`, update `site.Properties["{{SettingsTypeName}}"]`, and call `UpdateSiteSettingsAsync()`.
+
+Custom settings types can be edited in the admin by anyone with the `EditContentTypes` permission, so treat their schema as part of your deployment and avoid relying on parts that administrators can remove.
 
 ### Accessing Custom Settings in Controllers
 
@@ -178,7 +182,7 @@ public sealed class MyController : Controller
 
     public async Task<IActionResult> Index()
     {
-        ContentItem settingsItem = await _siteService.GetCustomSettingsAsync("{{SettingsTypeName}}");
+        var settingsItem = await _siteService.GetCustomSettingsAsync("{{SettingsTypeName}}");
         var settings = settingsItem.GetOrCreate<{{SettingsPartName}}>();
 
         return View(settings);
@@ -188,29 +192,43 @@ public sealed class MyController : Controller
 
 ### Accessing Custom Settings in Liquid
 
-Custom settings are available via the `Site.Properties` object. Each section is accessible by its content type name:
+First allow the section names (application or tenant configuration):
+
+```json
+{
+  "OrchardCore": {
+    "Liquid": {
+      "PermittedSiteProperties": [
+        "{{SettingsTypeName}}",
+        "BlogSettings"
+      ]
+    }
+  }
+}
+```
+
+Then read them by type name and part name:
 
 ```liquid
 {{ Site.Properties.{{SettingsTypeName}}.{{SettingsPartName}}.{{PropertyName}} }}
 ```
 
-For example, accessing an `HtmlBodyPart` on a `BlogSettings` section:
+HTML stored in a custom settings section is persisted exactly as authored and is only sanitized when rendered through its display shape. When outputting raw HTML from Liquid, sanitize it explicitly:
 
 ```liquid
-{{ Site.Properties.BlogSettings.HtmlBodyPart.Html | raw }}
+{{ Site.Properties.BlogSettings.HtmlBodyPart.Html | sanitize_html | raw }}
 ```
+
+Liquid syntax inside that HTML is not executed. Add a `LiquidPart` (or a `LiquidField`) to the section when editors need templated content.
 
 ### Permissions
 
-Each custom settings section automatically receives a dedicated permission. To manage access:
+1. Navigate to **Security → Roles** and edit a role.
+2. Under the `OrchardCore.CustomSettings` group, check **Manage Custom Settings - {Display Name}**.
 
-1. Navigate to _Security → Roles_ in the admin dashboard.
-2. Edit the desired role.
-3. Under the `OrchardCore.CustomSettings` feature group, check the permission for the settings section.
+The permission name is `ManageCustomSettings_{TypeName}`; grant it to the roles that must see and save the section.
 
 ### Custom Settings with Content Fields
-
-Custom settings parts can include content fields for richer configuration:
 
 ```csharp
 public sealed class Migrations : DataMigration
@@ -256,11 +274,17 @@ public sealed class Migrations : DataMigration
 }
 ```
 
-When using content fields, the fields are rendered automatically by content field display drivers — no manual handling in the display driver is needed.
+```liquid
+{% assign branding = Site.Properties.BrandingSettings.BrandingSettings %}
+{{ branding.FooterText.Html | sanitize_html | raw }}
+<a href="{{ branding.SocialLink.Url }}">{{ branding.SocialLink.Text }}</a>
+```
+
+(Requires `"BrandingSettings"` in `PermittedSiteProperties`.)
 
 ### Configuring Custom Settings via Recipe
 
-Use the `custom-settings` recipe step to set values for a custom settings section:
+The `custom-settings` step copies each named entry into the site `Properties`:
 
 ```json
 {
@@ -280,7 +304,7 @@ Use the `custom-settings` recipe step to set values for a custom settings sectio
 }
 ```
 
-### Creating Custom Settings Content Type via Recipe
+### Creating a Custom Settings Content Type via Recipe
 
 ```json
 {
@@ -314,8 +338,12 @@ Use the `custom-settings` recipe step to set values for a custom settings sectio
 }
 ```
 
-### Important Notes
+### Deployment
 
-- Use `GetCustomSettingsAsync()` for read-only access (returns cached instance).
-- Custom settings content types must not be confused with the `DisplayDriver<ISite>` pattern used for module-specific site settings; `CustomSettings` is a content-based approach managed entirely through the content type system.
-- Content types with `CustomSettings` stereotype should not have `Creatable`, `Listable`, `Draftable`, or `Securable` enabled.
+The **Custom Settings** deployment step (in the **Settings** category, requires `OrchardCore.Deployment`) exports all sections, or the selected `SettingsTypeNames`, as a `custom-settings` recipe step. Only sections the exporting user may manage are exported.
+
+### Upgrading from 3.x
+
+- Liquid templates reading `{{ Site.Properties.MySettings... }}` render nothing until `MySettings` is added to `OrchardCore:Liquid:PermittedSiteProperties`.
+- Liquid embedded in `HtmlBodyPart`/`HtmlField` of a section is no longer executed (the `RenderLiquid` setting is gone); move it to a `LiquidPart` or `LiquidField`.
+- Raw HTML read from `Site.Properties` is the authored source; pipe it through `sanitize_html` before `raw`.

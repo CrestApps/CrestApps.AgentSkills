@@ -1,6 +1,10 @@
 ---
 name: orchardcore-sql-indexing
-description: Skill for using SQL-based content indexing in Orchard Core. Covers content item indexing tables, field indexing tables, database schema reference, querying indexed data with C#, Razor views, Liquid templates, and GraphQL, and SQL indexing performance patterns. Use this skill when requests mention Orchard Core SQL Indexing, Query SQL-Indexed Content, Enabling SQL Field Indexing, ContentItemIndex Schema, LocalizedContentItemIndex Schema, Content Field Index Tables, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentFields.Indexing.SQL, OrchardCore.ContentManagement, ContentItemIndex, ISession, LocalizedContentItemIndex, ContentPart, ContentField, BooleanFieldIndex, ContentPickerFieldIndex. It also helps with LocalizedContentItemIndex Schema, Content Field Index Tables, Querying from C#, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for using SQL-based content indexing in Orchard Core. Covers content item indexing tables, field indexing tables, database schema reference, the ContentItemIndex SQL indexes including IDX_ContentItemIndex_ContentItemId, querying indexed data with C#, Razor views, Liquid templates, saved SQL queries and GraphQL, and SQL indexing performance patterns. Use this skill when requests mention Orchard Core SQL Indexing, Query SQL-Indexed Content, Enabling SQL Field Indexing, ContentItemIndex Schema, LocalizedContentItemIndex Schema, Content Field Index Tables, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentFields.Indexing.SQL, OrchardCore.ContentManagement, ContentItemIndex, ISession, LocalizedContentItemIndex, ContentPart, ContentField, BooleanFieldIndex, TextFieldIndex, NumericFieldIndex, ContentPickerFieldIndex.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core SQL Indexing - Prompt Templates
@@ -57,6 +61,8 @@ The `ContentItemIndex` table is always available for querying content items.
 | `Owner` | `nvarchar(255)` | Owner of the content item. |
 | `Author` | `nvarchar(255)` | Author of the content item. |
 | `DisplayText` | `nvarchar(255)` | Display text of the content item. |
+
+SQL indexes on `ContentItemIndex`: `IDX_ContentItemIndex_DocumentId`, `IDX_ContentItemIndex_DocumentId_ContentType`, `IDX_ContentItemIndex_DocumentId_Owner`, `IDX_ContentItemIndex_DocumentId_Author`, `IDX_ContentItemIndex_DocumentId_DisplayText` and, since Orchard Core 4.0, `IDX_ContentItemIndex_ContentItemId` (`ContentItemId`, `DocumentId`, `Published`, `Latest`). The last one lets reads by content item id (`IContentManager.GetAsync()` for one item or a batch, or `WHERE ContentItemId = ...` in a saved query) seek instead of scanning on SQL Server. Existing tenants get it through a `ContentItemIndex` migration step during the upgrade.
 
 ### LocalizedContentItemIndex Schema
 
@@ -127,7 +133,8 @@ public sealed class ProductService
         return await _session
             .Query<ContentItem, TextFieldIndex>(x =>
                 x.ContentType == contentType &&
-                x.ContentField == contentField)
+                x.ContentField == contentField &&
+                x.Published)
             .ListAsync();
     }
 
@@ -186,6 +193,8 @@ SELECT * FROM TextFieldIndex
 WHERE ContentType = 'Acme' AND ContentField = 'Country'
 ```
 
+Saved SQL queries are parsed by the Cyqwel SQL parser (Orchard Core 4.0): only `SELECT` statements are accepted, the admin editor reports syntax errors with line and column when the query has no Liquid, and table names, `LIMIT`/`OFFSET` and helper functions (`year()`, `month()`, `now()`, `random()`, ...) are translated to the tenant database dialect. Use `@name:default` parameters for user input. See `orchardcore-content-queries` for the full Queries module reference.
+
 Then use the query in a Liquid template:
 
 ```liquid
@@ -194,6 +203,8 @@ Then use the query in a Liquid template:
   {{ country.Text }}
 {% endfor %}
 ```
+
+Saved queries are also exposed as data sets of the `Queries` data source, so data pipelines and reports can read them (see `orchardcore-data-sources`).
 
 ### GraphQL Usage
 

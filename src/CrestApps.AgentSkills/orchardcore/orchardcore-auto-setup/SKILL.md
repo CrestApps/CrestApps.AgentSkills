@@ -1,6 +1,10 @@
 ---
 name: orchardcore-auto-setup
-description: Skill for configuring automatic setup in Orchard Core. Covers AutoSetup configuration for unattended installations, multi-tenant auto-provisioning, JSON configuration parameters, environment variable overrides, distributed locking with Redis, feature profiles, and headless deployment automation. Use this skill when requests mention Orchard Core Auto Setup, Configure Automatic Setup for Orchard Core, Enabling Auto Setup, Configuration Parameters, Single-Tenant Auto Setup, Multi-Tenant Auto Setup, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.AutoSetup, OrchardCore.Redis.Lock, CreateBuilder, IANA, DatabaseProvider, FeatureProfile, ShellName, AutoSetupPath, Program.cs, SiteName, SiteTimeZone. It also helps with Single-Tenant Auto Setup, Multi-Tenant Auto Setup, Environment Variable Configuration, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring automatic setup in Orchard Core. Covers AutoSetup configuration for unattended installations under the OrchardCore AutoSetup configuration section, multi-tenant auto-provisioning, JSON configuration parameters, environment variable and user secrets overrides, distributed locking with Redis, feature profiles, and headless deployment automation. Use this skill when requests mention Orchard Core Auto Setup, Configure Automatic Setup for Orchard Core, Enabling Auto Setup, Configuration Parameters, Single-Tenant Auto Setup, Multi-Tenant Auto Setup, renaming OrchardCore_AutoSetup, or closely related setup or troubleshooting work. Strong matches include OrchardCore.AutoSetup, OrchardCore.Redis.Lock, AutoSetupOptions, TenantSetupOptions, LockOptions, CreateBuilder, IANA, DatabaseProvider, DatabaseSchema, FeatureProfile, ShellName, AutoSetupPath, Program.cs, SiteName, SiteTimeZone.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Auto Setup - Prompt Templates
@@ -16,6 +20,7 @@ You are an Orchard Core expert. Generate configuration for unattended installati
 - The `Tenants` array must contain a root tenant with `ShellName` set to `Default`.
 - Each tenant is installed on demand when its first request arrives.
 - If `AutoSetupPath` is provided, that path must be requested to trigger installation.
+- Configure it under `OrchardCore:AutoSetup` (the 3.x name `OrchardCore_AutoSetup` is deprecated but still read). The package's `ConfigurationSchema.json` gives IntelliSense and validation for this section in `appsettings.json`.
 - Use user secrets or environment variables to avoid committing sensitive credentials.
 - For multi-instance deployments sharing a database, enable `OrchardCore.Redis.Lock` for atomic setup.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
@@ -58,6 +63,7 @@ app.Run();
 | `DatabaseProvider` | Database provider (`Sqlite`, `SqlConnection`, `Postgres`, `MySql`) |
 | `DatabaseConnectionString` | Connection string (empty for Sqlite) |
 | `DatabaseTablePrefix` | Table prefix for shared database scenarios |
+| `DatabaseSchema` | Database schema, for providers that support schemas |
 | `RecipeName` | Setup recipe name (`Blog`, `Agency`, `SaaS`, `Blank`) |
 | `RequestUrlHost` | Tenant host URL |
 | `RequestUrlPrefix` | Tenant URL prefix |
@@ -70,7 +76,7 @@ Configure the default tenant with Sqlite and the Blog recipe:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "AutoSetup": {
       "AutoSetupPath": "",
       "Tenants": [
         {
@@ -98,7 +104,7 @@ Configure the default tenant and additional tenants:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "AutoSetup": {
       "AutoSetupPath": "",
       "Tenants": [
         {
@@ -139,26 +145,26 @@ Configure the default tenant and additional tenants:
 Use environment variables to avoid committing credentials. Variables use `__` as the hierarchy separator and array indices for tenant entries:
 
 ```
-OrchardCore__OrchardCore_AutoSetup__AutoSetupPath=
+OrchardCore__AutoSetup__AutoSetupPath=
 
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__ShellName=Default
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__SiteName=My Site
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__SiteTimeZone=America/New_York
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__AdminUsername=admin
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__AdminEmail=admin@example.com
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__AdminPassword=P@ssw0rd123!
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__DatabaseProvider=Sqlite
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__DatabaseConnectionString=
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__DatabaseTablePrefix=
-OrchardCore__OrchardCore_AutoSetup__Tenants__0__RecipeName=Blog
+OrchardCore__AutoSetup__Tenants__0__ShellName=Default
+OrchardCore__AutoSetup__Tenants__0__SiteName=My Site
+OrchardCore__AutoSetup__Tenants__0__SiteTimeZone=America/New_York
+OrchardCore__AutoSetup__Tenants__0__AdminUsername=admin
+OrchardCore__AutoSetup__Tenants__0__AdminEmail=admin@example.com
+OrchardCore__AutoSetup__Tenants__0__AdminPassword=P@ssw0rd123!
+OrchardCore__AutoSetup__Tenants__0__DatabaseProvider=Sqlite
+OrchardCore__AutoSetup__Tenants__0__DatabaseConnectionString=
+OrchardCore__AutoSetup__Tenants__0__DatabaseTablePrefix=
+OrchardCore__AutoSetup__Tenants__0__RecipeName=Blog
 ```
 
 For additional tenants, increment the index:
 
 ```
-OrchardCore__OrchardCore_AutoSetup__Tenants__1__ShellName=SecondTenant
-OrchardCore__OrchardCore_AutoSetup__Tenants__1__SiteName=Second Site
-OrchardCore__OrchardCore_AutoSetup__Tenants__1__RequestUrlPrefix=second
+OrchardCore__AutoSetup__Tenants__1__ShellName=SecondTenant
+OrchardCore__AutoSetup__Tenants__1__SiteName=Second Site
+OrchardCore__AutoSetup__Tenants__1__RequestUrlPrefix=second
 ```
 
 ### User Secrets Configuration
@@ -168,13 +174,13 @@ Store sensitive setup data in user secrets during local development:
 ```bash
 cd src/MyOrchardApp
 dotnet user-secrets init
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:ShellName" "Default"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:SiteName" "Dev Site"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:AdminUsername" "admin"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:AdminEmail" "admin@example.com"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:AdminPassword" "DevP@ssw0rd1!"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:DatabaseProvider" "Sqlite"
-dotnet user-secrets set "OrchardCore:OrchardCore_AutoSetup:Tenants:0:RecipeName" "Blog"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:ShellName" "Default"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:SiteName" "Dev Site"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:AdminUsername" "admin"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:AdminEmail" "admin@example.com"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:AdminPassword" "DevP@ssw0rd1!"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:DatabaseProvider" "Sqlite"
+dotnet user-secrets set "OrchardCore:AutoSetup:Tenants:0:RecipeName" "Blog"
 ```
 
 ### Distributed Lock with Redis
@@ -199,7 +205,7 @@ Configure the Redis connection string:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Redis": {
+    "Redis": {
       "Configuration": "redis-server:6379,allowAdmin=true"
     }
   }
@@ -209,7 +215,7 @@ Configure the Redis connection string:
 Or via environment variable:
 
 ```
-OrchardCore__OrchardCore_Redis__Configuration=redis-server:6379,allowAdmin=true
+OrchardCore__Redis__Configuration=redis-server:6379,allowAdmin=true
 ```
 
 ### Distributed Lock Options
@@ -222,8 +228,8 @@ OrchardCore__OrchardCore_Redis__Configuration=redis-server:6379,allowAdmin=true
 Configure via environment variables or `appsettings.json`:
 
 ```
-OrchardCore__OrchardCore_AutoSetup__LockOptions__LockTimeout=10000
-OrchardCore__OrchardCore_AutoSetup__LockOptions__LockExpiration=10000
+OrchardCore__AutoSetup__LockOptions__LockTimeout=10000
+OrchardCore__AutoSetup__LockOptions__LockExpiration=10000
 ```
 
 ### Custom AutoSetup Path
@@ -233,7 +239,7 @@ Use a custom path to control when setup triggers:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "AutoSetup": {
       "AutoSetupPath": "/autosetup",
       "Tenants": [
         {
@@ -261,7 +267,7 @@ Trigger installation by visiting:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "AutoSetup": {
       "AutoSetupPath": "",
       "Tenants": [
         {
@@ -294,3 +300,8 @@ Trigger installation by visiting:
   }
 }
 ```
+
+### Upgrading from 3.x
+
+- Rename `OrchardCore:OrchardCore_AutoSetup` to `OrchardCore:AutoSetup`, environment variables `OrchardCore__OrchardCore_AutoSetup__*` to `OrchardCore__AutoSetup__*`, and user secrets keys accordingly. When both names define a value, the new name wins, and a `Tenants` array under the new name replaces the old one.
+- Rename `OrchardCore_Redis` to `Redis` (`OrchardCore__Redis__Configuration`) for the Redis lock.

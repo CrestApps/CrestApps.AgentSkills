@@ -14,3 +14,9 @@ Important note for `ContentDefinition`:
 - `ContentDefinition.schema.json` is authoritative for the recipe-step structure and built-in part-setting fragments exported by the runtime schema.
 - The current runtime schema does not enumerate every field editor, display mode, and field-specific settings variant.
 - For those option catalogs, also consult the `orchardcore-content-fields` and `orchardcore-content-parts` skills, then ensure the final step still matches `ContentDefinition.schema.json`.
+
+Orchard Core 4.0 notes:
+
+- The Html and Markdown part and field settings no longer include `RenderLiquid`; use `LiquidPart` or `LiquidField` instead.
+- `OrchardCore.Media.ImageSharpV3` is no longer a valid feature ID.
+- Steps added in 4.0 without a schema file here, such as `DataPipelines`, should be authored from an exported deployment plan.

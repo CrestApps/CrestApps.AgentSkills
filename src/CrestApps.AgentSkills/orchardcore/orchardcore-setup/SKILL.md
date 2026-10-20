@@ -1,6 +1,6 @@
 ---
 name: orchardcore-setup
-description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, testing with the Blog recipe, and configuring tenants for multi-site testing. Use this skill when requests mention Orchard Core Setup, Create and Set Up an Orchard Core Application, Creating a New Orchard Core Web Application, Manual Project Setup (Without Templates), Program.cs Configuration, Program.cs with Additional CMS Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ProjectTemplates, OrchardCore.Application.Cms.Targets, OrchardCore.AutoSetup. It also helps with setup examples, Program.cs Configuration, Program.cs with Additional CMS Configuration, Adding CMS Modules to the Project, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for creating and setting up Orchard Core web applications. Covers project creation, CMS module configuration, adding modules to the web project, running setup, setup recipe parameters and configuration keys, the OrchardCore Setup configuration section for setup cultures, auto setup, testing with the Blog recipe, and configuring tenants for multi-site testing. Use this skill when requests mention Orchard Core Setup, Create and Set Up an Orchard Core Application, Creating a New Orchard Core Web Application, Manual Project Setup (Without Templates), Program.cs Configuration, Program.cs with Additional CMS Configuration, setup recipe parameters, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ProjectTemplates, OrchardCore.Application.Cms.Targets, OrchardCore.Setup, OrchardCore.AutoSetup. It also helps with setup examples and Adding CMS Modules to the Project.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,6 +21,8 @@ You are an Orchard Core expert. Generate project setup instructions and configur
 - Setup recipes (Blog, Agency, SaaS, Blank) define the initial site configuration.
 - Database providers include Sqlite (default), SqlServer, PostgreSql, and MySql.
 - CMS modules are added as NuGet package references in the `.csproj` file.
+- Orchard Core packages ship `ConfigurationSchema.json` files, so Visual Studio offers IntelliSense and validation for the `OrchardCore` sections of `appsettings.json`, including known database providers, setup recipes, time zones, and cultures.
+- The **Use CDN** site setting is disabled after setup so resources load without internet access; enable it afterwards if wanted.
 - Always seal classes defined in your module code.
 
 ### Creating a New Orchard Core Web Application
@@ -140,14 +142,47 @@ string, it remains available unless both `OrchardCore:DatabaseProvider` and
 string is also fixed and is not editable. Setup requires a connection string
 only when the selected provider needs one and no saved value exists.
 
-### Auto-Setup via Configuration
+### Setup Screen Cultures
 
-Configure automatic setup in `appsettings.json`:
+Configure the cultures offered by the setup screen under `OrchardCore:Setup` (the 3.x name `OrchardCore_Setup` is deprecated):
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_AutoSetup": {
+    "Setup": {
+      "DefaultCulture": "en",
+      "SupportedCultures": [ "en", "fr", "de", "es" ]
+    }
+  }
+}
+```
+
+An empty `DefaultCulture` uses the operating system culture; the invariant culture is not supported.
+
+### Recipe Parameters and Configuration Keys
+
+During setup, recipes can read the setup values with `[js: parameters('Name')]`: `SiteName`, `AdminUserId`, `AdminUsername`, `AdminEmail`, `AdminPassword`, `DatabaseProvider`, `DatabaseConnectionString`, and `DatabaseTablePrefix`. Read tenant or host configuration with `[js: configuration('Key', 'default')]`, for example `[js: configuration('Admin:AdminUrlPrefix', 'Admin')]` for `OrchardCore:Admin:AdminUrlPrefix`.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "SiteName": "[js: parameters('SiteName')]",
+      "SuperUser": "[js: parameters('AdminUserId')]"
+    }
+  ]
+}
+```
+
+### Auto-Setup via Configuration
+
+Configure automatic setup in `appsettings.json` under `OrchardCore:AutoSetup` (see `orchardcore-auto-setup`):
+
+```json
+{
+  "OrchardCore": {
+    "AutoSetup": {
       "AutoSetupPath": "",
       "Tenants": [
         {
@@ -156,15 +191,17 @@ Configure automatic setup in `appsettings.json`:
           "SiteTimeZone": "America/New_York",
           "DatabaseProvider": "Sqlite",
           "RecipeName": "Blog",
-          "UserName": "admin",
-          "Email": "admin@example.com",
-          "Password": "{{SecurePassword}}"
+          "AdminUsername": "admin",
+          "AdminEmail": "admin@example.com",
+          "AdminPassword": "{{SecurePassword}}"
         }
       ]
     }
   }
 }
 ```
+
+Recipe files that setup writes to disk go through `ITempDirectoryProvider`, so set `OrchardCore:TempDirectory:Path` when the system temp volume is small (see `orchardcore-temp-file-storage`).
 
 ### Testing with the Blog Recipe
 
@@ -227,3 +264,7 @@ Place recipe files in the `Recipes` folder of your module:
   ]
 }
 ```
+
+### Upgrading from 3.x
+
+- Rename `OrchardCore_AutoSetup` to `AutoSetup` and `OrchardCore_Setup` to `Setup` under the `OrchardCore` section; the old names are deprecated but still read.

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-navigation
-description: Skill for creating and managing navigation menus in Orchard Core. Covers menu creation, navigation providers, admin menus, and menu content types. Use this skill when requests mention Orchard Core Navigation, Create Navigation and Menus, Enabling Navigation Features, Custom Admin Navigation Provider, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Menu, OrchardCore.Navigation, OrchardCore.AdminMenu, INavigationProvider, IStringLocalizer, NavigationBuilder, IServiceCollection, MenuPart, MenuItemsListPart, LinkMenuItemPart, ContentMenuItemPart, LinkMenuItem. It also helps with navigation examples, Registering Navigation Provider, Menu Recipe (Creating a Menu via Recipe), Rendering Menu in Liquid Template, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for navigation in Orchard Core. Covers navigation providers (INavigationProvider, NamedNavigationProvider, AdminNavigationProvider), NavigationBuilder positions and permissions, NavigationConstants, rendering named navigation menus, Navigation shape alternates, the Pager and PagerSlim shapes, page size selection with PagerOptions, GetPageSize, PagerSlimParameters.PageSize and the Pager_PageSizeSelector shape, menu content items, and the breadcrumb shapes of OrchardCore.Navigation. Use this skill when requests mention Orchard Core Navigation, Create Navigation and Menus, Custom Admin Navigation Provider, Registering Navigation Provider, Menu Recipe, pagers, items per page, page size selector, or related implementation, upgrade, or troubleshooting work. Strong matches include OrchardCore.Navigation, OrchardCore.Navigation.Core, OrchardCore.Menu, INavigationProvider, NavigationBuilder, Pager, PagerSlim, PagerOptions, PagerParameters, MenuItemsListPart, LinkMenuItemPart.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,19 +11,17 @@ metadata:
 
 ## Create Navigation and Menus
 
-You are an Orchard Core expert. Generate navigation menus, admin menus, and menu items for Orchard Core.
+You are an Orchard Core expert. Generate navigation providers, menus, and pagers for Orchard Core.
 
 ### Guidelines
 
-- Enable `OrchardCore.Menu` and `OrchardCore.Navigation` for menu support.
-- Menus in Orchard Core are content items of type `Menu`.
-- Menu items are nested content items within a menu (e.g., `LinkMenuItem`, `ContentMenuItem`).
-- Admin menus are defined through `INavigationProvider` implementations.
-- Use the `Position` property to control menu item ordering (lower numbers appear first).
-- Admin menu positions follow the pattern: `"1"`, `"1.1"`, `"1.2"` for nested items.
-- Navigation providers must be registered as scoped services.
+- `OrchardCore.Navigation` is always enabled. It provides the `Navigation`, `Breadcrumb`, `Pager`, and `PagerSlim` shapes; the APIs live in `OrchardCore.Navigation.Core`.
+- Content-managed menus are `Menu` content items from `OrchardCore.Menu` (see `orchardcore-menus`).
+- Code-first menu items come from `INavigationProvider` implementations. Inherit from `AdminNavigationProvider` for the admin menu or `NamedNavigationProvider` for any other named menu, and register with `services.AddNavigationProvider<T>()`.
+- Use `PrefixPosition()` for alphabetical ordering inside a group, or explicit positions (`"1"`, `"1.1"`) when order matters. Lower positions come first.
+- Breadcrumb trails are not built by navigation providers; use the `<breadcrumb>` tag helper (see `orchardcore-breadcrumbs`).
 
-### Enabling Navigation Features
+### Enabling Menu Features
 
 ```json
 {
@@ -32,7 +30,6 @@ You are an Orchard Core expert. Generate navigation menus, admin menus, and menu
       "name": "Feature",
       "enable": [
         "OrchardCore.Menu",
-        "OrchardCore.Navigation",
         "OrchardCore.AdminMenu"
       ],
       "disable": []
@@ -47,7 +44,7 @@ You are an Orchard Core expert. Generate navigation menus, admin menus, and menu
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-public sealed class AdminMenu : INavigationProvider
+public sealed class AdminMenu : AdminNavigationProvider
 {
     private readonly IStringLocalizer S;
 
@@ -56,20 +53,14 @@ public sealed class AdminMenu : INavigationProvider
         S = localizer;
     }
 
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
     {
-        if (!string.Equals(name, "admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return ValueTask.CompletedTask;
-        }
-
         builder
-            .Add(S["{{MenuGroupName}}"], NavigationConstants.AdminMenuSettingsPosition, settings => settings
-                .AddClass("{{icon-class}}")
-                .Id("{{menuId}}")
+            .Add(S["Settings"], settings => settings
                 .Add(S["{{SubMenuName}}"], S["{{SubMenuName}}"].PrefixPosition(), item => item
-                    .Action("Index", "Admin", new { area = "{{ModuleName}}" })
-                    .Permission(Permissions.{{PermissionName}})
+                    .Id("{{menuId}}")
+                    .Action("Index", "Admin", "{{ModuleName}}")
+                    .Permission({{PermissionsClass}}.{{PermissionName}})
                     .LocalNav()
                 )
             );
@@ -79,6 +70,40 @@ public sealed class AdminMenu : INavigationProvider
 }
 ```
 
+- Top-level admin groups are **Content**, **Design**, **Search**, **Settings**, **Tools**, and **Access Control**. `NavigationConstants` keeps `AdminMenuContentPosition` (`1`), `AdminMenuDesignPosition` (`2`), `AdminMenuSearchPosition` (`6`), and `AdminMenuAccessControlPosition` (`7`), plus `AdminId` (`admin`), `AdminMenuId`, and `CssClassPrefix` (`icon-class-`).
+- `Permission(...)` (chainable, any-of) and `Resource(...)` hide items from unauthorized users; an unauthorized item's children are removed with it.
+- Add an icon with `.Id("myid")` plus a `Views/NavigationItemText-myid.Id.cshtml` template, not `AddClass` with Font Awesome classes.
+
+### Front-End Navigation Provider
+
+```csharp
+public sealed class MainMenu : NamedNavigationProvider
+{
+    private readonly IStringLocalizer S;
+
+    public MainMenu(IStringLocalizer<MainMenu> localizer)
+        : base("main")
+    {
+        S = localizer;
+    }
+
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
+    {
+        builder.Add(S["Notifications"], notifications => notifications
+            .Action("Index", "Notifications", "My.Module")
+            .LocalNav());
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Render it from a theme layout:
+
+```cshtml
+@await DisplayAsync(await New.Navigation(MenuName: "main", RouteData: ViewContext.RouteData))
+```
+
 ### Registering Navigation Provider
 
 ```csharp
@@ -86,12 +111,77 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<INavigationProvider, AdminMenu>();
+        services.AddNavigationProvider<AdminMenu>();
+        services.AddNavigationProvider<MainMenu>();
     }
 }
 ```
 
-### Menu Recipe (Creating a Menu via Recipe)
+### Navigation Theming
+
+TheAdmin overrides `Navigation-admin.cshtml`, `NavigationItem-admin.cshtml`, and `NavigationItemLink-admin.cshtml`. Available alternates are `Navigation__{MenuName}`, `NavigationItem__level__{level}`, `NavigationItem__{MenuName}`, `NavigationItem__{MenuName}__level__{level}`, the same three for `NavigationItemLink`, and `NavigationItemText-{id}.Id` for an item with an id (e.g. `NavigationItem-main-level-2.cshtml`). Navigation item shapes are `NavigationItemViewModel` instances (`Text`, `Href`, `Target`, `Item`, `Level`, `Selected`, `HasItems`, ...), so templates can cast `Model` to it instead of using dynamic access.
+
+## Pagers
+
+### `Pager` and `PagerSlim`
+
+```csharp
+public async Task<IActionResult> List(PagerParameters pagerParameters)
+{
+    // Validates ?pageSize= against the allowed page sizes; falls back to the site default.
+    var pager = new Pager(pagerParameters, _pagerOptions);
+
+    var query = _session.Query<ContentItem, ContentItemIndex>(x => x.Published);
+    var items = await query.Skip(pager.GetStartIndex()).Take(pager.PageSize).ListAsync();
+
+    var routeData = new RouteData();
+    var pagerShape = await _shapeFactory.PagerAsync(pager, await query.CountAsync(), routeData);
+
+    return View(new MyListViewModel { Items = items, Pager = pagerShape });
+}
+```
+
+- Inject `IOptions<PagerOptions>`; the always-enabled Settings module post-configures it from the **General** site settings (`PageSize`, `MaxPageSize`, `MaxPagedCount`, `AllowPageSizeSelection`, `PageSizeOptions`).
+- `PagerAsync(pager, totalItemCount, routeData | routeValues)` and `PagerSlimAsync(pagerSlim[, values])` are `IShapeFactory` extensions in `OrchardCore.DisplayManagement`.
+- `Pager` parameters include `Page`, `PageSize`, `TotalItemCount`, `Quantity`, `FirstText`, `PreviousText`, `NextText`, `LastText`, `GapText`, `PagerId` (alternate `Pager__{PagerId}`, e.g. `Pager-MainBlog.cshtml`), and `ShowNext`. Customize parts with `Pager_First`, `Pager_Previous`, `Pager_Next`, `Pager_Last`, `Pager_Gap`, and `Pager_CurrentPage` (all morphed into `Pager_Link`).
+- `PagerSlim` renders cursor-based Previous/Next links (`Before`/`After`) with `PreviousClass`, `NextClass`, `PreviousText`, `NextText`, and `UrlParams`.
+
+### Page Size Selection
+
+When **Page size selection** is enabled in **Configuration → Settings → General**, `Pager` and `PagerSlim` render an **Items per page** selector next to the links on admin and front-end lists. The value travels as `?pageSize=` and is honored only when selection is enabled and the value is one of the allowed sizes (sorted, de-duplicated positive numbers, default `10, 25, 50, 100`); otherwise the default page size applies. Pager links keep the selection. When disabled (the default), pagers render as before.
+
+```json
+{
+  "steps": [
+    {
+      "name": "settings",
+      "AllowPageSizeSelection": true,
+      "PageSizeOptions": [ 10, 20, 50 ]
+    }
+  ]
+}
+```
+
+Opt custom listings into the same validation:
+
+| API | Use |
+|---|---|
+| `new Pager(PagerParameters, PagerOptions)` | Resolves the page and validated page size in one step. |
+| `PagerOptions.GetPageSize()` | Site default, capped by `MaxPageSize`. |
+| `PagerOptions.GetPageSize(int? selected)` / `GetPageSize(int? selected, int defaultPageSize)` | Validated selection, or the given default (e.g. a list's own page size). |
+| `PagerOptions.AllowPageSizeSelection`, `PageSizeOptions` | The site settings. |
+| `PagerSlimParameters.PageSize` | Optional selection for cursor-based pagers: `new PagerSlim(pagerSlimParameters, _pagerOptions.GetPageSize(pagerSlimParameters.PageSize))`. |
+| `PageSizeSelector.BuildOptions(serviceProvider, currentPageSize)` | Builds the selector items to render the selector separately (then set `ShowPageSizeSelector = false` on the pager). |
+
+The selector is the `Pager_PageSizeSelector` shape. `OrchardCore.Navigation` renders it by default as unstyled `<div class="pager-page-size">` markup with a `<label>` and `<select>`; TheAdmin and TheTheme style it with Bootstrap. Override `Views/Pager_PageSizeSelector.cshtml` in a theme to restyle it. The shape receives `PageSizes` (`List<SelectListItem>`, `Text` = size, `Value` = URL, `Selected` = current) and `CurrentPageSize`; do not read `Model.Items`, which holds child shapes.
+
+Pager defaults can also be set per tenant in `appsettings.json` under `OrchardCore:Navigation:PagerOptions` (`OrchardCore_Navigation` is deprecated), but the General settings override them.
+
+### SEO
+
+Add `rel="nofollow"` to pager links with `Model.Pager.Attributes["rel"] = "nofollow"` (Razor) or `{% shape_pager Model.Pager attributes: "{\"rel\": \"nofollow\"}" %}` (Liquid).
+
+## Menu Recipe (Creating a Menu via Recipe)
 
 ```json
 {
@@ -106,6 +196,9 @@ public sealed class Startup : StartupBase
           "Latest": true,
           "Published": true,
           "MenuPart": {},
+          "AliasPart": {
+            "Alias": "main-menu"
+          },
           "MenuItemsListPart": {
             "MenuItems": [
               {
@@ -117,19 +210,13 @@ public sealed class Startup : StartupBase
                 }
               },
               {
-                "ContentType": "LinkMenuItem",
-                "ContentItemId": "menu-about",
-                "DisplayText": "About",
-                "LinkMenuItemPart": {
-                  "Url": "~/about"
-                }
-              },
-              {
-                "ContentType": "LinkMenuItem",
-                "ContentItemId": "menu-contact",
-                "DisplayText": "Contact",
-                "LinkMenuItemPart": {
-                  "Url": "~/contact"
+                "ContentType": "ContentMenuItem",
+                "ContentItemId": "menu-blog",
+                "DisplayText": "Blog",
+                "ContentMenuItemPart": {
+                  "ContentItem": {
+                    "ContentItemId": "{{BlogContentItemId}}"
+                  }
                 }
               }
             ]
@@ -147,23 +234,16 @@ public sealed class Startup : StartupBase
 {% shape "Menu", alias: "alias:main-menu" %}
 ```
 
-### Content Menu Item
+## Upgrading from 3.x
 
-To add a content item as a menu item:
-
-```json
-{
-  "ContentType": "ContentMenuItem",
-  "ContentItemId": "menu-blog",
-  "ContentMenuItemPart": {
-    "ContentItem": {
-      "ContentItemId": "{{BlogContentItemId}}"
-    }
-  }
-}
-```
+- `NavigationHelper.UseLegacyFormat()` and the `LegacyAdminMenuNavigation` switch were removed, together with `NavigationConstants.AdminMenuSecurityPosition`, `AdminMenuAuditTrailPosition`, `AdminMenuWorkflowsPosition`, `AdminMenuConfigurationPosition`, and `LegacyAdminMenuNavigationSwitchKey`.
+- `NavigationHelper.PopulateMenuAsync` and `PopulateMenuLevelAsync` now take `IShapeFactory` and `IShape` instead of `dynamic` arguments.
+- Replace manual `if (name != "admin")` checks in `INavigationProvider` implementations with `AdminNavigationProvider` or `NamedNavigationProvider`.
+- Use `new Pager(pagerParameters, pagerOptions)` instead of `new Pager(pagerParameters, siteSettings.PageSize)` so page size selection works.
 
 ## Related skills
 
-- Use `orchardcore-menus` for built-in menu item types, shape alternates, and direct menu rendering.
-- Use `orchardcore-admin-menu` for the admin-configurable `OrchardCore.AdminMenu` node tree, which is a separate feature from code-first `INavigationProvider` registration.
+- Use `orchardcore-menus` for built-in menu item types, shape alternates, and the `<menu>` tag helper.
+- Use `orchardcore-admin-menu` for the admin-configurable `OrchardCore.AdminMenu` node tree.
+- Use `orchardcore-breadcrumbs` for the `<breadcrumb>` tag helper and `IBreadcrumbProvider`.
+- Use `orchardcore-admin-lists` for admin list pages, which render the pager and page size selector for you.

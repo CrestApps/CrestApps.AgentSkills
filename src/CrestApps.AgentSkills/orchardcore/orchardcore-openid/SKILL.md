@@ -1,6 +1,6 @@
 ---
 name: orchardcore-openid
-description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers server setup, client application registration, authorization flows, token validation, external authentication providers, JWT bearer authentication for APIs, and recipe-based configuration. Use this skill when requests mention Orchard Core OpenID Connect, OpenID Connect Server Configuration, Server Settings via Migration, Client Application Registration, Client Registration via Migration, Authorization Flows, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Client, OrchardCore.OpenId.Validation, DataMigration, IOpenIdServerService, IOpenIdApplicationManager. It also helps with openid examples, Client Registration via Migration, Authorization Flows, Authorization Code Flow, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers the authorization server, token validation, client integration and management features, the OpenIdServerSettings, OpenIdApplication, OpenIdScope, OpenIdValidationSettings and OpenIdClientSettings recipe steps, client registration, authorization code with PKCE, client credentials, refresh tokens, pushed authorization requests, logout without confirmation through RequireEndSessionConfirmation, userinfo claims, securing APIs with the Api scheme, token endpoint rate limiting, and OpenIdPermissions. Use this skill when requests mention Orchard Core OpenID Connect, OAuth 2.0, OpenIddict, token endpoint, bearer tokens, PKCE, logout confirmation, external OIDC login, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, IOpenIdServerService, IOpenIdApplicationManager, and OpenIdPermissions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,31 +11,87 @@ metadata:
 
 ## Module Overview
 
-The `OrchardCore.OpenId` module provides a complete OpenID Connect and OAuth 2.0 implementation for Orchard Core applications. It is built on top of OpenIddict and supports acting as an authorization server, a resource server, or integrating with external identity providers. Enable the relevant sub-features depending on your scenario:
+The `OrchardCore.OpenId` module provides OpenID Connect and OAuth 2.0 on top of OpenIddict (7.7.1 in Orchard Core 4.0). Enable the features your scenario needs:
 
-- **OrchardCore.OpenId** — Core services and shared infrastructure.
-- **OrchardCore.OpenId.Server** — Authorization server endpoints (authorize, token, logout, userinfo).
-- **OrchardCore.OpenId.Client** — External provider integration (Azure AD, Google, etc.).
-- **OrchardCore.OpenId.Validation** — Token validation for resource servers / APIs.
+| Feature | ID | Purpose |
+|---|---|---|
+| OpenID Connect Core Services | `OrchardCore.OpenId` | Shared stores and managers. |
+| OpenID Connect Management UI | `OrchardCore.OpenId.Management` | Applications and scopes admin. |
+| OpenID Connect Authorization Server | `OrchardCore.OpenId.Server` | `/connect/authorize`, `/connect/token`, `/connect/logout`, `/connect/userinfo`, `/connect/par`, introspection, revocation. Depends on Management. |
+| OpenID Connect Token Validation | `OrchardCore.OpenId.Validation` | Validates bearer tokens for the `Api` scheme (same tenant, another tenant, or a remote authority). |
+| OpenID Connect Client Integration | `OrchardCore.OpenId.Client` | Sign in with an external OIDC provider. Depends on `OrchardCore.Users.ExternalAuthentication`. |
 
-Orchard Core 3.0 supports Pushed Authorization Requests (PAR). The default
-pushed authorization endpoint is `/connect/par`.
+Admin locations:
 
-## OpenID Connect Server Configuration
-
-You are an Orchard Core expert. Configure the OpenID Connect authorization server.
+- **Settings → OpenID Connect → Authorization Server** (`ManageServerSettings`)
+- **Settings → OpenID Connect → Token Validation** (`ManageValidationSettings`)
+- **Settings → OpenID Connect → Authentication Client** (`ManageClientSettings`)
+- **Access Control → OpenID Connect → Applications** and **Scopes** (`ManageApplications`, `ManageScopes`)
 
 ### Guidelines
 
-- Enable the `OrchardCore.OpenId.Server` feature before configuring server settings.
-- Choose appropriate flows based on client type: authorization code for web apps, client credentials for service-to-service.
-- Always use HTTPS in production for all endpoint URIs.
-- Configure token lifetimes according to your security requirements.
-- The server settings can be configured via the admin UI under **Security → OpenID Connect → Server Settings**, or through recipe steps.
+- The authorization server validates tokens sent to its own `/connect/userinfo` endpoint; enable `OrchardCore.OpenId.Validation` to accept its tokens on API endpoints.
+- Use authorization code + PKCE for browser and native apps, client credentials for services. Avoid the password and implicit flows for new clients.
+- Always use HTTPS in production for every redirect URI and the authority.
+- Secure API endpoints with `[Authorize(AuthenticationSchemes = OrchardCoreConstants.AuthenticationSchemes.Api)]` (the `"Api"` scheme) rather than the raw OpenIddict scheme; the token's roles then drive Orchard permission checks.
+- All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
+- All C# classes must use the `sealed` modifier, except View Models.
+
+## Authorization Server Settings
+
+### OpenIdServerSettings Recipe Step
+
+The dedicated step toggles endpoints with `Enable*Endpoint` booleans (the paths are always `/connect/*`). It replaces the server settings: every flow or endpoint left out becomes `false`, while `RequireEndSessionConfirmation` defaults to `true`.
+
+```json
+{
+  "steps": [
+    {
+      "name": "feature",
+      "enable": [
+        "OrchardCore.OpenId.Server",
+        "OrchardCore.OpenId.Validation"
+      ]
+    },
+    {
+      "name": "OpenIdServerSettings",
+      "AccessTokenFormat": "JsonWebToken",
+      "Authority": "https://auth.example.com",
+      "EnableTokenEndpoint": true,
+      "EnableAuthorizationEndpoint": true,
+      "EnableLogoutEndpoint": true,
+      "EnableUserInfoEndpoint": true,
+      "EnablePushedAuthorizationEndpoint": true,
+      "EnableIntrospectionEndpoint": false,
+      "EnableRevocationEndpoint": false,
+      "AllowAuthorizationCodeFlow": true,
+      "AllowClientCredentialsFlow": true,
+      "AllowRefreshTokenFlow": true,
+      "AllowPasswordFlow": false,
+      "AllowImplicitFlow": false,
+      "AllowHybridFlow": false,
+      "DisableRollingRefreshTokens": false,
+      "RequireProofKeyForCodeExchange": true,
+      "RequirePushedAuthorizationRequests": false,
+      "RequireEndSessionConfirmation": true,
+      "UseReferenceAccessTokens": false
+    }
+  ]
+}
+```
+
+Other properties: `DisableAccessTokenEncryption` (lets third-party resource servers read JWTs), `SigningCertificateStoreLocation`/`SigningCertificateStoreName`/`SigningCertificateThumbprint`, and the matching `EncryptionCertificate*` properties. `AccessTokenFormat` is `DataProtection` (default) or `JsonWebToken`.
+
+The generic `settings` step also accepts an `OpenIdServerSettings` object with the stored property names, including custom `*EndpointPath` values.
 
 ### Server Settings via Migration
 
 ```csharp
+using OrchardCore.Data.Migration;
+using OrchardCore.OpenId.Services;
+
+namespace MyModule.Migrations;
+
 public sealed class OpenIdServerMigrations : DataMigration
 {
     private readonly IOpenIdServerService _serverService;
@@ -47,12 +103,12 @@ public sealed class OpenIdServerMigrations : DataMigration
 
     public async Task<int> CreateAsync()
     {
-        var settings = await _serverService.GetSettingsAsync();
+        var settings = await _serverService.LoadSettingsAsync();
 
         settings.AllowAuthorizationCodeFlow = true;
         settings.AllowClientCredentialsFlow = true;
         settings.AllowRefreshTokenFlow = true;
-        settings.UseRollingRefreshTokens = true;
+        settings.RequireProofKeyForCodeExchange = true;
         settings.AuthorizationEndpointPath = "/connect/authorize";
         settings.TokenEndpointPath = "/connect/token";
         settings.LogoutEndpointPath = "/connect/logout";
@@ -67,22 +123,99 @@ public sealed class OpenIdServerMigrations : DataMigration
 }
 ```
 
-## Client Application Registration
+Use `LoadSettingsAsync()` (not the cached `GetSettingsAsync()`) before updating. Validate with `ValidateSettingsAsync(settings)`; for example, PAR requires the authorization endpoint, and the code flow requires both the authorization and token endpoints.
 
-Register OAuth/OpenID Connect client applications that will authenticate against the server.
+### Logout Without Confirmation
+
+`RequireEndSessionConfirmation` (default `true`) shows a confirmation prompt on `/connect/logout`. Set it to `false` to sign users out immediately when the request carries a valid `id_token_hint` issued for the currently authenticated user; otherwise the prompt is still shown. When the prompt is skipped, the local authentication cookie is removed too. The setting is available in the admin, the `OpenIdServerSettings` recipe step, and deployment plans.
+
+```json
+{
+  "steps": [
+    {
+      "name": "OpenIdServerSettings",
+      "EnableTokenEndpoint": true,
+      "EnableAuthorizationEndpoint": true,
+      "EnableLogoutEndpoint": true,
+      "EnableUserInfoEndpoint": true,
+      "AllowAuthorizationCodeFlow": true,
+      "AllowRefreshTokenFlow": true,
+      "RequireProofKeyForCodeExchange": true,
+      "RequireEndSessionConfirmation": false
+    }
+  ]
+}
+```
+
+### Token Endpoint Rate Limiting
+
+When `OrchardCore.RateLimits` is enabled, the server registers a built-in limit on `POST /connect/token` (route `Access.Token`): 10 requests per minute per IP, sliding window, sharing the `password-authentication` budget with the Users login form. Rejected calls return `429`. See `orchardcore-rate-limits`.
+
+## Client Applications
 
 ### Guidelines
 
-- Every client must have a unique `ClientId`.
-- Confidential clients (server-side apps) must have a `ClientSecret`.
-- Public clients (SPAs, native apps) must not store secrets; use authorization code flow with PKCE.
-- Set `ConsentType` to `Explicit` when user consent should be prompted, or `Implicit` for trusted first-party apps.
-- Specify only the redirect URIs your application actually uses.
-- Assign the minimum required scopes and roles to each client.
+- Every client needs a unique `ClientId`. Confidential clients need a `ClientSecret`; public clients (SPAs, mobile) must not have one and should require PKCE.
+- `ConsentType` is `explicit`, `implicit`, `external`, or `systematic`. Use `implicit` only for trusted first-party apps.
+- Register only the redirect URIs the app uses. Multiple URIs are space- or comma-separated in recipes.
+- Client credentials apps get their permissions from `RoleEntries`; user-based flows get them from the user's roles through the `roles` scope.
+
+### OpenIdApplication Recipe Step
+
+One application per step:
+
+```json
+{
+  "steps": [
+    {
+      "name": "OpenIdApplication",
+      "ClientId": "spa-client",
+      "DisplayName": "Single Page Application",
+      "Type": "public",
+      "ConsentType": "implicit",
+      "AllowAuthorizationCodeFlow": true,
+      "AllowRefreshTokenFlow": true,
+      "AllowLogoutEndpoint": true,
+      "RequireProofKeyForCodeExchange": true,
+      "RedirectUris": "https://spa.example.com/callback https://spa.example.com/silent-renew",
+      "PostLogoutRedirectUris": "https://spa.example.com/logout-callback",
+      "ScopeEntries": [
+        { "Name": "profile" },
+        { "Name": "email" },
+        { "Name": "roles" },
+        { "Name": "api" }
+      ]
+    },
+    {
+      "name": "OpenIdApplication",
+      "ClientId": "background-worker",
+      "DisplayName": "Background Worker",
+      "Type": "confidential",
+      "ClientSecret": "{{WorkerSecret}}",
+      "AllowClientCredentialsFlow": true,
+      "RoleEntries": [
+        { "Name": "Editor" }
+      ],
+      "ScopeEntries": [
+        { "Name": "api" }
+      ]
+    }
+  ]
+}
+```
+
+Other flags: `AllowPasswordFlow`, `AllowHybridFlow`, `AllowImplicitFlow`, `AllowIntrospectionEndpoint`, `AllowRevocationEndpoint`, `RequirePushedAuthorizationRequests`. The `openid` scope does not need a scope entry. A recipe run for an existing `ClientId` updates that application.
 
 ### Client Registration via Migration
 
 ```csharp
+using OpenIddict.Abstractions;
+using OrchardCore.Data.Migration;
+using OrchardCore.OpenId.Abstractions.Descriptors;
+using OrchardCore.OpenId.Abstractions.Managers;
+
+namespace MyModule.Migrations;
+
 public sealed class OpenIdClientMigrations : DataMigration
 {
     private readonly IOpenIdApplicationManager _applicationManager;
@@ -105,7 +238,7 @@ public sealed class OpenIdClientMigrations : DataMigration
             {
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.Endpoints.Logout,
+                OpenIddictConstants.Permissions.Endpoints.EndSession,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
@@ -113,6 +246,10 @@ public sealed class OpenIdClientMigrations : DataMigration
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "api",
+            },
+            Requirements =
+            {
+                OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange,
             },
             RedirectUris = { new Uri("https://myapp.example.com/signin-oidc") },
             PostLogoutRedirectUris = { new Uri("https://myapp.example.com/signout-callback-oidc") },
@@ -123,254 +260,21 @@ public sealed class OpenIdClientMigrations : DataMigration
 }
 ```
 
+Prefer a recipe for secrets that differ per environment, and never commit real secrets.
+
 ## Authorization Flows
 
-### Authorization Code Flow
-
-The recommended flow for server-side web applications. The client exchanges an authorization code for tokens at the token endpoint.
-
-- Enable `AllowAuthorizationCodeFlow` in server settings.
-- The client must have `GrantTypes.AuthorizationCode` and `ResponseTypes.Code` permissions.
-- Always pair with refresh tokens for long-lived sessions.
-
-### Client Credentials Flow
-
-Used for machine-to-machine communication where no user context is needed.
-
-- Enable `AllowClientCredentialsFlow` in server settings.
-- The client must be confidential and have `GrantTypes.ClientCredentials` permission.
-- Tokens issued via client credentials do not contain user claims.
-
-### Implicit Flow
-
-Primarily used for legacy SPAs. Prefer authorization code flow with PKCE for new applications.
-
-- Enable `AllowImplicitFlow` in server settings.
-- The client must have `GrantTypes.Implicit` and either `ResponseTypes.IdToken` or `ResponseTypes.IdTokenToken` permissions.
-
-## Token Endpoint and Validation
-
-The token endpoint (`/connect/token` by default) issues access tokens, identity tokens, and refresh tokens.
-
-### Guidelines
-
-- Access tokens are short-lived by default. Use refresh tokens for session continuity.
-- Configure `AccessTokenLifetime` and `RefreshTokenLifetime` in server settings.
-- Enable rolling refresh tokens (`UseRollingRefreshTokens`) to rotate refresh tokens on each use.
-- Token validation on resource servers uses the `OrchardCore.OpenId.Validation` feature.
-
-The PAR endpoint is `/connect/par`, represented by
-`PushedAuthorizationEndpointPath`. Existing applications that already have
-authorization endpoint permission receive the pushed authorization endpoint
-permission during the 3.0 migration. Review application permissions if PAR
-should not be available.
-
-`RequireEndSessionConfirmation` defaults to `true`. Set it to `false` only
-when a valid `id_token_hint` matching the current session should allow logout
-without a confirmation prompt.
+| Flow | Server setting | Client requirements |
+|---|---|---|
+| Authorization code (+ PKCE) | `AllowAuthorizationCodeFlow` | `GrantTypes.AuthorizationCode`, `ResponseTypes.Code`; public clients require PKCE. |
+| Client credentials | `AllowClientCredentialsFlow` | Confidential client with `GrantTypes.ClientCredentials`; roles from `RoleEntries`. |
+| Refresh token | `AllowRefreshTokenFlow` | `GrantTypes.RefreshToken`; rolling refresh tokens unless `DisableRollingRefreshTokens`. |
+| Pushed authorization requests | `EnablePushedAuthorizationEndpoint` (`/connect/par`) | Application `RequirePushedAuthorizationRequests` to enforce. |
+| Implicit / hybrid / password | `AllowImplicitFlow`, `AllowHybridFlow`, `AllowPasswordFlow` | Legacy only. |
 
 ## Scopes and Claims
 
-### Registering Custom Scopes
-
-```csharp
-public sealed class OpenIdScopeMigrations : DataMigration
-{
-    private readonly IOpenIdScopeManager _scopeManager;
-
-    public OpenIdScopeMigrations(IOpenIdScopeManager scopeManager)
-    {
-        _scopeManager = scopeManager;
-    }
-
-    public async Task<int> CreateAsync()
-    {
-        await _scopeManager.CreateAsync(new OpenIdScopeDescriptor
-        {
-            Name = "api",
-            DisplayName = "API Access",
-            Description = "Grants access to the application API endpoints.",
-            Resources = { "my-resource-server" },
-        });
-
-        return 1;
-    }
-}
-```
-
-### Standard Scopes
-
-- `openid` — Required for all OpenID Connect requests. Returns a `sub` claim.
-- `profile` — Returns user profile claims (name, family_name, etc.).
-- `email` — Returns `email` and `email_verified` claims.
-- `roles` — Returns role membership claims.
-- `phone` — Returns phone number claims.
-
-Modules can add claims to the userinfo response by implementing
-`IUserInfoClaimsProvider`:
-
-```csharp
-public sealed class CustomUserInfoClaimsProvider : IUserInfoClaimsProvider
-{
-    public Task GenerateAsync(UserInfoClaimsContext context)
-    {
-        context.Claims["tenant"] = "example";
-        return Task.CompletedTask;
-    }
-}
-```
-
-Standard scope claims are written before `GenerateAsync` runs.
-
-## External Authentication Providers
-
-The `OrchardCore.OpenId.Client` feature enables federated sign-in with external identity providers.
-
-### Guidelines
-
-- Configure external providers via admin UI under **Security → OpenID Connect → Client Settings**.
-- Each provider requires a `ClientId`, `ClientSecret` (for confidential providers), and an `Authority` URI.
-- Map external claims to Orchard Core user properties as needed.
-- Supported providers include Azure AD, Azure AD B2C, Google, Microsoft, and any standard OpenID Connect provider.
-
-### External Provider Setup via Startup
-
-```csharp
-public sealed class ExternalProviderStartup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddAuthentication()
-            .AddOpenIdConnect("AzureAD", "Azure Active Directory", options =>
-            {
-                options.Authority = "https://login.microsoftonline.com/{tenant-id}/v2.0";
-                options.ClientId = "your-azure-client-id";
-                options.ClientSecret = "your-azure-client-secret";
-                options.ResponseType = OpenIdConnectResponseType.Code;
-                options.SaveTokens = true;
-                options.Scope.Add("openid");
-                options.Scope.Add("profile");
-                options.Scope.Add("email");
-                options.TokenValidationParameters.NameClaimType = "name";
-            });
-    }
-}
-```
-
-## JWT Bearer Token Authentication for APIs
-
-Enable JWT bearer authentication to protect API endpoints using tokens issued by the OpenID Connect server.
-
-### Guidelines
-
-- Enable the `OrchardCore.OpenId.Validation` feature on the resource server.
-- Configure the validation settings to point to the authorization server's authority URI.
-- Use `[Authorize]` attributes on API controllers to enforce authentication.
-- The validation feature supports both local validation (same application as server) and remote validation (separate resource server).
-
-### API Controller with JWT Authentication
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-[Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
-public sealed class ProductsController : ControllerBase
-{
-    [HttpGet]
-    public IActionResult GetAll()
-    {
-        var userId = User.FindFirstValue(OpenIddictConstants.Claims.Subject);
-        return Ok(new { Message = "Authenticated", UserId = userId });
-    }
-
-    [HttpGet("admin")]
-    [Authorize(Roles = "Administrator")]
-    public IActionResult GetAdmin()
-    {
-        return Ok(new { Message = "Admin access granted" });
-    }
-}
-```
-
-### Validation Settings via Migration
-
-```csharp
-public sealed class OpenIdValidationMigrations : DataMigration
-{
-    private readonly IOpenIdValidationService _validationService;
-
-    public OpenIdValidationMigrations(IOpenIdValidationService validationService)
-    {
-        _validationService = validationService;
-    }
-
-    public async Task<int> CreateAsync()
-    {
-        var settings = await _validationService.GetSettingsAsync();
-
-        settings.Authority = new Uri("https://auth.example.com");
-        settings.Audience = "my-resource-server";
-
-        await _validationService.UpdateSettingsAsync(settings);
-
-        return 1;
-    }
-}
-```
-
-## Recipe Steps for OpenID Configuration
-
-Use recipe steps to declaratively configure OpenID Connect settings, applications, and scopes during site setup or deployment.
-
-### OpenID Server Settings Recipe Step
-
-```json
-{
-  "steps": [
-    {
-      "name": "OpenIdServerSettings",
-      "AllowAuthorizationCodeFlow": true,
-      "AllowClientCredentialsFlow": true,
-      "AllowRefreshTokenFlow": true,
-      "UseRollingRefreshTokens": true,
-      "AuthorizationEndpointPath": "/connect/authorize",
-      "TokenEndpointPath": "/connect/token",
-      "LogoutEndpointPath": "/connect/logout",
-      "UserinfoEndpointPath": "/connect/userinfo",
-      "EnablePushedAuthorizationEndpoint": true
-    }
-  ]
-}
-```
-
-### OpenID Application Recipe Step
-
-```json
-{
-  "steps": [
-    {
-      "name": "OpenIdApplication",
-      "ClientId": "spa-client",
-      "DisplayName": "Single Page Application",
-      "ClientType": "public",
-      "ConsentType": "implicit",
-      "AllowAuthorizationCodeFlow": true,
-      "AllowRefreshTokenFlow": true,
-      "RequireProofKeyForCodeExchange": true,
-      "RedirectUris": "https://spa.example.com/callback",
-      "PostLogoutRedirectUris": "https://spa.example.com/logout-callback",
-      "AllowedScopes": [
-        "openid",
-        "profile",
-        "email",
-        "api"
-      ]
-    }
-  ]
-}
-```
-
-### OpenID Scope Recipe Step
+### OpenIdScope Recipe Step
 
 ```json
 {
@@ -386,26 +290,139 @@ Use recipe steps to declaratively configure OpenID Connect settings, application
 }
 ```
 
-### OpenID Validation Settings Recipe Step
+`Resources` is space-separated and becomes the token audience. In the admin, a scope can also target tenants, which builds `oct:{TenantName}` audiences for cross-tenant validation.
+
+### Standard Scopes
+
+- `openid` — required; returns `sub`.
+- `profile` — profile claims.
+- `email` — `email` and `email_verified`.
+- `phone` — phone number claims.
+- `roles` — role claims; needed for Orchard permission checks on API calls.
+
+### Custom Userinfo Claims
+
+```csharp
+using OrchardCore.OpenId.Abstractions.Handlers;
+
+namespace MyModule.Services;
+
+public sealed class TenantUserInfoClaimsProvider : IUserInfoClaimsProvider
+{
+    public Task GenerateAsync(UserInfoClaimsContext context)
+    {
+        context.Claims["tenant"] = "example";
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+Register with `services.AddScoped<IUserInfoClaimsProvider, TenantUserInfoClaimsProvider>();`. Standard scope claims are already written when `GenerateAsync` runs; inspect `context.Principal` for the user.
+
+## Securing APIs with Token Validation
+
+### OpenIdValidationSettings Recipe Step
+
+Set exactly one of `Tenant` (validate tokens issued by an authorization server tenant in the same app) or `Authority` (remote server with discovery). With neither, the settings are invalid and every bearer call returns `401`.
 
 ```json
 {
   "steps": [
     {
       "name": "OpenIdValidationSettings",
-      "Authority": "https://auth.example.com",
-      "Audience": "my-resource-server"
+      "Tenant": "Default"
     }
   ]
 }
 ```
 
-## Admin UI Configuration
+```json
+{
+  "steps": [
+    {
+      "name": "OpenIdValidationSettings",
+      "Authority": "https://idp.example.com",
+      "Audience": "my-resource-server",
+      "MetadataAddress": "",
+      "DisableTokenTypeValidation": false
+    }
+  ]
+}
+```
 
-OpenID settings are managed through the admin dashboard:
+### API Controller
 
-- **Security → OpenID Connect → Server Settings** — Configure authorization server endpoints, supported flows, and token lifetimes.
-- **Security → OpenID Connect → Applications** — Register and manage client applications.
-- **Security → OpenID Connect → Scopes** — Define custom scopes and associated resources.
-- **Security → OpenID Connect → Client Settings** — Configure external identity providers for federated login.
-- **Security → OpenID Connect → Validation Settings** — Configure token validation for resource server scenarios.
+```csharp
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using OrchardCore;
+using OrchardCore.Contents;
+
+namespace MyModule.Controllers;
+
+[ApiController]
+[Route("api/products")]
+[Authorize(AuthenticationSchemes = OrchardCoreConstants.AuthenticationSchemes.Api)]
+public sealed class ProductsController : ControllerBase
+{
+    private readonly IAuthorizationService _authorizationService;
+
+    public ProductsController(IAuthorizationService authorizationService)
+    {
+        _authorizationService = authorizationService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        if (!await _authorizationService.AuthorizeAsync(User, CommonPermissions.ViewContent))
+        {
+            return this.ApiForbidProblem();
+        }
+
+        return Ok(new { UserId = User.FindFirstValue(ClaimTypes.NameIdentifier) });
+    }
+}
+```
+
+- A missing or invalid token returns `401` with the RFC 6750 `WWW-Authenticate` header from OpenIddict and, in 4.0, an RFC 9457 Problem Details body. Insufficient permissions return `403` with Problem Details.
+- `DisableAntiforgery()` / `[IgnoreAntiforgeryToken]` is appropriate only on bearer-authenticated endpoints.
+
+## External OpenID Connect Login
+
+The `OrchardCore.OpenId.Client` feature signs users in with an external provider and links or registers local users (an `email` claim links to an existing account after authentication).
+
+```json
+{
+  "steps": [
+    {
+      "name": "OpenIdClientSettings",
+      "DisplayName": "Corporate IdP",
+      "Authority": "https://login.microsoftonline.com/{tenant-id}/v2.0",
+      "ClientId": "azure-app-client-id",
+      "ClientSecret": "azure-app-client-secret",
+      "CallbackPath": "/signin-oidc",
+      "SignedOutCallbackPath": "/signout-callback-oidc",
+      "SignedOutRedirectUri": "https://www.example.com/",
+      "ResponseType": "code",
+      "ResponseMode": "form_post",
+      "Scopes": "email profile",
+      "StoreExternalTokens": false
+    }
+  ]
+}
+```
+
+`Scopes` is a space- or comma-separated string of extra scopes. For Microsoft Entra ID, Google, GitHub, Facebook, or X, prefer the dedicated modules (`orchardcore-microsoft-auth`, `orchardcore-google`, `orchardcore-github-authentication`, `orchardcore-facebook`, `orchardcore-twitter`).
+
+## Upgrading from 3.x
+
+- `OrchardCore.OpenId.Permissions.ManageApplications`, `ManageClientSettings`, `ManageScopes`, `ManageServerSettings`, and `ManageValidationSettings` were removed; use the same members on `OrchardCore.OpenId.OpenIdPermissions`.
+- Disabling `RequireEndSessionConfirmation` now really skips the prompt for a valid `id_token_hint` (the prompt was always shown in 3.x). It can now be set from the `OpenIdServerSettings` step and is exported by deployment plans; omitted, it is `true`.
+- Recipes that used non-existent step properties (`UseRollingRefreshTokens`, `*EndpointPath` in the `OpenIdServerSettings` step, `ClientType` or `AllowedScopes` in `OpenIdApplication`) must use `DisableRollingRefreshTokens`, `Enable*Endpoint`, `Type`, and `ScopeEntries`.
+- API `401`/`403` challenges now carry a Problem Details body; the status codes and `WWW-Authenticate` header are unchanged.
+- With Rate Limits enabled, `POST /connect/token` is limited per IP.
+
+See [openid-examples.md](references/openid-examples.md) for complete setups.

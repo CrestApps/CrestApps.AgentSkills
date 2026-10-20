@@ -1,6 +1,10 @@
 ---
 name: orchardcore-redis
-description: Skill for configuring Redis in Orchard Core. Covers Redis cache, message bus, distributed locking, data protection, health checks, configuration options, key storage structure, and multi-instance deployment considerations. Use this skill when requests mention Orchard Core Redis, Configure Redis Integration, Enabling Redis Features, Redis Features Summary, Redis Configuration, Production Configuration Example, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Redis, OrchardCore.Redis.Cache, OrchardCore.Redis.Bus, OrchardCore.Redis.Lock, OrchardCore.Redis.DataProtection, OrchardCore.Environment.Cache, OrchardCore.Locking.Distributed, OrchardCore.HealthChecks, IDistributedCache, ISignal, CachedProductService. It also helps with Redis Configuration, Production Configuration Example, Key Storage Structure, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Redis in Orchard Core. Covers Redis cache, message bus, distributed locking, data protection, health checks, the OrchardCore Redis configuration section, environment variable and Key Vault secret names, InstancePrefix and AllowAdmin, key storage structure, the OrchardCore.SignalR.Redis backplane, TUS upload metadata and locks for the Media Gallery, and multi-instance deployment. Use this skill when requests mention Orchard Core Redis, Redis configuration, SignalR Redis backplane, scaling Orchard Core across instances, upgrading from the OrchardCore_Redis section, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Redis, OrchardCore.Redis.Cache, OrchardCore.Redis.Bus, OrchardCore.Redis.Lock, OrchardCore.Redis.DataProtection, OrchardCore.SignalR.Redis, IDistributedCache, IDistributedLock, and ISignal.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Redis - Prompt Templates
@@ -16,13 +20,14 @@ You are an Orchard Core expert. Generate code and configuration for Redis integr
 - Enable `OrchardCore.Redis.Bus` for distributed `ISignal` service, making cache invalidation work across multiple application instances.
 - Enable `OrchardCore.Redis.Lock` for distributed locking using Redis.
 - Enable `OrchardCore.Redis.DataProtection` for storing ASP.NET Core Data Protection keys in Redis.
-- Configure the Redis connection string via `OrchardCore_Redis:Configuration` in `appsettings.json`.
+- Configure the Redis connection string via `OrchardCore:Redis:Configuration` (env var `OrchardCore__Redis__Configuration`, Key Vault secret `OrchardCore--Redis--Configuration`). Without it the Redis features stay inactive and an error is logged.
 - Use `InstancePrefix` to namespace all Redis keys and prevent collisions between environments or applications.
 - Data Protection keys must be stored in durable storage; ensure Redis persistence (AOF or RDB) is enabled.
 - The Redis module provides a health check for monitoring Redis server status.
 - For multi-instance deployments, enable Redis Bus so that `ISignal` cache invalidation propagates across all nodes.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
+- `OrchardCore.SignalR.Redis` reuses the same connection for the SignalR backplane.
 
 ### Enabling Redis Features
 
@@ -61,7 +66,7 @@ Configure the Redis connection in `appsettings.json`:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Redis": {
+    "Redis": {
       "Configuration": "localhost:6379,abortConnect=false,connectTimeout=5000",
       "InstancePrefix": "MyApp:",
       "AllowAdmin": true
@@ -85,7 +90,7 @@ For a production multi-instance deployment with SSL:
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Redis": {
+    "Redis": {
       "Configuration": "myredis.example.com:6380,password=MySecurePassword,ssl=true,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
       "InstancePrefix": "Production:",
       "AllowAdmin": true
@@ -258,6 +263,30 @@ Enable the health check feature:
 }
 ```
 
+### SignalR Backplane and Media Gallery
+
+- `OrchardCore.SignalR.Redis` (depends on `OrchardCore.SignalR` and `OrchardCore.Redis`) routes SignalR messages across instances through Redis, with a tenant-qualified channel prefix. It reads `OrchardCore:Redis:Configuration`; do not also enable `OrchardCore.SignalR.Azure` on the same tenant.
+- The Media Gallery TUS uploads keep their metadata in `IDistributedCache` and their chunk locks in `IDistributedLock`, so `OrchardCore.Redis.Cache` and `OrchardCore.Redis.Lock` make resumable uploads safe across instances. Chunk data itself stays on the temp file system or in Azure/S3 (see `orchardcore-media-gallery`).
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Redis",
+        "OrchardCore.Redis.Cache",
+        "OrchardCore.Redis.Bus",
+        "OrchardCore.Redis.Lock",
+        "OrchardCore.Redis.DataProtection",
+        "OrchardCore.SignalR.Redis"
+      ],
+      "disable": []
+    }
+  ]
+}
+```
+
 ### Multi-Instance Deployment Checklist
 
 For load-balanced or multi-instance Orchard Core deployments using Redis:
@@ -270,3 +299,10 @@ For load-balanced or multi-instance Orchard Core deployments using Redis:
 6. **Set `InstancePrefix`** to namespace keys and prevent collisions with other applications sharing the same Redis instance.
 7. **Enable Redis persistence** (AOF or RDB) to prevent data loss on Redis restart.
 8. **Set `AllowAdmin: true`** in configuration so the module can verify persistence is enabled.
+9. **Enable `OrchardCore.SignalR.Redis`** when SignalR features (such as `OrchardCore.Media.SignalR`) must reach clients on every instance.
+
+### Upgrading from 3.x
+
+- Rename the `OrchardCore_Redis` section to `Redis` (`OrchardCore:Redis:Configuration`).
+- Environment variable `OrchardCore__OrchardCore_Redis__Configuration` becomes `OrchardCore__Redis__Configuration`; Key Vault secret `OrchardCore--OrchardCore---Redis--Configuration` becomes `OrchardCore--Redis--Configuration`.
+- The old name is deprecated but still read; the new name wins when both are set.

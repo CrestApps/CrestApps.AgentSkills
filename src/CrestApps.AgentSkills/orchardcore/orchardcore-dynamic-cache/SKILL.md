@@ -1,6 +1,10 @@
 ---
 name: orchardcore-dynamic-cache
-description: Skill for configuring dynamic caching in Orchard Core. Covers shape-level caching, cache tag helpers, Liquid cache blocks, cache context dependencies, cache variations (query, cookie, user, role), cache invalidation with ISignal, and performance optimization patterns. Use this skill when requests mention Orchard Core Dynamic Cache, Configure Dynamic Caching, Enabling Dynamic Cache, Well-Known Cache Dependencies, Available Cache Contexts (Vary-By), Shape Tag Helper Attributes, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DynamicCache, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Environment.Cache, ISignal, IDynamicCache, IDistributedCache. It also helps with Available Cache Contexts (Vary-By), Shape Tag Helper Attributes, Caching Shapes via Tag Helpers, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring dynamic caching in Orchard Core. Covers shape-level caching, the dynamic-cache and cache-dependency Razor tag helpers, shape and menu tag helper cache attributes, Liquid cache blocks and shape cache arguments, cache dependencies, cache contexts (query, user, role, route, features), invalidation with ITagCache and ISignal, ShapeResult.Cache in display drivers, custom ICacheContextProvider, cache modes in General Settings, and the OrchardCore DynamicCache configuration section (FailoverRetryLatency). Use this skill when requests mention Orchard Core Dynamic Cache, Configure Dynamic Caching, Well-Known Cache Dependencies, Available Cache Contexts (Vary-By), Shape Tag Helper Attributes, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.DynamicCache, OrchardCore.Environment.Cache, CacheContext, ITagCache, ISignal, IDynamicCache, IDynamicCacheService, IDistributedCache.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Dynamic Cache - Prompt Templates
@@ -74,11 +78,33 @@ Contexts are hierarchical. For example, `user` is more specific than `user.roles
 | `dependencies` | Space/comma-separated invalidation tags | No |
 | `expires-on` | Fixed `DateTimeOffset` expiration | No |
 | `expires-after` | Relative expiration | No |
-| `expires-sliding` | Sliding expiration | No |
+| `expires-sliding` | Sliding expiration (30 seconds when no expiration is set) | No |
+
+```cshtml
+@addTagHelper *, OrchardCore.DynamicCache
+
+<dynamic-cache cache-id="recent-posts" vary-by="user.roles" dependencies="alias:recent-posts" expires-after="00:10:00">
+    @foreach (var post in Model.Posts)
+    {
+        <cache-dependency dependency="contentitemid:@post.ContentItemId" />
+        <a display-for="@post">@post.DisplayText</a>
+    }
+</dynamic-cache>
+```
+
+`<cache-dependency dependency="..." />` adds a dependency to the enclosing cache scope while it renders, like the Liquid `cache_dependency` tag.
+
+### Shape and Menu Tag Helper Cache Attributes
+
+`<shape>`, `<menu>`, `<contentitem>`, and other shape tag helpers accept `cache-id`, `cache-context`, `cache-tag`, `cache-fixed-duration`, and `cache-sliding-duration`:
+
+```cshtml
+<menu alias="alias:main-menu" cache-id="main-menu" cache-fixed-duration="00:05:00" cache-tag="alias:main-menu" cache-context="user.roles" />
+```
 
 ### Caching Shapes from Liquid
 
-Liquid `shape` and `contentitem` tags cache a shape with `cache_id`, `cache_context`, `cache_tag`, `cache_fixed_duration`, and `cache_sliding_duration`:
+Liquid `shape` and `contentitem` tags cache a shape with `cache_id`, `cache_context`, `cache_dependency`, `cache_tag`, `cache_fixed_duration`, and `cache_sliding_duration`. `shape_cache` sets the same arguments on an existing shape (`{% shape_cache my_shape cache_id: "my-shape", cache_fixed_duration: "00:05:00" %}`):
 
 ```liquid
 {% shape "menu", alias: "alias:main-menu", cache_id: "main-menu", cache_fixed_duration: "00:05:00", cache_tag: "alias:main-menu" %}
@@ -134,11 +160,12 @@ Use `{% cache %}` blocks in Liquid templates for declarative caching. Blocks can
 | Argument | Description | Required |
 |----------|-------------|----------|
 | `id` (first positional) | The cache block identifier | Yes |
-| `vary_by` | Space/comma-separated context values | No |
+| `vary_by` | Space/comma-separated context values, or a custom value such as a content item id | No |
 | `dependencies` | Space/comma-separated dependency values | No |
 | `expires_after` | Fixed duration (e.g., `"00:05:00"`) | No |
 | `expires_sliding` | Sliding duration (e.g., `"00:05:00"`) | No |
-| `vary_by` | A custom value to vary the cache entry | No |
+
+The block reads `vary_by`; the `contexts` name shown in some older docs is not recognized.
 
 #### Simple Cache Block
 
@@ -153,7 +180,7 @@ Use `{% cache %}` blocks in Liquid templates for declarative caching. Blocks can
 ```liquid
 {% cache "blog-post-summary", vary_by: Model.ContentItem.ContentItemId %}
     <h2>{{ Model.ContentItem | display_text }}</h2>
-    <p>{{ Model.ContentItem.Content.BodyPart.Body }}</p>
+    <p>{{ Model.ContentItem.Content.HtmlBodyPart.Html | sanitize_html | raw }}</p>
 {% endcache %}
 ```
 
@@ -256,11 +283,25 @@ public sealed class TenantCacheContextProvider : ICacheContextProvider
 }
 ```
 
+### Configuration (appsettings.json)
+
+```json
+{
+  "OrchardCore": {
+    "DynamicCache": {
+      "FailoverRetryLatency": "00:00:30"
+    }
+  }
+}
+```
+
+`FailoverRetryLatency` is how long the dynamic cache stops using the distributed cache after a read or write failure (for example a Redis outage) before trying again. The former `OrchardCore_DynamicCache` section name still works but is deprecated.
+
 ### Cache Options
 
 Dynamic Cache has four modes configurable in **General Settings**:
 
-- **From environment**: Enables in `Production` ASP.NET Core environment only.
+- **From environment** (default): Enables in `Production` ASP.NET Core environment only.
 - **Enabled**: Always enabled.
 - **Disabled**: Always disabled.
 - **Enabled with cache debug mode**: Enabled with HTML comments logging cache context metadata for troubleshooting.

@@ -147,7 +147,7 @@ public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddContentHandler<AuditContentHandler>();
+        services.AddScoped<IContentHandler, AuditContentHandler>();
     }
 }
 ```

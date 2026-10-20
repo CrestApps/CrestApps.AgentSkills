@@ -124,3 +124,40 @@ public sealed class ProductInfoPartDisplayDriver : ContentPartDisplayDriver<Prod
     }
 }
 ```
+
+## Example 3: Migrating an Obsolete `Shape()` Call (4.0)
+
+Before (3.x), the shape is allocated even when placement hides it:
+
+```csharp
+public override async Task<IDisplayResult> DisplayAsync(Banner model, BuildDisplayContext context)
+{
+    var shape = await context.ShapeFactory.CreateAsync("Banner", Arguments.From(new { model.Text }));
+
+    return Shape("Banner", shape).Location("Content:1");
+}
+```
+
+After (4.0), the shape is created lazily, only when it is displayed:
+
+```csharp
+public sealed class BannerDisplayDriver : DisplayDriver<Banner>
+{
+    public override IDisplayResult Display(Banner model, BuildDisplayContext context)
+    {
+        return Factory("Banner", static (buildContext, model) =>
+            buildContext.ShapeFactory.CreateAsync("Banner", Arguments.From(new { model.Text })), model)
+            .Location("Content:1");
+    }
+}
+```
+
+When the shape only needs a view model, prefer `Initialize<TModel>()`:
+
+```csharp
+return Initialize<BannerViewModel, Banner>("Banner", static (viewModel, model) =>
+{
+    viewModel.Text = model.Text;
+}, model)
+.Location("Content:1");
+```

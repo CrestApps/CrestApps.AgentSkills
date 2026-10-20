@@ -1,58 +1,78 @@
 # Users & Roles Examples
 
-## Example 1: Custom Permission Provider
+## Example 1: Custom Permissions and Provider
 
 ```csharp
+using OrchardCore.Localization;
 using OrchardCore.Security.Permissions;
 
-public sealed class Permissions : IPermissionProvider
+namespace MyShop.Core;
+
+public static class ShopPermissions
 {
-    public static readonly Permission ManageProducts =
-        new("ManageProducts", "Manage product catalog");
+    public static readonly Permission ManageProducts = new(
+        "ManageProducts",
+        LocalizationSource.Create("Manage product catalog", typeof(ShopPermissions)));
 
-    public static readonly Permission ViewProducts =
-        new("ViewProducts", "View product catalog", new[] { ManageProducts });
+    public static readonly Permission ViewProducts = new(
+        "ViewProducts",
+        LocalizationSource.Create("View product catalog", typeof(ShopPermissions)),
+        [ManageProducts]);
 
-    public static readonly Permission ManageOrders =
-        new("ManageOrders", "Manage customer orders");
+    public static readonly Permission ManageOrders = new(
+        "ManageOrders",
+        LocalizationSource.Create("Manage customer orders", typeof(ShopPermissions)),
+        isSecurityCritical: true);
 
-    public static readonly Permission ViewOrders =
-        new("ViewOrders", "View customer orders", new[] { ManageOrders });
-
-    public Task<IEnumerable<Permission>> GetPermissionsAsync()
-    {
-        return Task.FromResult<IEnumerable<Permission>>(new[]
-        {
-            ManageProducts,
-            ViewProducts,
-            ManageOrders,
-            ViewOrders
-        });
-    }
-
-    public IEnumerable<PermissionStereotype> GetDefaultStereotypes()
-    {
-        return new[]
-        {
-            new PermissionStereotype
-            {
-                Name = "Administrator",
-                Permissions = new[] { ManageProducts, ManageOrders }
-            },
-            new PermissionStereotype
-            {
-                Name = "Editor",
-                Permissions = new[] { ViewProducts, ViewOrders }
-            },
-            new PermissionStereotype
-            {
-                Name = "Contributor",
-                Permissions = new[] { ViewProducts }
-            }
-        };
-    }
+    public static readonly Permission ViewOrders = new(
+        "ViewOrders",
+        LocalizationSource.Create("View customer orders", typeof(ShopPermissions)),
+        [ManageOrders]);
 }
 ```
+
+```csharp
+using MyShop.Core;
+using OrchardCore;
+using OrchardCore.Security.Permissions;
+
+namespace MyShop;
+
+internal sealed class PermissionProvider : IPermissionProvider
+{
+    private readonly IEnumerable<Permission> _allPermissions =
+    [
+        ShopPermissions.ManageProducts,
+        ShopPermissions.ViewProducts,
+        ShopPermissions.ManageOrders,
+        ShopPermissions.ViewOrders,
+    ];
+
+    public Task<IEnumerable<Permission>> GetPermissionsAsync()
+        => Task.FromResult(_allPermissions);
+
+    public IEnumerable<PermissionStereotype> GetDefaultStereotypes() =>
+    [
+        new PermissionStereotype
+        {
+            Name = OrchardCoreConstants.Roles.Administrator,
+            Permissions = _allPermissions,
+        },
+        new PermissionStereotype
+        {
+            Name = "Editor",
+            Permissions = [ShopPermissions.ViewProducts, ShopPermissions.ViewOrders],
+        },
+        new PermissionStereotype
+        {
+            Name = "Contributor",
+            Permissions = [ShopPermissions.ViewProducts],
+        },
+    ];
+}
+```
+
+Register with `services.AddPermissionProvider<PermissionProvider>();`.
 
 ## Example 2: Roles Recipe
 
@@ -65,9 +85,9 @@ public sealed class Permissions : IPermissionProvider
         {
           "Name": "ProductManager",
           "Description": "Can manage products and view orders",
+          "PermissionBehavior": "Replace",
           "Permissions": [
             "ManageProducts",
-            "ViewProducts",
             "ViewOrders",
             "AccessAdminPanel"
           ]
@@ -77,17 +97,15 @@ public sealed class Permissions : IPermissionProvider
           "Description": "Can manage orders",
           "Permissions": [
             "ManageOrders",
-            "ViewOrders",
             "ViewProducts",
             "AccessAdminPanel"
           ]
         },
         {
-          "Name": "Customer",
-          "Description": "Registered customer with basic access",
+          "Name": "Authenticated",
+          "PermissionBehavior": "Add",
           "Permissions": [
-            "ViewProducts",
-            "ViewOwnOrders"
+            "ViewProducts"
           ]
         }
       ]
@@ -96,71 +114,9 @@ public sealed class Permissions : IPermissionProvider
 }
 ```
 
-## Example 3: Custom User Settings
+## Example 3: Role Manager With Read-Only Roles Access
 
-```csharp
-// Migration to create a custom user profile
-public int Create()
-{
-    _contentDefinitionManager.AlterTypeDefinition("UserProfile", type => type
-        .DisplayedAs("User Profile")
-        .Stereotype("CustomUserSettings")
-        .WithPart("UserProfile", part => part
-            .WithPosition("0")
-        )
-    );
-
-    _contentDefinitionManager.AlterPartDefinition("UserProfile", part => part
-        .WithField("FirstName", field => field
-            .OfType("TextField")
-            .WithDisplayName("First Name")
-            .WithPosition("0")
-        )
-        .WithField("LastName", field => field
-            .OfType("TextField")
-            .WithDisplayName("Last Name")
-            .WithPosition("1")
-        )
-        .WithField("ProfilePicture", field => field
-            .OfType("MediaField")
-            .WithDisplayName("Profile Picture")
-            .WithPosition("2")
-        )
-        .WithField("Bio", field => field
-            .OfType("TextField")
-            .WithDisplayName("Bio")
-            .WithEditor("TextArea")
-            .WithPosition("3")
-        )
-    );
-
-    return 1;
-}
-```
-
-## Example 4: Registration and Login Events
-
-Orchard Core 3.0 uses event contracts for registration and login
-customization:
-
-```csharp
-public sealed class RegistrationEvents : RegistrationFormEventsBase
-{
-    public override Task RegisteringAsync(UserRegisteringContext context)
-    {
-        return Task.CompletedTask;
-    }
-}
-```
-
-`ILoginFormEvent.ValidatingLoginAsync(IUser user)` validates a user during
-login. The external-login form action is now on
-`ExternalAuthenticationsController`, not `AccountController`.
-
-## Example 5: Explicit Role Assignment Permission
-
-`AssignRoleToUsers` is no longer implied by `EditUsers`. Include it explicitly
-when importing a role that must assign roles:
+`AssignRoleToUsers` is not implied by `EditUsers`, and `ViewRoles` grants read-only access to roles:
 
 ```json
 {
@@ -171,8 +127,11 @@ when importing a role that must assign roles:
         {
           "Name": "UserManager",
           "Permissions": [
+            "ListUsers",
             "EditUsers",
-            "AssignRoleToUsers"
+            "AssignRoleToUsers_Editor",
+            "ViewRoles",
+            "AccessAdminPanel"
           ]
         }
       ]
@@ -181,14 +140,91 @@ when importing a role that must assign roles:
 }
 ```
 
-Use `User | has_permission` in Liquid permission checks. Do not depend on
-permission claims for administrators.
+In code, build the same role-specific permission with `UsersPermissions.CreateAssignRoleToUsersPermission("Editor")`.
 
-## Example 6: Enable or Disable a User
+## Example 4: Login, Logout, and Registration Events
 
-Use the 3.0 user service methods instead of an edit-form checkbox:
+```csharp
+using Microsoft.Extensions.Logging;
+using OrchardCore.Users;
+using OrchardCore.Users.Events;
+
+namespace MyModule;
+
+public sealed class LogoutAuditEvent : LogoutFormEventBase
+{
+    private readonly ILogger _logger;
+
+    public LogoutAuditEvent(ILogger<LogoutAuditEvent> logger)
+    {
+        _logger = logger;
+    }
+
+    public override Task LoggedOutAsync(IUser user, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("User {UserName} signed out.", user?.UserName);
+
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class RegistrationEvents : RegistrationFormEventsBase
+{
+    public override Task RegisteringAsync(UserRegisteringContext context)
+    {
+        // Validate or change the registration context.
+        return Task.CompletedTask;
+    }
+}
+```
+
+```csharp
+services.AddScoped<ILogoutFormEvent, LogoutAuditEvent>();
+services.AddScoped<IRegistrationFormEvents, RegistrationEvents>();
+```
+
+## Example 5: Persistent Sign-In Without a Remember Me Checkbox
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "LoginSettings": {
+        "AllowRememberMe": false,
+        "UsePersistentAuthenticationCookie": true
+      }
+    }
+  ]
+}
+```
+
+Every local and external sign-in now survives browser restarts.
+
+## Example 6: External Login Scripts
+
+Generate a username from the external claims (**Generate username** script):
+
+```javascript
+var email = context.externalClaims.find(c => c.type.endsWith('/emailaddress'));
+context.userName = email ? email.value.split('@')[0] : '';
+```
+
+Sync roles on each external login (**Sync properties** script):
+
+```javascript
+if (context.loginProvider === 'Google' && context.userRoles.indexOf('Customer') === -1) {
+    context.rolesToAdd.push('Customer');
+}
+```
+
+Both scripts run against the `context` object that Orchard Core hands over through `externalLoginContext()`.
+
+## Example 7: Enable or Disable a User
 
 ```csharp
 await _userService.EnableAsync(user);
 await _userService.DisableAsync(user);
 ```
+
+Use `has_permission` in Liquid permission checks. Do not depend on permission claims for administrators.

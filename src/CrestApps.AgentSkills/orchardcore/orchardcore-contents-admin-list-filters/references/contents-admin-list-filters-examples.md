@@ -177,11 +177,20 @@ The matching card uses the `fa-bars` icon to signal **Multiple** capability:
 
 ## Example 3: Make a term a default term
 
-Allow the `product` term to be entered without its prefix (bare text is routed to it). Register it in `ContentsAdminListFilterOptions` and mark the card with the `fa-check` (**Default**) icon.
+Route bare text to the `producttext` term whenever the list is scoped to the `Product` content type (for example `/Admin/Contents/ContentItems/Product`). Map the content type (or a stereotype) to the term in `ContentsAdminListFilterOptions` and mark the card with the `fa-check` (**Default**) icon.
 
 ```csharp
+using OrchardCore.Contents;
+
 services.Configure<ContentsAdminListFilterOptions>(options =>
 {
-    options.DefaultTermNames.Add("product");
+    options.DefaultTermNames.Add("Product", "producttext");
 });
+```
+
+```html
+<span class="text-primary text-nowrap">
+    <i class="fa-solid fa-sm fa-check" title="@T["Default term - may be entered with or without the term name"]" aria-hidden="true"></i>
+    <i class="fa-solid fa-sm fa-bars" title="@T["Supports logical operators and groups"]" aria-hidden="true"></i>
+</span>
 ```

@@ -522,9 +522,6 @@
                                     "type": "boolean",
                                     "default": true,
                                     "description": "Sanitize HTML input."
-                                  },
-                                  "RenderLiquid": {
-                                    "type": "boolean"
                                   }
                                 },
                                 "additionalProperties": false
@@ -724,9 +721,6 @@
                                     "type": "boolean",
                                     "default": true,
                                     "description": "Sanitize rendered HTML output."
-                                  },
-                                  "RenderLiquid": {
-                                    "type": "boolean"
                                   }
                                 },
                                 "additionalProperties": false
@@ -1015,6 +1009,7 @@
                     "GeoPointField",
                     "HtmlField",
                     "LinkField",
+                    "LiquidField",
                     "LocalizationSetContentPickerField",
                     "MarkdownField",
                     "MediaField",
@@ -1351,9 +1346,6 @@
                                   },
                                   "SanitizeHtml": {
                                     "type": "boolean"
-                                  },
-                                  "RenderLiquid": {
-                                    "type": "boolean"
                                   }
                                 },
                                 "additionalProperties": false
@@ -1542,9 +1534,6 @@
                                     "type": "boolean"
                                   },
                                   "SanitizeHtml": {
-                                    "type": "boolean"
-                                  },
-                                  "RenderLiquid": {
                                     "type": "boolean"
                                   }
                                 },
@@ -1874,6 +1863,16 @@
                                   },
                                   "Placeholder": {
                                     "type": "string"
+                                  },
+                                  "MinLength": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Minimum text length validated on save. Empty or 0 means no limit."
+                                  },
+                                  "MaxLength": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Maximum text length validated on save. Empty or 0 means no limit."
                                   }
                                 },
                                 "additionalProperties": false

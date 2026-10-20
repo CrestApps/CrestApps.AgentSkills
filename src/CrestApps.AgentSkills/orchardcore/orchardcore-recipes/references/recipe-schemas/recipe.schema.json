@@ -14670,9 +14670,6 @@
                                                 "type": "boolean",
                                                 "default": true,
                                                 "description": "Sanitize HTML input."
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -14872,9 +14869,6 @@
                                                 "type": "boolean",
                                                 "default": true,
                                                 "description": "Sanitize rendered HTML output."
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -15163,6 +15157,7 @@
                                 "GeoPointField",
                                 "HtmlField",
                                 "LinkField",
+                                "LiquidField",
                                 "LocalizationSetContentPickerField",
                                 "MarkdownField",
                                 "MediaField",
@@ -15499,9 +15494,6 @@
                                               },
                                               "SanitizeHtml": {
                                                 "type": "boolean"
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -15690,9 +15682,6 @@
                                                 "type": "boolean"
                                               },
                                               "SanitizeHtml": {
-                                                "type": "boolean"
-                                              },
-                                              "RenderLiquid": {
                                                 "type": "boolean"
                                               }
                                             },
@@ -16022,6 +16011,16 @@
                                               },
                                               "Placeholder": {
                                                 "type": "string"
+                                              },
+                                              "MinLength": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "description": "Minimum text length validated on save. Empty or 0 means no limit."
+                                              },
+                                              "MaxLength": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "description": "Maximum text length validated on save. Empty or 0 means no limit."
                                               }
                                             },
                                             "additionalProperties": false
@@ -18829,11 +18828,16 @@
                       "OrchardCore.Contents.Deployment.Download",
                       "OrchardCore.Contents.Deployment.ExportContentToDeploymentTarget",
                       "OrchardCore.Contents.FileContentDefinition",
+                      "OrchardCore.Contents.QuickNavigation",
                       "OrchardCore.Contents.VersionPruning",
                       "OrchardCore.ContentTypes",
                       "OrchardCore.Cors",
                       "OrchardCore.CustomSettings",
                       "OrchardCore.DataLocalization",
+                      "OrchardCore.DataPipelines",
+                      "OrchardCore.DataPipelines.Core",
+                      "OrchardCore.DataPipelines.Ftp",
+                      "OrchardCore.DataPipelines.Sftp",
                       "OrchardCore.DataProtection.Azure",
                       "OrchardCore.Demo",
                       "OrchardCore.Demo.Foo",
@@ -18883,15 +18887,12 @@
                       "OrchardCore.Media.Azure.ImageSharpImageCache",
                       "OrchardCore.Media.Azure.Storage",
                       "OrchardCore.Media.Cache",
-                      "OrchardCore.Media.ImageSharpV3",
                       "OrchardCore.Media.Indexing",
                       "OrchardCore.Media.Indexing.OpenXML",
                       "OrchardCore.Media.Indexing.Pdf",
                       "OrchardCore.Media.Indexing.Text",
                       "OrchardCore.Media.Security",
                       "OrchardCore.Media.SignalR",
-                      "OrchardCore.Media.SignalR.Azure",
-                      "OrchardCore.Media.SignalR.Redis",
                       "OrchardCore.Media.Slugify",
                       "OrchardCore.Media.Tus",
                       "OrchardCore.Menu",
@@ -18951,6 +18952,9 @@
                       "OrchardCore.Setup",
                       "OrchardCore.Shortcodes",
                       "OrchardCore.Shortcodes.Templates",
+                      "OrchardCore.SignalR",
+                      "OrchardCore.SignalR.Azure",
+                      "OrchardCore.SignalR.Redis",
                       "OrchardCore.Sitemaps",
                       "OrchardCore.Sitemaps.Cleanup",
                       "OrchardCore.Sitemaps.RazorPages",
@@ -19108,11 +19112,16 @@
                       "OrchardCore.Contents.Deployment.Download",
                       "OrchardCore.Contents.Deployment.ExportContentToDeploymentTarget",
                       "OrchardCore.Contents.FileContentDefinition",
+                      "OrchardCore.Contents.QuickNavigation",
                       "OrchardCore.Contents.VersionPruning",
                       "OrchardCore.ContentTypes",
                       "OrchardCore.Cors",
                       "OrchardCore.CustomSettings",
                       "OrchardCore.DataLocalization",
+                      "OrchardCore.DataPipelines",
+                      "OrchardCore.DataPipelines.Core",
+                      "OrchardCore.DataPipelines.Ftp",
+                      "OrchardCore.DataPipelines.Sftp",
                       "OrchardCore.DataProtection.Azure",
                       "OrchardCore.Demo",
                       "OrchardCore.Demo.Foo",
@@ -19162,15 +19171,12 @@
                       "OrchardCore.Media.Azure.ImageSharpImageCache",
                       "OrchardCore.Media.Azure.Storage",
                       "OrchardCore.Media.Cache",
-                      "OrchardCore.Media.ImageSharpV3",
                       "OrchardCore.Media.Indexing",
                       "OrchardCore.Media.Indexing.OpenXML",
                       "OrchardCore.Media.Indexing.Pdf",
                       "OrchardCore.Media.Indexing.Text",
                       "OrchardCore.Media.Security",
                       "OrchardCore.Media.SignalR",
-                      "OrchardCore.Media.SignalR.Azure",
-                      "OrchardCore.Media.SignalR.Redis",
                       "OrchardCore.Media.Slugify",
                       "OrchardCore.Media.Tus",
                       "OrchardCore.Menu",
@@ -19230,6 +19236,9 @@
                       "OrchardCore.Setup",
                       "OrchardCore.Shortcodes",
                       "OrchardCore.Shortcodes.Templates",
+                      "OrchardCore.SignalR",
+                      "OrchardCore.SignalR.Azure",
+                      "OrchardCore.SignalR.Redis",
                       "OrchardCore.Sitemaps",
                       "OrchardCore.Sitemaps.Cleanup",
                       "OrchardCore.Sitemaps.RazorPages",
@@ -24590,6 +24599,11 @@
                   "type": "boolean",
                   "description": "Whether clients must use pushed authorization requests."
                 },
+                "RequireEndSessionConfirmation": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether users must confirm sign-out at the end session endpoint. Defaults to true when omitted."
+                },
                 "UseReferenceAccessTokens": {
                   "type": "boolean",
                   "description": "Whether reference access tokens should be issued instead of self-contained tokens."
@@ -25558,9 +25572,6 @@
                                                 "type": "boolean",
                                                 "default": true,
                                                 "description": "Sanitize HTML input."
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -25760,9 +25771,6 @@
                                                 "type": "boolean",
                                                 "default": true,
                                                 "description": "Sanitize rendered HTML output."
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -26051,6 +26059,7 @@
                                 "GeoPointField",
                                 "HtmlField",
                                 "LinkField",
+                                "LiquidField",
                                 "LocalizationSetContentPickerField",
                                 "MarkdownField",
                                 "MediaField",
@@ -26387,9 +26396,6 @@
                                               },
                                               "SanitizeHtml": {
                                                 "type": "boolean"
-                                              },
-                                              "RenderLiquid": {
-                                                "type": "boolean"
                                               }
                                             },
                                             "additionalProperties": false
@@ -26578,9 +26584,6 @@
                                                 "type": "boolean"
                                               },
                                               "SanitizeHtml": {
-                                                "type": "boolean"
-                                              },
-                                              "RenderLiquid": {
                                                 "type": "boolean"
                                               }
                                             },
@@ -26910,6 +26913,16 @@
                                               },
                                               "Placeholder": {
                                                 "type": "string"
+                                              },
+                                              "MinLength": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "description": "Minimum text length validated on save. Empty or 0 means no limit."
+                                              },
+                                              "MaxLength": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "description": "Maximum text length validated on save. Empty or 0 means no limit."
                                               }
                                             },
                                             "additionalProperties": false
@@ -27498,6 +27511,18 @@
                   "type": "integer",
                   "description": "Default page size used by Orchard lists and queries."
                 },
+                "AllowPageSizeSelection": {
+                  "type": "boolean",
+                  "description": "Whether listing pages render an Items per page selector."
+                },
+                "PageSizeOptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "description": "The page sizes users can select when AllowPageSizeSelection is enabled. Defaults to 10, 25, 50, 100."
+                },
                 "ResourceDebugMode": {
                   "type": "string",
                   "enum": [
@@ -27675,6 +27700,11 @@
                       "type": "boolean",
                       "description": "Whether to display the menu filter input in the admin navigation."
                     },
+                    "DisplayQuickNavigation": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Whether to display the quick navigation palette (Ctrl\u002BK) in the admin navbar."
+                    },
                     "DisplayNewMenu": {
                       "type": "boolean",
                       "description": "Whether to display the \u0027New\u0027 menu in the admin navigation."
@@ -27682,6 +27712,39 @@
                     "DisplayTitlesInTopbar": {
                       "type": "boolean",
                       "description": "Whether to display page titles in the top bar."
+                    },
+                    "ShowBreadcrumb": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Whether to display the breadcrumb trail above admin page titles."
+                    },
+                    "MenuBehavior": {
+                      "type": "string",
+                      "enum": [
+                        "Focused",
+                        "Persistent"
+                      ],
+                      "description": "How the admin menu sections open and close. Defaults to Focused."
+                    },
+                    "ListLayout": {
+                      "type": "string",
+                      "enum": [
+                        "List",
+                        "Grid"
+                      ],
+                      "description": "The layout of admin lists. When omitted, the configured AdminListOptions.DefaultLayout is used."
+                    },
+                    "ListActionsLayout": {
+                      "type": "string",
+                      "enum": [
+                        "Buttons",
+                        "Menu"
+                      ],
+                      "description": "The layout of the row actions of admin lists. When omitted, AdminListOptions.DefaultActionsLayout is used."
+                    },
+                    "AllowUserListLayoutSelection": {
+                      "type": "boolean",
+                      "description": "Whether each admin list shows a List/Grid selector whose choice is kept per user in a cookie."
                     }
                   },
                   "additionalProperties": false
@@ -28560,6 +28623,10 @@
                       "description": "Whether to allow users to be remembered across browser sessions during login.",
                       "default": true
                     },
+                    "UsePersistentAuthenticationCookie": {
+                      "type": "boolean",
+                      "description": "Whether sign-ins use persistent authentication cookies by default (the Remember me default, or every sign-in when Remember me is not allowed)."
+                    },
                     "AllowChangingUsername": {
                       "type": "boolean",
                       "description": "Whether to allow users to change their username."
@@ -28814,6 +28881,11 @@
                     "RequirePushedAuthorizationRequests": {
                       "type": "boolean",
                       "description": "Whether to require pushed authorization requests (PAR)."
+                    },
+                    "RequireEndSessionConfirmation": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Whether users must confirm sign-out at the end session endpoint. Defaults to true when omitted."
                     }
                   },
                   "additionalProperties": false
