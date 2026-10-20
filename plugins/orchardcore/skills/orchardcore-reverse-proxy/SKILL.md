@@ -1,144 +1,69 @@
 ---
 name: orchardcore-reverse-proxy
-description: Skill for configuring reverse proxy support in Orchard Core. Covers forwarded headers middleware (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host), configuration sources (admin UI vs file-based), security considerations for trusted proxies, and multi-tenancy forwarding. Use this skill when requests mention Orchard Core Reverse Proxy, Configure Reverse Proxy Support, Enabling the Reverse Proxy Feature, Configuration Options, Admin UI Configuration (Scenario 1), File-Based Configuration (Scenario 2), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ReverseProxy, ConfigureReverseProxySettings, OrchardCoreBuilder, CreateBuilder, appsettings.json. It also helps with Admin UI Configuration (Scenario 1), File-Based Configuration (Scenario 2), Partial Override Configuration (Scenario 3), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring reverse proxy support in Orchard Core. Covers the forwarded headers middleware (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Prefix), ReverseProxySettings in the admin UI and the settings recipe step, the OrchardCore ReverseProxy configuration section with ConfigureReverseProxySettings, KnownProxies and KnownNetworks, multi-tenant configuration, deployment, and the effect on HTTPS redirection, rate limiting and OpenID URLs. Use this skill when requests mention Orchard Core Reverse Proxy, forwarded headers, load balancers, nginx, Azure Front Door, client IP behind a proxy, ReverseProxySettings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ReverseProxy, ConfigureReverseProxySettings, ForwardedHeadersOptions, ManageReverseProxySettings, OrchardCoreBuilder, and appsettings.json.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Reverse Proxy - Prompt Templates
 
 ## Configure Reverse Proxy Support
 
-You are an Orchard Core expert. Generate configuration and code for reverse proxy scenarios including forwarded headers, trusted proxy networks, and multi-tenant deployments behind load balancers or reverse proxies.
+You are an Orchard Core expert. Generate configuration and code for reverse proxy scenarios including forwarded headers, trusted proxy networks, and multi-tenant deployments behind load balancers.
 
 ### Guidelines
 
-- Enable `OrchardCore.ReverseProxy` to configure forwarded headers middleware.
-- Forwarded headers include `X-Forwarded-For` (client IP), `X-Forwarded-Host` (original host), and `X-Forwarded-Proto` (original protocol).
-- Configuration can be managed via the admin UI at **Settings → Reverse Proxy** or through `appsettings.json`.
-- Call `ConfigureReverseProxySettings()` on `OrchardCoreBuilder` to enable file-based configuration.
-- Always configure `KnownProxies` and `KnownNetworks` in production to prevent IP spoofing.
-- `KnownNetworks` values must use CIDR notation (e.g., `192.168.1.0/24`).
-- Configuration file values take precedence over admin UI settings when `ConfigureReverseProxySettings()` is called.
-- Admin UI settings are tenant-specific; file-based settings apply to all tenants unless placed in tenant-specific `appsettings.json`.
+- Enable `OrchardCore.ReverseProxy` per tenant. It calls `UseForwardedHeaders()` early in the tenant pipeline using `ReverseProxySettings`.
+- Manage the settings at **Settings → Reverse Proxy** (permission `ManageReverseProxySettings`), with the `settings` recipe step, or from configuration.
+- Call `ConfigureReverseProxySettings()` on the `OrchardCoreBuilder` to read the `OrchardCore:ReverseProxy` section. Configuration values override the admin values property by property, and the admin page shows a warning.
+- `ForwardedHeaders` accepts `None`, `XForwardedFor`, `XForwardedHost`, `XForwardedProto`, `XForwardedPrefix`, `All`, or a comma-separated combination.
+- `KnownNetworks` uses CIDR notation; `KnownProxies` uses IP addresses. The module replaces the ASP.NET Core defaults with these lists, and when both are empty, forwarded headers are accepted from any sender. Always set them in production.
+- The forwarded client IP feeds `orchardcore-rate-limits` partitions, audit trail, and login logging; the forwarded scheme and host affect `orchardcore-https` redirection and OpenID issuer and redirect URIs.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
-- All C# classes must use the `sealed` modifier.
+- All C# classes must use the `sealed` modifier, except View Models.
 
-### Enabling the Reverse Proxy Feature
+### Enabling and Configuring via Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "Feature",
+      "name": "feature",
       "enable": [
         "OrchardCore.ReverseProxy"
-      ],
-      "disable": []
+      ]
+    },
+    {
+      "name": "settings",
+      "ReverseProxySettings": {
+        "ForwardedHeaders": "XForwardedFor, XForwardedProto",
+        "KnownNetworks": [ "10.0.0.0/8" ],
+        "KnownProxies": [ "10.0.0.4" ]
+      }
     }
   ]
 }
 ```
 
+With `OrchardCore.Deployment` enabled, the **Reverse Proxy settings** deployment step exports the same `ReverseProxySettings` object.
+
 ### Configuration Options
 
 | Setting | Description | Example Values |
 |---------|-------------|----------------|
-| `ForwardedHeaders` | Specifies which headers to forward | `None`, `XForwardedFor`, `XForwardedHost`, `XForwardedProto`, `XForwardedPrefix`, `All`, or comma-separated combination |
-| `KnownNetworks` | Array of known proxy networks in CIDR notation | `["192.168.1.0/24", "10.0.0.0/8"]` |
-| `KnownProxies` | Array of known proxy IP addresses | `["192.168.1.200", "192.168.1.201"]` |
+| `ForwardedHeaders` | Headers to process | `XForwardedFor, XForwardedHost, XForwardedProto`, `All` |
+| `KnownNetworks` | Trusted proxy networks in CIDR notation | `["192.168.1.0/24", "10.0.0.0/8"]` |
+| `KnownProxies` | Trusted proxy IP addresses | `["192.168.1.200", "192.168.1.201"]` |
 
-### Admin UI Configuration (Scenario 1)
-
-When `ConfigureReverseProxySettings()` is **not** called, all settings are managed through the admin UI at **Settings → Reverse Proxy**. The available options are:
-
-- **X-Forwarded-For**: Enables forwarding of the client IP address.
-- **X-Forwarded-Host**: Enables forwarding of the original host requested by the client.
-- **X-Forwarded-Proto**: Enables forwarding of the protocol (HTTP or HTTPS) used by the client.
-
-These settings are stored in the site configuration and are managed per tenant.
-
-### File-Based Configuration (Scenario 2)
-
-To use configuration from `appsettings.json`, call `ConfigureReverseProxySettings()` in `Program.cs`:
-
-```csharp
-builder.Services.AddOrchardCms()
-    .ConfigureReverseProxySettings();
-```
-
-Then add the configuration section to `appsettings.json`:
-
-```json
-{
-  "OrchardCore_ReverseProxy": {
-    "ForwardedHeaders": "XForwardedFor, XForwardedHost, XForwardedProto",
-    "KnownNetworks": ["192.168.1.0/24"],
-    "KnownProxies": ["192.168.1.200", "192.168.1.201"]
-  }
-}
-```
-
-### Partial Override Configuration (Scenario 3)
-
-When `ConfigureReverseProxySettings()` is called and only some settings are specified in `appsettings.json`, the configuration file values are **merged** with admin UI values. Only the specified config file properties override the admin values:
-
-```json
-{
-  "OrchardCore_ReverseProxy": {
-    "KnownProxies": ["10.0.0.1"]
-  }
-}
-```
-
-In this example, `KnownProxies` comes from the config file while `ForwardedHeaders` and `KnownNetworks` come from the admin UI.
-
-### Forward All Headers with Full Proxy Configuration
-
-```json
-{
-  "OrchardCore_ReverseProxy": {
-    "ForwardedHeaders": "All",
-    "KnownNetworks": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
-    "KnownProxies": ["10.0.0.1", "10.0.0.2"]
-  }
-}
-```
-
-### Security Considerations
-
-Improperly configured reverse proxy settings can expose the application to IP spoofing and header injection attacks. Follow these rules:
-
-1. **Always configure `KnownProxies` and `KnownNetworks`** when using forwarded headers in production.
-2. **Only trust headers from known proxies** — do not use `All` without specifying known networks.
-3. **Use CIDR notation carefully** to avoid trusting untrusted networks.
-4. **Test your configuration** to verify that client IPs and protocols are forwarded correctly.
-
-### Multi-Tenant Considerations
-
-- Admin UI settings are **tenant-specific** — each tenant can have its own reverse proxy configuration.
-- File-based settings in the main `appsettings.json` apply to **all tenants**.
-- For tenant-specific file-based settings, use the tenant's configuration file:
-
-```
-App_Data/Sites/{TenantName}/appsettings.json
-```
-
-Example tenant-specific override:
-
-```json
-{
-  "OrchardCore_ReverseProxy": {
-    "ForwardedHeaders": "XForwardedFor, XForwardedProto",
-    "KnownProxies": ["10.0.1.100"]
-  }
-}
-```
-
-### Complete Program.cs Example Behind a Load Balancer
+### File-Based Configuration
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOrchardCms()
+builder.Services
+    .AddOrchardCms()
     .ConfigureReverseProxySettings();
 
 var app = builder.Build();
@@ -148,14 +73,64 @@ app.UseOrchardCore();
 app.Run();
 ```
 
-With the corresponding `appsettings.json`:
-
 ```json
 {
-  "OrchardCore_ReverseProxy": {
-    "ForwardedHeaders": "XForwardedFor, XForwardedHost, XForwardedProto",
-    "KnownNetworks": ["10.0.0.0/8"],
-    "KnownProxies": ["10.0.0.1"]
+  "OrchardCore": {
+    "ReverseProxy": {
+      "ForwardedHeaders": "XForwardedFor, XForwardedHost, XForwardedProto",
+      "KnownNetworks": [ "10.0.0.0/8" ],
+      "KnownProxies": [ "10.0.0.1" ]
+    }
   }
 }
 ```
+
+Environment variables:
+
+```text
+OrchardCore__ReverseProxy__ForwardedHeaders=XForwardedFor, XForwardedProto
+OrchardCore__ReverseProxy__KnownProxies__0=10.0.0.1
+```
+
+### Partial Override
+
+Only the properties present in configuration override the admin values:
+
+```json
+{
+  "OrchardCore": {
+    "ReverseProxy": {
+      "KnownProxies": [ "10.0.0.1" ]
+    }
+  }
+}
+```
+
+Here `KnownProxies` comes from configuration while `ForwardedHeaders` and `KnownNetworks` come from the admin UI.
+
+### Multi-Tenant Considerations
+
+- Admin and recipe settings are tenant-specific.
+- The section in the application `appsettings.json` applies to every tenant. Put tenant-specific values in `App_Data/Sites/{TenantName}/appsettings.json` or use `OrchardCore__{TenantName}__ReverseProxy__...` environment variables.
+- Tenant `appsettings.json` files are not wrapped in an `OrchardCore` section:
+
+```json
+{
+  "ReverseProxy": {
+    "ForwardedHeaders": "XForwardedFor, XForwardedProto",
+    "KnownProxies": [ "10.0.1.100" ]
+  }
+}
+```
+
+### Security Considerations
+
+1. Always configure `KnownProxies` and/or `KnownNetworks`; empty lists trust forwarded headers from any client, which allows IP spoofing that bypasses rate limits and pollutes audit data.
+2. Forward only the headers the proxy actually sets. `XForwardedHost` lets callers choose the host used to resolve tenants and build absolute URLs.
+3. Keep CIDR ranges narrow; do not trust whole public ranges.
+4. Verify with a request that `HttpContext.Connection.RemoteIpAddress` and `Request.Scheme` show the client IP and `https`.
+
+### Upgrading from 3.x
+
+- Rename the `OrchardCore_ReverseProxy` section to `OrchardCore:ReverseProxy` (environment variable prefix `OrchardCore__ReverseProxy__`). The old name still works but is deprecated; when both exist, the new name wins.
+- In the application `appsettings.json` the section is nested under `OrchardCore`; in a tenant `App_Data/Sites/{TenantName}/appsettings.json` it sits at the root as `ReverseProxy`.

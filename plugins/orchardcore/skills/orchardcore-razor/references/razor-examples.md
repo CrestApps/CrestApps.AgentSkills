@@ -10,9 +10,9 @@
 @addTagHelper *, OrchardCore.DisplayManagement
 @addTagHelper *, OrchardCore.ResourceManagement
 @addTagHelper *, OrchardCore.Menu
-@addTagHelper *, OrchardCore.Contents
+@addTagHelper *, OrchardCore.Contents.TagHelpers
 @addTagHelper *, OrchardCore.Media
-@using OrchardCore
+@addTagHelper *, OrchardCore.DynamicCache
 @using OrchardCore.DisplayManagement
 @using OrchardCore.DisplayManagement.Shapes
 @using OrchardCore.ContentManagement
@@ -31,62 +31,62 @@
 
 ```cshtml
 @{
-    var body = await RenderBodyAsync();
+    // Pre-render zones that register resources, so their scripts and styles
+    // are known before <resources type="Header" /> runs.
+    var navigation = await RenderSectionAsync("Navigation", required: false);
 }
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="@Orchard.CultureName()" dir="@Orchard.CultureDir()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@RenderTitleSegments(Site.SiteName, " - ")</title>
-    <resources type="Meta" />
-    <style asp-name="MyTheme"></style>
-    <resources type="HeadLink" />
-    <resources type="HeadScript" />
-    <resources type="Stylesheet" />
+    <title>@RenderTitleSegments(Site.SiteName, "before")</title>
+    <style asp-name="bootstrap" version="5" at="Head"></style>
+    <style asp-name="MyTheme" at="Head"></style>
+    <script asp-name="bootstrap" version="5" at="Foot"></script>
+    <script asp-name="MyTheme" at="Foot"></script>
+    <resources type="Header" />
+    @await RenderSectionAsync("HeadMeta", required: false)
 </head>
 <body>
     <header>
-        @if (Model.Navigation != null)
-        {
-            <nav class="navbar">
-                <div class="container">
-                    <a class="navbar-brand" href="~/">@Site.SiteName</a>
-                    <zone name="Navigation" />
-                </div>
-            </nav>
-        }
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <a class="navbar-brand" href="~/">@Site.SiteName</a>
+                <menu alias="alias:main-menu" cache-id="main-menu" cache-fixed-duration="00:05:00" cache-tag="alias:main-menu" cache-context="user.roles" />
+                @navigation
+            </div>
+        </nav>
     </header>
 
-    @if (Model.BeforeContent != null)
+    @if (IsSectionDefined("BeforeContent"))
     {
         <div class="before-content">
-            <zone name="BeforeContent" />
+            @await RenderSectionAsync("BeforeContent", required: false)
         </div>
     }
 
     <main class="container">
         <div class="row">
-            <div class="@(Model.Sidebar != null ? "col-md-8" : "col-md-12")">
-                <zone name="Content">
-                    @body
-                </zone>
+            <div class="@(IsSectionDefined("Sidebar") ? "col-md-8" : "col-md-12")">
+                @await RenderSectionAsync("Messages", required: false)
+                @await RenderBodyAsync()
             </div>
 
-            @if (Model.Sidebar != null)
+            @if (IsSectionDefined("Sidebar"))
             {
                 <aside class="col-md-4">
-                    <zone name="Sidebar" />
+                    @await RenderSectionAsync("Sidebar", required: false)
                 </aside>
             }
         </div>
     </main>
 
-    @if (Model.Footer != null)
+    @if (IsSectionDefined("Footer"))
     {
         <footer class="site-footer">
             <div class="container">
-                <zone name="Footer" />
+                @await RenderSectionAsync("Footer", required: false)
             </div>
         </footer>
     }
@@ -112,12 +112,14 @@ public sealed class ResourceManagementOptionsConfiguration
         _manifest = new ResourceManifest();
 
         _manifest.DefineStyle("MyTheme")
-            .SetUrl("~/MyTheme/css/site.min.css", "~/MyTheme/css/site.css");
+            .SetUrl("~/MyTheme/css/site.min.css", "~/MyTheme/css/site.css")
+            .SetDependencies("bootstrap:5")
+            .SetVersion("1.0.0");
 
         _manifest.DefineScript("MyTheme")
             .SetUrl("~/MyTheme/js/site.min.js", "~/MyTheme/js/site.js")
-            .SetDependencies("jQuery")
-            .SetPosition("Foot");
+            .SetDependencies("bootstrap:5")
+            .SetVersion("1.0.0");
     }
 
     public void Configure(ResourceManagementOptions options)
@@ -126,6 +128,8 @@ public sealed class ResourceManagementOptionsConfiguration
     }
 }
 ```
+
+The script's location is chosen when it is required (`at="Foot"` in the layout), not in the manifest.
 
 ### Startup.cs
 
@@ -141,7 +145,7 @@ public sealed class Startup : StartupBase
 
 ## Example 2: Blog Post Detail Template
 
-This template overrides the shape for a `BlogPost` content type rendered in `Detail` display type.
+This template overrides the shape for a `BlogPost` content type rendered in `Detail` display type (`Content_Detail__BlogPost`; `Content-BlogPost.cshtml` also matches the detail page).
 
 ### Views/Content-BlogPost.Detail.cshtml
 
@@ -149,9 +153,9 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 @using OrchardCore.ContentManagement
 
 @{
-    var contentItem = Model.ContentItem as ContentItem;
+    var contentItem = (ContentItem)Model.ContentItem;
     var blogPostPart = contentItem.Content.BlogPost;
-    var imagePaths = blogPostPart?.Image?.Paths;
+    var imagePath = blogPostPart?.Image?.Paths?[0]?.ToString();
     var subtitle = blogPostPart?.Subtitle?.Text?.ToString();
 }
 
@@ -165,17 +169,17 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
         }
 
         <div class="meta text-muted">
-            <date-time utc="@contentItem.PublishedUtc" format="MMMM dd, yyyy" />
+            <datetime utc="@contentItem.PublishedUtc" format="MMMM dd, yyyy" />
         </div>
     </header>
 
-    @if (imagePaths != null && imagePaths.Count > 0)
+    @if (!string.IsNullOrEmpty(imagePath))
     {
         <div class="featured-image">
-            <img asp-src="@imagePaths[0]"
-                 asp-resize-width="1200"
-                 asp-resize-height="630"
-                 asp-resize-mode="Crop"
+            <img asset-src="@imagePath"
+                 img-width="1200"
+                 img-height="630"
+                 img-resize-mode="Crop"
                  alt="@contentItem.DisplayText"
                  class="img-fluid rounded" />
         </div>
@@ -195,26 +199,26 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 @using OrchardCore.ContentManagement
 
 @{
-    var contentItem = Model.ContentItem as ContentItem;
+    var contentItem = (ContentItem)Model.ContentItem;
     var blogPostPart = contentItem.Content.BlogPost;
-    var imagePaths = blogPostPart?.Image?.Paths;
+    var imagePath = blogPostPart?.Image?.Paths?[0]?.ToString();
     var subtitle = blogPostPart?.Subtitle?.Text?.ToString();
 }
 
 <article class="card mb-4">
-    @if (imagePaths != null && imagePaths.Count > 0)
+    @if (!string.IsNullOrEmpty(imagePath))
     {
-        <img asp-src="@imagePaths[0]"
-             asp-resize-width="400"
-             asp-resize-height="250"
-             asp-resize-mode="Crop"
+        <img asset-src="@imagePath"
+             img-width="400"
+             img-height="250"
+             img-resize-mode="Crop"
              class="card-img-top"
              alt="@contentItem.DisplayText" />
     }
 
     <div class="card-body">
         <h2 class="card-title">
-            <a href="@Url.DisplayContentItem(contentItem)">@contentItem.DisplayText</a>
+            <a display-for="@contentItem">@contentItem.DisplayText</a>
         </h2>
 
         @if (!string.IsNullOrEmpty(subtitle))
@@ -224,7 +228,7 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 
         <div class="card-text">
             <small class="text-muted">
-                <date-time utc="@contentItem.PublishedUtc" format="MMM dd, yyyy" />
+                <datetime utc="@contentItem.PublishedUtc" format="MMM dd, yyyy" />
             </small>
         </div>
     </div>
@@ -233,22 +237,24 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 
 ## Example 4: Widget Template with Caching
 
-### Views/Content-HeroBanner.cshtml
+### Views/Widget-HeroBanner.cshtml
 
 ```cshtml
 @using OrchardCore.ContentManagement
 
 @{
-    var contentItem = Model.ContentItem as ContentItem;
+    var contentItem = (ContentItem)Model.ContentItem;
     var heroPart = contentItem.Content.HeroBanner;
     var heading = heroPart?.Heading?.Text?.ToString();
-    var bgImagePaths = heroPart?.BackgroundImage?.Paths;
+    var bgImagePath = heroPart?.BackgroundImage?.Paths?[0]?.ToString();
     var ctaUrl = heroPart?.CallToAction?.Url?.ToString();
     var ctaText = heroPart?.CallToAction?.Text?.ToString();
 }
 
-<cache expires-after="@TimeSpan.FromMinutes(30)" vary-by="@contentItem.ContentItemVersionId">
-    <section class="hero-banner" style="@(bgImagePaths != null && bgImagePaths.Count > 0 ? $"background-image: url('{bgImagePaths[0]}')" : "")">
+<dynamic-cache cache-id="hero-banner-@contentItem.ContentItemId"
+               dependencies="contentitemid:@contentItem.ContentItemId"
+               expires-after="00:30:00">
+    <section class="hero-banner" style="@(!string.IsNullOrEmpty(bgImagePath) ? $"background-image: url('{Orchard.AssetUrl(bgImagePath)}')" : "")">
         <div class="container text-center">
             @if (!string.IsNullOrEmpty(heading))
             {
@@ -263,8 +269,10 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
             }
         </div>
     </section>
-</cache>
+</dynamic-cache>
 ```
+
+The `contentitemid:` dependency invalidates the cached markup when the widget is published, unpublished, or removed.
 
 ## Example 5: Querying Content Items in a Razor View
 
@@ -283,9 +291,9 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
             @foreach (var post in recentPosts)
             {
                 <li>
-                    <a href="@Url.DisplayContentItem(post)">@post.DisplayText</a>
+                    <a display-for="@post">@post.DisplayText</a>
                     <small class="text-muted">
-                        <date-time utc="@post.PublishedUtc" format="MMM dd, yyyy" />
+                        <datetime utc="@post.PublishedUtc" format="MMM dd, yyyy" />
                     </small>
                 </li>
             }
@@ -294,50 +302,26 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 }
 ```
 
-## Example 6: Menu Rendering in a Theme
+## Example 6: Pushing Content into a Layout Zone
 
-### Views/Layout.cshtml (Navigation Section)
-
-```cshtml
-@if (Model.Navigation != null)
-{
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="~/">@Site.SiteName</a>
-            <button class="navbar-toggler" type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <zone name="Navigation" />
-            </div>
-        </div>
-    </nav>
-}
-```
-
-### Custom Menu Shape Override: Views/MenuItemLink.cshtml
+From any content template, add markup to a zone rendered by the layout:
 
 ```cshtml
-@{
-    var tag = (TagBuilder)Model.Tag;
-}
-<li class="nav-item">
-    @{
-        tag.AddCssClass("nav-link");
-    }
-    @tag
-</li>
+<zone name="Sidebar" position="1">
+    <div class="card">
+        <div class="card-body">@T["Related reading"]</div>
+    </div>
+</zone>
 ```
+
+The layout renders it with `@await RenderSectionAsync("Sidebar", required: false)`.
 
 ## Example 7: Shape with Inline Resources
 
-### Views/Parts/ContactForm.cshtml
+### Views/ContactForm.cshtml
 
 ```cshtml
-<style asp-name="ContactFormStyles"></style>
-<script asp-name="ContactFormScript" depends-on="jQuery" at="Foot"></script>
+<style asp-name="ContactFormStyles" asp-src="~/MyTheme/css/contact.min.css" debug-src="~/MyTheme/css/contact.css" at="Head"></style>
 
 <div class="contact-form">
     <h2>Contact Us</h2>
@@ -367,32 +351,34 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 </script>
 ```
 
+If a script needs jQuery, require it explicitly (`<script asp-name="jQuery" at="Foot"></script>` or `depends-on="jQuery"`); Orchard Core 4.0 admin and theme scripts no longer pull it in.
+
 ## Example 8: Content Picker and Related Items
 
-### Views/Parts/RelatedArticles.cshtml
+### Views/Content-Article.cshtml (fragment)
 
 ```cshtml
+@using OrchardCore.ContentFields.Fields
 @using OrchardCore.ContentManagement
 
 @{
-    var contentItem = Model.ContentItem as ContentItem;
-    var relatedIds = contentItem.Content.ArticlePart?.RelatedArticles?.ContentItemIds?.ToObject<string[]>();
+    var contentItem = (ContentItem)Model.ContentItem;
+    var relatedField = contentItem.Get<ContentPart>("Article")?.Get<ContentPickerField>("RelatedArticles");
+    var related = relatedField?.ContentItemIds?.Length > 0
+        ? await Orchard.GetContentItemsByIdAsync(relatedField.ContentItemIds)
+        : Enumerable.Empty<ContentItem>();
 }
 
-@if (relatedIds != null && relatedIds.Length > 0)
+@if (related.Any())
 {
     <aside class="related-articles">
         <h3>Related Articles</h3>
         <div class="row">
-            @foreach (var id in relatedIds)
+            @foreach (var item in related)
             {
-                var related = await Orchard.GetContentItemByIdAsync(id);
-                if (related != null)
-                {
-                    <div class="col-md-4">
-                        @await Orchard.DisplayContentItemAsync(related, "Summary")
-                    </div>
-                }
+                <div class="col-md-4">
+                    @await Orchard.DisplayAsync(item, "Summary")
+                </div>
             }
         </div>
     </aside>
@@ -405,18 +391,18 @@ This template overrides the shape for a `BlogPost` content type rendered in `Det
 {
     "steps": [
         {
+            "name": "Feature",
+            "enable": [
+                "OrchardCore.Resources",
+                "OrchardCore.Menu",
+                "OrchardCore.Media",
+                "OrchardCore.DynamicCache"
+            ]
+        },
+        {
             "name": "Themes",
             "Site": "MyCustomTheme",
             "Admin": "TheAdmin"
-        },
-        {
-            "name": "Feature",
-            "enable": [
-                "MyCustomTheme",
-                "OrchardCore.Resources",
-                "OrchardCore.Menu",
-                "OrchardCore.Media"
-            ]
         }
     ]
 }
@@ -428,46 +414,51 @@ Orchard Core resolves shape templates using naming conventions. Override specifi
 
 ### Shape Naming Convention
 
-| Shape Type | File Name | Description |
+| Canonical alternate | File Name | Description |
 |---|---|---|
 | `Content` | `Content.cshtml` | Default content item rendering |
-| `Content-BlogPost` | `Content-BlogPost.cshtml` | Content type-specific override |
-| `Content-BlogPost.Detail` | `Content-BlogPost.Detail.cshtml` | Content type + display type override |
-| `Content-BlogPost.Summary` | `Content-BlogPost.Summary.cshtml` | Summary display type override |
-| `Content__owned` | `Content-owned.cshtml` | Stereotype-based override |
+| `Content__BlogPost` | `Content-BlogPost.cshtml` | Content type-specific override |
+| `Content_Detail__BlogPost` | `Content-BlogPost.Detail.cshtml` | Content type + `Detail` display type |
+| `Content_Summary__BlogPost` | `Content-BlogPost.Summary.cshtml` | Content type + `Summary` display type |
+| `Content__Alias__about` | `Content-Alias-about.cshtml` | One content item by alias |
 | `Widget` | `Widget.cshtml` | Default widget wrapper |
-| `Widget-HeroBanner` | `Widget-HeroBanner.cshtml` | Widget content type override |
+| `Widget__HeroBanner` | `Widget-HeroBanner.cshtml` | Widget content type override |
 
-### Custom Placement via Placement.json
+### Custom Placement via placement.json
 
-Control where parts and fields render within the content shape zones:
+Control where parts and fields render within the content shape zones. Keys are shape types:
 
 ```json
-[
-    {
-        "place": "Content:0",
-        "contentType": ["BlogPost"],
-        "contentPart": ["TitlePart"]
-    },
-    {
-        "place": "Content:1",
-        "contentType": ["BlogPost"],
-        "contentPart": ["HtmlBodyPart"]
-    },
-    {
-        "place": "Content:2#secondary",
-        "contentType": ["BlogPost"],
-        "contentPart": ["BlogPost"],
-        "differentiator": "Tags"
-    },
-    {
-        "place": "-",
-        "contentType": ["BlogPost"],
-        "contentPart": ["CommonPart"]
-    }
-]
+{
+    "TitlePart": [
+        {
+            "place": "Header:0",
+            "contentType": ["BlogPost"],
+            "displayType": "Detail"
+        }
+    ],
+    "HtmlBodyPart": [
+        {
+            "place": "Content:1",
+            "contentType": ["BlogPost"],
+            "displayType": "Detail"
+        },
+        {
+            "place": "-",
+            "contentType": ["BlogPost"],
+            "displayType": "Summary"
+        }
+    ],
+    "TaxonomyField": [
+        {
+            "place": "Meta:2",
+            "contentType": ["BlogPost"],
+            "differentiator": "BlogPost-Tags"
+        }
+    ]
+}
 ```
 
-- `Content:0` places the shape in the `Content` zone at position `0`.
-- `Content:2#secondary` places the shape in position `2` within the `secondary` tab group.
+- `Header:0` places the shape in the `Header` zone of the content shape at position `0`.
+- Field shapes are targeted with the `{PartName}-{FieldName}` differentiator.
 - `"-"` hides the shape entirely.

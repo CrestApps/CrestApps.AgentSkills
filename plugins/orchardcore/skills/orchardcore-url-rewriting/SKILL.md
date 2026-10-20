@@ -1,6 +1,10 @@
 ---
 name: orchardcore-url-rewriting
-description: Skill for configuring URL rewriting in Orchard Core. Covers redirect vs rewrite rules, regex pattern matching, rule source implementation, display drivers for custom rule types, recipe-based rule configuration, and URL rewriting best practices. Use this skill when requests mention Orchard Core URL Rewriting, Configure URL Rewriting and Redirects, Enabling URL Rewriting, Available Rule Types, Redirect Rule Properties, Rewrite Rule Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.UrlRewriting, OrchardCore.UrlRewriting.Models, OrchardCore.UrlRewriting.Services, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views, OrchardCore.Modules, IUrlRewriteRuleSource, CustomRule. It also helps with Redirect Rule Properties, Rewrite Rule Properties, Redirect Type Reference, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring URL rewriting in Orchard Core. Covers redirect vs rewrite rules, regex pattern matching, Apache mod_rewrite flags, admin path exclusion, rule ordering with drag-and-drop in List and Grid admin list layouts, the ManageUrlRewritingRules permission, custom rule sources, IRewriteRuleHandler, display drivers for custom rule types, and the UrlRewriting recipe step. Use this skill when requests mention Orchard Core URL Rewriting, redirects, 301 or 302 redirects, rewrite rules, Redirect Rule Properties, Rewrite Rule Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.UrlRewriting, OrchardCore.UrlRewriting.Models, IUrlRewriteRuleSource, IRewriteRulesManager, RewriteRuleHandlerBase, AddRewriteRuleSource, RewriteRule, QueryStringPolicy, and RedirectType.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core URL Rewriting - Prompt Templates
@@ -11,8 +15,9 @@ You are an Orchard Core expert. Generate URL rewrite rules, redirect configurati
 
 ### Guidelines
 
-- Enable `OrchardCore.UrlRewriting` for URL rewrite and redirect support.
-- Rules are processed sequentially based on their position; the first matching rule wins.
+- Enable `OrchardCore.UrlRewriting` for URL rewrite and redirect support. Manage rules under **Tools > URL Rewriting**; this requires the `ManageUrlRewritingRules` permission (`OrchardCore.UrlRewriting.UrlRewritingPermissions.ManageUrlRewritingRules`).
+- Rules are processed sequentially by `Order` (then creation date). Each rule is translated to an ASP.NET Core Apache mod_rewrite rule (`RewriteRule pattern substitution [NC,QSA|QSD,R=301]`).
+- Requests under the admin prefix (`/Admin` by default) are always excluded, so a bad rule cannot lock you out of the admin.
 - Use **Redirect Rules** (301/302/307/308) to send users to a new URL (browser address bar changes).
 - Use **Rewrite Rules** to serve content from a different URL without changing the browser address bar.
 - Patterns use regular expressions; use `^` and `$` for exact matches.
@@ -20,7 +25,8 @@ You are an Orchard Core expert. Generate URL rewrite rules, redirect configurati
 - Set `IsCaseInsensitive` to `true` for case-insensitive pattern matching.
 - Configure `QueryStringPolicy` to `Append` (keep query strings) or `Drop` (discard them).
 - Custom rule sources implement `IUrlRewriteRuleSource` and are registered with `services.AddRewriteRuleSource<T>()`.
-- Use the admin UI drag-and-drop to reorder rules.
+- Use the admin UI drag-and-drop to reorder rules. The rules list is rendered with the shared `AdminList` shape and stays drag-sortable in both the `List` and `Grid` layouts: the view sets `rows-*` attributes on the `<admin-list>` tag (`RowsAttributes`: `rows-id` is the sortable container id `UrlRewritingAdminList.SortableContainerId`, `rows-data-sort-url` the sort endpoint) so each row, a subgrid in the `Grid` layout, has its own box to drag. A sort is saved immediately through the module's sort endpoint.
+- Validation requires a non-empty, valid regular expression for both `Pattern` and `SubstitutionPattern`.
 - Always seal classes.
 
 ### Enabling URL Rewriting
@@ -120,6 +126,10 @@ You are an Orchard Core expert. Generate URL rewrite rules, redirect configurati
 }
 ```
 
+### Recipe Behavior
+
+The `UrlRewriting` step (requires `OrchardCore.Recipes.Core`) updates a rule when its `Id` matches an existing rule; otherwise it creates one from `Source`. Validation errors are reported and the rule is skipped. There is no dedicated deployment step; re-create rules from a recipe in each environment.
+
 ### Custom Rule Source Implementation
 
 ```csharp
@@ -148,10 +158,64 @@ public sealed class CustomRuleSource : IUrlRewriteRuleSource
 
     public void Configure(RewriteOptions options, RewriteRule rule)
     {
-        // Read custom metadata from rule.Properties and add the corresponding ASP.NET Core rewrite rules to options.
+        if (!rule.TryGet<CustomRuleMetadata>(out var metadata) || string.IsNullOrEmpty(metadata.Host))
+        {
+            return;
+        }
+
+        // Add any ASP.NET Core rewrite rule.
+        options.AddRedirectToWwwPermanent(metadata.Host);
+    }
+}
+
+public sealed class CustomRuleMetadata
+{
+    public string Host { get; set; }
+}
+```
+
+### Populating a Custom Rule from Recipes
+
+Rule data from the recipe (or `IRewriteRulesManager.NewAsync(source, data)` / `UpdateAsync(rule, data)`) reaches your source through an `IRewriteRuleHandler`. Derive from `RewriteRuleHandlerBase` and store your metadata on the rule (`RewriteRule` is an `Entity`):
+
+```csharp
+using OrchardCore.Entities;
+using OrchardCore.UrlRewriting.Handlers;
+using OrchardCore.UrlRewriting.Models;
+
+namespace MyModule.UrlRewriting;
+
+public sealed class CustomRuleHandler : RewriteRuleHandlerBase
+{
+    public override Task InitializingAsync(InitializingRewriteRuleContext context)
+        => PopulateAsync(context.Rule, context.Data);
+
+    public override Task UpdatingAsync(UpdatingRewriteRuleContext context)
+        => PopulateAsync(context.Rule, context.Data);
+
+    private static Task PopulateAsync(RewriteRule rule, System.Text.Json.Nodes.JsonNode data)
+    {
+        if (rule.Source != CustomRuleSource.SourceName)
+        {
+            return Task.CompletedTask;
+        }
+
+        var metadata = rule.GetOrCreate<CustomRuleMetadata>();
+        var host = data[nameof(CustomRuleMetadata.Host)]?.GetValue<string>();
+
+        if (!string.IsNullOrEmpty(host))
+        {
+            metadata.Host = host;
+        }
+
+        rule.Put(metadata);
+
+        return Task.CompletedTask;
     }
 }
 ```
+
+Override `ValidatingAsync` to reject invalid data with `context.Result.Fail(new ValidationResult(...))`.
 
 ### Custom Rule Display Driver
 
@@ -196,6 +260,7 @@ public class CustomRuleViewModel
 ```csharp
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.Modules;
+using OrchardCore.UrlRewriting;
 using OrchardCore.UrlRewriting.Models;
 
 namespace MyModule;
@@ -205,6 +270,7 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddRewriteRuleSource<CustomRuleSource>(CustomRuleSource.SourceName)
+            .AddScoped<IRewriteRuleHandler, CustomRuleHandler>()
             .AddScoped<IDisplayDriver<RewriteRule>, CustomRuleDisplayDriver>();
     }
 }
@@ -226,3 +292,7 @@ public sealed class Startup : StartupBase
 | Media alias | `^/img/(.*)$` | `/media/$1` | `true` |
 | API versioning | `^/api/v1/(.*)$` | `/api/v2/$1` | `true` |
 | Clean URLs | `^/page/(.*)$` | `/content/$1` | `false` |
+
+### Upgrading from 3.x
+
+- The rules list is now an `AdminList` (List or Grid layout, page size selection, breadcrumbs). A theme or module that overrides `Views/Admin/Index.cshtml` of `OrchardCore.UrlRewriting` must render the `List` context with the `<admin-list>` tag and keep the `rows-id`/`rows-data-sort-url` attributes (`RowsAttributes`), or drag sorting stops working in the `Grid` layout.

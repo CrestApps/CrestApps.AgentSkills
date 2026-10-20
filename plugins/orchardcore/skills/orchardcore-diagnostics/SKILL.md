@@ -1,6 +1,6 @@
 ---
 name: orchardcore-diagnostics
-description: Skill for configuring Orchard Core diagnostics error handling. Covers custom error pages, status code pages, DiagnosticsStartupFilter, IConfigureOptions integration, error shapes, alternate shape names, and production exception handling. Use this skill when requests mention Orchard Core Diagnostics, custom error page, status code pages, Error controller, HttpError shape, DiagnosticsStartupFilter, exception handler, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Diagnostics, IStartupFilter, UseExceptionHandler, UseStatusCodePagesWithReExecute, IConfigureOptions, HttpErrorShapeViewModel, HttpError__404, and HttpError__NotFound. It also helps with theme overrides, static-file behavior, and the source-backed patterns captured in this skill.
+description: Skill for configuring Orchard Core diagnostics error handling. Covers custom error pages, status code pages, DiagnosticsStartupFilter, IConfigureOptions integration, error shapes, alternate shape names, the 429 Too Many Requests page, Problem Details for Api and SkipStatusCodePages responses, and production exception handling. Use this skill when requests mention Orchard Core Diagnostics, custom error page, status code pages, Error controller, HttpError shape, DiagnosticsStartupFilter, exception handler, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Diagnostics, IStartupFilter, UseExceptionHandler, UseStatusCodePagesWithReExecute, IConfigureOptions, HttpErrorShapeViewModel, HttpError__404, HttpError__NotFound, HttpError__TooManyRequests, SkipStatusCodePages, and IProblemDetailsService. It also helps with theme overrides, static-file behavior, and the source-backed patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -24,6 +24,8 @@ module maps the `Error/{status?}` route to `DiagnosticsController.Error`.
 - Override error rendering through theme shapes rather than changing the module controller.
 - Use `IConfigureOptions` for your own options registration, not to replace the diagnostic middleware order.
 - Error templates must tolerate an absent status code because `/Error` also handles exceptions.
+- Responses that opt out of the HTML pages are not re-executed: `401`/`403` challenges from the `Api` authentication scheme and errors from endpoints marked `[SkipStatusCodePages]` get an RFC 9457 Problem Details JSON body instead (Orchard Core 4.0).
+- `429 Too Many Requests` from `orchardcore-rate-limits` renders through `HttpError__429` / `HttpError__TooManyRequests`.
 - All C# classes in examples are sealed except View Models.
 
 ## Enable Diagnostics
@@ -54,6 +56,7 @@ application manually adding duplicate middleware.
 | Response with a 4xx or 5xx status | Re-executes `/Error/{status}`. |
 | Development environment exception | The exception handler is not registered by this filter. |
 | Missing static asset | Status page rendering is disabled for known file extensions. |
+| `Api` scheme `401`/`403`, or endpoint with `[SkipStatusCodePages]` | No HTML page; an `application/problem+json` body is written through `IProblemDetailsService`. |
 
 Avoid calling `UseExceptionHandler` or `UseStatusCodePagesWithReExecute` again
 for the same tenant unless you deliberately replace this behavior and have
@@ -66,6 +69,8 @@ order:
 
 1. `HttpError__{numericStatus}` such as `HttpError__404`
 2. `HttpError__{HttpStatusCodeName}` such as `HttpError__NotFound`
+
+Later alternates win, so a theme's `HttpError-NotFound` template takes precedence over `HttpError-404` when both exist. The module ships templates for 400, 401, 403, 404, and 429 (`HttpError-BadRequest`, `HttpError-Unauthorized`, `HttpError-Forbidden`, `HttpError-NotFound`, `HttpError-TooManyRequests`), and `HttpError` as the fallback for every other status.
 
 Add a default fallback in the active theme:
 
@@ -91,9 +96,40 @@ Add a more specific 404 template:
 </main>
 ```
 
+Liquid works too, for example `Views/HttpError-TooManyRequests.liquid`:
+
+```liquid
+<h1>{{ "Too many requests. Please wait a moment and try again." | t }}</h1>
+```
+
+With the Templates feature, create a template named `HttpError__Forbidden` (or another alternate) in the admin to override the page without a theme change. Editing Templates requires `ManageTemplates` and, in 4.0, `ManageLiquidTemplates`.
+
 The physical file naming convention is normalized by display management. Use
 the documented `HttpError__404` alternate when reasoning about selection and
 the conventional `HttpError-404.cshtml` theme file when creating Razor views.
+
+## JSON Endpoints and Problem Details
+
+Status code pages turn an empty error response into an HTML page, which breaks JSON clients that authenticate with cookies. Opt such endpoints out:
+
+```csharp
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace MyModule.Controllers;
+
+[SkipStatusCodePages]
+public sealed class WidgetDataController : Controller
+{
+    [HttpGet]
+    public IActionResult Get()
+    {
+        return NotFound();
+    }
+}
+```
+
+The empty `404` then receives a Problem Details body. Responses that already have a body or content type are left untouched, and status codes and headers never change. Register `services.AddProblemDetails(options => ...)` to customize the payload. `AddOrchardCms()` registers this behavior through `AddApiProblemDetails()`; a host built with `AddOrchardCore()` must call `.AddApiProblemDetails()` itself.
 
 ## Add Application-Specific Error Options
 

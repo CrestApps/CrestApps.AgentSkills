@@ -4,7 +4,7 @@
 
 ```liquid
 <!DOCTYPE html>
-<html lang="{{ Culture.Name }}">
+<html lang="{{ Culture.Name }}" dir="{{ Culture.Dir }}">
 <head>
   {% resources type: "HeadMeta" %}
   {% resources type: "HeadLink" %}
@@ -26,6 +26,17 @@
   {{ Model.Content.HtmlBodyPart | shape_render }}
   <p>{{ "Thank you for reading." | t }}</p>
 </article>
+```
+
+## Rendering a Field Shape by Differentiator
+
+Field shapes use the `{PartName}-{FieldName}` differentiator. Rendering the
+shape applies shortcodes and sanitization (HTML and Markdown fields) or
+executes the Liquid source (`LiquidField`):
+
+```liquid
+{{ Model.Content["LandingPage-Intro"] | shape_render }}
+{{ Model.Content["Article-Summary"] | shape_render }}
 ```
 
 ## Adding to a Zone

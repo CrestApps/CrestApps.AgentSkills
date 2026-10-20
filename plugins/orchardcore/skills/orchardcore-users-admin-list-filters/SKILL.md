@@ -1,6 +1,6 @@
 ---
 name: orchardcore-users-admin-list-filters
-description: Skill for adding custom filters to the Orchard Core users admin list (Security → Users). Covers implementing IUsersAdminListFilterProvider to add searchable terms to the users admin search box, wiring named and default terms with OneCondition/ManyCondition against YesSql indexes over User, registering the provider in Startup, and documenting the new filter in the Available Filters dialog with a DisplayDriver<UserIndexOptions> Thumbnail card. Use this skill when requests mention custom users admin list filters, IUsersAdminListFilterProvider, QueryEngineBuilder<User>, WithNamedTerm, the users Filters dropdown or Filter syntax dialog, UserIndexOptions filter cards, UsersAdminFilters Thumbnail views, or closely related Orchard Core users admin list search work. Strong matches include OrchardCore.Users, IUsersAdminListFilterProvider, UserIndexOptions, and UsersAdminFilters-*.Thumbnail.cshtml.
+description: Skill for adding custom filters to the Orchard Core users admin list (Security → Users). Covers IUsersAdminListFilterProvider named and default terms with OneCondition/ManyCondition against YesSql indexes over User, changing the bare-text term and exact match with UsersAdminListFilterOptions, registering the provider in Startup, and documenting the new filter in the redesigned Available Filters dialog with a DisplayDriver<UserIndexOptions> Thumbnail card. Use this skill when requests mention custom users admin list filters, IUsersAdminListFilterProvider, QueryEngineBuilder<User>, WithNamedTerm, UsersAdminListFilterOptions, the Filter syntax dialog, UserIndexOptions filter cards, UsersAdminFilters Thumbnail views, upgrading filter cards to Orchard Core 4.0, or closely related Orchard Core users admin list search work. Strong matches include OrchardCore.Users, IUsersAdminListFilterProvider, UserIndexOptions, UsersAdminList, and UsersAdminFilters-*.Thumbnail.cshtml.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 ## Add a custom filter to the users admin list
 
-You are an Orchard Core expert. The users admin list (**Security → Users**) has a search box that parses tokens such as `name:`, `email:`, `status:`, `role:`, and `sort:`. Add your own token by implementing a filter provider, then document it for end users by adding a card to the **Available Filters** dialog. These are two independent extension points: the filter **logic** and the filter **card**. A filter still works without a card, but users will not discover it; a card without a matching provider documents a filter that does nothing. The users list works exactly like the [content items admin list](../orchardcore-contents-admin-list-filters/SKILL.md); only the model type differs.
+You are an Orchard Core expert. The users admin list (**Security → Users**) has a search box that parses tokens such as `name:`, `email:`, `status:`, `role:`, and `sort:`. Add your own token by implementing a filter provider, then document it for end users by adding a card to the **Available Filters** dialog. These are two independent extension points: the filter **logic** and the filter **card**. A filter still works without a card, but users will not discover it; a card without a matching provider documents a filter that does nothing. The users list works exactly like the content items admin list (see `orchardcore-contents-admin-list-filters`); only the model type differs.
 
 ### Guidelines
 
@@ -23,6 +23,8 @@ You are an Orchard Core expert. The users admin list (**Security → Users**) ha
 - Document the filter by implementing `DisplayDriver<UserIndexOptions>` and returning a `View(...)` in the `Content` zone of the `Thumbnail` display type; register it with `services.AddDisplayDriver<UserIndexOptions, T>()`.
 - The shape type `UsersAdminFilters_Thumbnail__<Name>` resolves to `Views/Items/UsersAdminFilters-<Name>.Thumbnail.cshtml`. The card wrapper and grid are supplied for you; the view only renders the card's inner content.
 - Use the same capability icons the built-in filters use so the shared legend at the bottom of the dialog stays accurate: `fa-check` (**Default**), `fa-minus` (**Single**), `fa-bars` (**Multiple**).
+- Bare text is routed to the `name` term (`UsersAdminListFilterOptions.DefaultTermName`). Set `UsersAdminListFilterOptions.TermName` to route it to another term, and `UseExactMatch = true` to search bare text as one quoted term unless it uses `AND` or `OR`.
+- In Orchard Core 4.0 the users list renders through the shared `AdminList` shape under the list name `Users` (`UsersAdminList.Name`), so it follows the site's List/Grid layout. For columns and row templates, see `orchardcore-admin-lists`; filters and filter cards are unaffected by the layout.
 - Backing user data that is not already indexed (for example a profile field on a custom part) needs its own YesSql index before it can be filtered.
 
 ## Register the filter logic
@@ -77,6 +79,18 @@ public sealed class Startup : StartupBase
         services.AddScoped<IUsersAdminListFilterProvider, SsnUsersAdminListFilterProvider>();
     }
 }
+```
+
+To make bare text search your term instead of `name`:
+
+```csharp
+using OrchardCore.Users.Models;
+
+services.Configure<UsersAdminListFilterOptions>(options =>
+{
+    options.TermName = "ssn";
+    options.UseExactMatch = true;
+});
 ```
 
 ## Register the filter card
@@ -134,6 +148,15 @@ Choose the icon that matches the term's capability, and match the `title` text t
 | ✓ | `fa-check` | **Default** — may be entered with or without the term name | `WithDefaultTerm` |
 | − | `fa-minus` | **Single** — accepts a single value | `OneCondition` |
 | ☰ | `fa-bars` | **Multiple** — supports `AND`, `OR`, `NOT`, and groups | `ManyCondition` |
+
+If you also override the dialog's grid container (`UserIndexOptions.Thumbnail.cshtml`) or the card wrapper (`UsersAdminFilters-Card.Thumbnail.cshtml`), match the built-in markup, which emits `row row-cols-*` for the grid and `col > card h-100` for each card.
+
+## Upgrading from 3.x
+
+- The **Available Filters** dialog is now a `modal-xl` grid of cards, and a Thumbnail template renders only the card's inner content. Old cards still render but look out of place.
+- Before (3.x), cards used `ocat-wrapper`, an `<h4 class="card-title ocat-label">`, the token in a `<pre>`, and the icons in a trailing `<div class="d-block text-end">`.
+- After (4.0), put the title and capability icons on the first line, the token in a `<code>` line, and the description last, as shown in [The card template](#the-card-template).
+- A theme or module that overrides the users list page must render the `List` context of its view model with the `<admin-list>` tag helper (see `orchardcore-admin-lists`); the `Users` collection of the view model now holds raw `User` records instead of rendered row shapes.
 
 ## Troubleshooting
 

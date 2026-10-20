@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Stock",
+      "description": "Recipe step discriminator. Must be \u0027Stock\u0027."
+    },
+    "Items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A stock count. It names the product by \u0027Sku\u0027, or by \u0027ContentItemId\u0027 and, for a variant, \u0027VariantId\u0027.",
+        "properties": {
+          "Sku": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The SKU of the product or variant. Used when the ids match nothing, so it matches on any site."
+          },
+          "ContentItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The content item id of the product. A product imported by an earlier step of the same recipe is synced before it is counted."
+          },
+          "VariantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the product\u0027s variant, when the count is for a variant."
+          },
+          "OnHand": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The counted quantity on hand, a whole number of zero or more."
+          }
+        },
+        "required": [
+          "OnHand"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The stock counts to apply."
+    }
+  },
+  "required": [
+    "name",
+    "Items"
+  ],
+  "additionalProperties": true
+}

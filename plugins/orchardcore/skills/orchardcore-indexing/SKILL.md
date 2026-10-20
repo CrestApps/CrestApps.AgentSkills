@@ -1,6 +1,6 @@
 ---
 name: orchardcore-indexing
-description: Skill for understanding the Orchard Core indexing infrastructure. Covers the indexing abstraction layer, content item indexing pipeline, custom indexing sources, recipe steps for index management, index reset and rebuild operations, and indexing UI configuration. Use this skill when requests mention Orchard Core Indexing Infrastructure, Configure Indexing Infrastructure, Enabling the Indexing Module, Index Profile Architecture, Creating an Index Profile via Recipe, Content Index Metadata Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Modules, CreateOrUpdateIndexProfile, ResetIndex, RebuildIndex, ArticlesIndex, BlogPostsIndex, IIndexManager. It also helps with Creating an Index Profile via Recipe, Content Index Metadata Properties, Reset Index Step, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for understanding the Orchard Core indexing infrastructure. Covers the indexing abstraction layer, content item indexing pipeline, the Indexing Worker feature, custom indexing sources, recipe and deployment steps for index management, index reset and rebuild operations, IndexingPermissions and dynamic per-index permissions, and indexing UI configuration. Use this skill when requests mention Orchard Core Indexing Infrastructure, Configure Indexing Infrastructure, Enabling the Indexing Module, Index Profile Architecture, Creating an Index Profile via Recipe, Content Index Metadata Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, OrchardCore.Indexing.Worker, CreateOrUpdateIndexProfile, ResetIndex, RebuildIndex, IIndexManager, IDocumentIndexManager, IIndexNameProvider, IIndexingTaskManager, IndexingPermissions, ManageIndexes, QuerySearchIndex.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -25,6 +25,9 @@ You are an Orchard Core expert. Generate code and configuration for the Orchard 
 - Use the `RebuildIndex` recipe step to delete and recreate the full index.
 - Reset and rebuild operations run asynchronously in the background.
 - The admin UI is available under Search > Indexes for index lifecycle management.
+- Enable `OrchardCore.Indexing.Worker` (depends on `OrchardCore.Contents`) for the background task that keeps indexes in sync with content item changes.
+- Reference permissions from `OrchardCore.Indexing.Core.IndexingPermissions`: `ManageIndexes`, `QuerySearchIndex` and the per-profile `CreateDynamicPermission(indexProfile)` (`QueryIndex_{ProfileName}`).
+- Indexing sources are not the data sources of data pipelines (`IDataSource`, see `orchardcore-data-sources`).
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 
@@ -267,6 +270,26 @@ To provide a configuration screen for a custom indexing source:
 
 - **Display driver**: Inherit from `DisplayDriver<IndexProfile>` to render configuration UI.
 - **Profile handler**: Implement `IIndexProfileHandler` (or inherit `IndexProfileHandlerBase`) to react to lifecycle events like creation, update, or deletion.
+
+### Deployment Steps
+
+The **Indexing** deployment category provides **Index Profiles** (exports `CreateOrUpdateIndexProfile`), **Reset Indexes** (`ResetIndex`) and **Rebuild Indexes** (`RebuildIndex`). Each takes `IncludeAll` or a list of `IndexNames`.
+
+### Permissions
+
+| Permission | Member | Notes |
+|------------|--------|-------|
+| `ManageIndexes` | `IndexingPermissions.ManageIndexes` | Manage index profiles. Implies provider manage permissions such as `ManageElasticIndexes`. |
+| `QuerySearchIndex` | `IndexingPermissions.QuerySearchIndex` | Query any index. |
+| `QueryIndex_{ProfileName}` | `IndexingPermissions.CreateDynamicPermission(indexProfile)` | Query one index; implied by `ManageIndexes` and `QuerySearchIndex`. |
+
+Authorize a query against a specific profile with `authorizationService.AuthorizeAsync(user, IndexingPermissions.QuerySearchIndex, indexProfile)`; the indexing authorization handler resolves the dynamic permission.
+
+### Upgrading from 3.x
+
+- `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex`.
+- `ElasticsearchIndexPermissionHelper.GetElasticIndexPermission(string)` was removed; use `IndexingPermissions.CreateDynamicPermission(IndexProfile)`.
+- `DeploymentStep.Category` and `Title` are `LocalizationSource` values; custom indexing deployment steps assign them in the parameterless constructor, for example `Category = LocalizationSource.Create<MyIndexDeploymentStep>("Indexing")`.
 
 ### Indexing UI
 

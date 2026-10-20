@@ -105,41 +105,46 @@ A recipe that creates a product page with full SEO metadata and Product schema:
 }
 ```
 
-## Example 3: Sitemap with Multiple Content Types
+## Example 3: Sitemap and Sitemap Index
 
-A recipe that creates a sitemap covering several content types with different priorities:
+The `Sitemaps` step takes a `data` array, and every sitemap and source carries a `$type` discriminator. See `orchardcore-sitemaps` for every source type and Skip/Take splitting.
 
 ```json
 {
   "steps": [
     {
       "name": "Sitemaps",
-      "Sitemaps": [
+      "data": [
         {
-          "SitemapId": "main-sitemap-4a7b",
-          "Name": "Main Sitemap",
-          "Path": "main-sitemap.xml",
+          "$type": "OrchardCore.Sitemaps.Models.Sitemap, OrchardCore.Sitemaps.Abstractions",
+          "SitemapId": "contentsitemap",
+          "Name": "Content Sitemap",
+          "Path": "content-sitemap.xml",
           "Enabled": true,
           "SitemapSources": [
             {
-              "Type": "SitemapSource",
+              "$type": "OrchardCore.Sitemaps.Models.ContentTypesSitemapSource, OrchardCore.Sitemaps.Abstractions",
+              "Id": "contentsitemapsource",
+              "IndexAll": false,
               "ContentTypes": [
-                {
-                  "ContentTypeName": "Page",
-                  "ChangeFrequency": "weekly",
-                  "Priority": 8
-                },
-                {
-                  "ContentTypeName": "BlogPost",
-                  "ChangeFrequency": "daily",
-                  "Priority": 6
-                },
-                {
-                  "ContentTypeName": "Product",
-                  "ChangeFrequency": "weekly",
-                  "Priority": 7
-                }
+                { "ContentTypeName": "Page", "ChangeFrequency": "Weekly", "Priority": 8 },
+                { "ContentTypeName": "BlogPost", "ChangeFrequency": "Daily", "Priority": 6 },
+                { "ContentTypeName": "Product", "ChangeFrequency": "Weekly", "Priority": 7 }
               ]
+            }
+          ]
+        },
+        {
+          "$type": "OrchardCore.Sitemaps.Models.SitemapIndex, OrchardCore.Sitemaps",
+          "SitemapId": "sitemapindex",
+          "Name": "Sitemap Index",
+          "Path": "sitemap.xml",
+          "Enabled": true,
+          "SitemapSources": [
+            {
+              "$type": "OrchardCore.Sitemaps.Models.SitemapIndexSource, OrchardCore.Sitemaps",
+              "Id": "sitemapindexsource",
+              "ContainedSitemapIds": [ "contentsitemap" ]
             }
           ]
         }
@@ -149,73 +154,21 @@ A recipe that creates a sitemap covering several content types with different pr
 }
 ```
 
-## Example 4: Sitemap Index Aggregating Multiple Sitemaps
-
-A sitemap index that combines content and product sitemaps under a single entry point:
+## Example 4: Robots Settings via Recipe
 
 ```json
 {
   "steps": [
     {
-      "name": "Sitemaps",
-      "Sitemaps": [
-        {
-          "SitemapId": "content-sitemap-8c3d",
-          "Name": "Content Sitemap",
-          "Path": "content-sitemap.xml",
-          "Enabled": true,
-          "SitemapSources": [
-            {
-              "Type": "SitemapSource",
-              "ContentTypes": [
-                {
-                  "ContentTypeName": "Page",
-                  "ChangeFrequency": "weekly",
-                  "Priority": 8
-                },
-                {
-                  "ContentTypeName": "BlogPost",
-                  "ChangeFrequency": "daily",
-                  "Priority": 6
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "SitemapId": "product-sitemap-9f1a",
-          "Name": "Product Sitemap",
-          "Path": "product-sitemap.xml",
-          "Enabled": true,
-          "SitemapSources": [
-            {
-              "Type": "SitemapSource",
-              "ContentTypes": [
-                {
-                  "ContentTypeName": "Product",
-                  "ChangeFrequency": "weekly",
-                  "Priority": 7
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "SitemapIndexes",
-      "SitemapIndexes": [
-        {
-          "SitemapIndexId": "sitemap-index-ab12",
-          "Name": "Sitemap Index",
-          "Path": "sitemap.xml",
-          "Enabled": true,
-          "ContainedSitemapIds": [
-            "content-sitemap-8c3d",
-            "product-sitemap-9f1a"
-          ]
-        }
-      ]
+      "name": "settings",
+      "RobotsSettings": {
+        "AllowAllAgents": true,
+        "DisallowAdmin": true,
+        "AdditionalRules": "Disallow: /search"
+      },
+      "SitemapsRobotsSettings": {
+        "IncludeSitemaps": true
+      }
     }
   ]
 }
@@ -224,7 +177,7 @@ A sitemap index that combines content and product sitemaps under a single entry 
 ## Example 5: Built-In Robots Settings
 
 Use the built-in editor at **Settings → Search → Search Engine Optimization →
-Robots** rather than registering custom middleware. The editor configures:
+Robots** (or an `IRobotsProvider`) rather than registering custom middleware. The editor configures:
 
 - `AllowAllAgents` to emit `User-agent: *`.
 - `DisallowAdmin` to add the current admin path as a disallow rule.

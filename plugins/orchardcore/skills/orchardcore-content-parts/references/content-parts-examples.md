@@ -1,8 +1,7 @@
 # Orchard Core Content Parts Examples
 
-For `HtmlBodyPart` and `MarkdownBodyPart`, `RenderLiquid` is independent from
-`SanitizeHtml`. Set each option for the required templating and output safety
-behavior.
+`HtmlBodyPart` and `MarkdownBodyPart` only expose `SanitizeHtml`, which
+applies to the final rendered HTML. Use `LiquidPart` when a body needs Liquid.
 
 ## Example 1: Blog Content Type with Common Parts
 
@@ -80,8 +79,7 @@ public sealed class BlogMigrations : DataMigration
                 .WithEditor("Wysiwyg")
                 .WithSettings(new HtmlBodyPartSettings
                 {
-                    SanitizeHtml = true,
-                    RenderLiquid = false
+                    SanitizeHtml = true
                 })
             )
             .WithPart("SeoMetaPart", part => part
@@ -136,7 +134,7 @@ public sealed class LandingPageMigrations : DataMigration
                     ContainedContentTypes = new[] { "HtmlWidget", "ImageWidget", "BlockQuote", "RawHtml" }
                 })
             )
-            .WithPart("BagPart", "Testimonials", part => part
+            .WithPart("Testimonials", "BagPart", part => part
                 .WithDisplayName("Testimonials")
                 .WithPosition("3")
                 .WithSettings(new BagPartSettings
@@ -212,8 +210,7 @@ public sealed class LandingPageMigrations : DataMigration
                                     "Editor": "Wysiwyg"
                                 },
                                 "HtmlBodyPartSettings": {
-                                    "SanitizeHtml": true,
-                                    "RenderLiquid": false
+                                    "SanitizeHtml": true
                                 }
                             }
                         },
@@ -283,10 +280,6 @@ public sealed class TaxonomyMigrations : DataMigration
             )
             .WithPart("TaxonomyPart", part => part
                 .WithPosition("2")
-                .WithSettings(new TaxonomyPartSettings
-                {
-                    TermContentType = "Category"
-                })
             )
         );
 
@@ -294,6 +287,9 @@ public sealed class TaxonomyMigrations : DataMigration
     }
 }
 ```
+
+The term type is chosen per taxonomy item, for example in recipe content with
+`"TaxonomyPart": { "TermContentType": "Category", "Terms": [] }`.
 
 ## Example 5: Content Type with Scheduled Publishing
 
@@ -334,8 +330,7 @@ public sealed class NewsArticleMigrations : DataMigration
                 .WithPosition("2")
                 .WithSettings(new MarkdownBodyPartSettings
                 {
-                    SanitizeHtml = true,
-                    RenderLiquid = false
+                    SanitizeHtml = true
                 })
             )
             .WithPart("PublishLaterPart", part => part

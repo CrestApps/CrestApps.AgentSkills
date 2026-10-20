@@ -1,6 +1,10 @@
 ---
 name: orchardcore-lists
-description: Skill for working with ListPart in Orchard Core. Covers list content types, ListPart shapes, list item rendering, paging, Liquid tags, Razor templates, and blog/collection patterns. Use this skill when requests mention Orchard Core Lists, Working with ListPart, Enabling List Features, Creating a Blog with ListPart, ListPartViewModel Properties, ListPartSettings Properties, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lists, ListPart, ContainedPart, BagPart, ListPartSettings, DataMigration, IContentDefinitionManager, WithPart, TitlePart, AutoroutePart, WithSettings, AutoroutePartSettings. It also helps with ListPartViewModel Properties, ListPartSettings Properties, Liquid Tags for Lists, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for working with ListPart in Orchard Core. Covers list content types, ListPart shapes, list item rendering, PagerSlim cursor paging and the full pager, page size selection with the pageSize query string, ShowHeader, admin list ordering with List or Grid layouts, ContainedPartIndex queries, IContainerService, list RSS feeds, GraphQL, Liquid filters, Razor templates, and blog or collection patterns. Use this skill when requests mention Orchard Core Lists, ListPart, ContainedPart, blogs with posts, ListPartSettings, ListPartViewModel, list_items, list_count, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Lists, ListPart, ContainedPart, ContainedPartIndex, ListPartSettings, PagerSlim, IContainerService, QueryListItemsAsync, and AutoroutePart container patterns, plus migrations and recipes.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Lists - Prompt Templates
@@ -16,9 +20,10 @@ You are an Orchard Core expert. Generate code and configuration for list-based c
 - ListPart stores child items as separate content items linked via `ContainedPart`, unlike BagPart which embeds items inline.
 - Configure `ContainedContentTypes` in `ListPartSettings` to restrict which content types can be added to the list.
 - Enable ordering via `EnableOrdering` in `ListPartSettings` for drag-and-drop reordering.
-- Set `PageSize` in `ListPartSettings` to control pagination.
+- Set `PageSize` in `ListPartSettings` (default `10`) to control pagination. By default the front-end list uses the cursor-based `PagerSlim` (newer/older links, `before`/`after` query values); set `ShowFullPager = true` for a numbered `Pager` (`page` query value).
+- When **Page size selection** is enabled in the General site settings, visitors can pick an allowed size with the `pageSize` query string; any other value falls back to the list's `PageSize`.
 - Use the `list_items` and `list_count` Liquid filters to load list items in templates.
-- Every contained item has a `ContainedPart` with `ListContentItemId` and `Order` properties for indexing.
+- Every contained item has a `ContainedPart` with `ListContentItemId`, `ListContentType`, and `Order`, indexed in `ContainedPartIndex`.
 - Always wrap recipe JSON in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
@@ -62,7 +67,6 @@ public sealed class Migrations : DataMigration
                 .WithSettings(new AutoroutePartSettings
                 {
                     Pattern = "{{ Model.ContentItem | display_text | slugify }}",
-                    AllowRouteContainedItems = true,
                 })
             )
             .WithPart("ListPart", part => part
@@ -108,13 +112,28 @@ public sealed class Migrations : DataMigration
 | `Context`                         | `BuildPartDisplayContext`            | The current display context             |
 | `Pager`                           | `dynamic`                            | The pager shape for pagination          |
 
+`ListPartViewModel` also exposes `EnableOrdering`, `IsOrdering`, `ListPartFilterViewModel`, and (in the admin) the `List` `AdminListContext`.
+
 ### ListPartSettings Properties
 
 | Property                | Type       | Description                                              |
 |-------------------------|------------|----------------------------------------------------------|
-| `PageSize`              | `int`      | Number of content items per page                         |
+| `PageSize`              | `int`      | Number of content items per page (default `10`)          |
 | `EnableOrdering`        | `bool`     | Enable drag-and-drop ordering of items                   |
 | `ContainedContentTypes` | `string[]` | Content types that may be contained by this list         |
+| `ShowHeader`            | `bool`     | Show a header for the owning (container) content in the admin list |
+| `ShowFullPager`         | `bool`     | Use the numbered `Pager` instead of `PagerSlim`          |
+
+### Paging and Page Size Selection
+
+- `PagerSlim` (default) renders **Newer/Older** links for cursor-based paging, like the Blog recipe's post list.
+- With `ShowFullPager`, the shape is a numbered `Pager` built from the total item count.
+- Both pagers render the `Pager_PageSizeSelector` shape when **Page size selection** is enabled (General settings, allowed sizes default `10, 25, 50, 100`). The selected `pageSize` is carried in pager links. Style it by overriding `Pager_PageSizeSelector` (model has `PageSizes` and `CurrentPageSize`).
+- Custom code can reuse the same validation: `pagerOptions.GetPageSize(pagerParameters.PageSize, settings.PageSize)`, and `PagerSlimParameters.PageSize` now carries the requested size.
+
+### Admin List
+
+The list's contained items in the admin are rendered through the shared `AdminList` shape, so they follow the site's **List** or **Grid** layout. With `EnableOrdering`, an unfiltered admin list of the latest versions with more than one item forces the `List` layout and hides the layout selector; drag a row's handle to reorder (saved immediately). Searching or filtering disables drag ordering and restores normal layout selection. The **List Items** button names the contained content type.
 
 ### Liquid Tags for Lists
 
@@ -192,12 +211,43 @@ Create a file named `Blog-ListPart.cshtml`:
 
 ### Razor Helpers
 
-The `OrchardCore.Lists` module provides helpers for querying list items programmatically:
+The `OrchardCore.Lists` module provides `IOrchardHelper` helpers for querying list items programmatically:
 
-| Method                      | Description                                                      |
-|-----------------------------|------------------------------------------------------------------|
-| `QueryListItemsCountAsync`  | Returns the count of content items matching a predicate          |
-| `QueryListItemsAsync`       | Returns content items matching a predicate                       |
+| Method | Description |
+|---|---|
+| `QueryListItemsCountAsync(listContentItemId, itemPredicate = null)` | Count of contained items matching an optional `ContentItemIndex` predicate |
+| `QueryListItemsAsync(listContentItemId, itemPredicate = null)` | Contained items matching an optional `ContentItemIndex` predicate |
+
+```cshtml
+@{
+    var recent = await Orchard.QueryListItemsAsync(blogId, x => x.Published && x.CreatedUtc > DateTime.UtcNow.AddDays(-30));
+}
+```
+
+Liquid also provides the `container` filter (`{{ Model.ContentItem | container }}`) to load the parent list of a contained item.
+
+### Querying Contained Items in Code
+
+```csharp
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
+using OrchardCore.Lists.Indexes;
+using YesSql;
+
+var posts = await _session.Query<ContentItem>()
+    .With<ContainedPartIndex>(x => x.ListContentItemId == blogId)
+    .With<ContentItemIndex>(x => x.Published)
+    .OrderByDescending(x => x.CreatedUtc)
+    .Take(10)
+    .ListAsync();
+```
+
+`ContainedPartIndex` stores `ListContentItemId`, `ListContentType`, `ContentItemId`, `Order`, `Published`, `Latest`, and `DisplayText`. `IContainerService` (`OrchardCore.Lists.Services`) provides `GetItemCountAsync(listContentItemId, ContainedItemOptions)`, `QueryContainedItemsAsync(...)` with a `Pager` or `PagerSlim`, `GetNextOrderNumberAsync`, and `UpdateContentItemOrdersAsync`. `ContainedItemOptions.Status` is `Published` (default), `Latest`, `Draft`, or `Owner`.
+
+### Feeds and GraphQL
+
+- With `OrchardCore.Feeds` enabled, each list exposes an RSS feed at `/Contents/Lists/{contentItemId}/rss`; see `orchardcore-feeds` for `DisableRssFeed`, `FeedProxyUrl`, and `FeedItemsCount`.
+- With GraphQL enabled, `listPart { contentItems(first: 10, skip: 0) { ... } }` returns published contained items, and `containedPart: { listContentItemId: "..." }` can be used in `where` filters of the contained type.
 
 ### ContainedPart Indexing
 
@@ -207,6 +257,8 @@ Every content item contained in a list has a `ContainedPart` with indexable prop
 |----------------------------------------------------|-------------------------------|
 | `Content.ContentItem.ContainedPart.ListContentItemId` | The parent list content item ID |
 | `Content.ContentItem.ContainedPart.Order`              | The display order of the item   |
+
+These are the field names in full-text indexes (Lucene, Elasticsearch, Azure AI Search).
 
 ### Recipe: Creating a Blog with Posts
 

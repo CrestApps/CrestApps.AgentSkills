@@ -42,6 +42,8 @@ Use the field type to determine the value property:
 
 For fields on the type itself, the part name equals the type name.
 
+`HtmlField`, `HtmlBodyPart`, `MarkdownField`, and `MarkdownBodyPart` no longer execute Liquid in Orchard Core 4.0. Render their HTML as stored; when editors must author Liquid, use `LiquidPart` or `LiquidField` (requires the `ManageLiquidTemplates` permission).
+
 ## Step 4: Render in Templates
 
 ### Razor — Media Field
@@ -91,6 +93,8 @@ This lets parts (including BagPart) render with their own templates.
 - For Section/Widget stereotypes, alternates often suffice without placement changes.
 
 ## Step 6: Validate
+
+Enable **Settings → Debugging → Write shape debug information** to see the shape type and winning template of each fragment as HTML comments (applies without a restart).
 
 Optional debugging when values look wrong or are missing:
 

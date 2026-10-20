@@ -1,0 +1,96 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelSubjectAction",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelSubjectAction\u0027."
+    },
+    "SubjectActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the subject action. When it matches a stored subject action, that subject action is updated. Otherwise a new subject action is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Source": {
+            "type": "string",
+            "description": "Source that owns the subject action. A subject action cannot be imported without a source."
+          },
+          "DisplayText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Human-readable name of the subject action."
+          },
+          "SubjectContentType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Subject content type this action belongs to."
+          },
+          "DispositionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Identifier of the disposition that triggers this action."
+          },
+          "DispositionGuidance": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What this disposition means for this subject, given to the AI when it dispositions an automated call or message. Replaces the disposition\u0027s own description."
+          },
+          "SetDoNotCall": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether to set the contact\u0027s \u0027Do Not Call\u0027 preference when this action runs."
+          },
+          "SetDoNotSms": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether to set the contact\u0027s \u0027Do Not SMS\u0027 preference when this action runs."
+          },
+          "SetDoNotEmail": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether to set the contact\u0027s \u0027Do Not Email\u0027 preference when this action runs."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the subject action, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Source"
+        ],
+        "additionalProperties": true
+      },
+      "description": "Subject actions to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "SubjectActions"
+  ],
+  "additionalProperties": true
+}

@@ -7,8 +7,9 @@ src/OrchardCore.Modules/OrchardCore.YourModule/
 ├── Manifest.cs                 # Module metadata and features
 ├── Startup.cs                  # Service registration
 ├── Migrations.cs               # Database migrations
-├── PermissionProvider.cs       # Permission definitions
-├── AdminMenu.cs                # Admin navigation
+├── Permissions.cs              # IPermissionProvider (static definitions in *Permissions class)
+├── AdminMenu.cs                # Admin navigation (AdminNavigationProvider)
+├── ConfigurationSchema.json    # Optional appsettings.json schema for the module's sections
 ├── Controllers/                # MVC controllers
 ├── Drivers/                    # Content part/field drivers
 ├── Fields/                     # Custom content fields
@@ -19,7 +20,7 @@ src/OrchardCore.Modules/OrchardCore.YourModule/
 ├── ViewModels/                 # View models
 ├── Views/                      # Razor views
 ├── Assets/                     # Frontend assets (JS, CSS, SCSS)
-│   ├── js/
+│   ├── js/                     # ES modules, no jQuery
 │   ├── scss/
 │   └── package.json
 ├── wwwroot/                    # Static files output
@@ -95,7 +96,8 @@ public sealed class Startup : StartupBase
 | File | Purpose | When Needed |
 |------|---------|-------------|
 | `Migrations.cs` | Database schema | When storing data |
-| `PermissionProvider.cs` | Define permissions | When securing features |
+| `Permissions.cs` | `IPermissionProvider` exposing static permissions | When securing features |
+| `ConfigurationSchema.json` | IntelliSense/validation of the module's `OrchardCore:*` section | When reading configuration |
 | `AdminMenu.cs` | Admin navigation | When adding admin UI |
 | `Controllers/` | HTTP endpoints | When handling requests |
 | `Drivers/` | Content display/edit | When creating content parts |

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-search-indexing
-description: Skill for configuring search and indexing in Orchard Core. Covers unified IndexProfile definitions, Lucene, Elasticsearch, and Azure AI Search providers, document index handlers, index lifecycle recipes, permissions, and search queries. Use this skill when requests mention Orchard Core Search and Indexing, Configure Search and Indexing, Enabling Search Features, Index Profile Recipe, Elasticsearch Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Elasticsearch, OrchardCore.AzureAI, OrchardCore.Search, OrchardCore.Indexing, IIndexProfileManager, ISearchService, IDocumentIndexHandler, BuildDocumentIndexContext, ContentIndexingConstants, IndexingPermissions, and custom content-part indexing. It also helps with Index Profile recipes, provider selection, Lucene Queries via Recipe, and the code patterns captured in this skill.
+description: Skill for configuring search and indexing in Orchard Core. Covers unified IndexProfile definitions, Lucene, Elasticsearch, and Azure AI Search providers, provider configuration sections under OrchardCore Search, document index handlers, index lifecycle recipes, IndexingPermissions and SearchPermissions, keyed ISearchService resolution, the GET-only search page, and search queries. Use this skill when requests mention Orchard Core Search and Indexing, Configure Search and Indexing, Enabling Search Features, Index Profile Recipe, Elasticsearch Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Lucene, OrchardCore.Elasticsearch, OrchardCore.AzureAI, OrchardCore.Search, OrchardCore.Indexing, IIndexProfileManager, ISearchService, IDocumentIndexHandler, BuildDocumentIndexContext, ContentIndexingConstants, IndexingPermissions, and custom content-part indexing.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -27,9 +27,14 @@ You are an Orchard Core expert. Generate search and indexing configurations for 
   record from `BuildDocumentIndexContext.Record`.
 - `DocumentIndex` supports text, numeric, date, boolean, geo-point, `Complex`,
   and `Vector` entries. Use the matching `Set` overload for the value type.
-- Use the centralized `IndexingPermissions.QuerySearchIndex` permission. A
-  profile-specific `QueryIndex_{name}` permission is created by
-  `IndexingPermissions.CreateDynamicPermission`.
+- Use the centralized `IndexingPermissions.QuerySearchIndex` permission
+  (`OrchardCore.Indexing.Core`). A profile-specific `QueryIndex_{name}`
+  permission is created by `IndexingPermissions.CreateDynamicPermission`.
+- Provider connection settings live under `OrchardCore:Search:Elasticsearch` and
+  `OrchardCore:Search:AzureAISearch` since Orchard Core 4.0 (the
+  `OrchardCore_*` names are deprecated).
+- `ISearchService` implementations are keyed by provider name; resolve one with
+  `GetKeyedService<ISearchService>(indexProfile.ProviderName)`.
 
 ### Enabling Search Features
 
@@ -89,13 +94,19 @@ Configure in `appsettings.json`:
 
 ```json
 {
-  "OrchardCore_Elasticsearch": {
-    "Url": "https://localhost:9200",
-    "Ports": [9200],
-    "ConnectionType": "SingleNodeConnectionPool"
+  "OrchardCore": {
+    "Search": {
+      "Elasticsearch": {
+        "Url": "https://localhost",
+        "Ports": [9200],
+        "ConnectionType": "SingleNodeConnectionPool"
+      }
+    }
   }
 }
 ```
+
+See `orchardcore-elasticsearch` and `orchardcore-azure-ai-search` for the full provider settings.
 
 ### Elasticsearch Index Profile via Recipe
 
@@ -168,30 +179,43 @@ Configure in `appsettings.json`:
 ### Programmatic Search Queries
 
 ```csharp
-using System.Collections.Generic;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Indexing;
+using OrchardCore.Indexing.Core;
 using OrchardCore.Search.Abstractions;
 
-public sealed class SearchService
+public sealed class SiteSearchService
 {
     private readonly IIndexProfileManager _indexProfileManager;
-    private readonly IEnumerable<ISearchService> _searchServices;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IAuthorizationService _authorizationService;
 
-    public SearchService(
+    public SiteSearchService(
         IIndexProfileManager indexProfileManager,
-        IEnumerable<ISearchService> searchServices)
+        IServiceProvider serviceProvider,
+        IAuthorizationService authorizationService)
     {
         _indexProfileManager = indexProfileManager;
-        _searchServices = searchServices;
+        _serviceProvider = serviceProvider;
+        _authorizationService = authorizationService;
     }
 
-    public async Task<IList<string>> SearchAsync(string query)
+    public async Task<IList<string>> SearchAsync(ClaimsPrincipal user, string query)
     {
         var indexProfile = await _indexProfileManager.FindByNameAsync("Search")
             ?? throw new InvalidOperationException("The Search index profile does not exist.");
 
-        var searchService = _searchServices.Single(service =>
-            string.Equals(service.Name, indexProfile.ProviderName, StringComparison.OrdinalIgnoreCase));
+        // Resolves the profile-specific QueryIndex_{name} permission.
+        if (!await _authorizationService.AuthorizeAsync(user, IndexingPermissions.QuerySearchIndex, indexProfile))
+        {
+            return [];
+        }
+
+        // Search services are registered with AddSearchService<T>(providerName) as keyed services.
+        var searchService = _serviceProvider.GetKeyedService<ISearchService>(indexProfile.ProviderName)
+            ?? throw new InvalidOperationException($"No search service for '{indexProfile.ProviderName}'.");
 
         var result = await searchService.SearchAsync(indexProfile, query, 0, 10);
 
@@ -199,6 +223,8 @@ public sealed class SearchService
     }
 }
 ```
+
+The front-end search page is `GET /search/{index?}?terms=...` (GET-only since Orchard Core 4.0); `index` is the index profile name, otherwise the default index of the search settings is used.
 
 ### Custom Document Indexing
 
@@ -266,6 +292,21 @@ profile-specific dynamic permission created by
 `IndexingPermissions.CreateDynamicPermission(indexProfile)`, whose name is
 `QueryIndex_{indexProfile.Name}` and which is implied by
 `IndexingPermissions.ManageIndexes` and `IndexingPermissions.QuerySearchIndex`.
+
+| Permission | Member |
+|------------|--------|
+| Query any index | `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex` |
+| Manage indexes | `OrchardCore.Indexing.Core.IndexingPermissions.ManageIndexes` |
+| Query one index | `IndexingPermissions.CreateDynamicPermission(indexProfile)` |
+| Manage search settings | `OrchardCore.Search.SearchPermissions.ManageSearchSettings` |
+
+### Upgrading from 3.x
+
+- `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex`.
+- `OrchardCore.Search.Permissions.ManageSearchSettings` was removed; use `OrchardCore.Search.SearchPermissions.ManageSearchSettings`.
+- `ElasticsearchIndexPermissionHelper.GetElasticIndexPermission(string)` was removed; use `IndexingPermissions.CreateDynamicPermission(IndexProfile)`.
+- Rename `OrchardCore_Elasticsearch` to `OrchardCore:Search:Elasticsearch` and `OrchardCore_AzureAISearch` to `OrchardCore:Search:AzureAISearch`.
+- The search action only answers `GET`; forms posting to `/search` must use `method="get"` (the built-in `Search Form` already does).
 
 ### Custom Content Part Indexing
 

@@ -61,6 +61,7 @@
                     "AssignUserRoleTask",
                     "BindModelStateTask",
                     "CommitTransactionTask",
+                    "ContactCenterEvent",
                     "ContentCreatedEvent",
                     "ContentDeletedEvent",
                     "ContentDraftSavedEvent",
@@ -68,13 +69,20 @@
                     "ContentUnpublishedEvent",
                     "ContentUpdatedEvent",
                     "ContentVersionedEvent",
+                    "ConvertLeadTask",
                     "CorrelateTask",
                     "CreateContentTask",
+                    "CreateReportShareLinkTask",
                     "CreateTenantTask",
+                    "DataPipelineRunCompletedEvent",
                     "DeleteContentTask",
                     "DisableTenantTask",
+                    "EmailReportTask",
                     "EmailTask",
                     "EnableTenantTask",
+                    "EnqueueActivityTask",
+                    "ExportReportTask",
+                    "FindAgentNumbersTask",
                     "ForEachTask",
                     "ForLoopTask",
                     "ForkTask",
@@ -87,21 +95,58 @@
                     "HttpResponseTask",
                     "IfElseTask",
                     "JoinTask",
+                    "LeadConvertedEvent",
                     "LiquidTask",
                     "LogTask",
+                    "LowStockEvent",
                     "NotifyContentOwnerTask",
                     "NotifyTask",
                     "NotifyUserTask",
+                    "OrderCanceledEvent",
+                    "OrderPaidEvent",
+                    "OrderRefundedEvent",
                     "PublishContentTask",
                     "RegisterUserTask",
+                    "ReportExportedEvent",
+                    "ReportPublishedEvent",
+                    "ReportRunEvent",
                     "RetrieveContentTask",
+                    "RunDataPipelineTask",
+                    "RunReportTask",
+                    "ScheduleCallbackTask",
+                    "ScheduleDialerRetryTask",
                     "ScriptTask",
+                    "SendTextMessageTask",
+                    "SetAgentPresenceTask",
                     "SetOutputTask",
                     "SetPropertyTask",
                     "SetupTenantTask",
+                    "ShipmentCreatedEvent",
+                    "ShipmentDeliveredEvent",
+                    "ShipmentReturnedEvent",
+                    "ShipmentShippedEvent",
                     "SignalEvent",
                     "SmsTask",
+                    "StartCallRecordingTask",
+                    "StartOmnichannelActivityTask",
+                    "StopCallRecordingTask",
+                    "StripeDisputeCreatedEvent",
+                    "StripePaymentCanceledEvent",
+                    "StripePaymentFailedEvent",
+                    "StripePaymentIntentSucceededEvent",
+                    "StripePaymentReceivedEvent",
+                    "StripePaymentRefundedEvent",
+                    "StripeRequestFailedEvent",
+                    "StripeSubscriptionCreatedEvent",
+                    "SubscribedTenantFailedSetupEvent",
+                    "SubscribedTenantSetupSucceededEvent",
+                    "SubscriptionCanceledEvent",
+                    "SubscriptionExpiredEvent",
+                    "SubscriptionPastDueEvent",
+                    "SubscriptionRenewedEvent",
+                    "SubscriptionStartedEvent",
                     "TimerEvent",
+                    "TransferToAgentTask",
                     "UnassignUserRoleTask",
                     "UnpublishContentTask",
                     "UpdateContentTask",
@@ -112,6 +157,7 @@
                     "UserDisabledEvent",
                     "UserEnabledEvent",
                     "UserLoggedInEvent",
+                    "UserLoggedOutEvent",
                     "UserTaskEvent",
                     "UserUpdatedEvent",
                     "ValidateAntiforgeryTokenTask",
@@ -120,6 +166,10 @@
                     "ValidateReCaptchaTask",
                     "ValidateUserTask",
                     "WhileLoopTask",
+                    "WizardCompletedEvent",
+                    "WizardFailedEvent",
+                    "WizardStartedEvent",
+                    "WizardStepDisplayedEvent",
                     "WorkflowFaultEvent"
                   ],
                   "description": "Activity type name. Start activities must be events. Events placed elsewhere in the workflow block execution until the matching event is triggered."
@@ -168,6 +218,7 @@
                           "AIChatSessionClosedEvent",
                           "AIChatSessionFieldExtractedEvent",
                           "AIChatSessionPostProcessedEvent",
+                          "ContactCenterEvent",
                           "ContentCreatedEvent",
                           "ContentDeletedEvent",
                           "ContentDraftSavedEvent",
@@ -175,9 +226,37 @@
                           "ContentUnpublishedEvent",
                           "ContentUpdatedEvent",
                           "ContentVersionedEvent",
+                          "DataPipelineRunCompletedEvent",
                           "HttpRequestEvent",
                           "HttpRequestFilterEvent",
+                          "LeadConvertedEvent",
+                          "LowStockEvent",
+                          "OrderCanceledEvent",
+                          "OrderPaidEvent",
+                          "OrderRefundedEvent",
+                          "ReportExportedEvent",
+                          "ReportPublishedEvent",
+                          "ReportRunEvent",
+                          "ShipmentCreatedEvent",
+                          "ShipmentDeliveredEvent",
+                          "ShipmentReturnedEvent",
+                          "ShipmentShippedEvent",
                           "SignalEvent",
+                          "StripeDisputeCreatedEvent",
+                          "StripePaymentCanceledEvent",
+                          "StripePaymentFailedEvent",
+                          "StripePaymentIntentSucceededEvent",
+                          "StripePaymentReceivedEvent",
+                          "StripePaymentRefundedEvent",
+                          "StripeRequestFailedEvent",
+                          "StripeSubscriptionCreatedEvent",
+                          "SubscribedTenantFailedSetupEvent",
+                          "SubscribedTenantSetupSucceededEvent",
+                          "SubscriptionCanceledEvent",
+                          "SubscriptionExpiredEvent",
+                          "SubscriptionPastDueEvent",
+                          "SubscriptionRenewedEvent",
+                          "SubscriptionStartedEvent",
                           "TimerEvent",
                           "UserConfirmedEvent",
                           "UserCreatedEvent",
@@ -185,8 +264,13 @@
                           "UserDisabledEvent",
                           "UserEnabledEvent",
                           "UserLoggedInEvent",
+                          "UserLoggedOutEvent",
                           "UserTaskEvent",
                           "UserUpdatedEvent",
+                          "WizardCompletedEvent",
+                          "WizardFailedEvent",
+                          "WizardStartedEvent",
+                          "WizardStepDisplayedEvent",
                           "WorkflowFaultEvent"
                         ],
                         "description": "Start activities must be workflow events."
@@ -681,6 +765,47 @@
                         },
                         "additionalProperties": true,
                         "description": "Properties for the \u0027CommitTransactionTask\u0027 workflow task. Category: Session. Commits the current database session, unless the model state is invalid. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Valid, Invalid."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "ContactCenterEvent"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "EventType": {
+                            "type": "string",
+                            "description": "The domain event type this activity reacts to. When empty, it reacts to every event."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027ContactCenterEvent\u0027 workflow event. Category: Contact Center. Starts or resumes a workflow when a Contact Center domain event is published. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Matched, Ignored."
                       }
                     }
                   }
@@ -1793,6 +1918,76 @@
                         },
                         "additionalProperties": true,
                         "description": "Properties for the \u0027EnableTenantTask\u0027 workflow task. Category: Tenant. Enables a disabled tenant by its name. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Enabled, Failed."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "EnqueueActivityTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "ActivityItemId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the CRM activity identifier to enqueue."
+                          },
+                          "QueueId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the target queue identifier."
+                          },
+                          "Priority": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "Lowest",
+                                  "Low",
+                                  "Normal",
+                                  "High",
+                                  "Highest"
+                                ]
+                              },
+                              {
+                                "type": "integer",
+                                "enum": [
+                                  0,
+                                  1,
+                                  2,
+                                  3,
+                                  4
+                                ]
+                              }
+                            ],
+                            "description": "The optional priority override. When omitted, the queue\u0027s default priority is used. Accepted values: Lowest, Low, Normal, High, Highest."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027EnqueueActivityTask\u0027 workflow task. Category: Contact Center. Enqueues a CRM activity into a Contact Center queue so it can be routed to an agent. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Failed."
                       }
                     }
                   }
@@ -3352,6 +3547,63 @@
                   "if": {
                     "properties": {
                       "Name": {
+                        "const": "ScheduleCallbackTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "Destination": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the destination number or address to call back."
+                          },
+                          "DelayMinutes": {
+                            "type": "integer",
+                            "description": "The delay, in minutes from now, before the callback becomes due. Zero schedules it immediately."
+                          },
+                          "CampaignId": {
+                            "type": "string",
+                            "description": "The optional Liquid expression that resolves the campaign the callback belongs to."
+                          },
+                          "QueueId": {
+                            "type": "string",
+                            "description": "The optional Liquid expression that resolves the queue the promoted activity is enqueued into."
+                          },
+                          "ContactContentItemId": {
+                            "type": "string",
+                            "description": "The optional Liquid expression that resolves the content item identifier of the contact."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027ScheduleCallbackTask\u0027 workflow task. Category: Contact Center. Schedules a Contact Center callback in response to a domain event. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Failed."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
                         "const": "ScriptTask"
                       }
                     },
@@ -3402,6 +3654,90 @@
                         },
                         "additionalProperties": true,
                         "description": "Properties for the \u0027ScriptTask\u0027 workflow task. Category: Control Flow. Executes a JavaScript block that selects its own outcomes by calling setOutcome. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done. Additional outcomes are derived from this activity\u0027s own configuration."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "SetAgentPresenceTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "UserId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the Orchard user identifier of the agent."
+                          },
+                          "Status": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "Offline",
+                                  "Available",
+                                  "Reserved",
+                                  "Busy",
+                                  "WrapUp",
+                                  "Break",
+                                  "RequestBreak",
+                                  "Away",
+                                  "DoNotDisturb",
+                                  "Meeting",
+                                  "Training",
+                                  "AfterHoursUnavailable"
+                                ]
+                              },
+                              {
+                                "type": "integer",
+                                "enum": [
+                                  0,
+                                  1,
+                                  2,
+                                  3,
+                                  4,
+                                  5,
+                                  6,
+                                  7,
+                                  8,
+                                  9,
+                                  10,
+                                  11
+                                ]
+                              }
+                            ],
+                            "description": "The presence status to apply to the agent. Accepted values: Offline, Available, Reserved, Busy, WrapUp, Break, RequestBreak, Away, DoNotDisturb, Meeting, Training, AfterHoursUnavailable."
+                          },
+                          "Reason": {
+                            "type": "string",
+                            "description": "The optional Liquid expression that resolves the reason recorded with the change."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027SetAgentPresenceTask\u0027 workflow task. Category: Contact Center. Sets a Contact Center agent\u0027s presence status. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Failed."
                       }
                     }
                   }
@@ -3889,6 +4225,129 @@
                   "if": {
                     "properties": {
                       "Name": {
+                        "const": "StartCallRecordingTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "InteractionId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the interaction identifier to record."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027StartCallRecordingTask\u0027 workflow task. Category: Contact Center. Starts recording for a Contact Center interaction. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Indeterminate, Failed."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "StartOmnichannelActivityTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "ActivityItemId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the CRM activity identifier to start."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027StartOmnichannelActivityTask\u0027 workflow task. Category: Contact Center. Starts an automated omnichannel activity now: places the outbound call for a Phone activity, or sends the opening message for an SMS activity. The activity\u0027s own channel decides which. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Already Started, Failed."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "StopCallRecordingTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "InteractionId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the interaction identifier to stop recording."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027StopCallRecordingTask\u0027 workflow task. Category: Contact Center. Stops recording for a Contact Center interaction. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done, Indeterminate, Failed."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
                         "const": "TimerEvent"
                       }
                     },
@@ -3933,6 +4392,59 @@
                         },
                         "additionalProperties": true,
                         "description": "Properties for the \u0027TimerEvent\u0027 workflow event. Category: Background. Triggers a workflow on a recurring schedule defined by a CRON expression. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Done."
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Name": {
+                        "const": "TransferToAgentTask"
+                      }
+                    },
+                    "required": [
+                      "Name"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Properties": {
+                        "type": "object",
+                        "properties": {
+                          "ActivityMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "Title": {
+                                "type": [
+                                  "null",
+                                  "string"
+                                ],
+                                "description": "A custom title displayed for this activity in the workflow editor."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "Editor metadata shared by every workflow activity."
+                          },
+                          "ActivityItemId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the CRM activity identifier to transfer."
+                          },
+                          "QueueId": {
+                            "type": "string",
+                            "description": "The Liquid expression that resolves the target queue identifier. When omitted, the subject flow\u0027s configured handoff queue is used."
+                          },
+                          "Reason": {
+                            "type": "string",
+                            "description": "The Liquid expression resolving a short reason for the escalation, shown to the agent."
+                          },
+                          "Summary": {
+                            "type": "string",
+                            "description": "The Liquid expression resolving a summary of the conversation so far, so the receiving agent inherits the context."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "Properties for the \u0027TransferToAgentTask\u0027 workflow task. Category: Contact Center. Moves an automated conversation into the human lane: a live call is seated in a queue and offered to an agent, and a text conversation becomes a queue-owned thread. Outcomes usable as \u0027Transitions[].SourceOutcomeName\u0027: Connected, Waiting In Queue, Callback Scheduled, Failed."
                       }
                     }
                   }
@@ -4974,7 +5486,7 @@
                 },
                 "SourceOutcomeName": {
                   "type": "string",
-                  "description": "The outcome produced by the source activity that triggers this transition. Valid values are listed in the description of the source activity\u0027s \u0027Properties\u0027 schema. Outcomes known to this tenant include: Anonymous, Authenticated, Deleted, Disabled, Done, Drew Blank, Enabled, Failed, Failed: no user found, False, InRole, Invalid, Iterate, Joined, Matched, Noop, Published, Retrieved, True, UnhandledHttpStatus, Unpublished, Valid."
+                  "description": "The outcome produced by the source activity that triggers this transition. Valid values are listed in the description of the source activity\u0027s \u0027Properties\u0027 schema. Outcomes known to this tenant include: Already Started, Anonymous, Authenticated, Callback Scheduled, Connected, Deleted, Disabled, Done, Drew Blank, Enabled, Failed, Failed: no user found, False, Ignored, InRole, Indeterminate, Invalid, Iterate, Joined, Matched, Noop, Published, Retrieved, True, UnhandledHttpStatus, Unpublished, Valid, Waiting In Queue."
                 },
                 "DestinationActivityId": {
                   "type": "string",

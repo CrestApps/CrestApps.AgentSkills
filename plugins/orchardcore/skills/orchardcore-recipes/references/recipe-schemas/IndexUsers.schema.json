@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "IndexUsers",
+      "description": "Recipe step discriminator. Must be \u0027IndexUsers\u0027."
+    },
+    "IncludeDisabledUsers": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether disabled users are indexed too. By default only enabled users are."
+    },
+    "BatchSize": {
+      "type": [
+        "null",
+        "integer"
+      ],
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 250,
+      "description": "How many users are saved per batch. Defaults to 250; values over 1000 are capped at 1000."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -29,7 +29,7 @@ Placement controls where shapes render, whether they render, and which alternate
 
 | Key | Description |
 |---|---|
-| `place` | Target zone/position. Use `-` to hide the shape. Use `/ZoneName` to move to a layout zone. |
+| `place` | Target zone/position. Use `-` to hide the shape. Use `/ZoneName` to move to a layout zone. Positions accept numbers, `before`, `after`, and the `start`/`end` sentinels for truly first or last. |
 | `alternates` | List of alternates to add. |
 | `wrappers` | List of wrapper shapes. |
 | `shape` | Replace shape type. |
@@ -38,7 +38,7 @@ Placement controls where shapes render, whether they render, and which alternate
 
 ```json
 {
-  "TextBodyPart": [
+  "HtmlBodyPart": [
     { "place": "-", "contentType": "BlogPost", "displayType": "Summary" }
   ]
 }
@@ -105,9 +105,10 @@ Example:
 
 ## Placement Precedence
 
-1. Startup project (acts like a super-theme)
-2. Active theme (front-end or admin depending on request)
-3. Modules (dependency order)
+1. Tenant rules from `OrchardCore.Placements` (admin UI), which override all files
+2. Startup project (acts like a super-theme)
+3. Active theme (front-end or admin depending on request)
+4. Modules (dependency order)
 
 ## Removing Shapes in Liquid
 
@@ -148,9 +149,6 @@ A full `placement.json` for an Article content type:
   "HtmlBodyPart": [
     { "place": "Content:5", "displayType": "Detail", "contentType": "Article" },
     { "place": "-", "displayType": "Summary", "contentType": "Article" }
-  ],
-  "CommonPart": [
-    { "place": "Meta:1", "displayType": "Detail" }
   ],
   "MediaField_Edit": [
     { "place": "Parts:0#Media;0", "contentType": ["Article"] }

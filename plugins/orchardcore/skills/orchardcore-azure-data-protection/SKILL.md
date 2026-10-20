@@ -1,140 +1,128 @@
 ---
 name: orchardcore-azure-data-protection
-description: Skill for configuring Azure Data Protection in Orchard Core. Covers distributed data protection key storage using Azure Blob Storage, connection string configuration, per-tenant container templating, and persistence considerations for multi-instance deployments. Use this skill when requests mention Orchard Core Azure Data Protection, Configuration, Configuration Properties, Basic Configuration, Default Key Storage Path, Multi-Tenant Configuration with Liquid Templating, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DataProtection.Azure, ShellSettings, CreateContainer, appsettings.json, ContainerName, BlobName. It also helps with Default Key Storage Path, Multi-Tenant Configuration with Liquid Templating, Container per Tenant, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for configuring Azure Data Protection in Orchard Core. Covers storing the ASP.NET Core Data Protection key ring in Azure Blob Storage with the OrchardCore.DataProtection.Azure feature, the OrchardCore DataProtection Azure configuration section, environment variable and Key Vault secret names, ConnectionString, ContainerName, BlobName and CreateContainer, per-tenant container and blob templating with ShellSettings, and why multi-instance deployments must share keys for cookies, antiforgery tokens, encrypted settings, and OpenID access tokens used by the Media Gallery. Use this skill when requests mention Orchard Core Azure Data Protection, shared data protection keys, DataProtectionKeys.xml, load-balanced Orchard Core, random logouts or antiforgery failures across instances, upgrading from the OrchardCore_DataProtection_Azure section, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# Orchard Core Azure Data Protection - Prompt Templates
+# Orchard Core Azure Data Protection
 
 ## Module Overview
 
-The `OrchardCore.DataProtection.Azure` module enables storing ASP.NET Core Data Protection key rings in Azure Blob Storage. This is essential for load-balanced and multi-instance deployments where all instances must share the same key ring.
+`OrchardCore.DataProtection.Azure` stores the ASP.NET Core Data Protection key
+ring in Azure Blob Storage, isolated per tenant. All instances of a load-balanced
+deployment must read the same key ring.
 
-Data Protection is a core ASP.NET Core security mechanism used by Orchard Core to safeguard:
+Orchard Core uses Data Protection for:
 
-- Authentication cookies
-- Anti-forgery tokens
-- Decryptable persisted secrets (e.g., SMTP credentials, excluding user passwords)
-- Temporary data (TempData)
+- Authentication cookies and antiforgery tokens.
+- Decryptable persisted secrets (SMTP passwords, API keys; not user passwords).
+- OpenID Connect server tokens in the Data Protection format (for example the Media Gallery bearer tokens).
+- Temporary data (TempData).
 
-Keys are automatically isolated per tenant within the configured container.
-
-## Configuration
+## Configuration (`OrchardCore:DataProtection:Azure`)
 
 ### Guidelines
 
-- Enable the `OrchardCore.DataProtection.Azure` feature.
-- Provide a valid Azure Storage account connection string.
-- The container name must be a valid DNS name and conform to Azure naming rules (lowercase only).
-- Set `CreateContainer` to `true` (default) to auto-create the container on startup.
-- This feature is critical for multi-instance deployments (load-balanced, scaled-out) where all instances must share the same data protection keys.
-- Without shared key storage, authentication cookies and anti-forgery tokens will fail across instances.
-
-### Configuration Properties
+- Enable the `OrchardCore.DataProtection.Azure` feature and provide a connection string through `IShellConfiguration` (appsettings, environment variables, Key Vault).
+- The container name must be a valid lowercase DNS name.
+- Without a connection string the feature logs a critical error and adds no services; the default per-instance key storage stays in use.
+- `CreateContainer` (default `true`) checks for the container on startup and creates it; set `false` when it is pre-provisioned.
 
 | Property | Description | Default |
 |---|---|---|
-| ConnectionString | Azure Storage account connection string (required). | `""` |
-| ContainerName | Azure Blob container name (lowercase, valid DNS name). | `"dataprotection"` |
-| BlobName | Specific blob name for storing keys (optional, defaults to tenant-specific path). | `""` |
-| CreateContainer | Whether to auto-create the container if it doesn't exist. | `true` |
-
-### Basic Configuration
-
-Add to `appsettings.json`:
+| `ConnectionString` | Storage account connection string (required). | |
+| `ContainerName` | Blob container. Templatable. | `dataprotection` |
+| `BlobName` | Key ring blob. Templatable. | `Sites/{tenant}/DataProtectionKeys.xml` |
+| `CreateContainer` | Create the container if missing. | `true` |
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_DataProtection_Azure": {
-      "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
-      "ContainerName": "dataprotection",
-      "BlobName": "",
-      "CreateContainer": true
+    "DataProtection": {
+      "Azure": {
+        "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
+        "ContainerName": "dataprotection",
+        "BlobName": "",
+        "CreateContainer": true
+      }
     }
   }
 }
 ```
 
+- Environment variable: `OrchardCore__DataProtection__Azure__ConnectionString`.
+- Azure Key Vault secret (see `orchardcore-azure-key-vault`): `OrchardCore--DataProtection--Azure--ConnectionString`.
+
 ### Default Key Storage Path
 
-By default, keys are stored in a folder-per-tenant structure within a single container:
+One container, one folder per tenant:
 
 ```
-dataprotection/Sites/tenant_name/DataProtectionKeys.xml
+dataprotection/Sites/{tenant}/DataProtectionKeys.xml
 ```
 
-## Multi-Tenant Configuration with Liquid Templating
+## Multi-Tenant Templating
 
-### Guidelines
-
-- Use Liquid templating in `ContainerName` and `BlobName` properties for per-tenant isolation.
-- The `ShellSettings` object is available in the Liquid template context.
-- `{{ ShellSettings.Name }}` is automatically lowercased; ensure `ContainerName` conforms to Azure naming rules.
-- If `BlobName` is not supplied, it defaults to `Sites/tenant_name/DataProtectionKeys.xml`.
-- Only default Liquid filters and tags are available; extra filters like `slugify` are not supported.
+- `ContainerName` and `BlobName` accept Liquid with `ShellSettings` in scope.
+- `{{ ShellSettings.Name }}` is lowercased; the container name must still follow Azure naming rules.
+- Only default Liquid filters and tags are available (no `slugify`).
 
 ### Container per Tenant
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_DataProtection_Azure": {
-      "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
-      "ContainerName": "{{ ShellSettings.Name }}-dataprotection",
-      "BlobName": "{{ ShellSettings.Name }}DataProtectionKeys.xml",
-      "CreateContainer": true
+    "DataProtection": {
+      "Azure": {
+        "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
+        "ContainerName": "{{ ShellSettings.Name }}-dataprotection",
+        "BlobName": "{{ ShellSettings.Name }}DataProtectionKeys.xml",
+        "CreateContainer": true
+      }
     }
   }
 }
 ```
 
-### Single Container with Tenant Isolation (Default Behavior)
+## Multi-Instance Deployments
 
-The default configuration stores all tenants' keys in one container, isolated by folder:
-
-```json
-{
-  "OrchardCore": {
-    "OrchardCore_DataProtection_Azure": {
-      "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net",
-      "ContainerName": "dataprotection",
-      "CreateContainer": true
-    }
-  }
-}
-```
-
-This produces the path: `dataprotection/Sites/{tenant_name}/DataProtectionKeys.xml`
-
-## Multi-Instance Deployment Considerations
-
-### Guidelines
-
-- In a single-instance deployment, the default file-based key storage works fine.
-- In load-balanced or multi-instance deployments, all instances must share the same data protection keys.
-- Without `OrchardCore.DataProtection.Azure`, each instance generates its own key ring, causing authentication failures when requests hit different instances.
-- Enable this feature before deploying to production with multiple instances.
-- The `CreateContainer` option checks for container existence on each startup; set to `false` once the container is confirmed to exist, to skip this check.
+- A single instance works with the default file-based key storage.
+- With several instances, each one otherwise generates its own key ring, so a cookie, antiforgery token or access token issued by one instance is rejected by another.
+- Enable this feature (or `OrchardCore.Redis.DataProtection`, see `orchardcore-redis`) before scaling out. Pick one of them per tenant.
+- The Media Gallery in Cookie or Bearer mode depends on shared keys; per-instance keys surface as intermittent `401` errors behind a round-robin load balancer (see `orchardcore-media-gallery`).
 
 ### Symptoms of Missing Shared Key Storage
 
-- Users are randomly logged out when requests are routed to different instances.
-- Anti-forgery token validation errors on form submissions.
-- Encrypted data (e.g., SMTP passwords) cannot be decrypted by other instances.
-- Session data lost across instances.
+- Users are randomly logged out when requests reach a different instance.
+- Antiforgery validation errors on form posts and Media API uploads.
+- Encrypted settings (for example SMTP passwords) cannot be decrypted by other instances.
+- OpenID access tokens rejected with `401` by other instances.
 
 ### Recommended Production Configuration
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_DataProtection_Azure": {
-      "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=prodaccount;AccountKey=prodkey;EndpointSuffix=core.windows.net",
-      "ContainerName": "dataprotection",
-      "CreateContainer": false
+    "DataProtection": {
+      "Azure": {
+        "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=prodaccount;AccountKey=prodkey;EndpointSuffix=core.windows.net",
+        "ContainerName": "dataprotection",
+        "CreateContainer": false
+      }
     }
   }
 }
 ```
 
-Set `CreateContainer` to `false` in production when the container is pre-provisioned, to avoid unnecessary startup checks.
+Keep the connection string out of source control: use an environment variable
+or a Key Vault secret.
+
+## Upgrading from 3.x
+
+- Rename the `OrchardCore_DataProtection_Azure` section to `DataProtection:Azure`.
+- Environment variable `OrchardCore__OrchardCore_DataProtection_Azure__ConnectionString` becomes `OrchardCore__DataProtection__Azure__ConnectionString`.
+- Key Vault secret `OrchardCore--OrchardCore---DataProtection---Azure--ConnectionString` becomes `OrchardCore--DataProtection--Azure--ConnectionString`.
+- The old names are deprecated but still read; the new name wins when both are set.

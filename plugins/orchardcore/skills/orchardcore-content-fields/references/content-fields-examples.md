@@ -345,29 +345,74 @@ public sealed class EventMigrations : DataMigration
 }
 ```
 
-## Example 5: HTML and Markdown Rendering Settings
+## Example 5: HTML, Markdown, and Liquid Fields
 
-`RenderLiquid` is independent from `SanitizeHtml` for both HTML and Markdown
-fields. Enable either setting according to the content trust and templating
-requirements.
+HTML and Markdown fields only expose `SanitizeHtml`, which applies to the final
+rendered HTML; their source is stored as authored and Liquid in it is not
+executed. Use a `LiquidField` for templated content.
 
 ```csharp
 await _contentDefinitionManager.AlterPartDefinitionAsync("ArticlePart", part => part
     .WithField("Summary", field => field
         .OfType("HtmlField")
+        .WithEditor("Wysiwyg")
         .WithSettings(new HtmlFieldSettings
         {
-            SanitizeHtml = true,
-            RenderLiquid = false
+            SanitizeHtml = true
         })
     )
     .WithField("Body", field => field
         .OfType("MarkdownField")
         .WithSettings(new MarkdownFieldSettings
         {
-            SanitizeHtml = true,
-            RenderLiquid = true
+            SanitizeHtml = true
         })
     )
+    .WithField("Banner", field => field
+        .OfType("LiquidField")
+        .WithDisplayName("Banner")
+    )
 );
+```
+
+Render them through their shapes so shortcodes, sanitization, and Liquid
+execution apply:
+
+```liquid
+{{ Model.Content["ArticlePart-Summary"] | shape_render }}
+{{ Model.Content["ArticlePart-Body"] | shape_render }}
+{{ Model.Content["ArticlePart-Banner"] | shape_render }}
+```
+
+## Example 6: TextField Length Limits
+
+```json
+{
+    "steps": [
+        {
+            "name": "ContentDefinition",
+            "ContentParts": [
+                {
+                    "Name": "ArticlePart",
+                    "ContentPartFieldDefinitionRecords": [
+                        {
+                            "FieldName": "TextField",
+                            "Name": "Teaser",
+                            "Settings": {
+                                "ContentPartFieldSettings": {
+                                    "DisplayName": "Teaser",
+                                    "Editor": "TextArea"
+                                },
+                                "TextFieldSettings": {
+                                    "MinLength": 20,
+                                    "MaxLength": 280
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
 ```

@@ -138,6 +138,11 @@
       "type": "boolean",
       "description": "Whether clients must use pushed authorization requests."
     },
+    "RequireEndSessionConfirmation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether users must confirm sign-out at the end session endpoint. Defaults to true when omitted."
+    },
     "UseReferenceAccessTokens": {
       "type": "boolean",
       "description": "Whether reference access tokens should be issued instead of self-contained tokens."

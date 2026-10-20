@@ -1,6 +1,10 @@
 ---
 name: orchardcore-decoupled-cms
-description: Skill for building decoupled CMS applications with Orchard Core. Covers headless CMS architecture, content API consumption, custom Razor Pages for content rendering, loading content by ID, alias, and handle, auto-generating aliases with Liquid patterns, preview feature integration, and content property access patterns. Use this skill when requests mention Orchard Core Decoupled CMS, Building a Decoupled CMS with Orchard Core, Project Setup, Content Item Properties, Loading Content by ID, Loading Content by Alias (SEO-Friendly Slug), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Application.Cms.Core.Targets, OrchardCore.IOrchardHelper, IOrchardHelper, MarkdownBodyPart. It also helps with Loading Content by ID, Loading Content by Alias (SEO-Friendly Slug), Accessing Dynamic Content Properties, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for building decoupled and headless CMS applications with Orchard Core. Covers custom Razor Pages and controllers, loading content by ID, alias, and handle with IOrchardHelper, rendering HTML and Markdown safely now that only rendered output is sanitized, alias patterns, PreviewPart integration, consuming the Content API with the Api authentication scheme, RFC 9457 Problem Details error responses, and OpenAPI client generation. Use this skill when requests mention Orchard Core Decoupled CMS, Headless CMS, Project Setup, Content Item Properties, Loading Content by ID or Alias, Content API errors, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.Application.Cms.Core.Targets, IOrchardHelper, MarkdownToHtmlAsync, BodyAspect, HtmlBodyPart, AliasPart, PreviewPart, api/content, application/problem+json, SkipStatusCodePages, OrchardCore.OpenApi.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Decoupled CMS - Prompt Templates
@@ -21,7 +25,10 @@ You are an Orchard Core expert. Generate code and configuration for building dec
 - Load content items by alias using `Orchard.GetContentItemByHandleAsync($"alias:{slug}")`.
 - Access standard properties like `DisplayText`, `ContentItemId`, `Author`, and `ContentType` directly on the content item object.
 - Access dynamic part data through the `Content` property (a JSON document), e.g., `blogPost.Content.MarkdownBodyPart.Markdown`.
-- Use `Orchard.MarkdownToHtmlAsync((string) contentItem.Content.MarkdownBodyPart.Markdown)` to convert Markdown content to HTML.
+- Use `Orchard.MarkdownToHtmlAsync((string) contentItem.Content.MarkdownBodyPart.Markdown)` to convert Markdown content to HTML; it sanitizes the output by default (`sanitize: true`).
+- HTML and Markdown are stored exactly as authored; only rendered output is sanitized. Never write `HtmlBodyPart.Html` with `Html.Raw()` directly: use `IContentManager.PopulateAspectAsync<BodyAspect>(contentItem)` (rendered and sanitized body), render the item shapes from a theme view (`@await Orchard.DisplayAsync(contentItem)`), or sanitize with `IHtmlSanitizerService`.
+- Liquid in `HtmlBodyPart`, `HtmlField`, `MarkdownBodyPart` and `MarkdownField` is no longer executed; use `LiquidPart` or `LiquidField` for templated content.
+- For headless clients, Orchard Core API endpoints use the `Api` authentication scheme; 401/403 and `[SkipStatusCodePages]` responses carry an RFC 9457 Problem Details body (`application/problem+json`).
 - Use `Orchard.ConsoleLog(contentItem)` during development to inspect a content item's full JSON structure in the browser console.
 - Attach **AliasPart** to content types that need SEO-friendly URL slugs.
 - Configure AliasPart with a Liquid pattern like `{{ ContentItem | display_text | slugify }}` to auto-generate aliases from titles.
@@ -136,6 +143,7 @@ All part and field data is stored in the `Content` property as a JSON document. 
 ```html
 @page "/blogpost/{slug}"
 @inject OrchardCore.IOrchardHelper Orchard
+@inject OrchardCore.Infrastructure.Html.IHtmlSanitizerService HtmlSanitizer
 
 @{
     var blogPost = await Orchard.GetContentItemByHandleAsync($"alias:{Slug}");
@@ -148,10 +156,10 @@ All part and field data is stored in the `Content` property as a JSON document. 
 <!-- Access MarkdownBodyPart content -->
 <div>@await Orchard.MarkdownToHtmlAsync((string) blogPost.Content.MarkdownBodyPart.Markdown)</div>
 
-<!-- Access HtmlBodyPart content (if attached) -->
+<!-- Access HtmlBodyPart content (if attached). The stored HTML is unsanitized source: sanitize it before output. -->
 @if (blogPost.Content.HtmlBodyPart != null)
 {
-    <div>@Html.Raw((string) blogPost.Content.HtmlBodyPart.Html)</div>
+    <div>@Html.Raw(HtmlSanitizer.Sanitize((string) blogPost.Content.HtmlBodyPart.Html))</div>
 }
 
 <!-- Debug: inspect full content item JSON in browser console -->
@@ -349,6 +357,8 @@ A production-ready Razor Page that loads content by alias with proper null check
 ```html
 @page "/article/{slug}"
 @inject OrchardCore.IOrchardHelper Orchard
+@inject OrchardCore.ContentManagement.IContentManager ContentManager
+@using OrchardCore.ContentManagement.Models
 
 @{
     var article = await Orchard.GetContentItemByHandleAsync($"alias:{Slug}");
@@ -371,7 +381,9 @@ A production-ready Razor Page that loads content by alias with proper null check
     }
     else if (article.Content.HtmlBodyPart?.Html != null)
     {
-        @Html.Raw((string) article.Content.HtmlBodyPart.Html)
+        @* BodyAspect returns the rendered body: shortcodes applied and output sanitized. *@
+        var bodyAspect = await ContentManager.PopulateAspectAsync<BodyAspect>(article);
+        @bodyAspect.Body
     }
 </article>
 
@@ -422,8 +434,72 @@ public sealed class BlogController : Controller
 | `GetContentItemByHandleAsync(string handle)` | Loads a content item by handle. Use `alias:{slug}` for alias lookups or `slug:{path}` for autoroute lookups. |
 | `GetContentItemByVersionIdAsync(string versionId)` | Loads a specific version of a content item. |
 | `QueryContentItemsAsync(Func<IQuery, IQuery<ContentItem>> queryBuilder)` | Queries content items using YesSql. |
-| `MarkdownToHtmlAsync(string markdown)` | Converts Markdown text to sanitized HTML. |
+| `MarkdownToHtmlAsync(string markdown, bool sanitize = true)` | Converts Markdown text to HTML, sanitized by default. |
+| `DisplayAsync(ContentItem item, string displayType = "")` | Renders the content item shapes. Available on the `Orchard` property of Orchard Core Razor views (`IOrchardDisplayHelper`), not on an injected `IOrchardHelper`. |
 | `ConsoleLog(object value)` | Outputs a content item's JSON structure to the browser's developer console for debugging. |
+
+### Consuming Orchard Core APIs from a Headless Front End
+
+Enable the features that expose the APIs (for example `OrchardCore.Contents` for `api/content/{contentItemId}`, `OrchardCore.Queries` for `api/queries/{name}`, `OrchardCore.Apis.GraphQL` for `api/graphql`) and authenticate clients with OpenID Connect bearer tokens (`OrchardCore.OpenId.Server` + `OrchardCore.OpenId.Validation`). Endpoints authorize through the shared `Api` scheme.
+
+Error responses that opt out of the HTML error pages are now Problem Details documents:
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+  "title": "Forbidden",
+  "status": 403
+}
+```
+
+- Status codes and headers are unchanged; a `401` challenge from OpenID Token Validation still carries the RFC 6750 `WWW-Authenticate` header with the OAuth error.
+- The body is written through `IProblemDetailsService`, so `builder.Services.AddProblemDetails(options => ...)` customizations in `Program.cs` apply.
+- Responses that do not opt out are still handled by the status code pages of the `OrchardCore.Diagnostics` feature.
+
+```csharp
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
+
+public sealed class OrchardContentClient
+{
+    private readonly HttpClient _httpClient;
+
+    public OrchardContentClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task<JsonElement?> GetContentItemAsync(string contentItemId, string accessToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/content/{contentItemId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await _httpClient.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<JsonElement>();
+        }
+
+        if (response.Content.Headers.ContentType?.MediaType == "application/problem+json")
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            throw new HttpRequestException($"{problem?.Title} ({problem?.Status})", null, response.StatusCode);
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        return null;
+    }
+}
+```
+
+Use the `OrchardCore.OpenApi` module (Orchard Core 4.0) to browse the endpoints with Swagger UI, ReDoc or Scalar and to generate typed clients; see `orchardcore-openapi`. The `api/queries/{name}` endpoint now has separate `ApiExecuteQueryGet` and `ApiExecuteQueryPost` operation IDs, so regenerated clients get new method names.
 
 ### Importing Content via Recipe
 

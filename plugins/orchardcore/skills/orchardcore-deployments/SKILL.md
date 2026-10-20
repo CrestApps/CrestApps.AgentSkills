@@ -1,6 +1,6 @@
 ---
 name: orchardcore-deployments
-description: Skill for authoring Orchard Core deployment plans and custom deployment steps. Covers plan creation, plan recipes, export targets, remote deployment, built-in step selection, and end-to-end extensibility. Use this skill when requests mention Orchard Core Deployments, Create a Deployment Plan, Deployment Step Types, Export or Import a Deployment Package, Remote Deployment, Deployment Plan Recipe Export, or Creating Deployment Steps in Code. Strong matches include work with OrchardCore.Deployment, OrchardCore.Deployment.Remote, IDeploymentSource, IDeploymentTargetHandler, DeploymentStep, AddDeployment, AddDeploymentTargetHandler, DeploymentPlansRecipeStep, and DeploymentPlanResult. It also helps with Deployment Plan Recipe Export, custom step display drivers, and the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for authoring Orchard Core deployment plans and custom deployment steps. Covers plan creation, plan recipes, package export and import, export targets, remote deployment, built-in step selection, DeploymentPermissions, custom steps with LocalizationSource Category and Title labels, and end-to-end extensibility. Use this skill when requests mention Orchard Core Deployments, Create a Deployment Plan, Deployment Step Types, Export or Import a Deployment Package, Remote Deployment, Deployment Plan Recipe Export, Creating Deployment Steps in Code, deployment step categories or titles, or upgrading custom deployment steps to Orchard Core 4.0. Strong matches include OrchardCore.Deployment, OrchardCore.Deployment.Remote, IDeploymentSource, IDeploymentTargetProvider, IDeploymentTargetHandler, DeploymentStep, DeploymentPermissions, LocalizationSource, AddDeployment, AddDeploymentTargetHandler, DeploymentPlansRecipeStep, and DeploymentPlanResult.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -14,11 +14,27 @@ Use deployment plans to export configuration or content as a recipe package, the
 ## Create and run a deployment plan
 
 1. Enable `OrchardCore.Deployment` and the features that contribute the required steps.
-2. In **Configuration → Deployment Plans**, create a plan, add steps, and configure each step.
-3. Use the plan's **Export** action to download a deployment package. It is a recipe which the target imports through the Recipes administration UI or setup flow.
-4. Use the plan's **Execute** action only when a configured deployment target is available. The Recipes feature supplies the normal recipe deployment target.
+2. In **Tools → Deployments → Plans**, select **Add Deployment Plan**, then open the plan and use **Add Step**. The step picker groups steps by category and can be filtered by category.
+3. Configure each step and arrange the steps in the order they should be written to `Recipe.json`.
+4. Select **Execute**, then a deployment target. **File Download** generates a `.zip` package; `OrchardCore.Deployment.Remote` adds remote instances as targets.
+5. On the target site, go to **Tools → Deployments** and use **Package Import** (`.zip` package or `.json` recipe) or **JSON Import** (recipe JSON in an editor). Importing executes the recipe immediately.
 
 Order steps deliberately. For example, enable features first, define content types before content, configure indexes before requesting a rebuild, and create workflow definitions only after their activity-providing features are enabled.
+
+Package export and import extract and build archives in the tenant-scoped temporary directory provided by `ITempDirectoryProvider`, configured with `OrchardCore:TempDirectory:Path` (see `orchardcore-temp-file-storage`). On hosts with a small system temp volume, point it at a larger mounted file share.
+
+## Permissions
+
+Use the static members of `OrchardCore.Deployment.DeploymentPermissions`:
+
+| Member | Name | Purpose |
+|---|---|---|
+| `ManageDeploymentPlan` | Manage deployment plans | Create, edit, reorder, and delete plans and their steps. |
+| `Export` | Export Data | Execute a plan and export its package. |
+| `Import` | Import Data | Import packages or recipe JSON. Security-critical; grant only to trusted roles. |
+| `ManageRemoteInstances` | Manage remote instances | Manage remote instances (Deployment.Remote). |
+| `ManageRemoteClients` | Manage remote clients | Manage remote clients (Deployment.Remote). |
+| `ExportRemoteInstances` | Export to remote instances | Execute a plan to a remote instance (Deployment.Remote). |
 
 ## Create a plan with a recipe
 
@@ -64,21 +80,22 @@ The deployment recipe step is named lowercase `deployment`. Its `Type` must be t
 }
 ```
 
-The `deployment` recipe step creates or updates plans; it does **not** export their package. Export or execute the resulting plan from the Deployment Plans UI.
+The `deployment` recipe step creates or updates plans; it does **not** export their package. Export or execute the resulting plan from the Deployment Plans UI. The **Deployment Plans** step (`DeploymentPlanDeploymentStep`) exports plan definitions in this format.
 
-## Built-in deployment steps in release/3.0
+## Built-in deployment steps
 
-Only steps whose owning feature is enabled appear in the picker. The complete set registered by framework modules is below. Steps that rebuild, reset, or export to a target are operational steps rather than configuration export steps.
+Only steps whose owning feature is enabled appear in the picker. The set registered by framework modules is below. Steps that rebuild, reset, or export to a target are operational steps rather than configuration export steps.
 
 | Area | Registered step types |
 |---|---|
 | Deployment | `CustomFileDeploymentStep`, `RecipeFileDeploymentStep`, `DeploymentPlanDeploymentStep`, `JsonRecipeDeploymentStep` |
-| Content | `AllContentDeploymentStep`, `ContentDeploymentStep`, `ContentItemDeploymentStep`, `ExportContentToDeploymentTargetDeploymentStep` |
+| Content | `AllContentDeploymentStep`, `ContentDeploymentStep`, `ContentItemDeploymentStep`, `ExportContentToDeploymentTargetDeploymentStep`, `QueryBasedContentDeploymentStep` |
 | Content definitions | `ContentDefinitionDeploymentStep`, `ReplaceContentDefinitionDeploymentStep`, `DeleteContentDefinitionDeploymentStep` |
-| Core configuration | `AllFeaturesDeploymentStep`, `SiteSettingsDeploymentStep`, `ThemesDeploymentStep`, `PlacementsDeploymentStep`, `AllLayersDeploymentStep`, `AllRolesDeploymentStep`, `AllQueriesDeploymentStep`, `CustomSettingsDeploymentStep` |
+| Core configuration | `AllFeaturesDeploymentStep`, `SiteSettingsDeploymentStep`, `ThemesDeploymentStep`, `PlacementsDeploymentStep`, `AllLayersDeploymentStep`, `AllRolesDeploymentStep`, `AllQueriesDeploymentStep`, `CustomSettingsDeploymentStep`, `AllRateLimitPoliciesDeploymentStep` |
 | Media and templates | `MediaDeploymentStep`, `AllMediaProfilesDeploymentStep`, `AllTemplatesDeploymentStep`, `AllAdminTemplatesDeploymentStep`, `AllShortcodeTemplatesDeploymentStep` |
 | Localization, users, tenants | `TranslationsDeploymentStep`, `AllDataTranslationsDeploymentStep`, `AllUsersDeploymentStep`, `CustomUserSettingsDeploymentStep`, `AllFeatureProfilesDeploymentStep` |
 | Workflow, menus, maps, search settings | `AllWorkflowTypeDeploymentStep`, `AdminMenuDeploymentStep`, `AllSitemapsDeploymentStep`, `SearchSettingsDeploymentStep` |
+| Data | `DataPipelinesDeploymentStep` (all or selected pipelines, without their secrets; see `orchardcore-data-pipelines`) |
 | Indexing | `IndexProfileDeploymentStep`, `RebuildIndexDeploymentStep`, `ResetIndexDeploymentStep` |
 | Lucene | `LuceneIndexDeploymentStep`, `LuceneIndexRebuildDeploymentStep`, `LuceneIndexResetDeploymentStep` |
 | Elasticsearch | `ElasticsearchIndexDeploymentStep`, `ElasticsearchIndexRebuildDeploymentStep`, `ElasticsearchIndexResetDeploymentStep` |
@@ -89,7 +106,7 @@ Do not guess step JSON. Create the plan in the admin UI and use its export as th
 
 ## Remote deployment
 
-Enable `OrchardCore.Deployment.Remote` on the source and target along with `OrchardCore.Deployment`. In **Configuration → Remote Instances**, register the remote endpoint; in **Remote Clients**, configure the client credentials/permissions used to call it. The remote UI supports exporting a local plan to a remote instance and importing a remote plan/package locally. Treat the endpoint and its credentials as production secrets, use HTTPS, and ensure the target has every feature required by the imported steps.
+Enable `OrchardCore.Deployment.Remote` on the source and target along with `OrchardCore.Deployment`. On the source, register the target under **Remote Instances**; on the target, create a matching entry under **Remote Clients**. Executing a plan to a remote instance pushes the package to the target's import endpoint, which imports it. See `orchardcore-deployment-remote` for the full setup. Treat the API keys as production secrets, use HTTPS, and ensure the target has every feature required by the imported steps.
 
 ```json
 {
@@ -111,33 +128,36 @@ Enable `OrchardCore.Deployment.Remote` on the source and target along with `Orch
 
 Implement all three pieces in the module that owns the data.
 
-1. Derive a serializable model from `DeploymentStep`, set a stable `Name`, and add only settings that the editor needs.
+1. Derive a serializable model from `DeploymentStep`. In its parameterless constructor set a stable `Name`, plus `Category` and `Title` as `LocalizationSource` values created with the step type as context. Add only settings that the editor needs.
 2. Implement `IDeploymentSource`, preferably by deriving from `DeploymentSourceBase<TStep>`, and append valid recipe JSON to `DeploymentPlanResult.Steps` or files through `result.FileBuilder`.
 3. Add a `DisplayDriver<DeploymentStep, TStep>` and the corresponding summary, thumbnail, and edit Razor shapes when the step is configurable.
 4. Register the source, step factory, JSON derived type, and driver with the exact `AddDeployment<TSource, TStep, TDisplayDriver>()` overload.
-5. If implementing a destination for executing packages rather than a source step, implement `IDeploymentTargetHandler` and register it separately with `AddDeploymentTargetHandler<TImplementation>()`.
+5. To add an execution destination (an entry of the **Execute** dialog), implement `IDeploymentTargetProvider`. To change how imported packages are processed, implement `IDeploymentTargetHandler` and register it with `AddDeploymentTargetHandler<TImplementation>()`.
+
+`Category` groups the step in the **Add Step** picker. `Title` is the step's display name and the heading and breadcrumb of its add and edit screens, so the edit view needs no heading of its own. Both are `[JsonIgnore]`, never persisted with the plan, and translated at display time with `IStringLocalizerFactory.Localize()` using the step type as PO context (for example `msgctxt "MyModule.Deployment.MySettingsDeploymentStep"`). Keep them in `static readonly` fields so every step instance shares them.
 
 Every object added to `DeploymentPlanResult.Steps` is a recipe step consumed on import. Emit an existing recipe step or ship and enable a matching custom `IRecipeStepHandler` on the target tenant. The example emits `MySettings`, so its companion recipe handler must be available there.
 
 ```csharp
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Localization;
 using OrchardCore.Deployment;
+using OrchardCore.Localization;
 
 namespace MyModule.Deployment;
 
 public sealed class MySettingsDeploymentStep : DeploymentStep
 {
+    private static readonly LocalizationSource s_category = LocalizationSource.Create<MySettingsDeploymentStep>("Settings");
+    private static readonly LocalizationSource s_title = LocalizationSource.Create<MySettingsDeploymentStep>("My Settings");
+
     public MySettingsDeploymentStep()
     {
-        Name = nameof(MySettingsDeploymentStep);
+        Name = "MySettings";
+        Category = s_category;
+        Title = s_title;
     }
 
-    public MySettingsDeploymentStep(IStringLocalizer<MySettingsDeploymentStep> localizer)
-        : this()
-    {
-        Category = localizer["Settings"];
-    }
+    public bool IncludeSecrets { get; set; }
 }
 
 public sealed class MySettingsDeploymentSource
@@ -176,10 +196,28 @@ public sealed class MySettingsDeploymentStepDriver
                 .Location("Summary", "Content"),
             View("MySettingsDeploymentStep_Fields_Thumbnail", step)
                 .Location("Thumbnail", "Content"));
+
+    public override IDisplayResult Edit(MySettingsDeploymentStep step, BuildEditorContext context)
+        => Initialize<MySettingsDeploymentStepViewModel>("MySettingsDeploymentStep_Fields_Edit", model =>
+        {
+            model.IncludeSecrets = step.IncludeSecrets;
+        }).Location("Content");
+
+    public override async Task<IDisplayResult> UpdateAsync(MySettingsDeploymentStep step, UpdateEditorContext context)
+    {
+        await context.Updater.TryUpdateModelAsync(step, Prefix, x => x.IncludeSecrets);
+
+        return Edit(step, context);
+    }
+}
+
+public class MySettingsDeploymentStepViewModel
+{
+    public bool IncludeSecrets { get; set; }
 }
 ```
 
-Add `Views/Items/MySettingsDeploymentStep.Fields.Summary.cshtml` and `Views/Items/MySettingsDeploymentStep.Fields.Thumbnail.cshtml`. Add an edit view and override `Edit`/`UpdateAsync` when the step has editable properties.
+Add `Views/Items/MySettingsDeploymentStep.Fields.Summary.cshtml`, `Views/Items/MySettingsDeploymentStep.Fields.Thumbnail.cshtml`, and `Views/Items/MySettingsDeploymentStep.Fields.Edit.cshtml`.
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
@@ -188,7 +226,8 @@ using OrchardCore.Modules;
 
 namespace MyModule;
 
-public sealed class Startup : StartupBase
+[RequireFeatures("OrchardCore.Deployment")]
+public sealed class DeploymentStartup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
@@ -200,14 +239,19 @@ public sealed class Startup : StartupBase
 }
 ```
 
-`AddDeployment<TSource, TStep, TDisplayDriver>()` registers the source transiently, a deployment-step factory, derived JSON metadata, and the display driver. Use `AddDeploymentWithoutSource<TStep, TDisplayDriver>()` only for a step that has no source, such as `RecipeFileDeploymentStep`.
+`AddDeployment<TSource, TStep, TDisplayDriver>()` registers the source, a deployment-step factory, derived JSON metadata, and the display driver. Use `AddDeployment<TSource, TStep>()` for a step without an editor, and `AddDeploymentWithoutSource<TStep, TDisplayDriver>()` only for a step that has no source, such as `RecipeFileDeploymentStep`.
 
-## Deployment target handlers
+## Deployment targets and target handlers
 
-An `IDeploymentTargetHandler` consumes a generated `DeploymentPlanResult` for a specific target. It is not a replacement for `IDeploymentSource`. Register it independently:
+- `IDeploymentTargetProvider.GetDeploymentTargetsAsync()` returns the `DeploymentTarget` entries (`Name`, `Description`, `Route`) offered by **Execute**. `FileDownloadDeploymentTargetProvider` and the remote instances provider are examples.
+- `IDeploymentTargetHandler.ImportFromFileAsync(IFileProvider)` processes an imported package. Register it with `services.AddDeploymentTargetHandler<MyDeploymentTargetHandler>();`. The Recipes module registers `RecipeDeploymentTargetHandler`, which executes the package's recipe.
 
-```csharp
-services.AddDeploymentTargetHandler<MyDeploymentTargetHandler>();
-```
+## Upgrading from 3.x
 
-The framework Recipes module demonstrates this split by registering `RecipeDeploymentTargetHandler`, while the Deployment module registers plan sources and steps.
+- `DeploymentStep.Category` and `DeploymentStep.Title` are `LocalizationSource` instead of `LocalizedString`. Assign them in the parameterless constructor:
+  - Before: `public MyStep(IStringLocalizer<MyStep> S) : this() { Category = S["Content"]; }`
+  - After: `Category = LocalizationSource.Create<MyStep>("Content");` in `public MyStep()`.
+- Remove constructors that took an `IStringLocalizer<TStep>` only to set the labels; built-in steps no longer have them. Existing PO translations keep working because the context is still the step type.
+- Code that displays `step.Category` or `step.Title` must translate it with `IStringLocalizerFactory.Localize(step.Title)`.
+- `OrchardCore.Deployment.CommonPermissions` and `OrchardCore.Deployment.Remote.Permissions` were removed. Use `DeploymentPermissions.ManageDeploymentPlan`, `Export`, `Import`, `ManageRemoteInstances`, `ManageRemoteClients`, and `ExportRemoteInstances` (replaces `Remote.Permissions.Export`). Stored role permission names are unchanged.
+- Deployment and recipe archives are written under `OrchardCore:TempDirectory:Path` instead of `Path.GetTempPath()`.

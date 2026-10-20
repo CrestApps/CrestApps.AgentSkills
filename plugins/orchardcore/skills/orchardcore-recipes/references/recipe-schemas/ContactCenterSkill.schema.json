@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterSkill",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterSkill\u0027."
+    },
+    "Skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the skill. When it matches a stored skill, that skill is updated. Otherwise a new skill is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique skill name."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Skill description."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the skill can be selected by agents and queues."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the skill, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The Contact Center skills to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Skills"
+  ],
+  "additionalProperties": true
+}

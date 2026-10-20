@@ -1,6 +1,10 @@
 ---
 name: orchardcore-docker
-description: Skill for containerizing Orchard Core with Docker. Covers Dockerfile creation with multi-stage builds, dockerignore configuration, docker-compose setup for multiple database providers, HTTPS deployment in containers, environment-specific targeting, image optimization, and CI/CD considerations. Use this skill when requests mention Orchard Core Docker, Containerize Orchard Core with Docker, Multi-Stage Dockerfile, Custom Application Dockerfile, Dockerignore File, Building and Running with Docker, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Cms.Web, OrchardCore.Cms.Web.dll, docker-compose.yml. It also helps with Dockerignore File, Building and Running with Docker, Docker Compose with Multiple Databases, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for containerizing Orchard Core with Docker. Covers multi-stage and multi-platform Dockerfiles, dockerignore configuration, docker compose with multiple database providers, persistent App_Data and temporary file volumes, configuring Orchard Core 4 through environment variables with the renamed configuration sections, scaling containers with shared media storage, data protection keys, Redis and SignalR backplanes, HTTPS in containers, non-root images, environment-specific targeting, image optimization, and CI/CD. Use this skill when requests mention Orchard Core Docker, containerizing Orchard Core, Dockerfile, Dockerfile-CI, TARGETOS, docker compose, container environment variables, ORCHARD_APP_DATA, temporary file storage in containers, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Cms.Web, OrchardCore.Cms.Web.dll, and docker-compose.yml.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Docker - Prompt Templates
@@ -27,23 +31,35 @@ You are an Orchard Core expert. Generate Dockerfiles, docker-compose configurati
 Use a multi-stage Dockerfile to build and publish the Orchard Core application with the SDK, then create a lean runtime image:
 
 ```dockerfile
-# Build stage using .NET SDK
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+# TARGETARCH and TARGETOS are set automatically when --platform is provided.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+ARG TARGETOS
 LABEL stage=build-env
-WORKDIR /app
+WORKDIR /source
 
-# Copy source code and publish
-COPY ./src /app
-RUN dotnet publish /app/OrchardCore.Cms.Web -c Release -o ./build/release
+# .dockerignore excludes App_Data and binaries from these.
+COPY ./src ./src
+COPY Directory.Build.props .
+COPY Directory.Packages.props .
 
-# Runtime stage using ASP.NET runtime only
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+RUN dotnet publish src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj -c Release -o /app --framework net10.0 /p:RunAnalyzers=false
+
+# Pick the runtime image for the target OS.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025 AS build_windows
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS build_linux
+FROM build_${TARGETOS} AS aspnet
+
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
 WORKDIR /app
-COPY --from=build-env /app/build/release .
+COPY --from=build-env /app/ .
 ENTRYPOINT ["dotnet", "OrchardCore.Cms.Web.dll"]
 ```
+
+This is the Dockerfile of the Orchard Core repository. Copy
+`Directory.Build.props` and `Directory.Packages.props` (central package
+management) when your solution has them, or the restore fails. Build a specific
+platform with `docker buildx build --platform linux/amd64 -t orchardcore-app .`.
 
 ### Custom Application Dockerfile
 
@@ -54,14 +70,15 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 LABEL stage=build-env
 WORKDIR /app
 
-# Copy solution and project files first for layer caching
-COPY *.sln .
-COPY src/**/*.csproj ./src/
-RUN dotnet restore
+# Copy solution, build props and project files first for layer caching.
+# Adjust to the files your solution has (.sln or .slnx, Directory.*.props).
+COPY *.slnx Directory.Build.props Directory.Packages.props ./
+COPY src/MyOrchardApp.Web/MyOrchardApp.Web.csproj ./src/MyOrchardApp.Web/
+RUN dotnet restore src/MyOrchardApp.Web/MyOrchardApp.Web.csproj
 
 # Copy full source and publish
 COPY . .
-RUN dotnet publish src/MyOrchardApp.Web -c Release -o /app/publish
+RUN dotnet publish src/MyOrchardApp.Web -c Release -o /app/publish --no-restore
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
@@ -115,7 +132,6 @@ docker image prune -f --filter label=stage=build-env
 Use `docker-compose.yml` to run Orchard Core alongside SQL Server, MySQL, and PostgreSQL services:
 
 ```yaml
-version: '3.3'
 services:
     web:
         build:
@@ -192,7 +208,6 @@ docker-compose up --build
 A minimal `docker-compose.yml` for SQLite (no external database required):
 
 ```yaml
-version: '3.3'
 services:
     web:
         build:
@@ -206,6 +221,82 @@ services:
 volumes:
     app-data:
 ```
+
+`App_Data` holds tenant settings, SQLite databases, the local media store and
+the default Data Protection keys, so it must be a persistent volume.
+
+### Configuring Orchard Core with Environment Variables
+
+Orchard Core 4.0 groups configuration sections by service, without the
+`OrchardCore_` prefix, which keeps environment variable names short:
+
+```yaml
+services:
+    web:
+        image: orchardcore-app
+        environment:
+            ASPNETCORE_ENVIRONMENT: Production
+            OrchardCore__Media__MaxFileSize: "104857600"
+            OrchardCore__Media__Azure__ConnectionString: "${MEDIA_BLOB_CONNECTION}"
+            OrchardCore__Media__Azure__ContainerName: "media"
+            OrchardCore__DataProtection__Azure__ConnectionString: "${DP_BLOB_CONNECTION}"
+            OrchardCore__Redis__Configuration: "redis:6379,abortConnect=false"
+            OrchardCore__TempDirectory__Path: "/app/data/temp"
+        volumes:
+            - app-data:/app/App_Data
+            - temp-data:/app/data/temp
+
+volumes:
+    app-data:
+    temp-data:
+```
+
+- Old names such as `OrchardCore__OrchardCore_Media_Azure__ConnectionString` still work but are deprecated; the new name wins when both are set.
+- `OrchardCore__TempDirectory__Path` moves chunked and TUS uploads and deployment and recipe archives off the container's small temp volume (`MediaOptions.TusTempPath` no longer exists). See `orchardcore-temp-file-storage`.
+- `ORCHARD_APP_DATA` relocates the whole `App_Data` folder (for example to a mounted volume); do not use absolute paths in `Media:AssetsPath`.
+- Pass secrets through the orchestrator's secret store or an `.env` file rather than hard-coding them. Tenant auto setup values follow the same pattern (`OrchardCore__AutoSetup__...`, see `orchardcore-auto-setup`).
+
+### Running Several Containers
+
+Container instances do not share local disks, so a scaled-out deployment needs:
+
+| Concern | Use |
+|---|---|
+| Media files | `OrchardCore.Media.Azure.Storage` or `OrchardCore.Media.AmazonS3` (`orchardcore-azure-media`, `orchardcore-amazon-s3-media`) |
+| Data Protection keys | `OrchardCore.DataProtection.Azure` or `OrchardCore.Redis.DataProtection` |
+| Cache invalidation, locks | `OrchardCore.Redis.Bus`, `OrchardCore.Redis.Cache`, `OrchardCore.Redis.Lock` |
+| Media Gallery real-time updates | `OrchardCore.SignalR.Redis` or `OrchardCore.SignalR.Azure` |
+| TUS resumable uploads | Shared `TempDirectory:Path` volume (NFS, Azure Files, EFS), cloud media storage, or sticky sessions |
+| Tenant settings | `AddDatabaseShellsConfiguration()` or `AddAzureShellsConfiguration()` (see `orchardcore-shells`), or a shared `App_Data` volume |
+
+```yaml
+services:
+    web:
+        image: orchardcore-app
+        deploy:
+            replicas: 3
+        environment:
+            OrchardCore__Redis__Configuration: "redis:6379,abortConnect=false"
+            OrchardCore__TempDirectory__Path: "/mnt/shared/temp"
+        volumes:
+            - shared-temp:/mnt/shared/temp
+
+    redis:
+        image: redis:7
+        command: ["redis-server", "--appendonly", "yes"]
+        volumes:
+            - redis-data:/data
+
+volumes:
+    shared-temp:
+    redis-data:
+```
+
+Enable `OrchardCore.Redis`, `OrchardCore.Redis.Cache`, `OrchardCore.Redis.Bus`,
+`OrchardCore.Redis.Lock`, `OrchardCore.Redis.DataProtection` and
+`OrchardCore.SignalR.Redis` in the tenant (see `orchardcore-redis` and
+`orchardcore-media-gallery`). Redis must persist data (AOF or RDB) because it
+holds the Data Protection keys.
 
 ### HTTPS in Containers
 
@@ -245,22 +336,52 @@ Target specific .NET base images for different environments:
 |-------------|-----------|---------------|
 | Linux x64 | `mcr.microsoft.com/dotnet/sdk:10.0` | `mcr.microsoft.com/dotnet/aspnet:10.0` |
 | Linux Alpine | `mcr.microsoft.com/dotnet/sdk:10.0-alpine` | `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` |
-| Windows | `mcr.microsoft.com/dotnet/sdk:10.0-nanoserver-ltsc2022` | `mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2022` |
+| Windows | `mcr.microsoft.com/dotnet/sdk:10.0-nanoserver-ltsc2025` | `mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025` |
 
-Alpine-based images produce the smallest containers but may have compatibility differences.
+Alpine-based images produce the smallest containers but may have compatibility
+differences. Image resizing uses NetVips; its native libvips binaries come from
+the `NetVips.Native` package, so add the matching `NetVips.Native.<rid>` package
+to the web project when you publish for a runtime it does not cover.
+
+### Non-Root Containers
+
+The .NET 8+ images include an `app` user. To run without root, listen on an
+unprivileged port and make the volumes writable by that user:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+WORKDIR /app
+COPY --from=build-env /app/publish .
+RUN mkdir -p /app/App_Data && chown -R $APP_UID /app/App_Data
+USER $APP_UID
+ENTRYPOINT ["dotnet", "MyOrchardApp.Web.dll"]
+```
 
 ### CI/CD Considerations
 
 For CI/CD pipelines (e.g., GitHub Actions), the application is typically built on the CI host rather than inside the Docker image. Use a simplified Dockerfile that copies pre-built artifacts:
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# A prerequisite is a published application in .build/release
+FROM --platform=$BUILDPLATFORM golang:alpine AS build
+ARG TARGETOS
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025 AS build_windows
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS build_linux
+FROM build_${TARGETOS} AS aspnet
+
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
 WORKDIR /app
-COPY ./publish .
-ENTRYPOINT ["dotnet", "MyOrchardApp.Web.dll"]
+COPY .build/release /app
+ENTRYPOINT ["dotnet", "OrchardCore.Cms.Web.dll"]
 ```
+
+This mirrors the repository's `Dockerfile-CI`; the small `golang:alpine` stage
+only lets BuildKit resolve `TARGETOS`. A single-platform pipeline can simply use
+`FROM mcr.microsoft.com/dotnet/aspnet:10.0` and `COPY ./publish .`.
 
 This avoids the intermediate build stage and produces faster image builds in the pipeline.
 

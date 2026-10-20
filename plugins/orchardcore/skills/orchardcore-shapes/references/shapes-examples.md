@@ -2,9 +2,9 @@
 
 ## Example 1: Blog Theme Shape Overrides
 
-Overriding the Content shape for BlogPost content type with Liquid templates.
+Overriding the Content shape for BlogPost content type with Liquid templates. Liquid files use the same naming as Razor files: `-` for `__` and a trailing `.DisplayType`.
 
-### Views/Content__BlogPost.liquid
+### Views/Content-BlogPost.liquid
 
 ```liquid
 <article class="blog-post">
@@ -32,7 +32,7 @@ Overriding the Content shape for BlogPost content type with Liquid templates.
 </article>
 ```
 
-### Views/Content__BlogPost__Summary.liquid
+### Views/Content-BlogPost.Summary.liquid (alternate `Content_Summary__BlogPost`)
 
 ```liquid
 <article class="blog-summary">
@@ -69,7 +69,7 @@ Overriding the Content shape for BlogPost content type with Liquid templates.
 </div>
 ```
 
-### Views/Widget__HtmlWidget.liquid
+### Views/Widget-HtmlWidget.liquid
 
 ```liquid
 <div class="html-widget">
@@ -80,25 +80,31 @@ Overriding the Content shape for BlogPost content type with Liquid templates.
 ## Example 3: Custom Shape Table Provider for Product Alternates
 
 ```csharp
+using OrchardCore.ContentManagement;
+using OrchardCore.DisplayManagement;
 using OrchardCore.DisplayManagement.Descriptors;
 
 public sealed class ProductShapeTableProvider : IShapeTableProvider
 {
-    public void Discover(ShapeTableBuilder builder)
+    public ValueTask DiscoverAsync(ShapeTableBuilder builder)
     {
         builder.Describe("Content")
             .OnDisplaying(context =>
             {
-                var contentType = context.Shape.GetProperty<string>("ContentType");
-
-                // Add category-specific alternates for Product content type
-                if (contentType == "Product")
+                // Content shapes expose the ContentItem and Stereotype properties.
+                if (!context.Shape.TryGetProperty("ContentItem", out ContentItem contentItem) ||
+                    contentItem.ContentType != "Product")
                 {
-                    var category = context.Shape.GetProperty<string>("Category");
-                    if (!string.IsNullOrEmpty(category))
-                    {
-                        context.Shape.Metadata.Alternates.Add($"Content__Product__{category}");
-                    }
+                    return;
+                }
+
+                // Category is a text field on the Product part: Product.Category.Text.
+                string category = contentItem.Content.Product?.Category?.Text?.ToString();
+
+                if (!string.IsNullOrEmpty(category))
+                {
+                    // Matches Views/Content-Product-{category}.cshtml or .liquid.
+                    context.Shape.Metadata.Alternates.Add($"Content__Product__{category}");
                 }
             });
 
@@ -108,16 +114,20 @@ public sealed class ProductShapeTableProvider : IShapeTableProvider
             {
                 context.Shape.Metadata.Wrappers.Add("Widget_CardWrapper");
             });
+
+        return ValueTask.CompletedTask;
     }
 }
 ```
 
-### Views/Widget_CardWrapper.liquid
+### Views/Widget.CardWrapper.liquid
+
+A wrapper renders the already rendered output from `Model.Metadata.ChildContent`. Rendering `Model` again would recurse.
 
 ```liquid
 <div class="card">
     <div class="card-body">
-        {{ Model | shape_render }}
+        {{ Model.Metadata.ChildContent }}
     </div>
 </div>
 ```
@@ -125,13 +135,13 @@ public sealed class ProductShapeTableProvider : IShapeTableProvider
 ### Registration
 
 ```csharp
-using OrchardCore.DisplayManagement.Descriptors;
+using OrchardCore.DisplayManagement;
 
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IShapeTableProvider, ProductShapeTableProvider>();
+        services.AddShapeTableProvider<ProductShapeTableProvider>();
     }
 }
 ```
@@ -145,17 +155,30 @@ using OrchardCore.DisplayManagement;
 public sealed class DashboardController : Controller
 {
     private readonly IShapeFactory _shapeFactory;
-    private readonly IDisplayHelper _displayHelper;
+    private readonly IShapeHtmlRenderer _shapeHtmlRenderer;
 
     public DashboardController(
         IShapeFactory shapeFactory,
-        IDisplayHelper displayHelper)
+        IShapeHtmlRenderer shapeHtmlRenderer)
     {
         _shapeFactory = shapeFactory;
-        _displayHelper = displayHelper;
+        _shapeHtmlRenderer = shapeHtmlRenderer;
     }
 
     public async Task<IActionResult> Index()
+    {
+        return View(await BuildDashboardAsync());
+    }
+
+    // Returns the rendered markup as data, e.g. for client-side refreshes.
+    public async Task<IActionResult> Refresh()
+    {
+        var html = await _shapeHtmlRenderer.RenderAsync(await BuildDashboardAsync(), HttpContext.RequestAborted);
+
+        return Json(new { html });
+    }
+
+    private async Task<IShape> BuildDashboardAsync()
     {
         // Create shapes programmatically
         var statsShape = await _shapeFactory.CreateAsync("Dashboard_Stats", Arguments.From(new
@@ -176,9 +199,15 @@ public sealed class DashboardController : Controller
             RecentPosts = recentPostsShape
         }));
 
-        return View(model);
+        return model;
     }
 }
+```
+
+### Views/Dashboard/Index.cshtml
+
+```cshtml
+@await DisplayAsync(Model)
 ```
 
 ### Views/Dashboard.liquid
@@ -279,13 +308,11 @@ If the root wrapper is missing, Orchard throws an `InvalidOperationException` fo
 ```liquid
 {% if Model.Field.ContentItemIds and Model.Field.ContentItemIds.size > 0 %}
     <ul class="content-picker-list">
-        {% for id in Model.Field.ContentItemIds %}
-            {% assign item = id | content_item %}
-            {% if item %}
-                <li>
-                    <a href="{{ item | display_url }}">{{ item.DisplayText }}</a>
-                </li>
-            {% endif %}
+        {% assign items = Model.Field.ContentItemIds | content_item_id %}
+        {% for item in items %}
+            <li>
+                <a href="{{ item | display_url }}">{{ item.DisplayText }}</a>
+            </li>
         {% endfor %}
     </ul>
 {% endif %}

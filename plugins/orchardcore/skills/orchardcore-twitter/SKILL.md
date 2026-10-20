@@ -1,6 +1,6 @@
 ---
 name: orchardcore-twitter
-description: Skill for integrating X Twitter in Orchard Core. Covers TwitterClient, X API settings, sign in with X Twitter, TwitterSettings, TwitterSigninSettings, configuration overrides, recipes, and workflow status update activities. Use this skill when requests mention Orchard Core Twitter, Orchard Core X, TwitterClient, sign in with X, TwitterSettings, UpdateTwitterStatusTask, X workflow activity, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Twitter, OrchardCore.Twitter.Signin, OrchardCore.Twitter.Services, OrchardCore.Twitter.Workflows, ITwitterSettingsService, ITwitterSigninService, TwitterOptionsConfiguration, and UpdateTwitterStatusTask. It also helps with OAuth credentials, external authentication, recipes, and the source-backed patterns captured in this skill.
+description: Skill for integrating X Twitter in Orchard Core. Covers TwitterClient, X API settings, sign in with X Twitter, TwitterSettings, TwitterSigninSettings, ConfigureTwitterSettings with the OrchardCore X configuration section, ConsumerSecret and AccessTokenSecret from configuration or environment variables, recipes, and workflow status update activities. Use this skill when requests mention Orchard Core Twitter, Orchard Core X, TwitterClient, sign in with X, TwitterSettings, UpdateTwitterStatusTask, X workflow activity, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Twitter, OrchardCore.Twitter.Signin, OrchardCore.Twitter.Services, OrchardCore.Twitter.Workflows, ITwitterSettingsService, ITwitterSigninService, TwitterOptionsConfiguration, and UpdateTwitterStatusTask. It also helps with OAuth credentials, external authentication, recipes, and the source-backed patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,7 +23,8 @@ required for the selected capability.
 - Store consumer secrets and access-token secrets in secure configuration.
 - `TwitterClient` is registered through `AddHttpClient` with bounded retry behavior.
 - `UpdateTwitterStatusTask` returns `Done` or `Failed` and stores the response in `TwitterResponse`.
-- Use the feature’s admin settings or `ITwitterSettingsService` for tenant credentials.
+- Use the feature’s admin settings, `ConfigureTwitterSettings()`, or `ITwitterSettingsService` for tenant credentials.
+- Sign in with X reuses the API `ConsumerKey` and `ConsumerSecret`; its own settings only hold `CallbackPath` and `SaveTokens`.
 - Do not log provider credentials or raw failure response content in production.
 - All recipe JSON uses the root `{ "steps": [...] }` format.
 
@@ -62,7 +63,7 @@ For sign-in, add `OrchardCore.Twitter.Signin`:
 
 ## Configure API Credentials
 
-`TwitterSettings` contains the OAuth credentials used by `TwitterClient`:
+Configure them at **Settings → Integrations → X (Twitter)**. `TwitterSettings` contains the OAuth credentials used by `TwitterClient`:
 
 | Property | Purpose |
 |---|---|
@@ -71,7 +72,12 @@ For sign-in, add `OrchardCore.Twitter.Signin`:
 | `AccessToken` | Account access token for API operations. |
 | `AccessTokenSecret` | Account access-token secret. |
 
-The recipe step name is `TwitterSettings`:
+The recipe step name is `TwitterSettings` (the generic `Settings` step with a
+`TwitterSettings` object works too). The client decrypts the stored secrets
+with data protection, as saved from the admin page, so secrets imported by a
+recipe are stored as is and fail to decrypt. Prefer the admin page or
+configuration for `ConsumerSecret` and `AccessTokenSecret`; the step replaces
+all four values, so re-running it clears secrets entered earlier.
 
 ```json
 {
@@ -79,37 +85,45 @@ The recipe step name is `TwitterSettings`:
     {
       "name": "TwitterSettings",
       "ConsumerKey": "consumer-key",
-      "ConsumerSecret": "consumer-secret",
-      "AccessToken": "access-token",
-      "AccessTokenSecret": "access-token-secret"
+      "AccessToken": "access-token"
     }
   ]
 }
 ```
 
-For configuration overrides, call `ConfigureTwitterSettings()`. The extension
-uses `OrchardCore_X` first and falls back to `OrchardCore_Twitter`:
+For configuration overrides, call `ConfigureTwitterSettings()` on the
+`OrchardCoreBuilder` and use the `OrchardCore:X` section:
 
 ```csharp
-builder.ConfigureTwitterSettings();
+builder.Services
+    .AddOrchardCms()
+    .ConfigureTwitterSettings();
 ```
 
 ```json
 {
-  "OrchardCore_X": {
-    "ConsumerKey": "consumer-key",
-    "ConsumerSecret": "consumer-secret",
-    "AccessToken": "access-token",
-    "AccessTokenSecret": "access-token-secret"
+  "OrchardCore": {
+    "X": {
+      "ConsumerKey": "consumer-key",
+      "ConsumerSecret": "plain-consumer-secret",
+      "AccessToken": "access-token",
+      "AccessTokenSecret": "plain-access-token-secret"
+    }
   }
 }
 ```
 
+`ConsumerSecret` and `AccessTokenSecret` are plain values here (for example
+from `OrchardCore__X__ConsumerSecret` environment variables or a key vault);
+Orchard Core protects them before use.
+
 ## Sign In With X
 
-The sign-in settings model exposes `CallbackPath` and `SaveTokens`. Register
-the X application callback URL for the active tenant and configured path, then
-set the values through the sign-in settings UI. The sign-in startup registers
+Configure **Settings → Security → Authentication → Sign In with X (Twitter)**.
+The sign-in settings model exposes `CallbackPath` and `SaveTokens`; the
+consumer key and secret come from the API settings above. Set `CallbackPath`
+explicitly (for example `/signin-x`) and register the same full tenant URL as
+the X app's callback URL. The sign-in startup registers
 the authentication and provider-specific options configurations plus the
 external login display driver.
 
@@ -167,3 +181,8 @@ public sealed class SocialUpdateService
 Check the response status before reporting success and respect X platform
 limits and policies.
 
+## Upgrading from 3.x
+
+- Rename the `OrchardCore_X` or `OrchardCore_Twitter` configuration section to `OrchardCore:X` (old names still work but are deprecated).
+- Plain `ConsumerSecret` and `AccessTokenSecret` values from configuration are now honored; in 3.x they had to be already protected and were otherwise ignored.
+- `TwitterClient` no longer fails after its first request; it no longer overwrites the shared settings' encrypted secrets with decrypted values.

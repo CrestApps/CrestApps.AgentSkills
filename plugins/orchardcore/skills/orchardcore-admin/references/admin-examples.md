@@ -36,7 +36,7 @@ public sealed class AnnouncementController : Controller
 
     public async Task<IActionResult> Index()
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageAnnouncements))
+        if (!await _authorizationService.AuthorizeAsync(User, AnnouncementPermissions.ManageAnnouncements))
         {
             return Forbid();
         }
@@ -45,7 +45,11 @@ public sealed class AnnouncementController : Controller
 
         var model = new AnnouncementIndexViewModel
         {
-            Announcements = announcements.ToList(),
+            // Rendered by the <admin-list> tag helper in the configured List or Grid layout.
+            List = new AdminListContext<Announcement>
+            {
+                Source = announcements,
+            },
         };
 
         return View(model);
@@ -53,7 +57,7 @@ public sealed class AnnouncementController : Controller
 
     public async Task<IActionResult> Create()
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageAnnouncements))
+        if (!await _authorizationService.AuthorizeAsync(User, AnnouncementPermissions.ManageAnnouncements))
         {
             return Forbid();
         }
@@ -65,7 +69,7 @@ public sealed class AnnouncementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AnnouncementEditViewModel model)
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageAnnouncements))
+        if (!await _authorizationService.AuthorizeAsync(User, AnnouncementPermissions.ManageAnnouncements))
         {
             return Forbid();
         }
@@ -90,7 +94,7 @@ public sealed class AnnouncementController : Controller
 
     public async Task<IActionResult> Edit(string id)
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageAnnouncements))
+        if (!await _authorizationService.AuthorizeAsync(User, AnnouncementPermissions.ManageAnnouncements))
         {
             return Forbid();
         }
@@ -116,7 +120,7 @@ public sealed class AnnouncementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string id)
     {
-        if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageAnnouncements))
+        if (!await _authorizationService.AuthorizeAsync(User, AnnouncementPermissions.ManageAnnouncements))
         {
             return Forbid();
         }
@@ -136,64 +140,106 @@ public sealed class AnnouncementController : Controller
 }
 ```
 
-## Admin Index View with Table and Actions
+## Permissions
 
-`Views/Announcement/Index.cshtml`:
+```csharp
+using OrchardCore.Localization;
+using OrchardCore.Security.Permissions;
 
-```html
+public static class AnnouncementPermissions
+{
+    public static readonly Permission ManageAnnouncements = new("ManageAnnouncements", LocalizationSource.Create("Manage announcements", typeof(AnnouncementPermissions)));
+
+    public static readonly Permission ManageAnnouncementSettings = new("ManageAnnouncementSettings", LocalizationSource.Create("Manage announcement settings", typeof(AnnouncementPermissions)));
+}
+
+public sealed class Permissions : IPermissionProvider
+{
+    private readonly IEnumerable<Permission> _allPermissions =
+    [
+        AnnouncementPermissions.ManageAnnouncements,
+        AnnouncementPermissions.ManageAnnouncementSettings,
+    ];
+
+    public Task<IEnumerable<Permission>> GetPermissionsAsync()
+        => Task.FromResult(_allPermissions);
+
+    public IEnumerable<PermissionStereotype> GetDefaultStereotypes() =>
+    [
+        new PermissionStereotype
+        {
+            Name = OrchardCoreConstants.Roles.Administrator,
+            Permissions = _allPermissions,
+        },
+    ];
+}
+```
+
+## Admin Index View
+
+List pages render their items with the `AdminList` shape so the site's List/Grid layout applies. The controller assigns `AdminListContext<Announcement>` to the view model's `List` property, and `Views/Announcement/Index.cshtml` renders it:
+
+```cshtml
 @model AnnouncementIndexViewModel
 
 <zone Name="Title">
-    <h1>@T["Announcements"]</h1>
+    <breadcrumb name="Announcements" title="@T["Announcements"]" />
 </zone>
 
-<zone Name="Content">
-    <a asp-action="Create" class="btn btn-primary btn-sm mb-3">@T["New Announcement"]</a>
+<form asp-action="Index" method="post">
+    <admin-list name="Announcements" context="Model.List" show-select-all="false"
+                empty-message="@T["No announcements found."]">
+        <admin-list-list item-css-class="list-group-item" />
+        <admin-list-grid>
+            <admin-list-column name="Title" title="@T["Title"]" position="20" />
+            <admin-list-column name="Status" title="@T["Status"]" position="30" width="auto" />
+            <admin-list-column type="Actions" title="@T["Actions"]" />
+        </admin-list-grid>
+    </admin-list>
+</form>
+```
 
-    @if (Model.Announcements.Any())
-    {
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>@T["Title"]</th>
-                    <th>@T["Status"]</th>
-                    <th>@T["Actions"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Announcements)
-                {
-                    <tr>
-                        <td>@item.Title</td>
-                        <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">@T["Active"]</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">@T["Inactive"]</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-secondary">@T["Edit"]</a>
-                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger" data-title="@T["Delete"]" data-message="@T["Are you sure you want to delete this announcement?"]">
-                                    @T["Delete"]
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
-    else
-    {
-        <p class="alert alert-info">@T["No announcements found."]</p>
-    }
+See `orchardcore-admin-lists` for the row display driver, row templates, search, and bulk actions.
+
+## Admin Edit View with a Breadcrumb
+
+`Views/Announcement/Edit.cshtml`:
+
+```cshtml
+@model AnnouncementEditViewModel
+
+<zone Name="Title">
+    <breadcrumb name="AnnouncementsEdit" title="@T["Edit {0}", Model.Title]">
+        <breadcrumb-item id="Announcements" action="Index" controller="Announcement" area="MyModule"
+                         permission="@AnnouncementPermissions.ManageAnnouncements.Name">@T["Announcements"]</breadcrumb-item>
+    </breadcrumb>
 </zone>
+
+<form asp-action="Edit" method="post">
+    <div class="ocat-wrapper" asp-validation-class-for="Title">
+        <label asp-for="Title" class="ocat-label ocat-label-required">@T["Title"]</label>
+        <div class="ocat-end">
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title"></span>
+        </div>
+    </div>
+
+    <div class="ocat-wrapper">
+        <div class="ocat-end-offset">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" asp-for="IsActive" />
+                <label class="form-check-label" asp-for="IsActive">@T["Active"]</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="ocat-wrapper">
+        <div class="ocat-end-offset">
+            <button type="submit" class="btn btn-primary">@T["Save"]</button>
+            <a asp-action="Index" class="btn btn-secondary">@T["Cancel"]</a>
+        </div>
+    </div>
+</form>
 ```
 
 ## Hierarchical Admin Menu with Multiple Sections
@@ -217,25 +263,25 @@ public sealed class AdminMenu : AdminNavigationProvider
     {
         builder
             .Add(S["Content"], NavigationConstants.AdminMenuContentPosition, content => content
-                .AddClass("content")
-                .Id("content")
                 .Add(S["Announcements"], S["Announcements"].PrefixPosition(), announcements => announcements
-                    .Permission(Permissions.ManageAnnouncements)
+                    .Permission(AnnouncementPermissions.ManageAnnouncements)
                     .Action("Index", "Announcement", new { area = "MyModule" })
-                    .LocalNav()
-                )
-                .Add(S["Newsletters"], S["Newsletters"].PrefixPosition(), newsletters => newsletters
-                    .Permission(Permissions.ManageNewsletters)
-                    .Action("Index", "Newsletter", new { area = "MyModule" })
                     .LocalNav()
                 )
             )
             .Add(S["Settings"], settings => settings
-                    .Add(S["Announcement Defaults"], S["Announcement Defaults"].PrefixPosition(), defaults => defaults
-                        .Permission(Permissions.ManageAnnouncementSettings)
-                        .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "announcements" })
-                        .LocalNav()
-                    )
+                .Add(S["Announcement Defaults"], S["Announcement Defaults"].PrefixPosition(), defaults => defaults
+                    .Permission(AnnouncementPermissions.ManageAnnouncementSettings)
+                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "announcements" })
+                    .LocalNav()
+                )
+            )
+            .Add(S["Tools"], tools => tools
+                .Add(S["Announcement Import"], S["Announcement Import"].PrefixPosition(), import => import
+                    .Permission(AnnouncementPermissions.ManageAnnouncements)
+                    .Action("Import", "Announcement", new { area = "MyModule" })
+                    .LocalNav()
+                )
             );
 
         return ValueTask.CompletedTask;
@@ -248,6 +294,7 @@ public sealed class AdminMenu : AdminNavigationProvider
 This example shows how to build a tabbed settings page using the `Location` syntax with tab notation:
 
 ```csharp
+using OrchardCore.DisplayManagement.Entities;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
 using OrchardCore.Settings;
@@ -297,7 +344,6 @@ public sealed class EmailDeliverySettingsDisplayDriver : SiteDisplayDriver<Email
 This example shows a dashboard widget that queries data and displays it in a card on the admin dashboard:
 
 ```csharp
-using OrchardCore.Admin;
 using OrchardCore.ContentManagement;
 using OrchardCore.ContentManagement.Display.ContentDisplay;
 using OrchardCore.ContentManagement.Display.Models;
@@ -422,22 +468,23 @@ public sealed class MaintenanceBannerAdminFilter : IAsyncResultFilter
 This ties all admin components together in a single module startup:
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
-using OrchardCore.Admin;
+using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.ContentManagement;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.Modules;
 using OrchardCore.Navigation;
-using OrchardCore.Settings;
+using OrchardCore.Security.Permissions;
 
 [RequireFeatures("OrchardCore.Admin")]
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
+        services.AddPermissionProvider<Permissions>();
         services.AddNavigationProvider<AdminMenu>();
-        services.AddDisplayDriver<ISite, NotificationSettingsDisplayDriver>();
+        services.AddDisplayDriver<Announcement, AnnouncementDisplayDriver>();
+        services.AddSiteDisplayDriver<EmailDeliverySettingsDisplayDriver>();
         services.AddContentPart<ContentStatsPart>()
             .UseDisplayDriver<ContentStatsPartDisplayDriver>();
         services.Configure<MvcOptions>(options => options.Filters.Add<MaintenanceBannerAdminFilter>());
@@ -456,7 +503,11 @@ Use the following recipe to configure admin panel preferences when provisioning 
             "name": "settings",
             "AdminSettings": {
                 "DisplayMenuFilter": true,
-                "DisplayThemeToggler": true
+                "DisplayThemeToggler": true,
+                "DisplayQuickNavigation": true,
+                "ShowBreadcrumb": true,
+                "MenuBehavior": "Persistent",
+                "ListLayout": "Grid"
             }
         }
     ]
@@ -465,7 +516,7 @@ Use the following recipe to configure admin panel preferences when provisioning 
 
 ## Recipe: Enable Admin Features
 
-Enable specific admin-related features as part of site setup:
+Enable admin features as part of site setup (`OrchardCore.Settings` and `OrchardCore.Navigation` are always enabled):
 
 ```json
 {
@@ -475,42 +526,9 @@ Enable specific admin-related features as part of site setup:
             "enable": [
                 "OrchardCore.Admin",
                 "OrchardCore.AdminDashboard",
-                "OrchardCore.Settings",
-                "OrchardCore.Navigation"
+                "OrchardCore.Contents.QuickNavigation"
             ]
         }
     ]
 }
-```
-
-## Admin Card View Pattern
-
-Admin card-based layouts are useful for overview pages. Here is a pattern for rendering items as cards:
-
-```html
-@model AnnouncementIndexViewModel
-
-<zone Name="Title">
-    <h1>@T["Announcements"]</h1>
-</zone>
-
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-    @foreach (var item in Model.Announcements)
-    {
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">@item.Title</h5>
-                    <p class="card-text text-muted">@item.Message</p>
-                </div>
-                <div class="card-footer d-flex justify-content-between align-items-center">
-                    <span class="badge @(item.IsActive ? "bg-success" : "bg-secondary")">
-                        @(item.IsActive ? T["Active"] : T["Inactive"])
-                    </span>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">@T["Edit"]</a>
-                </div>
-            </div>
-        </div>
-    }
-</div>
 ```

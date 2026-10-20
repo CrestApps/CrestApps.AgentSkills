@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "OmnichannelMessageTemplate",
+      "description": "Recipe step discriminator. Must be \u0027OmnichannelMessageTemplate\u0027."
+    },
+    "Templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the message template. When it matches a stored message template, that message template is updated. Otherwise a new message template is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique template name shown in the composer picker."
+          },
+          "Body": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Text inserted into the composer when the template is picked."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the message template, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name",
+          "Body"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The message templates to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Templates"
+  ],
+  "additionalProperties": true
+}

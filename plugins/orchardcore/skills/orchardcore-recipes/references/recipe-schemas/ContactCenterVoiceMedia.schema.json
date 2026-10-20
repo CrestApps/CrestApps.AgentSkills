@@ -1,0 +1,98 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ContactCenterVoiceMedia",
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterVoiceMedia\u0027."
+    },
+    "VoiceMedia": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the voice media clip. When it matches a stored voice media clip, that voice media clip is updated. Otherwise a new voice media clip is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique, admin-facing name of the clip."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional description, for example the business or line the clip is for."
+          },
+          "ProviderName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Technical name of the telephony provider whose copy \u0027MediaReference\u0027 plays (for example \u0027Telnyx\u0027). Kept for plans written when an entry recorded a single provider copy; \u0027ProviderReferences\u0027 records every provider\u0027s copy, and this pair is folded into it when the entry is read."
+          },
+          "MediaReference": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Reference the provider named by \u0027ProviderName\u0027 plays the clip by (for Telnyx, the Media Storage media name). The audio itself is not carried by the recipe."
+          },
+          "Format": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Audio format the clip was uploaded in, for example \u0027mp3\u0027 or \u0027wav\u0027."
+          },
+          "MasterStorageReference": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Reference of the master copy in the platform\u0027s own media store (the Telephony recording media store: the tenant\u0027s application-data folder, or Azure Blob Storage when that feature is enabled). The audio itself is not carried by the recipe, so the reference resolves only where the destination shares that media store; otherwise upload the clip again in the destination. Null for a clip that exists only at a provider."
+          },
+          "ContentType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Content type the audio was uploaded with, for example \u0027audio/mpeg\u0027, given to a provider again when it is sent a copy from the master copy."
+          },
+          "ProviderReferences": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "The reference that provider plays the clip by."
+            },
+            "description": "The copy each telephony provider holds, keyed by the provider\u0027s technical name (for example \u0027Telnyx\u0027). A provider without an entry is given a copy from the master copy when it first plays the clip. A reference resolves only in the destination provider account it was made in."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features attach to the voice media clip, keyed by the name of the settings object (for example channel-specific routing settings). When present, it replaces the stored extension data as a whole."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The voice media clips to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "VoiceMedia"
+  ],
+  "additionalProperties": true
+}

@@ -1,0 +1,236 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Customers",
+      "description": "Recipe step discriminator. Must be \u0027Customers\u0027."
+    },
+    "Customers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A customer. It needs a name, a company or an email.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The stable identifier of the customer. Preserved across environments; generated when empty or invalid."
+          },
+          "Kind": {
+            "type": "string",
+            "enum": [
+              "Person",
+              "Business"
+            ],
+            "default": "Person",
+            "description": "Whether the customer is a person or a business."
+          },
+          "DisplayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name shown for the customer. When empty, the person\u0027s name or the company name is shown."
+          },
+          "FirstName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The person\u0027s first name."
+          },
+          "LastName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The person\u0027s last name."
+          },
+          "CompanyName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The company name of a business customer."
+          },
+          "TaxId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The tax identifier of a business customer."
+          },
+          "Email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "email",
+            "description": "The customer\u0027s email. A guest with the same email is updated rather than duplicated."
+          },
+          "Phone": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s phone number."
+          },
+          "AcceptsMarketing": {
+            "type": "boolean",
+            "description": "Whether the customer accepts marketing."
+          },
+          "Addresses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "AddressId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The identifier of the address within the customer\u0027s address book. Generated when empty. \u0027DefaultBillingAddressId\u0027 and \u0027DefaultShippingAddressId\u0027 refer to it."
+                },
+                "Label": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "A label for the address, for example \u0027Home\u0027 or \u0027Office\u0027."
+                },
+                "Address": {
+                  "type": "object",
+                  "description": "The postal address.",
+                  "properties": {
+                    "Name": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The name of the recipient."
+                    },
+                    "Company": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The company of the recipient."
+                    },
+                    "AddressLine1": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The first street address line."
+                    },
+                    "AddressLine2": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The second street address line, such as an apartment or suite."
+                    },
+                    "DependentLocality": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The dependent locality, such as a neighborhood, where the country uses one."
+                    },
+                    "SortingCode": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The sorting code, where the country uses one."
+                    },
+                    "Country": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The ISO 3166-1 alpha-2 country code, for example \u0027US\u0027 or \u0027CA\u0027."
+                    },
+                    "Region": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The state, province or region code, for example \u0027WA\u0027 or \u0027ON\u0027."
+                    },
+                    "County": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The county, where the country uses one."
+                    },
+                    "City": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The city or locality."
+                    },
+                    "District": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The district, where the country uses one."
+                    },
+                    "PostalCode": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The postal or ZIP code."
+                    },
+                    "Phone": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The phone number for deliveries to this address."
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "Address"
+              ],
+              "additionalProperties": true
+            },
+            "description": "The customer\u0027s address book. It replaces the stored one."
+          },
+          "DefaultBillingAddressId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The \u0027AddressId\u0027 of the default billing address."
+          },
+          "DefaultShippingAddressId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The \u0027AddressId\u0027 of the default shipping address."
+          }
+        },
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The customers to add or update."
+    }
+  },
+  "required": [
+    "name",
+    "Customers"
+  ],
+  "additionalProperties": true
+}

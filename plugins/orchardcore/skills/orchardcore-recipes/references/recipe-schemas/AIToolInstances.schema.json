@@ -1,0 +1,356 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AIToolInstances",
+      "description": "Recipe step discriminator. Must be \u0027AIToolInstances\u0027."
+    },
+    "instances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "Optional unique identifier. When supplied and found, the existing instance is updated."
+          },
+          "Source": {
+            "type": "string",
+            "description": "Tool instance source identifier that defines the shape of the instance. Required when creating a new instance."
+          },
+          "Name": {
+            "type": "string",
+            "description": "Unique tool instance name. Used to derive the function name exposed to the AI model and cannot change once created."
+          },
+          "Description": {
+            "type": "string",
+            "description": "Description the AI model uses to decide when to call the instance."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve during import."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "Optional owner user identifier."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the instance."
+          },
+          "Properties": {
+            "type": "object",
+            "properties": {
+              "HttpApiRequestToolSettings": {
+                "type": "object",
+                "properties": {
+                  "BaseUrl": {
+                    "type": "string",
+                    "description": "Absolute HTTP or HTTPS URL the request targets."
+                  },
+                  "HttpMethod": {
+                    "type": "string",
+                    "description": "HTTP method: GET, POST, PUT, PATCH, or DELETE."
+                  },
+                  "AuthenticationType": {
+                    "type": "string",
+                    "description": "Authentication type: None, ApiKey, Basic, or OAuth2."
+                  },
+                  "ApiKeyHeaderName": {
+                    "type": "string",
+                    "description": "Header name used to send the API key when AuthenticationType is ApiKey."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "API key credential. Stored encrypted at rest."
+                  },
+                  "BearerToken": {
+                    "type": "string",
+                    "description": "Bearer token credential. Stored encrypted at rest."
+                  },
+                  "Username": {
+                    "type": "string",
+                    "description": "Basic authentication user name."
+                  },
+                  "Password": {
+                    "type": "string",
+                    "description": "Basic authentication password. Stored encrypted at rest."
+                  },
+                  "TokenEndpoint": {
+                    "type": "string",
+                    "description": "OAuth 2.0 token endpoint."
+                  },
+                  "ClientId": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client identifier."
+                  },
+                  "ClientSecret": {
+                    "type": "string",
+                    "description": "OAuth 2.0 client secret. Stored encrypted at rest."
+                  },
+                  "Scope": {
+                    "type": "string",
+                    "description": "OAuth 2.0 scope."
+                  },
+                  "DefaultHeaders": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Static headers always added to the request."
+                  },
+                  "AllowModelProvidedPath": {
+                    "type": "boolean",
+                    "description": "Whether the AI model may supply a relative path."
+                  },
+                  "AllowModelProvidedQuery": {
+                    "type": "boolean",
+                    "description": "Whether the AI model may supply query string parameters."
+                  },
+                  "AllowModelProvidedBody": {
+                    "type": "boolean",
+                    "description": "Whether the AI model may supply a request body."
+                  },
+                  "TimeoutSeconds": {
+                    "type": "integer",
+                    "description": "Per-request timeout in seconds. Leave empty to use the default."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in \u0027http-api-request\u0027 source."
+              },
+              "SitemapDocumentationToolSettings": {
+                "type": "object",
+                "properties": {
+                  "BaseUrl": {
+                    "type": "string",
+                    "description": "Root URL of the documentation site."
+                  },
+                  "SitemapUrl": {
+                    "type": "string",
+                    "description": "Explicit sitemap URL. Leave empty to derive it from the base URL."
+                  },
+                  "MaxResults": {
+                    "type": "integer",
+                    "description": "Maximum passages returned for a single search."
+                  },
+                  "MaxPages": {
+                    "type": "integer",
+                    "description": "Maximum pages the crawler indexes for this site."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in sitemap documentation search source."
+              },
+              "SearchIndexDocumentationToolSettings": {
+                "type": "object",
+                "properties": {
+                  "BaseUrl": {
+                    "type": "string",
+                    "description": "Root URL of the documentation site."
+                  },
+                  "IndexUrl": {
+                    "type": "string",
+                    "description": "Explicit prebuilt search index URL. Leave empty to derive it from the base URL."
+                  },
+                  "MaxResults": {
+                    "type": "integer",
+                    "description": "Maximum passages returned for a single search."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in prebuilt search index documentation source."
+              },
+              "AlgoliaDocumentationToolSettings": {
+                "type": "object",
+                "properties": {
+                  "ApplicationId": {
+                    "type": "string",
+                    "description": "Algolia application identifier."
+                  },
+                  "ApiKey": {
+                    "type": "string",
+                    "description": "Algolia search-only API key. Stored encrypted at rest."
+                  },
+                  "IndexName": {
+                    "type": "string",
+                    "description": "Algolia index name."
+                  },
+                  "MaxResults": {
+                    "type": "integer",
+                    "description": "Maximum passages returned for a single search."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in Algolia DocSearch documentation source."
+              },
+              "WebsiteSearchToolSettings": {
+                "type": "object",
+                "properties": {
+                  "BaseUrl": {
+                    "type": "string",
+                    "description": "Root URL of the site to search (for example https://www.example.com)."
+                  },
+                  "SearchPath": {
+                    "type": "string",
+                    "description": "Search endpoint path appended to the base URL. Defaults to the WordPress REST search endpoint."
+                  },
+                  "QueryParameter": {
+                    "type": "string",
+                    "description": "Query-string parameter that carries the model\u0027s free-text query. Defaults to \u0027search\u0027."
+                  },
+                  "ExtraQuery": {
+                    "type": "string",
+                    "description": "Fixed extra query-string parameters always appended to the request. Defaults to \u0027_embed=1\u0027."
+                  },
+                  "ResultsPath": {
+                    "type": "string",
+                    "description": "Dotted path to the results array in the response. Empty means the response body is itself the array."
+                  },
+                  "TitlePath": {
+                    "type": "string",
+                    "description": "Dotted path, relative to each result, to the result title. Defaults to \u0027title\u0027."
+                  },
+                  "UrlPath": {
+                    "type": "string",
+                    "description": "Dotted path, relative to each result, to the result URL. Defaults to \u0027url\u0027."
+                  },
+                  "SnippetPath": {
+                    "type": "string",
+                    "description": "Dotted path, relative to each result, to the text snippet. Defaults to the embedded WordPress excerpt."
+                  },
+                  "MaxResults": {
+                    "type": "integer",
+                    "description": "Maximum results returned for a single search."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in live website search source."
+              },
+              "DataSourceSearchToolSettings": {
+                "type": "object",
+                "properties": {
+                  "DataSourceId": {
+                    "type": "string",
+                    "description": "Identifier of the AI data source the instance searches."
+                  },
+                  "RetrievalMode": {
+                    "type": "string",
+                    "enum": [
+                      "Chunk",
+                      "Hierarchical"
+                    ],
+                    "description": "Whether a search returns only the matching chunks or the full source documents they belong to."
+                  },
+                  "TopNDocuments": {
+                    "type": "integer",
+                    "description": "Number of top-scoring documents returned for a single search. Empty uses the site default."
+                  },
+                  "Strictness": {
+                    "type": "integer",
+                    "description": "Relevance threshold a result must clear to be returned. Empty uses the site default."
+                  },
+                  "Filter": {
+                    "type": "string",
+                    "description": "OData filter expression translated to the index provider\u0027s own syntax before the search runs."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Settings for the built-in AI data source vector search source."
+              },
+              "AIToolInstanceParametersMetadata": {
+                "type": "object",
+                "properties": {
+                  "Parameters": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "Name": {
+                          "type": "string",
+                          "description": "Parameter name. For model-filled parameters this is the property name in the function schema and must be a valid identifier, unique within the instance."
+                        },
+                        "Description": {
+                          "type": "string",
+                          "description": "Natural-language description shown to the AI model. Required for model-filled parameters."
+                        },
+                        "Type": {
+                          "type": "string",
+                          "enum": [
+                            "String",
+                            "Integer",
+                            "Number",
+                            "Boolean",
+                            "Array",
+                            "Object"
+                          ],
+                          "description": "JSON schema type of the parameter."
+                        },
+                        "Fill": {
+                          "type": "string",
+                          "enum": [
+                            "Model",
+                            "Fixed",
+                            "Context"
+                          ],
+                          "description": "Who supplies the value at invocation time: Model (the AI model), Fixed (a pinned value), or Context (resolved server-side from the request context)."
+                        },
+                        "Required": {
+                          "type": "boolean",
+                          "description": "Whether the AI model must supply the value. Only meaningful when Fill is Model."
+                        },
+                        "DefaultValue": {
+                          "description": "Value applied when the model omits an optional parameter, or the pinned value when Fill is Fixed. A Fixed secret value is stored encrypted at rest."
+                        },
+                        "AllowedValues": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Closed set of accepted values, emitted as the schema enum and enforced by the binder. Empty means any value of the declared type."
+                        },
+                        "ContextKey": {
+                          "type": "string",
+                          "description": "Well-known context key resolved when Fill is Context, for example user.id."
+                        },
+                        "Binding": {
+                          "type": "string",
+                          "description": "Source-specific placement of the resolved value, expressed as Target or Target:name (for example Query:orderId). Valid targets are declared by the owning source."
+                        },
+                        "IsSecret": {
+                          "type": "boolean",
+                          "description": "Whether a Fixed value is a credential. Secret values are stored encrypted at rest and never returned to the UI in clear text."
+                        }
+                      },
+                      "required": [
+                        "Name"
+                      ],
+                      "additionalProperties": true
+                    },
+                    "description": "The declared parameters, in the order they appear in the function schema the AI model sees."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "User-declared parameters for sources that opt into parameter support."
+              }
+            },
+            "additionalProperties": true,
+            "description": "Source-specific tool instance settings, grouped by settings object name. Secrets are stored encrypted at rest."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The AI tool instances to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "instances"
+  ],
+  "additionalProperties": true
+}

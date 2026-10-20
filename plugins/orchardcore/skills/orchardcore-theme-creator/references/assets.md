@@ -2,17 +2,25 @@
 
 ## Asset Pipeline
 
-OrchardCore uses Vite for asset compilation. Assets are defined in `Assets.json` and built with `yarn build`.
+Orchard Core's Asset Manager builds the entries of each project's `Assets.json` with `yarn build`. A typical theme compiles SCSS with `sass` and bundles scripts with `parcel` (or `min` for plain files); `vite` is used for Vue and TypeScript apps.
 
 ## Assets.json Configuration
 
 ```json
 [
   {
-    "action": "vite",
-    "name": "your-theme",
-    "source": "Assets/",
-    "tags": ["js", "css"]
+    "action": "sass",
+    "name": "theme-yourtheme",
+    "source": "Assets/scss/site.scss",
+    "dest": "wwwroot/css/",
+    "tags": ["theme", "css"]
+  },
+  {
+    "action": "min",
+    "name": "theme-yourtheme",
+    "source": "Assets/js/site.js",
+    "dest": "wwwroot/js/",
+    "tags": ["theme", "js"]
   }
 ]
 ```
@@ -21,10 +29,13 @@ OrchardCore uses Vite for asset compilation. Assets are defined in `Assets.json`
 
 | Property | Description |
 |----------|-------------|
-| `action` | Build action (`vite`, `gulp`, `copy`) |
-| `name` | Unique name for the build |
-| `source` | Source directory for assets |
-| `tags` | Asset types to process |
+| `action` | Build action (`sass`, `min`, `copy`, `concat`, `parcel`, `vite`, `webpack`, `run`) |
+| `name` | Name used to build or watch selectively (`-n`) |
+| `source` | Source file, glob, or folder |
+| `dest` | Output folder (produces `.css`/`.min.css` or `.js`/`.min.js`) |
+| `tags` | Tags used to filter builds (`-t`) |
+
+See `orchardcore-asset-manager` for every action.
 
 ## Package.json
 
@@ -153,8 +164,11 @@ yarn
 # Build all assets
 yarn build
 
-# Build specific theme (if supported)
-yarn build --filter=your-theme
+# Build only this theme's assets
+yarn build -n theme-yourtheme
+
+# Rebuild on save while developing
+yarn watch -n theme-yourtheme
 ```
 
 ## Output Structure
@@ -175,32 +189,18 @@ wwwroot/
 ### Link CSS
 
 ```html
-<!-- Direct link -->
-<link asp-src="~/YourTheme/css/site.css" />
-
-<!-- With resource manager -->
-<style asp-src="~/YourTheme/css/site.css"></style>
+<style asp-name="YourTheme" asp-src="~/YourTheme/css/site.min.css" debug-src="~/YourTheme/css/site.css" at="Head"></style>
 ```
 
 ### Include JavaScript
 
 ```html
-<!-- In footer -->
-<script asp-src="~/YourTheme/js/site.js"></script>
-
-<!-- With resource manager -->
-<script asp-src="~/YourTheme/js/site.js" at="Foot"></script>
+<script asp-name="YourTheme" asp-src="~/YourTheme/js/site.min.js" debug-src="~/YourTheme/js/site.js" at="Foot"></script>
 ```
 
-### Using Resource Manager
+### Using a Resource Manifest
 
-```razor
-@{
-    // Register resources programmatically
-    Orchard.RegisterStyle("~/YourTheme/css/site.css");
-    Orchard.RegisterScript("~/YourTheme/js/site.js", "Foot");
-}
-```
+Define named resources once in an `IConfigureOptions<ResourceManagementOptions>` class registered with `services.AddResourceConfiguration<T>()`, then require them by name (`<style asp-name="YourTheme">`). From C# code, inject `IResourceManager` and call `RegisterResource("stylesheet", "YourTheme")` or `RegisterResource("script", "YourTheme").AtFoot()`. See `orchardcore-resources`.
 
 ## Third-Party Libraries
 
@@ -227,11 +227,13 @@ $body-color: #212529;
 
 ### Font Awesome
 
+Orchard Core already registers `font-awesome` (7.3.1 by default), so `<style asp-name="font-awesome" version="7" at="Head"></style>` is usually enough. Bundle it only when you need a custom subset:
+
 ```json
 // In package.json
 {
   "dependencies": {
-    "@fortawesome/fontawesome-free": "6.5.1"
+    "@fortawesome/fontawesome-free": "7.3.1"
   }
 }
 ```

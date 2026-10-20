@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin
-description: Guidance for working with the Orchard Core admin panel, including admin controllers, menu registration, dashboard widgets, admin theme customization, settings pages, and admin-specific shapes and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Route URL Generation, Admin Menu Registration, Adding an Icon to an Admin Menu Item, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Admin, OrchardCore.DisplayManagement.Notify, OrchardCore.Navigation, OrchardCore.Email, OrchardCore.Search, OrchardCore.Users, OrchardCore.Roles, OrchardCore.DisplayManagement.Handlers, OrchardCore.DisplayManagement.Views. It also helps with admin examples, Admin Menu Registration, Adding an Icon to an Admin Menu Item, Menu Grouping and Ordering, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Guidance for the Orchard Core admin panel, including admin controllers and routes, admin menu registration with AdminNavigationProvider, admin views with breadcrumbs, the ocat CSS classes and Hint_Admin shape, TheAdmin theme customization and menu colors, admin branding, the Navbar shape, the Ctrl+K quick navigation palette with QuickNavigationSource and IQuickNavigationIndex, AdminSettings such as MenuBehavior, ShowBreadcrumb, DisplayQuickNavigation and list layouts, the AdminDashboard shape, settings pages, and admin filters and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Menu Registration, Adding an Icon to an Admin Menu Item, AdminSettings recipe step, Quick Navigation, Navigation menu behavior, admin URL prefix, or related implementation, upgrade, or troubleshooting work. Strong matches include OrchardCore.Admin, AdminSettings, AdminPermissions, AdminOptions, AdminAttribute, SiteDisplayDriver, OrchardCore.Contents.QuickNavigation.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,37 +9,76 @@ metadata:
 
 # Orchard Core Admin Panel
 
-The Orchard Core admin panel is the back-office interface used for content management, site configuration, and administrative tasks. It is rendered using the **TheAdmin** theme, which provides a dedicated layout, navigation structure, and styling separate from the front-end site.
+The Orchard Core admin panel is the back-office interface for content management and site configuration. It is rendered by the **TheAdmin** theme for every request routed through the admin pipeline (`[Admin]` attribute). Related skills cover the details of specific admin areas:
+
+- `orchardcore-admin-lists` for list (index) pages rendered with the `AdminList` shape.
+- `orchardcore-breadcrumbs` for the `<breadcrumb>` page title trail.
+- `orchardcore-admin-menu` for the admin-configurable `OrchardCore.AdminMenu` node tree.
+- `orchardcore-admin-dashboard` for `DashboardWidget` content.
 
 ## TheAdmin Theme
 
-TheAdmin is the built-in administration theme that ships with Orchard Core. It defines the admin layout, sidebar navigation, header bar, and all administrative UI chrome. The theme is automatically activated for any request routed through the admin pipeline.
+### Layout Zones
 
-Key characteristics:
+| Zone | Purpose |
+|---|---|
+| `HeadMeta` | Extra `<meta>`/`<link>` tags in `<head>` |
+| `Title` | Page title; holds the `<breadcrumb>` tag helper |
+| `Breadcrumbs` | Rendered right above `Title`; TheAdmin moves visible trails here |
+| `Navigation` | Admin sidebar menu |
+| `Header` | Top of the content area |
+| `Messages` | Notifications and alerts |
+| `Content` | Main body (the view itself) |
+| `Footer` | Bottom of the layout |
 
-- Provides the `Layout` shape with admin-specific zones such as `Navigation`, `Content`, `Header`, `Footer`, `Messages`, and `DetailAdmin`.
-- Uses Bootstrap-based styling with Orchard Core admin CSS.
-- Supports customization through shape overrides, zone manipulation, and theme inheritance.
+```html
+<zone Name="Messages">
+    <div class="alert alert-info">@T["Remember to publish your changes."]</div>
+</zone>
+```
 
-### The `ocat-*` CSS Class System
+### Admin Menu Layout (4.0)
 
-Admin editor views use static CSS classes prefixed with `ocat-` (Orchard Core Admin Theme) for consistent two-column layout. These classes replaced the former `TheAdminThemeOptions` and `CssOrchardHelperExtensions` (e.g., `@Orchard.GetWrapperClasses()`) which have been removed.
+- First-level items holding children render as **groups** (a muted caption above their items). An item that links to a page and has children renders its label as a link plus a separate `button.nav-toggle`.
+- Below the `md` breakpoint the menu is an off-canvas drawer toggled by `button.ta-sidebar-toggler` and closed by `div.ta-sidebar-backdrop`, <kbd>Esc</kbd>, or opening an item. The compact rail only applies from `md` up, where groups open as flyouts.
+- The section holding the current page always opens. **Navigation menu behavior** (`AdminSettings.MenuBehavior`) decides the rest: `Focused` (default) opens only the current section and closes siblings; `Persistent` restores what each user left open, remembered per user in the browser.
+- Markup changes for overrides of `Navigation-admin.cshtml`, `NavigationItem-admin.cshtml`, or `NavigationItemLink-admin.cshtml`: the selected `li` also has `current` (`active` marks it and its ancestors), group `ul` elements carry `nav-group-items` with an `id` of `m{hash}`, first-level `li` elements carry `nav-group`, no `ul` renders with `show` and toggles render `aria-expanded="false"` (the script applies state), `figcaption` carries `nav-item-row`, and the filter input is wrapped in `div.nav-filter`.
+- The admin menu checks each permission/resource once and drops the children of an unauthorized item together with it.
 
-**Do NOT apply these classes to frontend-facing views** such as Login, Register, ForgotPassword, or any view rendered by the site theme. They are exclusively for admin (back-end) views.
+### Menu Colors
 
-#### Core CSS Classes
+The menu has its own surface built on the Bootstrap gray scale. Rebrand it by redefining the custom properties in a theme that depends on TheAdmin:
+
+```css
+:root {
+    --oc-admin-accent-rgb: 73, 80, 87;
+    --oc-admin-accent-strong-color: #343a40;
+    --oc-admin-menu-bg-color: #f1f3f5;
+    --oc-admin-menu-border-color: #dee2e6;
+}
+```
+
+New properties include `--oc-admin-menu-group-font-color`, `--oc-admin-menu-border-color`, `--oc-admin-accent-rgb`, `--oc-admin-accent-color`, and `--oc-admin-accent-strong-color` (darkest gray in light mode, lightest in dark mode). `--oc-admin-menu-separator-color`, `--oc-admin-menu-item-hover-bg-color`, and `--oc-admin-menu-item-active-bg-color` are washes of `--oc-admin-accent-rgb`, and `--oc-selected-indicator-color` is now a gray instead of `var(--bs-primary)`. The sidebar uses `var(--bs-body-font-family)`, labels wrap instead of truncating, and animations are disabled under `prefers-reduced-motion`.
+
+### Scripts and Styles
+
+- TheAdmin no longer includes `bootstrap-select` styles. Pages that use `bootstrap-select` must require them: `<style asp-name="bootstrap-select" at="Head"></style>`.
+- Admin scripts no longer depend on jQuery or jQuery UI, and admin Vue apps use Vue 3. Front-end jQuery resources are still registered; require them explicitly (`<script asp-name="jQuery" at="Foot"></script>`) if your admin view still needs them. AJAX-injected field and part editors are ES modules.
+
+### The `ocat-*` CSS Classes
+
+Admin editor views use static `ocat-` (Orchard Core Admin Theme) classes so admin themes can restyle forms without editing views. **Never apply them to front-end views** (Login, Register, ForgotPassword, or anything rendered by the site theme).
 
 | Class | Element | Purpose |
-|-------|---------|---------|
-| `ocat-wrapper` | `<div>` | Outer container for a form field row (replaces `mb-3`/`form-group`) |
-| `ocat-label` | `<label>` | Styles the field label in the left column (replaces `form-label`) |
-| `ocat-label-required` | `<label>` | Add alongside `ocat-label` to mark a field as required |
-| `ocat-end` | `<div>` | Wraps the input, validation, and hint in the right column |
-| `ocat-end-offset` | `<div>` | Right-column content with no left label (for checkboxes, headings, buttons) |
-| `ocat-limited-wrapper` | `<div>` | Outer row for limited-width controls (short text, numbers, selects) |
-| `ocat-limited` | `<div>` | Constrains the control width inside `ocat-limited-wrapper` |
-
-#### Pattern 1: Standard field (label + input)
+|---|---|---|
+| `ocat-wrapper` | `<div>` | Outer container of a field row |
+| `ocat-label` | `<label>` | Field label |
+| `ocat-label-required` | `<label>` | Added to `ocat-label` for required fields |
+| `ocat-start` | `<div>` | Leading element container (alignment) |
+| `ocat-end` | `<div>` | Input, validation, and hint column |
+| `ocat-end-offset` | `<div>` | Content without a label (checkboxes, headings, buttons) |
+| `ocat-limited-wrapper` | `<div>` | Row for limited-width controls |
+| `ocat-limited` | `<div>` | Constrains the control width |
 
 ```cshtml
 <div class="ocat-wrapper" asp-validation-class-for="Title">
@@ -50,11 +89,7 @@ Admin editor views use static CSS classes prefixed with `ocat-` (Orchard Core Ad
         <span class="hint">@T["Hint text."]</span>
     </div>
 </div>
-```
 
-#### Pattern 2: Checkbox without a separate left label
-
-```cshtml
 <div class="ocat-wrapper" asp-validation-class-for="IsEnabled">
     <div class="ocat-end-offset">
         <div class="form-check">
@@ -64,182 +99,100 @@ Admin editor views use static CSS classes prefixed with `ocat-` (Orchard Core Ad
         <span class="hint dashed">@T["Check to enable this feature."]</span>
     </div>
 </div>
-```
 
-#### Pattern 3: Limited-width field (narrower input column)
-
-```cshtml
 <div class="ocat-limited-wrapper" asp-validation-class-for="TimeZone">
     <label asp-for="TimeZone" class="ocat-label">@T["Default Time Zone"]</label>
     <div class="ocat-limited">
-        <select asp-for="TimeZone" class="form-select">
-            <option value="">@T["Select..."]</option>
-        </select>
+        <select asp-for="TimeZone" class="form-select"></select>
         <span asp-validation-for="TimeZone"></span>
-        <span class="hint">@T["Hint text."]</span>
     </div>
 </div>
 ```
 
-#### Pattern 4: Section heading (pushed right to align with inputs)
+Rules:
+
+1. Use `ocat-*` in all admin editor views, including `*Settings.Edit.cshtml`.
+2. Validation and hint spans go inside `ocat-end` or `ocat-end-offset`.
+3. Section headings and action buttons go in `ocat-wrapper` > `ocat-end-offset`; required labels add `ocat-label-required`.
+4. Content parts and fields render their wrapper classes directly: `ocat-wrapper content-part-wrapper content-part-wrapper-{part-name}` and `ocat-wrapper field-wrapper field-wrapper-{part-name}-{field-name}` (plus the named-part variants).
+5. Admin Menu node editors and widget containers (BagPart, FlowPart, WidgetsListPart) do not use these classes.
+6. To change the layout (e.g. horizontal forms), override the `ocat-*` classes in a custom admin theme's CSS. The removed `@Orchard.GetWrapperClasses()`-style helpers, `TheAdminThemeOptions`, and `TheAdminTheme:StyleSettings` map to `ocat-wrapper`, `ocat-label`, `ocat-end`, `ocat-end-offset`, `ocat-limited-wrapper`, `ocat-limited`, and `ocat-start`.
+
+### Content Field Hints (`Hint_Admin`)
+
+Content field editors render their configured hint through the `Hint_Admin` shape (`Model.Hint`). The default `Hint.Admin.cshtml` renders `<span class="hint dashed">@Model.Hint</span>`. Override it in a custom admin theme to change every field hint, for example as a tooltip:
 
 ```cshtml
-<div class="ocat-wrapper">
-    <div class="ocat-end-offset">
-        <h3>@T["Section Title"]</h3>
-    </div>
-</div>
+<button type="button" class="btn btn-link p-0 align-baseline"
+        data-bs-toggle="tooltip" data-bs-placement="top"
+        title="@Model.Hint" aria-label="@Model.Hint">
+    <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
+</button>
 ```
 
-#### Pattern 5: Action buttons (submit, cancel)
-
-```cshtml
-<div class="ocat-wrapper">
-    <div class="ocat-end-offset">
-        <button type="submit" class="btn btn-primary">@T["Save"]</button>
-    </div>
-</div>
-```
-
-#### Pattern 6: Required field label
-
-```cshtml
-<div class="ocat-wrapper" asp-validation-class-for="Name">
-    <label asp-for="Name" class="ocat-label ocat-label-required">@T["Name"]</label>
-    <div class="ocat-end">
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name"></span>
-    </div>
-</div>
-```
-
-#### Pattern 7: Limited-width control inside a field wrapper
-
-Use when the editor row needs Orchard-specific wrapper classes like `field-wrapper-*`:
-
-```cshtml
-<div class="ocat-wrapper field-wrapper field-wrapper-MyPart-MyField">
-    <label asp-for="Value" class="ocat-label">@T["Value"]</label>
-    <div class="ocat-end">
-        <div class="ocat-limited-wrapper">
-            <div class="ocat-limited">
-                <input asp-for="Value" class="form-control" />
-                <span asp-validation-for="Value"></span>
-            </div>
-        </div>
-        <span class="hint">@T["Use a compact editor width while preserving the field wrapper row."]</span>
-    </div>
-</div>
-```
-
-#### Customizing the Layout via CSS
-
-To customize the admin layout, override the `ocat-*` CSS classes in your custom admin theme's stylesheet. For example, to create a horizontal layout:
-
-```css
-.ocat-wrapper {
-    --ocat-gutter-x: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    margin-right: calc(-0.5 * var(--ocat-gutter-x));
-    margin-left: calc(-0.5 * var(--ocat-gutter-x));
-    margin-bottom: 1rem;
-}
-.ocat-label {
-    flex: 0 0 auto;
-    width: 25%;
-    text-align: end;
-    padding-top: calc(0.375rem + var(--bs-border-width));
-}
-.ocat-end {
-    flex: 0 0 auto;
-    width: 75%;
-}
-.ocat-end-offset {
-    flex: 0 0 auto;
-    width: 75%;
-    margin-inline-start: 25%;
-}
-```
-
-#### Rules for applying `ocat-*` classes
-
-1. **All admin views** should use `ocat-*` classes (including `*Settings.Edit.cshtml` views)
-2. **Frontend views MUST NOT use `ocat-*` classes** — Login, Register, ForgotPassword, email verification, etc.
-3. **Admin Menu node editing** should NOT use these classes (needs full width)
-4. **Widget containers** (BagPart, FlowPart, WidgetsListPart) are skipped — no standard form fields
-5. **Validation spans** (`<span asp-validation-for="...">`) always go inside `ocat-end` or `ocat-end-offset`
-6. **Hint spans** (`<span class="hint">`) always go inside `ocat-end` or `ocat-end-offset`
-7. **Checkboxes without a left label** use `ocat-wrapper` + `ocat-end-offset` for the form-check div
-
-#### Migration from Old Helpers
-
-| Old Pattern | New Pattern |
-|-------------|-------------|
-| `@Orchard.GetWrapperClasses()` | `ocat-wrapper` |
-| `@Orchard.GetLabelClasses()` | `ocat-label` |
-| `@Orchard.GetLabelClasses(true)` | `ocat-label ocat-label-required` |
-| `@Orchard.GetEndClasses()` | `ocat-end` |
-| `@Orchard.GetEndClasses(true)` | `ocat-end-offset` |
-| `@Orchard.GetLimitedWidthWrapperClasses()` | `ocat-limited-wrapper` |
-| `@Orchard.GetLimitedWidthClasses()` | `ocat-limited` |
-| `@Orchard.GetStartClasses()` | (removed, use CSS override) |
-| `@Orchard.GetOffsetClasses()` | `ocat-end-offset` |
-| `TheAdminTheme:StyleSettings` in appsettings.json | Override `ocat-*` classes in custom admin theme CSS |
-| `PostConfigure<TheAdminThemeOptions>` | Override `ocat-*` classes in custom admin theme CSS |
+Custom field editors can render it the same way: `@await DisplayAsync(await New.Hint_Admin(Hint: settings.Hint))`.
 
 ## Admin Controllers
 
-To create a controller that renders inside the admin panel, apply the `[Admin]` attribute to the controller class or individual action methods. This attribute routes the action through the admin theme and enforces authentication.
+Apply `[Admin]` to a controller or action to render it in the admin theme and require admin access. Its optional route template and route name work like `[Route]`, with the admin prefix prepended; the name can contain `{area}`, `{controller}`, and `{action}`. An action-level attribute takes precedence.
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Localization;
 using OrchardCore.Admin;
 using OrchardCore.DisplayManagement.Notify;
 
-[Admin("MyModule/Settings/{action}", "MyModule.Settings")]
-public sealed class SettingsController : Controller
+[Admin("Person/{action}/{id?}", "Person{action}")]
+public sealed class PersonController : Controller
 {
     private readonly INotifier _notifier;
+    private readonly IHtmlLocalizer H;
 
-    public SettingsController(INotifier notifier)
+    public PersonController(INotifier notifier, IHtmlLocalizer<PersonController> htmlLocalizer)
     {
         _notifier = notifier;
+        H = htmlLocalizer;
     }
 
-    public IActionResult Index()
-    {
-        return View();
-    }
+    [Admin("Person", "Person")]
+    public IActionResult Index() => View();
+
+    public IActionResult Edit(string id) => View();
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update()
     {
-        await _notifier.SuccessAsync(new LocalizedHtmlString("Settings updated."));
+        await _notifier.SuccessAsync(H["Settings updated."]);
+
         return RedirectToAction(nameof(Index));
     }
 }
 ```
 
-The `[Admin]` attribute accepts two optional parameters:
+With the default prefix, `Index` is `~/Admin/Person` (route `Person`) and `Edit` is `~/Admin/Person/{id}` (route `PersonEdit`). Use `AdminAttribute.IsApplied(httpContext)` to detect admin requests in filters and services.
 
-1. **Route template** — defines the admin URL pattern for the controller (e.g., `"MyModule/Settings/{action}"`).
-2. **Route name** — assigns a named route for URL generation (e.g., `"MyModule.Settings"`).
+### Admin URL Prefix
 
-When applied at the class level, all actions in the controller are treated as admin actions. You can also apply it to individual actions if only some methods should be admin-scoped.
+```json
+{
+  "OrchardCore": {
+    "Admin": {
+      "AdminUrlPrefix": "Backoffice"
+    }
+  }
+}
+```
+
+Read it through `IOptions<AdminOptions>` (`AdminUrlPrefix`). The legacy `OrchardCore_Admin` section still binds but is deprecated.
 
 ### Admin Route URL Generation
 
-In Razor views, prefer anchor and form tag helpers so link generation stays in the view:
+Prefer tag helpers in views, and `LinkGenerator` with the current `HttpContext` in code, so tenant and admin prefixes are preserved:
 
 ```cshtml
-<a asp-action="Index" asp-controller="Settings" asp-area="MyModule">
-    @T["Open settings"]
-</a>
+<a asp-action="Index" asp-controller="Settings" asp-area="MyModule">@T["Open settings"]</a>
 ```
-
-If you need to generate an admin URL in code, prefer `LinkGenerator` and pass the current `HttpContext`:
 
 ```csharp
 using Microsoft.AspNetCore.Routing;
@@ -253,159 +206,20 @@ public sealed class AdminUrlService
         _linkGenerator = linkGenerator;
     }
 
-    public string? GetSettingsUrl(HttpContext httpContext)
-    {
-        return _linkGenerator.GetPathByAction(
-            httpContext,
-            action: "Index",
-            controller: "Settings",
-            values: new { area = "MyModule" });
-    }
+    public string GetSettingsUrl(HttpContext httpContext)
+        => _linkGenerator.GetPathByAction(httpContext, action: "Index", controller: "Settings", values: new { area = "MyModule" });
 }
 ```
 
-Do not use `@Url.Content("~/...")` for application links in Orchard Core views.
+Do not use `@Url.Content("~/...")` for application links.
 
-## Admin Menu Registration
+## Admin Views
 
-Admin menu items can inherit from `AdminNavigationProvider`, which scopes a provider to the admin menu. Each provider contributes entries to the admin sidebar navigation. This code-first sidebar registration is distinct from the `OrchardCore.AdminMenu` content-type feature (admin-configurable node tree); see `orchardcore-admin-menu` for that feature.
-
-```csharp
-using Microsoft.Extensions.Localization;
-using OrchardCore.Navigation;
-
-internal sealed class AdminMenu : AdminNavigationProvider
-{
-    private readonly IStringLocalizer S;
-
-    public AdminMenu(IStringLocalizer<AdminMenu> localizer)
-    {
-        S = localizer;
-    }
-
-    protected override ValueTask BuildAsync(NavigationBuilder builder)
-    {
-        builder
-            .Add(S["Content"], NavigationConstants.AdminMenuContentPosition, content => content
-                .AddClass("content")
-                .Id("content")
-                .Add(S["Taxonomies"], S["Taxonomies"].PrefixPosition(), taxonomies => taxonomies
-                    .Permission(Permissions.ManageTaxonomies)
-                    .Action("Index", "Admin", new { area = "MyModule" })
-                    .LocalNav()
-                )
-            );
-
-        return ValueTask.CompletedTask;
-    }
-}
-```
-
-Use `INavigationProvider` directly only when a provider must contribute to multiple named menus or needs custom routing logic.
-
-Register the provider in `Startup.cs`:
-
-```csharp
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddNavigationProvider<AdminMenu>();
-    }
-}
-```
-
-### Adding an Icon to an Admin Menu Item
-
-For `NamedNavigationProvider` or `INavigationProvider` menu items, do **not** put Font Awesome classes on the item with `AddClass(...)`. Instead:
-
-1. Assign a stable id with `.Id("sports")`.
-2. Add a Razor view named `NavigationItemText-sports.Id.cshtml`.
-3. Render the icon and title from that view.
-
-Example navigation provider:
-
-```csharp
-builder.Add(S["Sports"], sports => sports
-    .Id("sports")
-    .Add(S["Calendar"], calendar => calendar
-        .Action("Index", "Admin", new { area = "MyModule" })
-        .LocalNav()
-    )
-);
-```
-
-Example view file `Views/NavigationItemText-sports.Id.cshtml`:
+Admin views declare their title with the `<breadcrumb>` tag helper (add `@addTagHelper *, OrchardCore.Navigation.Core` to `_ViewImports.cshtml`). It renders the trail, the `<h1>`, and the browser title segment, so do not add a separate heading:
 
 ```cshtml
-<span class="icon">
-    <i class="fa-regular fa-futbol"></i>
-</span>
-<span class="title">@Model.Text</span>
-```
-
-Use this pattern when you need a custom icon for an admin navigation item rendered by TheAdmin theme.
-
-### Menu Grouping and Ordering
-
-Menu items are organized hierarchically using nested `Add` calls. Use the `Position` method to control item order within a group. Position values are strings that support numeric sorting (e.g., `"1"`, `"2.5"`, `"10"`).
-
-The Orchard Core admin sidebar uses these top-level groups:
-
-| Group | Purpose |
-|-------|---------|
-| `Content` | Content items, taxonomies, media |
-| `Settings` | Site settings and configuration pages |
-| `Tools` | Non-settings admin utilities (cache, import/export) |
-| `Access Control` | Users, Roles, and permissions |
-
-```csharp
-builder
-    .Add(S["Settings"], settings => settings
-        .Add(S["Email"], email => email
-            .Action("Index", "Admin", new { area = "OrchardCore.Email" })
-            .Permission(Permissions.ManageEmailSettings)
-            .LocalNav()
-        )
-        .Add(S["Search"], search => search
-            .Action("Index", "Admin", new { area = "OrchardCore.Search" })
-            .Permission(Permissions.ManageSearchSettings)
-            .LocalNav()
-        )
-    );
-```
-
-> **Important**: Orchard Core no longer uses the `"Configuration"` or `"Security"` top-level menu groups. Use `"Settings"` for settings pages, `"Tools"` for non-settings utilities, and `"Access Control"` for user/role management.
-
-### Permission-Based Menu Visibility
-
-Use the `Permission` method to restrict menu item visibility. Items are automatically hidden from users who lack the specified permission. You can chain multiple `Permission` calls if any one of several permissions should grant visibility.
-
-```csharp
-builder
-    .Add(S["Access Control"], accessControl => accessControl
-        .Add(S["Users"], users => users
-            .Permission(Permissions.ManageUsers)
-            .Action("Index", "Admin", new { area = "OrchardCore.Users" })
-            .LocalNav()
-        )
-        .Add(S["Roles"], roles => roles
-            .Permission(Permissions.ManageRoles)
-            .Action("Index", "Admin", new { area = "OrchardCore.Roles" })
-            .LocalNav()
-        )
-    );
-```
-
-## Admin Views and Layouts
-
-Admin views are standard Razor views placed in the `Views` folder of your module. When rendered through an admin controller, they automatically use the admin layout provided by TheAdmin theme.
-
-To create an admin view at `Views/Settings/Index.cshtml`:
-
-```html
 <zone Name="Title">
-    <h1>@T["My Module Settings"]</h1>
+    <breadcrumb name="MyModuleSettings" title="@T["My Module Settings"]" />
 </zone>
 
 <form asp-action="Update" method="post">
@@ -425,171 +239,225 @@ To create an admin view at `Views/Settings/Index.cshtml`:
 </form>
 ```
 
-### Admin Zones
+List pages render their items with `<admin-list>`; see `orchardcore-admin-lists`.
 
-The admin layout defines several zones for placing content:
+## Admin Menu Registration
 
-| Zone | Purpose |
-|------|---------|
-| `Title` | Page title displayed at the top of the content area |
-| `Content` | Main body content |
-| `Navigation` | Sidebar navigation menu |
-| `Header` | Top bar area (user menu, site name) |
-| `Messages` | Notification and alert messages |
-| `DetailAdmin` | Secondary detail panel |
-| `Footer` | Bottom area of the admin layout |
-| `HeadMeta` | Additional `<meta>` tags in `<head>` |
-
-Use the `<zone>` tag helper to inject content into these zones from any admin view:
-
-```html
-<zone Name="Messages">
-    <div class="alert alert-info">@T["Remember to publish your changes."]</div>
-</zone>
-```
-
-## Dashboard Widgets
-
-Dashboard widgets are content items whose content type has the `DashboardWidget` stereotype. `OrchardCore.AdminDashboard` automatically attaches `DashboardPart`, which stores the widget position, width, and height. See `orchardcore-admin-dashboard` for widget sizing, layout configuration, and recipe-driven widget content types.
-
-### Creating a Dashboard Widget Content Type
-
-Attach a custom part to a dashboard-widget type and render that part with a content-part driver:
+Inherit from `AdminNavigationProvider` (a `NamedNavigationProvider` scoped to the `admin` menu) and register it with `AddNavigationProvider<T>()`:
 
 ```csharp
-using OrchardCore.ContentManagement;
-using OrchardCore.ContentManagement.Display.ContentDisplay;
-using OrchardCore.ContentManagement.Display.Models;
+using Microsoft.Extensions.Localization;
+using OrchardCore.Navigation;
+
+internal sealed class AdminMenu : AdminNavigationProvider
+{
+    private readonly IStringLocalizer S;
+
+    public AdminMenu(IStringLocalizer<AdminMenu> localizer)
+    {
+        S = localizer;
+    }
+
+    protected override ValueTask BuildAsync(NavigationBuilder builder)
+    {
+        builder
+            .Add(S["Content"], NavigationConstants.AdminMenuContentPosition, content => content
+                .Add(S["Taxonomies"], S["Taxonomies"].PrefixPosition(), taxonomies => taxonomies
+                    .Permission(MyModulePermissions.ManageTaxonomies)
+                    .Action("Index", "Admin", "MyModule")
+                    .LocalNav()
+                )
+            )
+            .Add(S["Settings"], settings => settings
+                .Add(S["My Module"], S["My Module"].PrefixPosition(), entry => entry
+                    .Id("mymodule")
+                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = "mymodule" })
+                    .Permission(MyModulePermissions.ManageMyModuleSettings)
+                    .LocalNav()
+                )
+            );
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+```csharp
+services.AddNavigationProvider<AdminMenu>();
+```
+
+- Standard top-level groups are **Content**, **Design**, **Search**, **Settings**, **Tools**, and **Access Control**. Positions that remain in `NavigationConstants` are `AdminMenuContentPosition`, `AdminMenuDesignPosition`, `AdminMenuSearchPosition`, and `AdminMenuAccessControlPosition`. Settings pages go under **Settings** (often in a sub-group such as **Communication**), utilities under **Tools**.
+- `PrefixPosition()` sorts items alphabetically by their localized text. Nest `Add` calls for sub-groups.
+- `Permission(...)` hides an item from users who lack it (chain several for "any of"); hiding a parent also hides its children. Use `.Resource(...)` for resource-based checks.
+- Use `INavigationProvider` directly only for providers that contribute to several named menus.
+
+### Adding an Icon to an Admin Menu Item
+
+Do not put Font Awesome classes on items with `AddClass(...)`. Give the item an id and add `Views/NavigationItemText-{id}.Id.cshtml`:
+
+```csharp
+builder.Add(S["Sports"], sports => sports
+    .Id("sports")
+    .Add(S["Calendar"], calendar => calendar
+        .Action("Index", "Admin", "MyModule")
+        .LocalNav()
+    )
+);
+```
+
+```cshtml
+<span class="icon">
+    <i class="fa-regular fa-futbol" aria-hidden="true"></i>
+</span>
+<span class="title">@Model.Text</span>
+```
+
+## Quick Navigation (Ctrl+K)
+
+`OrchardCore.Admin` provides a quick navigation palette opened with <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on macOS) or the navbar magnifier. It filters the admin menu items the user can access (case- and accent-insensitive, including parent names shown as a breadcrumb). It is enabled by default; turn it off with **Enable quick navigation** in **Configuration → Settings → Admin** or `AdminSettings.DisplayQuickNavigation`.
+
+- The palette loads a fresh, localized, permission-filtered JSON index from the `AdminQuickNavigationIndex` route (`~/Admin/QuickNavigation/Index`, requires `AccessAdminPanel`, `404` when disabled) on every open, with `Cache-Control: no-store`. Entries have `source`, `id`, `title`, `path`, `href`, and `target`.
+- Admin themes that render the `Navbar` shape with the `DetailAdmin` display type inherit the palette (`QuickNavigationNavbarItem` shape plus `admin-quick-navigation` script and style). Restyle it after that stylesheet: `<style asp-name="my-admin-theme" asp-src="~/MyAdminTheme/Styles/theme.css" depends-on="admin-quick-navigation" at="Head"></style>`.
+- Enable **Content Quick Navigation** (`OrchardCore.Contents.QuickNavigation`) to add edit links for the most recently updated content items the user can edit; `ContentQuickNavigationSettings.MaxItems` (default `50`) is configurable in the Admin settings.
+
+### Adding a Source
+
+Derive from `QuickNavigationSource` (`OrchardCore.Admin.QuickNavigation` in `OrchardCore.Admin.Abstractions`) in an opt-in feature that depends on `OrchardCore.Admin`:
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Localization;
+using OrchardCore.Admin.QuickNavigation;
+
+public sealed class ReportNavigationSource : QuickNavigationSource
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly LinkGenerator _linkGenerator;
+    private readonly IReportStore _reportStore;
+    private readonly IStringLocalizer S;
+
+    public ReportNavigationSource(
+        IHttpContextAccessor httpContextAccessor,
+        IAuthorizationService authorizationService,
+        LinkGenerator linkGenerator,
+        IReportStore reportStore,
+        IStringLocalizer<ReportNavigationSource> localizer)
+    {
+        _httpContextAccessor = httpContextAccessor;
+        _authorizationService = authorizationService;
+        _linkGenerator = linkGenerator;
+        _reportStore = reportStore;
+        S = localizer;
+    }
+
+    public override string Name => "Reports";
+
+    public override async ValueTask<IEnumerable<string>> GetEntryIdsAsync()
+        => await _reportStore.GetRecentIdsAsync(20);
+
+    public override async ValueTask<QuickNavigationResult> DisplayAsync(string entryId)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        var report = await _reportStore.GetAsync(entryId);
+
+        if (report is null || !await _authorizationService.AuthorizeAsync(httpContext.User, ReportPermissions.ViewReports, report))
+        {
+            return null;
+        }
+
+        return new QuickNavigationResult
+        {
+            Title = report.Name,
+            Path = [S["Reports"].Value],
+            Href = _linkGenerator.GetPathByAction(httpContext, "View", "Report", new { area = "My.Reports", id = report.Id }),
+        };
+    }
+}
+```
+
+```csharp
+[Feature("My.Reports.QuickNavigation")]
+public sealed class QuickNavigationStartup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddScoped<QuickNavigationSource, ReportNavigationSource>();
+    }
+}
+```
+
+- `Name` must be unique, stable, and culture-independent. `Source` and `Id` of the result are assigned by the endpoint; return `null` for missing or unauthorized entries.
+- For expensive sources, keep identifiers (never localized labels or pre-authorized results) in the tenant-singleton, in-memory `IQuickNavigationIndex` from a background task or event handler: `index.Replace("Reports", ids)` atomically replaces that source's partition (an empty collection clears it). It is not persisted or distributed, so repopulate it after restarts and on every server.
+- Always authorize again and generate links from the current request in `DisplayAsync`.
+
+## Navbar Shape
+
+The `Navbar` shape is rendered with `DetailAdmin` on the admin and `Detail` on the front end. Add items with a display driver:
+
+```csharp
+using OrchardCore.Admin.Models;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
 
-public sealed class RecentActivityPart : ContentPart
+public sealed class HelpNavbarDisplayDriver : DisplayDriver<Navbar>
 {
-}
-
-public sealed class RecentActivityPartDisplayDriver : ContentPartDisplayDriver<RecentActivityPart>
-{
-    public override IDisplayResult Display(RecentActivityPart part, BuildPartDisplayContext context)
+    public override IDisplayResult Display(Navbar model, BuildDisplayContext context)
     {
-        return View("RecentActivityPart", part)
-            .Location("DetailAdmin", "Content:5");
+        return View("HelpNavbarItem", model)
+            .Location(OrchardCoreConstants.DisplayType.DetailAdmin, "Content:25");
     }
 }
 ```
 
-Register the driver in `Startup.cs`:
+Register it with `services.AddDisplayDriver<Navbar, HelpNavbarDisplayDriver>()`.
 
-```csharp
-services.AddContentPart<RecentActivityPart>()
-    .UseDisplayDriver<RecentActivityPartDisplayDriver>();
-```
+## Admin Branding
 
-### Dashboard Widget View
+Override the `AdminBranding` shape (from a custom admin theme or with Admin Templates) to change the logo, site name, and favicon:
 
-Create `Views/RecentActivityWidget.cshtml`:
-
-```html
-<div class="card mb-3">
-    <div class="card-header">
-        <h5 class="card-title mb-0">@T["Recent Activity"]</h5>
-    </div>
-    <div class="card-body">
-        <ul class="list-unstyled mb-0">
-            <li>@T["3 content items published today"]</li>
-            <li>@T["12 new users this week"]</li>
-        </ul>
-    </div>
-</div>
-```
-
-## Admin Theme Customization and Branding
-
-You can customize the admin theme by creating a theme that inherits from TheAdmin, overriding specific shapes, or injecting custom resources.
-
-### Overriding the Admin Branding
-
-Create a shape override for the admin header branding by defining a `Header.cshtml` shape in your module or custom admin theme:
-
-```html
-<header class="ta-navbar">
+```cshtml
+<zone Name="HeadMeta">
+    <link asp-src="~/media/favicon.ico" type="image/x-icon" rel="shortcut icon" />
+</zone>
+<a class="ta-navbar-brand" asp-route-area="OrchardCore.Admin" asp-controller="Admin" asp-action="Index">
     <div class="d-flex align-items-center">
-        <a class="ta-navbar-brand" href="~/admin">
-            <img src="~/MyTheme/images/custom-logo.svg" alt="@T["Site Administration"]" height="32" />
-        </a>
+        <img src="~/media/logo.png" alt="@Site.SiteName" class="pe-2" />
+        <span>@Site.SiteName</span>
     </div>
-</header>
+</a>
 ```
 
-### Injecting Custom Admin Styles
+## Admin Home Page Content
 
-Define a resource manifest with `IConfigureOptions<ResourceManagementOptions>`:
+Without `OrchardCore.AdminDashboard`, `/admin` renders the `AdminDashboard` shape, which displays an `AdminDashboardContent` child shape. Features add positioned content with a shape table provider:
 
 ```csharp
-using Microsoft.Extensions.Options;
-using OrchardCore.ResourceManagement;
+using OrchardCore.DisplayManagement.Descriptors;
+using OrchardCore.DisplayManagement.Views;
 
-public sealed class ResourceManagementOptionsConfiguration
-    : IConfigureOptions<ResourceManagementOptions>
+public sealed class AdminDashboardShapeTableProvider : ShapeTableProvider
 {
-    public void Configure(ResourceManagementOptions options)
+    public override ValueTask DiscoverAsync(ShapeTableBuilder builder)
     {
-        var manifest = new ResourceManifest();
+        builder.Describe("AdminDashboardContent")
+            .OnDisplaying(async displaying =>
+            {
+                await displaying.Shape.AddAsync(new ShapeViewModel("MyAdminDashboardContent"), "10");
+            });
 
-        manifest
-            .DefineStyle("MyModule.AdminStyles")
-            .SetUrl("~/MyModule/css/admin-custom.min.css", "~/MyModule/css/admin-custom.css");
-
-        options.ResourceManifests.Add(manifest);
+        return ValueTask.CompletedTask;
     }
 }
 ```
 
-Require the resource from an admin result filter:
-
-```csharp
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Options;
-using OrchardCore.Admin;
-using OrchardCore.ResourceManagement;
-
-public sealed class AdminResourceFilter : IAsyncResultFilter
-{
-    private readonly IResourceManager _resourceManager;
-
-    public AdminResourceFilter(IResourceManager resourceManager)
-    {
-        _resourceManager = resourceManager;
-    }
-
-    public async Task OnResultExecutionAsync(
-        ResultExecutingContext context,
-        ResultExecutionDelegate next)
-    {
-        if (context.Result is ViewResult && AdminAttribute.IsApplied(context.HttpContext))
-        {
-            _resourceManager.RequireStyle("MyModule.AdminStyles");
-        }
-
-        await next();
-    }
-}
-```
-
-Register the options configuration and MVC filter:
-
-```csharp
-using Microsoft.AspNetCore.Mvc;
-
-services.AddTransient<IConfigureOptions<ResourceManagementOptions>, ResourceManagementOptionsConfiguration>();
-services.Configure<MvcOptions>(options => options.Filters.Add<AdminResourceFilter>());
-```
+Register it with `services.AddShapeTableProvider<AdminDashboardShapeTableProvider>()` and add a `MyAdminDashboardContent.cshtml` template.
 
 ## Admin Settings Pages
 
-Admin settings pages allow module authors to expose configurable options in the admin panel. The recommended pattern uses `ISiteService` to persist settings as part of the site configuration document.
-
-### Defining a Settings Model
+Store settings on the site and edit them with a `SiteDisplayDriver<T>`:
 
 ```csharp
 public sealed class NotificationSettings
@@ -597,14 +465,11 @@ public sealed class NotificationSettings
     public bool EnableEmailNotifications { get; set; }
 
     public string DefaultRecipient { get; set; }
-
-    public int MaxRetryAttempts { get; set; } = 3;
 }
 ```
 
-### Creating a Settings Display Driver
-
 ```csharp
+using OrchardCore.DisplayManagement.Entities;
 using OrchardCore.DisplayManagement.Handlers;
 using OrchardCore.DisplayManagement.Views;
 using OrchardCore.Settings;
@@ -621,8 +486,7 @@ public sealed class NotificationSettingsDisplayDriver : SiteDisplayDriver<Notifi
         {
             model.EnableEmailNotifications = settings.EnableEmailNotifications;
             model.DefaultRecipient = settings.DefaultRecipient;
-            model.MaxRetryAttempts = settings.MaxRetryAttempts;
-        }).Location("Content:5#Notifications")
+        }).Location("Content:5")
           .OnGroup(SettingsGroupId);
     }
 
@@ -633,66 +497,73 @@ public sealed class NotificationSettingsDisplayDriver : SiteDisplayDriver<Notifi
 
         settings.EnableEmailNotifications = model.EnableEmailNotifications;
         settings.DefaultRecipient = model.DefaultRecipient;
-        settings.MaxRetryAttempts = model.MaxRetryAttempts;
 
         return Edit(site, settings, context);
     }
 }
-```
 
-### Settings View Model
-
-```csharp
 public class NotificationSettingsViewModel
 {
     public bool EnableEmailNotifications { get; set; }
 
     public string DefaultRecipient { get; set; }
-
-    public int MaxRetryAttempts { get; set; }
 }
 ```
 
-### Registering Settings Navigation
-
 ```csharp
-public sealed class AdminMenu : INavigationProvider
+services.AddSiteDisplayDriver<NotificationSettingsDisplayDriver>();
+```
+
+Link it from the **Settings** group with `.Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = NotificationSettingsDisplayDriver.GroupId })`. When options are populated from these settings, consume them through `IOptionsMonitor<T>.CurrentValue` and refresh them with `IOptionsChangeTokenSource<T>` plus `IOptionsUpdateNotifier` (see `orchardcore-site-settings`).
+
+## Admin Settings Reference
+
+**Configuration → Settings → Admin** requires `AdminPermissions.ManageAdminSettings`; the admin itself requires `AdminPermissions.AccessAdminPanel`.
+
+```json
 {
-    private readonly IStringLocalizer S;
-
-    public AdminMenu(IStringLocalizer<AdminMenu> localizer)
+  "steps": [
     {
-        S = localizer;
+      "name": "settings",
+      "AdminSettings": {
+        "DisplayThemeToggler": true,
+        "DisplayMenuFilter": true,
+        "DisplayQuickNavigation": true,
+        "DisplayNewMenu": true,
+        "DisplayTitlesInTopbar": false,
+        "ShowBreadcrumb": true,
+        "MenuBehavior": "Persistent",
+        "ListLayout": "Grid",
+        "ListActionsLayout": "Menu",
+        "AllowUserListLayoutSelection": true
+      },
+      "ContentQuickNavigationSettings": {
+        "MaxItems": 25
+      }
     }
-
-    public ValueTask BuildNavigationAsync(string name, NavigationBuilder builder)
-    {
-        if (!NavigationHelper.IsAdminMenu(name))
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        builder
-            .Add(S["Settings"], settings => settings
-                .Add(S["Notifications"], S["Notifications"].PrefixPosition(), notifications => notifications
-                    .Permission(Permissions.ManageNotificationSettings)
-                    .Action("Index", "Admin", new { area = "OrchardCore.Settings", groupId = NotificationSettingsDisplayDriver.GroupId })
-                    .LocalNav()
-                )
-            );
-
-        return ValueTask.CompletedTask;
-    }
+  ]
 }
 ```
 
-## Admin Filters and Middleware
+| Property | Default | Description |
+|---|---|---|
+| `DisplayThemeToggler` | `true` | Light/dark theme toggler. |
+| `DisplayMenuFilter` | `false` | Filter input above the admin menu. |
+| `DisplayQuickNavigation` | `true` | Ctrl+K quick navigation palette. |
+| `DisplayNewMenu` | `false` | "New" content menu in the admin navigation. |
+| `DisplayTitlesInTopbar` | `false` | Page titles in the top bar. |
+| `ShowBreadcrumb` | `true` | Admin breadcrumb trails (see `orchardcore-breadcrumbs`). |
+| `MenuBehavior` | `Focused` | `Focused` or `Persistent` menu sections. |
+| `ListLayout` | `null` | `List` or `Grid`; `null` uses `AdminListOptions.DefaultLayout` (see `orchardcore-admin-lists`). |
+| `ListActionsLayout` | `null` | `Buttons` or `Menu`; `null` uses `AdminListOptions.DefaultActionsLayout`. |
+| `AllowUserListLayoutSelection` | `false` | Per-user List/Grid selector on every list. |
 
-Admin filters allow you to execute logic for every admin request, such as injecting data into the layout, enforcing policies, or modifying the response.
+## Admin Filters
 
-### Creating an Admin Result Filter
+Run logic for every admin page with an MVC result filter guarded by `AdminAttribute.IsApplied`:
 
 ```csharp
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OrchardCore.Admin;
 using OrchardCore.DisplayManagement;
@@ -703,9 +574,7 @@ public sealed class AdminBannerFilter : IAsyncResultFilter
     private readonly ILayoutAccessor _layoutAccessor;
     private readonly IShapeFactory _shapeFactory;
 
-    public AdminBannerFilter(
-        ILayoutAccessor layoutAccessor,
-        IShapeFactory shapeFactory)
+    public AdminBannerFilter(ILayoutAccessor layoutAccessor, IShapeFactory shapeFactory)
     {
         _layoutAccessor = layoutAccessor;
         _shapeFactory = shapeFactory;
@@ -713,51 +582,30 @@ public sealed class AdminBannerFilter : IAsyncResultFilter
 
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
-        if (!AdminAttribute.IsApplied(context.HttpContext))
+        if (context.Result is ViewResult && AdminAttribute.IsApplied(context.HttpContext))
         {
-            await next();
-            return;
+            var layout = await _layoutAccessor.GetLayoutAsync();
+            await layout.Zones["Messages"].AddAsync(await _shapeFactory.CreateAsync("AdminBanner"), "0");
         }
-
-        var layout = await _layoutAccessor.GetLayoutAsync();
-        var messagesZone = layout.Zones["Messages"];
-
-        var bannerShape = await _shapeFactory.CreateAsync("AdminBanner");
-        await messagesZone.AddAsync(bannerShape, "0");
 
         await next();
     }
 }
 ```
 
-Register the filter in `Startup.cs`:
-
 ```csharp
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.Configure<MvcOptions>(options => options.Filters.Add<AdminBannerFilter>());
-    }
-}
+services.Configure<MvcOptions>(options => options.Filters.Add<AdminBannerFilter>());
 ```
 
-## Configuring Admin Options via Recipes
+The same pattern can require an admin stylesheet defined in a resource manifest (`_resourceManager.RequireStyle("MyModule.AdminStyles")`).
 
-Use recipes to configure admin-related settings during site setup or tenant initialization:
+## Upgrading from 3.x
 
-```json
-{
-    "steps": [
-        {
-            "name": "settings",
-            "AdminSettings": {
-                "DisplayMenuFilter": true,
-                "DisplayThemeToggler": true
-            }
-        }
-    ]
-}
-```
+- Remove `AppContext.SetSwitch("LegacyAdminMenuNavigation", true)`; the legacy admin menu layout is gone. `NavigationHelper.UseLegacyFormat()`, `NavigationConstants.AdminMenuSecurityPosition`, `AdminMenuAuditTrailPosition`, `AdminMenuWorkflowsPosition`, and `AdminMenuConfigurationPosition` were removed; use the **Settings**, **Tools**, and **Access Control** groups.
+- `OrchardCore.Admin.PermissionsAdminSettings.ManageAdminSettings` was removed; use `OrchardCore.Admin.AdminPermissions.ManageAdminSettings`.
+- Replace `<zone Name="Title"><h1>@RenderTitleSegments(...)</h1></zone>` with the `<breadcrumb>` tag helper.
+- Re-check overrides of the admin menu templates and custom menu CSS against the new markup and color variables; require `bootstrap-select` styles explicitly.
+- Overridden list views must render `<admin-list>` (see `orchardcore-admin-lists`).
+- Use `OrchardCore:Admin` instead of `OrchardCore_Admin` in configuration.
 
-For additional practical examples covering admin controllers, menus, widgets, and settings, see the `references/admin-examples.md` file.
+For practical end-to-end examples, see `references/admin-examples.md`.

@@ -126,18 +126,60 @@ ShellScope.AddDeferredSignal("MyModule:Settings");
 
 ## Run cleanup as the scope disposes (no new scope)
 
-`RegisterBeforeDispose` runs inside the current scope while its services are
-still available. Use it for disposing resources, not for reading committed data.
+`ShellScope.RegisterBeforeDispose` runs inside the current scope while its
+services are still available. Use it for disposing resources, not for reading committed data.
 
 ```csharp
 using OrchardCore.Environment.Shell.Scope;
 
-ShellScope.Current.RegisterBeforeDispose(scope =>
+// Static helper; pass 'last: true' to run after the callbacks already registered.
+ShellScope.RegisterBeforeDispose(scope =>
 {
     // e.g. flush a buffer or dispose a rented resource.
     return Task.CompletedTask;
 });
 ```
+
+## Run only when the document store commit succeeded
+
+If the commit fails, `RegisterBeforeDispose` throws and later deferred work is skipped, but code that must react to *success* explicitly can register on `IDocumentStore`:
+
+```csharp
+using OrchardCore.Data.Documents;
+using OrchardCore.Environment.Cache;
+
+public sealed class OrderService
+{
+    private readonly IDocumentStore _documentStore;
+    private readonly ISignal _signal;
+    private readonly HashSet<string> _changedOrderIds = [];
+
+    public OrderService(IDocumentStore documentStore, ISignal signal)
+    {
+        _documentStore = documentStore;
+        _signal = signal;
+    }
+
+    public void NotifyAfterCommit(string orderId)
+    {
+        _changedOrderIds.Add(orderId);
+
+        // Only the first callback registered for a given T in a scope is kept,
+        // so register once and read the accumulated state when it runs.
+        _documentStore.AfterCommitSuccess<OrderService>(async () =>
+        {
+            foreach (var id in _changedOrderIds)
+            {
+                await _signal.SignalTokenAsync($"Orders:{id}");
+            }
+        });
+    }
+}
+```
+
+Register `OrderService` as scoped so its state lives as long as the document store scope.
+
+`AfterCommitFailure<T>()` registers the opposite callback. Orchard Core's `IOptionsUpdateNotifier` combines `AfterCommitSuccess` with a deferred task so `IOptionsMonitor<T>` caches are only invalidated for committed settings; use it rather than hand-rolled signals when the data feeds options (see `orchardcore-site-settings`).
 
 ## Typed overloads
 

@@ -32,7 +32,7 @@ internal sealed class ResourceManagementOptionsConfiguration : IConfigureOptions
         manifest
             .DefineScript("MyTheme")
             .SetUrl("~/MyTheme/js/site.min.js", "~/MyTheme/js/site.js")
-            .SetDependencies("jquery");
+            .SetDependencies("bootstrap:5");
 
         return manifest;
     }
@@ -76,9 +76,11 @@ Placement options: `at="Head"` or `at="Foot"` controls rendering location.
 ## Require Resources in Liquid
 
 ```liquid
-{% style src: "~/MyTheme/css/site.css" %}
-{% script src: "~/MyTheme/js/site.js" at: "Foot" %}
-{% resources type: "Stylesheet" %}
+{% style name: "MyTheme", at: "Head" %}
+{% script name: "MyTheme", at: "Foot" %}
+{% style src: "~/MyTheme/css/extra.css", at: "Head" %}
+{% script src: "~/MyTheme/js/extra.js", at: "Foot" %}
+{% resources type: "Header" %}
 {% resources type: "FootScript" %}
 ```
 
@@ -94,18 +96,21 @@ Common style/script names you can require without adding CDNs yourself (from `Or
 
 | Resource Name | Type | Description |
 |---|---|---|
-| `bootstrap` | CSS/JS | Bootstrap framework |
+| `bootstrap` | CSS/JS | Bootstrap 5.3 (4.6 also registered) |
 | `bootstrap-rtl` | CSS | Bootstrap RTL support |
-| `font-awesome` | CSS | Font Awesome icons |
-| `jQuery` | JS | jQuery library |
-| `jQuery-ui` | JS | jQuery UI |
+| `font-awesome` | CSS/JS | Font Awesome 7 (6 and 5 also registered) |
+| `jQuery` | JS | jQuery 3.7.1, only loaded when required explicitly |
+| `jQuery-ui` | JS/CSS | jQuery UI 1.14.2 |
 | `trumbowyg` | JS/CSS | WYSIWYG editor |
 | `codemirror` | JS/CSS | Code editor |
+| `monaco` | JS/CSS | Monaco editor (ES module build) |
 | `bootstrap-select` | JS/CSS | Bootstrap select component |
 | `nouislider` | JS/CSS | Range slider |
-| `vue-multiselect` | JS/CSS | Vue multiselect component |
+| `vuejs` | JS | Vue 3 |
+| `vue-multiselect` | JS/CSS | Vue 3 multiselect component |
+| `vue-draggable` | JS | Vue 3 draggable lists (depends on `Sortable`) |
 
-Prefer using these names in `asp-name`/`depends-on` instead of adding CDN links manually.
+Prefer using these names in `asp-name`/`depends-on` instead of adding CDN links manually. In Orchard Core 4.0, admin and module scripts no longer depend on jQuery, so a theme that uses jQuery must require it itself. Vue 2 resources were removed; see `orchardcore-resources`.
 
 ## Injecting Resources for Admin Pages
 
@@ -144,7 +149,7 @@ public sealed class AdminResourceFilter : IAsyncResultFilter
     {
         if (context.IsViewOrPageResult() && AdminAttribute.IsApplied(context.HttpContext))
         {
-            _resourceManager.RegisterResource("style", "MyModule.AdminStyles");
+            _resourceManager.RegisterResource("stylesheet", "MyModule.AdminStyles");
         }
 
         await next.Invoke();
@@ -157,11 +162,12 @@ public sealed class AdminResourceFilter : IAsyncResultFilter
 - Static files live under `wwwroot/` in your theme or module.
 - Files are served at `~/ModuleOrThemeName/path/to/file`.
 - Orchard Core's module file provider handles routing automatically.
-- Use `asset-src` tag helper in Razor for cache-busting: `<img asset-src="~/MyTheme/images/logo.png" asp-append-version="true">`.
+- Theme images are static files: `<img src="~/MyTheme/images/logo.png" asp-append-version="true">`. Use `asset-src` only for media library paths.
 
 ## Tips
 
 - Keep resource names stable; use versioning to bust caches.
 - Prefer manifest resources so dependencies are tracked and deduplicated.
 - Use `at="Head"` for critical CSS; default to `Foot` for scripts.
+- Admin views using `bootstrap-select` must require its style explicitly (`<style asp-name="bootstrap-select" at="Head"></style>`); TheAdmin no longer includes it.
 - For quick theme prototyping, you can use a CDN (e.g., Tailwind Play CDN) directly in the layout head. Prefer a build pipeline for production.

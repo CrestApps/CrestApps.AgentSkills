@@ -1,6 +1,10 @@
 ---
 name: orchardcore-source-generators
-description: Skill for using Orchard Core source generators. Covers the GenerateArguments attribute for compile-time named argument types, anonymous type interceptors for .NET 9+, PropertyBasedNamedEnumerable architecture, Pager and NavigationBuilder examples, migration from anonymous to named types, and performance optimization. Use this skill when requests mention Orchard Core Source Generators, Use Source Generators for Performance Optimization, Quick Start with [GenerateArguments], What Gets Generated, Benefits of [GenerateArguments], Real-World Examples, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.DisplayManagement, NavigationBuilder, INamedEnumerable, MyShape, IReadOnlyList, [GenerateArguments]. It also helps with Benefits of [GenerateArguments], Real-World Examples, Anonymous Type Interceptors (.NET 9+), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for using Orchard Core source generators and build-time analyzers. Covers the GenerateArguments attribute for compile-time named argument types, anonymous type interceptors for .NET 9+, PropertyBasedNamedEnumerable, the GenerateShape attribute and shape factory interceptors that avoid runtime proxies, the OCSG001 analyzer for sealed shape models, the OCSG002 analyzer for FeatureAttribute targets outside the current module, migration from anonymous to named types, and performance optimization. Use this skill when requests mention Orchard Core Source Generators, [GenerateArguments], What Gets Generated, OCSG001, OCSG002, sealed view model warning, Feature attribute ignored, or closely related Orchard Core troubleshooting work. Strong matches include OrchardCore.SourceGenerators, OrchardCore.DisplayManagement, INamedEnumerable, [GenerateShape], FeatureAttribute, RequireFeatures, Initialize, CreateAsync.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
 # Orchard Core Source Generators - Prompt Templates
@@ -18,7 +22,10 @@ You are an Orchard Core expert. Generate code using source generators, the `[Gen
 - On older .NET versions, `Arguments.From()` falls back to cached reflection (acceptable for infrequent usage).
 - Prefer named types with `[GenerateArguments]` for production code over anonymous types.
 - Source-generated argument classes support nested types, records, and inheritance.
-- All C# classes must use the `sealed` modifier where applicable.
+- `OrchardCore.SourceGenerators` ships as an analyzer with the Orchard Core packages; no extra reference is needed in modules built on `OrchardCore.Module.Targets`.
+- Shape **view models** used with `Initialize<TModel>()` or proxy-based `CreateAsync<TModel>()` must not be `sealed` (`OCSG001`), unless they implement `IShape`.
+- `[Feature("...")]` on a type must name a feature declared by the same module (`OCSG002`); use `[RequireFeatures("...")]` for other modules' features.
+- All other C# classes must use the `sealed` modifier where applicable.
 
 ### Quick Start with [GenerateArguments]
 
@@ -206,6 +213,63 @@ Production code with reusable types?
       ├─ Yes → Interceptors (automatic) ✅
       └─ No → Reflection with caching (acceptable for rare usage)
 ```
+
+### Build-Time Analyzers
+
+| Rule | Severity | Reported when | Fix |
+|------|----------|---------------|-----|
+| `OCSG001` | Warning | A `sealed` type that does not implement `IShape` is passed to a proxy-based shape API such as `Initialize<TModel>()` or `CreateAsync<TModel>()` | Remove `sealed`, implement `IShape`, or use `View()`, `Copy()` or `Dynamic()` |
+| `OCSG002` (4.0) | Warning | `OrchardCore.Modules.FeatureAttribute` targets a feature ID not declared by the current module assembly | Use a local feature ID, or `[RequireFeatures(...)]` for another module's feature |
+
+#### OCSG001
+
+```csharp
+// warning OCSG001: Type 'DebugSettingsViewModel' is sealed and does not implement IShape ...
+public sealed class DebugSettingsViewModel
+{
+    public bool WriteShapeDebugInformation { get; set; }
+}
+
+// Fix: view models stay unsealed.
+public class DebugSettingsViewModel
+{
+    public bool WriteShapeDebugInformation { get; set; }
+}
+```
+
+#### OCSG002
+
+Orchard Core resolves `[Feature]` targets only against the features of the same assembly. A cross-module ID is silently ignored and the type falls back to the module's default feature mapping, so the startup runs when you did not expect it.
+
+```csharp
+// warning OCSG002: Feature 'OrchardCore.Liquid' is not defined by the current module 'MyModule', so OrchardCore will ignore this target.
+[Feature("OrchardCore.Liquid")]
+public sealed class LiquidStartup : StartupBase { }
+
+// Fix: depend on the other module's feature.
+[RequireFeatures("OrchardCore.Liquid")]
+public sealed class LiquidStartup : StartupBase { }
+```
+
+### Shape Model Generation (`[GenerateShape]`)
+
+Proxy-based shapes (`Initialize<TModel>()`) normally subclass the model at runtime with Castle DynamicProxy. The shape factory generator intercepts these calls at compile time for non-abstract classes with an accessible parameterless constructor and generates the derived shape type instead, so no runtime proxy is built. Sealed models still cannot be derived from (`OCSG001`).
+
+To make the model itself the shape, mark a `partial` class with `[GenerateShape]`; the generator implements `IShape` and `IPositioned` on it:
+
+```csharp
+using OrchardCore.DisplayManagement;
+
+[GenerateShape]
+public partial class WeatherWidgetViewModel
+{
+    public string City { get; set; }
+
+    public double Temperature { get; set; }
+}
+```
+
+This generator is newer than the published docs; inspect the generated files under `obj/<Configuration>/<TargetFramework>/generated/OrchardCore.SourceGenerators/` when troubleshooting.
 
 ### Troubleshooting
 

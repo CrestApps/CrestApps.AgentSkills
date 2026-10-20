@@ -1,29 +1,27 @@
 ---
 name: orchardcore-media-slugify
-description: Skill for enabling SEO-friendly slugified media folder and file names in Orchard Core. Covers the Media Slugify feature, transliteration options, name normalization behavior, and configuration. Use this skill when requests mention Orchard Core Media Slugify, SEO-friendly media URLs, slugified asset names, media folder normalization, transliteration of file names, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Media.Slugify feature, SlugifyMediaNameNormalizerService, MediaSlugifyOptions, MediaSlugifyOptionsConfiguration, IMediaNameNormalizerService, and the OrchardCore_Media_Slugify configuration section. It also helps with cleaning up asset URLs, transliteration control, and the configuration patterns captured in this skill.
+description: Skill for enabling SEO-friendly slugified media folder and file names in Orchard Core. Covers the OrchardCore.Media.Slugify feature, the OrchardCore Media Slugify configuration section and its Transliterate option, environment variable names, name normalization behavior, collisions, and custom IMediaNameNormalizerService implementations. Use this skill when requests mention Orchard Core Media Slugify, SEO-friendly media URLs, slugified asset names, media folder normalization, transliteration of uploaded file names, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include SlugifyMediaNameNormalizerService, MediaSlugifyOptions, MediaSlugifyOptionsConfiguration, IMediaNameNormalizerService, ISlugService, and upgrading from the OrchardCore_Media_Slugify section.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Media Slugify - Prompt Templates
+# Orchard Core Media Slugify
 
 ## Slugify Media Names
 
-You are an Orchard Core expert. Enable and configure the Media Slugify feature so newly created media folders and files get SEO-friendly, URL-safe names.
+Enable the Media Slugify feature so newly created media folders and files get
+SEO-friendly, URL-safe names.
 
 ### Guidelines
 
-- Enable the `OrchardCore.Media.Slugify` feature. Its dependency is `OrchardCore.Media`.
-- The feature registers `SlugifyMediaNameNormalizerService` as the media name normalizer, so folders and files created after it is enabled are slugified automatically.
-- Example transformation: file `The team (2020).jpg` in folder `Images & docs` becomes `the-team-2020.jpg` in folder `images-docs`, so the URL changes from `/media/Images%20&%20docs/The%20team%20(2020).jpg` to `/media/images-docs/the-team-2020.jpg`.
-- Enabling the feature does NOT rename existing folders and files; only new folders and files are slugified. Re-upload or re-create assets to normalize existing names.
-- Because different original names can produce the same slug (for example `The team (2020).jpg` and `The Team 2020.jpg`), uploading both without renaming one may collide.
-- Transliteration (converting accented/non-Latin characters to their closest ASCII form) is ON by default and can be toggled with the `Transliterate` option under the `OrchardCore_Media_Slugify` configuration section.
-- Configuration is bound per tenant through `IShellConfiguration` in `MediaSlugifyOptionsConfiguration`.
-- All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
-- All C# classes must use the `sealed` modifier, except View Models.
+- Enable `OrchardCore.Media.Slugify` (depends on `OrchardCore.Media`).
+- The feature registers `SlugifyMediaNameNormalizerService` as the `IMediaNameNormalizerService`. The Media API (gallery uploads, folder creation) calls it for every new folder and file.
+- Example: `The team (2020).jpg` in `Images & docs` becomes `the-team-2020.jpg` in `images-docs`, so `/media/Images%20&%20docs/The%20team%20(2020).jpg` becomes `/media/images-docs/the-team-2020.jpg`. The file extension is kept.
+- Existing folders and files are NOT renamed; only new ones are slugified.
+- Different names can produce the same slug (`The team (2020).jpg` and `The Team 2020.jpg`); the second upload then collides with the first.
+- Transliteration (accented and non-Latin characters to ASCII, e.g. `Ελληνικά` to `ellinika`) is on by default and controlled by `Transliterate`.
 
 ### Enabling Media Slugify
 
@@ -41,28 +39,63 @@ You are an Orchard Core expert. Enable and configure the Media Slugify feature s
 }
 ```
 
-### Configuration
+### Configuration (`OrchardCore:Media:Slugify`)
 
 ```json
 {
   "OrchardCore": {
-    "OrchardCore_Media_Slugify": {
-      "Transliterate": true
+    "Media": {
+      "Slugify": {
+        "Transliterate": true
+      }
     }
   }
 }
 ```
 
-- `Transliterate` (default `true`): when enabled, characters such as `é`, `ü`, or Cyrillic letters are transliterated to their closest ASCII equivalents before slugifying. Set to `false` to strip disallowed characters without transliteration.
+- `Transliterate` (default `true`): `true` calls `ISlugService.SlugifyAndTransliterate`; `false` calls `ISlugService.Slugify`, which strips characters it cannot keep.
+- Environment variable: `OrchardCore__Media__Slugify__Transliterate=false`.
+- The value is read per tenant from `IShellConfiguration` by `MediaSlugifyOptionsConfiguration` into `MediaSlugifyOptions`.
 
-### How It Works
+### Custom Normalizer
 
-- The feature supplies an `IMediaNameNormalizerService` implementation, `SlugifyMediaNameNormalizerService`, that the Media module calls whenever a folder or file is created or uploaded.
-- `MediaSlugifyOptionsConfiguration` reads the `OrchardCore_Media_Slugify` section from the tenant shell configuration to populate `MediaSlugifyOptions.Transliterate`.
-- Normalization runs at creation time, which is why pre-existing assets are unaffected.
+Replace the normalizer to apply your own naming rules (it is scoped):
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using OrchardCore.Media;
+using OrchardCore.Modules;
+
+public sealed class LowercaseMediaNameNormalizer : IMediaNameNormalizerService
+{
+    public string NormalizeFolderName(string folderName)
+        => folderName.Trim().ToLowerInvariant();
+
+    public string NormalizeFileName(string fileName)
+        => Path.GetFileNameWithoutExtension(fileName).Trim().ToLowerInvariant() + Path.GetExtension(fileName).ToLowerInvariant();
+}
+
+[RequireFeatures("OrchardCore.Media")]
+public sealed class Startup : StartupBase
+{
+    // Run after the Media and Media Slugify startups so this registration wins.
+    public override int Order => 10;
+
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.Replace(ServiceDescriptor.Scoped<IMediaNameNormalizerService, LowercaseMediaNameNormalizer>());
+    }
+}
+```
 
 ### Notes
 
-- Use this feature on public-facing sites where clean, predictable media URLs matter for SEO and sharing.
-- Plan a one-time cleanup (re-upload or a scripted rename) if you enable slugify on a site that already has many mixed-case or space-containing asset names.
-- Combine with `OrchardCore.Media` cache and CDN configuration for a complete media delivery setup.
+- Use the feature on public sites where clean, predictable media URLs matter for SEO and sharing.
+- Plan a one-time cleanup (re-upload or a scripted rename) when enabling it on a site that already has mixed-case or space-containing names.
+- Combine with `orchardcore-media` CDN settings (`Media:CdnBaseUrl`) for media delivery.
+- The Liquid `slugify` filter is separate and takes no `transliterate` argument (use the `transliterate` filter in templates); Media Slugify keeps its `Transliterate` option.
+
+### Upgrading from 3.x
+
+- Rename the `OrchardCore_Media_Slugify` section to `Media:Slugify` (env var `OrchardCore__OrchardCore_Media_Slugify__Transliterate` becomes `OrchardCore__Media__Slugify__Transliterate`). The old name is deprecated but still read.
