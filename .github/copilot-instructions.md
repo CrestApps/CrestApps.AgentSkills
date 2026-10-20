@@ -161,9 +161,10 @@ For release builds, override the version (for example via CI) and publish with `
 - That workflow:
   - deletes and recreates `plugins/orchardcore/skills`, `plugins/crestapps-orchardcore/skills`, and `plugins/crestapps-core/skills`
   - copies the latest skills from each matching source root into those folders
-  - increments changed plugin versions in `.github/plugin/marketplace.json` and keeps `.claude-plugin/marketplace.json` aligned
+  - increments changed plugin versions in `.github/plugin/marketplace.json` and writes an identical copy to `.claude-plugin/marketplace.json`
 - The plugin version source of truth is **not** any `plugins/*/plugin.json`; it is the matching plugin entry in `.github/plugin/marketplace.json`.
-- Keep `.claude-plugin/marketplace.json` aligned with `.github/plugin/marketplace.json` according to the current repo convention.
+- `.claude-plugin/marketplace.json` must be a full JSON copy of `.github/plugin/marketplace.json` (not a symlink or a path string), because Claude Code parses it directly. The `Validate plugin bundles` workflow enforces this.
+- Each plugin's `skills` entry is relative to the plugin `source` and must point at an existing folder (currently `./skills`).
 
 ### Central Package Management
 

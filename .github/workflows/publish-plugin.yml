@@ -89,15 +89,12 @@ jobs:
               major, minor, patch, suffix = match.groups()
               plugin["version"] = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
 
-          manifest_path.write_text(
-              json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
-              encoding="utf-8",
-          )
+          manifest_text = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
 
-          Path(".claude-plugin/marketplace.json").write_text(
-              "../.github/plugin/marketplace.json\n",
-              encoding="utf-8",
-          )
+          manifest_path.write_text(manifest_text, encoding="utf-8")
+
+          # Claude Code parses .claude-plugin/marketplace.json as JSON, so it must be a full copy, not a path.
+          Path(".claude-plugin/marketplace.json").write_text(manifest_text, encoding="utf-8")
 
       - name: Check for plugin bundle changes
         id: changes
