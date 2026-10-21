@@ -14,14 +14,6 @@
           "type": "boolean",
           "description": "Whether the live Stripe keys are used. When false, the test keys are used."
         },
-        "CheckoutMode": {
-          "type": "string",
-          "enum": [
-            "PaymentElements",
-            "HostedCheckout"
-          ],
-          "description": "The Stripe checkout integration mode. Kept for compatibility; the checkout always collects card details on the site with Payment Elements."
-        },
         "LivePublishableKey": {
           "type": [
             "null",
