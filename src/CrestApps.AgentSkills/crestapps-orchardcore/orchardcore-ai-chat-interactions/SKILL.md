@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-interactions
-description: Skill for configuring AI Chat Interactions in Orchard Core with CrestApps modules. Covers ad-hoc chat sessions, document upload with RAG support, deployment settings, system tools for image and chart generation, and SignalR chat methods. Use it for CrestApps.OrchardCore.AI.Chat.Interactions, CrestApps.OrchardCore.AI.Documents.ChatInteractions, current AI data sources, and related Orchard Core setup, extension, or troubleshooting work.
+description: Skill for configuring AI Chat Interactions in Orchard Core with CrestApps modules. Covers the CrestApps.OrchardCore.AI.Chat.Interactions feature for ad-hoc chats without predefined profiles, per-interaction chat, utility and conversation deployments, tools, agents, tool instances, personas and prompt templates, the Knowledge panel with data sources, OData filters and uploads through CrestApps.OrchardCore.AI.Documents.ChatInteractions, the site-wide ChatInteractionChatModeSettings, the generate_image and generate_chart system tools, Chat with Preset Settings cloning, the IChatInteractionSettingsHandler pipeline, ChatInteractionHub methods, the AIChatInteractions admin list, permissions, and upgrading from deployment purposes. Use this skill when requests mention Orchard Core Chat Interactions, ad-hoc AI chat, chat playground, or chat interaction settings. Strong matches include ChatInteraction, ChatInteractionHub, IChatInteractionSettingsHandler, ListChatInteractions, and EditChatInteractions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,22 +11,21 @@ metadata:
 
 ## Configure AI Chat Interactions
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding ad-hoc AI chat interactions with document upload and RAG to an Orchard Core application using CrestApps modules.
+You are an Orchard Core expert. Generate code, configuration, and recipes for ad-hoc AI chat interactions, with optional document upload and retrieval, using the CrestApps modules.
 
 ### Guidelines
-- The AI Chat Interactions module (`CrestApps.OrchardCore.AI.Chat.Interactions`) provides ad-hoc chat without predefined AI profiles.
-- Users can configure temperature, TopP, max tokens, frequency/presence penalties, and past messages count per session.
-- The current interaction flow is deployment-driven: users select chat and utility deployments per interaction, or rely on the configured site-level default deployments when explicit deployments are not set.
-- Users can select agents from the Capabilities tab to enhance interaction capabilities. Agent selection is saved via the SignalR hub.
-- The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
-- All chat messages are persisted and sessions can be resumed later.
-- The AI Documents modules add document upload with RAG (Retrieval Augmented Generation) support.
-- Document-aware chat interactions should use `CrestApps.OrchardCore.AI.Documents.ChatInteractions` plus a current data-source module such as `CrestApps.OrchardCore.AI.DataSources.AzureAI` or `CrestApps.OrchardCore.AI.DataSources.Elasticsearch`.
-- Image and chart generation are orchestration system tools (`generate_image` and `generate_chart`), not interaction intents. Image generation requires a deployment with the `Image` purpose.
-- Install CrestApps packages in the web/startup project.
-- Always secure API keys using user secrets or environment variables.
 
-### Enabling AI Chat Interactions
+- `CrestApps.OrchardCore.AI.Chat.Interactions` gives chat without a predefined AI profile. It depends on `OrchardCore.SignalR`, `OrchardCore.Liquid`, `CrestApps.OrchardCore.Resources`, `CrestApps.OrchardCore.AI` and `CrestApps.OrchardCore.AI.Chat.Core`.
+- An interaction picks its own chat and utility deployments. Left empty, the connection default and then **Default Chat Deployment** in **Settings → Artificial Intelligence → Default Deployments** apply. Dropdowns are grouped by connection.
+- The chat deployment picker lists text-capable deployments only. A speech-to-speech model goes in the **Conversation deployment** picker. See `orchardcore-ai-realtime-voice`.
+- **New Chat** creates and saves the interaction immediately. Settings changes are saved over SignalR (`SaveSettings`) through the `IChatInteractionSettingsHandler` pipeline, so orchestrator-specific fields need no change to the hub or `chat-interaction.js`.
+- The settings panel covers model parameters, the orchestrator, tools, agents, MCP and A2A connections, tool instances, prompt templates and an **AI persona** (with `CrestApps.OrchardCore.AI.Personas`).
+- Image and chart generation are the orchestration system tools `generate_image` and `generate_chart`, not interaction intents. `generate_image` needs a deployment declaring `imageOutput` in the `image` slot.
+- Chat mode is a **site** setting for interactions (`ChatInteractionChatModeSettings`). An interaction has no chat mode of its own.
+- Install CrestApps packages in the web/startup project. Never put API keys in recipes.
+- All recipe JSON uses the root `{ "steps": [...] }` format and C# classes are `sealed`, except view models.
+
+### Enable Chat Interactions
 
 ```json
 {
@@ -34,7 +33,6 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
         "CrestApps.OrchardCore.OpenAI"
       ],
@@ -44,41 +42,28 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 }
 ```
 
-### Getting Started
+### Permissions and Admin List
 
-1. Enable the `AI Chat Interactions` feature in the Orchard Core admin under **Configuration → Features**.
-2. Navigate to **Artificial Intelligence → Chat Interactions**.
-3. Click **+ New Chat** and select the chat and utility deployments you want to use, or rely on the site-level default deployments.
-4. Configure chat settings (temperature, tools, orchestrator, documents) and start chatting.
+| Permission | Allows |
+|---|---|
+| `ListChatInteractions` | Open **Artificial Intelligence → Chat Interactions** |
+| `ListChatInteractionsForOthers` | See other users' interactions |
+| `EditChatInteractions` / `EditOwnChatInteractions` | Change interaction settings; changing the site chat mode needs `EditChatInteractions` |
+| `DeleteChatInteraction` / `DeleteOwnChatInteraction` | Delete interactions |
+| `ManageChatInteractionSettings` | Chat interaction memory settings |
 
-Chat interactions are authored as ad-hoc sessions rather than predefined AI profiles. In current guidance, the interaction chooses deployments directly and does not require a profile `Source` in authoring recipes or prompts.
+The list renders through Orchard Core's `AdminList` shape as `AIChatInteractions` (rows `ChatInteraction_SummaryAdmin`; grid columns `Name`, `Modified`, `Actions`; bulk **Delete**). Add a column with an `IAdminListColumnsProvider` for `AIChatInteractions`; see `orchardcore-admin-lists`. AI Profile Builder sessions are kept out of this list; see `orchardcore-ai-profile-builder`.
 
-### Configuring Image Generation
+### Knowledge Panel
 
-To enable image generation, create a deployment with `Purpose: Image`. The orchestration system tool `generate_image` resolves that deployment. The `generate_chart` system tool creates a Chart.js configuration and does not require an image deployment.
+- With `CrestApps.OrchardCore.AI.DataSources` enabled, pick a data source and set strictness, retrieved document count, scope restriction and an OData filter. An invalid filter rejects the save with *"Invalid filter value. It must be a valid OData filter."*
+- The `search_data_sources` tool the model calls uses the same filter, strictness and document count as preemptive retrieval.
+- A filter is honored on Elasticsearch knowledge bases and ignored, with a warning, on Azure AI Search ones. See `orchardcore-ai-data-sources`.
+- **Document retrieval mode** (`Chunk` or `Hierarchical`) appears with the AI Documents features; blank uses the site default.
 
-**Via Admin UI:** Navigate to **Artificial Intelligence → Deployments** and create an Image deployment (e.g., `dall-e-3`), then optionally set it as a default Image deployment.
+### Document Upload and Retrieval
 
-**Via appsettings.json:**
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "Deployments": [
-          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
-          { "Name": "dall-e-3", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Image" }
-        ]
-      }
-    }
-  }
-}
-```
-
-### Enabling Document Upload and RAG
-
-The AI Documents for Chat Interactions feature (`CrestApps.OrchardCore.AI.Documents.ChatInteractions`) adds document upload and document-aware prompt processing. Pair it with the current data-source feature for the backend you are using.
+`CrestApps.OrchardCore.AI.Documents.ChatInteractions` adds uploads to the **Knowledge** panel. Pair it with a vector store module.
 
 ```json
 {
@@ -86,77 +71,12 @@ The AI Documents for Chat Interactions feature (`CrestApps.OrchardCore.AI.Docume
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat.Interactions",
         "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
-        "CrestApps.OrchardCore.AI.DataSources.AzureAI",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-Or for Elasticsearch:
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
-        "CrestApps.OrchardCore.AI.DataSources.Elasticsearch",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Setting Up Document Indexing
-
-1. Enable the current data-source feature for Elasticsearch or Azure AI Search.
-2. Navigate to **Search → Indexing** and create a new index (e.g., "ChatDocuments").
-3. Navigate to **Settings → Artificial Intelligence → Chat Interactions** and select the new index as the default document index.
-4. Enable the `AI Documents for Chat Interactions` feature.
-
-### Configuring Embedding Model for Documents
-
-Documents require an embedding deployment for RAG. Define it in `appsettings.json` with `Purpose: Embedding`:
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "Deployments": [
-          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
-          { "Name": "text-embedding-3-small", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Embedding" },
-          { "Name": "gpt-4o-mini", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Utility" }
-        ]
-      }
-    }
-  }
-}
-```
-
-For file-format, tabular-data, and custom document-processing guidance, use the AI Documents and AI Documents Extractors features. They own extraction and document-specific tools; Chat Interactions only supplies the chat context and upload UI.
-
-### Enabling PDF and Office Document Support
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
+        "CrestApps.OrchardCore.AI.Documents.Elasticsearch",
         "CrestApps.OrchardCore.AI.Documents.Pdf",
-        "CrestApps.OrchardCore.AI.Documents.OpenXml"
+        "CrestApps.OrchardCore.AI.Documents.OpenXml",
+        "CrestApps.OrchardCore.OpenAI"
       ],
       "disable": []
     }
@@ -164,49 +84,90 @@ For file-format, tabular-data, and custom document-processing guidance, use the 
 }
 ```
 
-### Document Upload API Endpoints
+1. Create an embedding deployment that declares `textEmbedding`.
+2. In **Search → Indexing**, add an **AI Documents** index that uses it.
+3. In **Settings → Artificial Intelligence**, select that index in the document settings, choose a retrieval mode, and enable **Allow document uploads in chat interactions** (and image uploads, which also need a vision deployment).
+4. Open an interaction, go to **Knowledge**, and upload a file.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/ai/chat-interactions/upload-document` | POST | Upload one or more documents |
-| `/ai/chat-interactions/remove-document` | POST | Remove a document |
+Uploads pass through Orchard Core's file creation pipeline first, so enabling `OrchardCore.Antivirus` scans them. Extraction, tabular data and the PowerPoint, Word and PDF agents belong to `orchardcore-ai-documents` and `orchardcore-ai-documents-extractors`.
 
-### Chat Mode in Chat Interactions
+### Image and Chart Generation
 
-Chat interactions support the same `ChatMode` options as AI profiles, but configured at the site level via `ChatInteractionChatModeSettings` (under **Settings → Artificial Intelligence → Chat Interactions**):
+```json
+{
+  "OrchardCore": {
+    "CrestApps": {
+      "AI": {
+        "Deployments": [
+          {
+            "Name": "gpt-4o",
+            "ClientName": "OpenAI",
+            "ConnectionName": "openai",
+            "Properties": {
+              "AIDeploymentMetadata": {
+                "Features": [ "textGeneration", "toolCalling", "streaming" ]
+              }
+            }
+          },
+          {
+            "Name": "dall-e-3",
+            "ClientName": "OpenAI",
+            "ConnectionName": "openai",
+            "Properties": {
+              "AIDeploymentMetadata": {
+                "Features": [ "imageOutput" ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
-| Mode | Description | Requirements |
-|------|-------------|--------------|
-| `TextInput` | Standard text-only chat (default) | None |
-| `AudioInput` | Adds microphone button for speech-to-text dictation | `DefaultSpeechToTextDeploymentName` configured |
-| `Conversation` | Two-way voice conversation | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
+Select `dall-e-3` as **Default image deployment** in **Settings → Artificial Intelligence**, or on the interaction. `generate_chart` returns a Chart.js configuration and needs no image deployment. See `orchardcore-ai-model-capabilities` for slots.
 
-Unlike AI profiles (configured per profile), chat interactions use a **single site-wide setting** that applies to all chat interaction sessions.
+### Chat Mode and Voice
 
-### SignalR Hub Methods (ChatInteractionHub)
+| Site setting (`ChatInteractionChatModeSettings`) | Meaning |
+|---|---|
+| `ChatMode` | `TextInput` (default), `AudioInput` or `Conversation` for every interaction |
+| `EnableTextToSpeechPlayback` | Adds a read-aloud button to each answer (needs a text-to-speech deployment) |
 
-| Method | Description |
-|--------|-------------|
-| `SendMessage` | Sends a text message |
-| `LoadInteraction` | Loads an interaction and joins its SignalR group |
-| `SaveSettings` | Persists interaction settings, including selected agents and tools |
-| `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
-| `StartConversation` | Starts a full two-way voice conversation |
-| `SynthesizeSpeech` | Converts text to speech audio |
-| `ClearHistory` | Clears chat history for a session |
-| `HandleNotificationAction` | Dispatches a notification action |
-| `StopConversation` | Cancels the active conversation |
+Set them in the **Chat Interactions** section of **Settings → Artificial Intelligence**. In Conversation mode, naming a **Conversation deployment** on an interaction (`ChatInteraction.ConversationDeploymentName`) is how that interaction asks to speak; the per-interaction **Voice** picker lists the voices of whichever model resolves. A site can no longer force realtime globally through this setting.
 
-### Voice Configuration
+### Chat with Preset Settings
 
-When conversation mode is enabled, voices are populated from the configured TTS deployment. Voices are grouped by language in dropdown menus and sorted alphabetically. Each `SpeechVoice` includes `Id`, `Name`, `Language`, `Gender`, and `VoiceSampleUrl`.
+Cloning an interaction copies its data source, filter, strictness, document count, scope restriction, tool instances, model parameters and prompt templates. Data that belongs to one user, such as a Copilot session's access tokens, is not copied.
 
-### Conversation Mode Behavior
+### Extend the Settings Pipeline
 
-In conversation mode:
-1. User clicks the headset button → persistent audio stream opens
-2. Microphone, send button, and textarea are hidden/disabled
-3. User speaks → audio streams to server via SignalR → STT transcribes → text appears as user message
-4. Transcript is automatically sent to AI orchestrator → AI response text streams to message list AND audio streams back
-5. User can interrupt by speaking → cancels current AI response → processes new prompt
-6. User clicks headset again → ends conversation, restores normal UI
+Implement `IChatInteractionSettingsHandler` to persist extra fields that the settings panel posts, the way the Claude and Copilot orchestrators store `ClaudeSessionMetadata` and `CopilotSessionMetadata`. Render the fields with a `DisplayDriver<ChatInteraction>`.
+
+### ChatInteractionHub Methods
+
+| Method | Purpose |
+|---|---|
+| `LoadInteraction` | Load an interaction and join its group |
+| `SendMessage` | Stream a reply to a typed prompt |
+| `SaveSettings` | Persist interaction settings, including agents, tools and persona |
+| `ClearHistory` | Clear the interaction's messages |
+| `SendAudioStream` | Stream audio for dictation |
+| `StartConversation` / `StopConversation` | Speech-to-text plus text-to-speech conversation |
+| `StartRealtimeConversation` / `StartRealtimeWebRtc` | Realtime voice over WebSocket or WebRTC |
+| `GetRealtimeIceServers`, `AddRealtimeIceCandidate`, `UpdateRealtimeSettings`, `UpdateRealtimeSpeechSpeed` | Realtime session control |
+| `SynthesizeSpeech` | Read an answer aloud |
+| `HandleNotificationAction` | Run a notification action, see `orchardcore-ai-chat-notifications` |
+
+### Configuration
+
+Large tabular documents are processed in batches configured under `CrestApps:AI:ChatInteractions:BatchProcessing` (`RowBatchSize` default `25`, `MaxConcurrentBatches` `3`, `MaxRowsPerDocument` `1000`, `BatchTimeoutSeconds` `300`). User memory for interactions is covered by `orchardcore-ai-memory`.
+
+### Upgrading from 2.x
+
+- Replace `"Purpose": "Chat"`, `"Image"` or `"Embedding"` on deployments with `Properties.AIDeploymentMetadata.Features` (`textGeneration`, `imageOutput`, `textEmbedding`). Legacy purposes still import.
+- A realtime model no longer goes in the chat deployment; name it as the interaction's conversation deployment.
+- The list uses the `AdminList` shape. A whole-row theme override only applies to the List layout; customize the Grid with `SummaryAdminGrid` placement or `AdminListCell-AIChatInteractions-{Column}.cshtml`.
+
+See [ai-chat-interactions-examples.md](references/ai-chat-interactions-examples.md) for complete recipes.

@@ -1,52 +1,37 @@
 ---
 name: orchardcore-content-access-control
-description: Skill for configuring role-based content access control in Orchard Core using the CrestApps Content Access Control module. Covers restricting content view permissions by role, the RoleBasedContentItemAuthorizationHandler, RolePickerPart settings, and enabling the feature via recipe. Use this skill when requests mention Orchard Core Content Access Control, restricting content by role, role-based content viewing, RolePickerPart access settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.ContentAccessControl, CrestApps.OrchardCore.Roles, RoleBasedContentItemAuthorizationHandler, RolePickerPartContentAccessControlSettings. It also helps with enabling content restriction on a content type, configuring which roles can view content items, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for role-based content access control in Orchard Core with the CrestApps Content Access Control module. Covers restricting who can view a content item by the roles picked on a RolePickerPart, the Restrict content setting RolePickerPartContentAccessControlSettings, how RoleBasedContentItemAuthorizationHandler evaluates ViewContent, the Administrator bypass, named attachments, migrations, recipes, and the 3.0 change that makes restrictions apply even when View content is already granted. Use this skill when requests mention Orchard Core Content Access Control, restricting content by role, role-based content viewing, members-only content items, or RolePickerPart access settings. Strong matches include CrestApps.OrchardCore.ContentAccessControl, CrestApps.OrchardCore.Roles, RoleBasedContentItemAuthorizationHandler, RolePickerPartContentAccessControlSettings, IsContentRestricted and CommonPermissions.ViewContent.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Content Access Control - Prompt Templates
+# CrestApps Content Access Control
 
-## Configure Content Access Control
+## Restrict content items by role
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for restricting content access by role in an Orchard Core application using the CrestApps Content Access Control module.
-
-### Overview
-
-The **Content Access Control** module (`CrestApps.OrchardCore.ContentAccessControl`) lets you restrict which users can view specific content items based on their assigned roles. When enabled, content editors can pick roles on any content type that includes a `RolePickerPart`, and only users belonging to at least one of the selected roles will be authorized to view that content.
-
-- **Feature ID** - `CrestApps.OrchardCore.ContentAccessControl`
-- **Module category** - Content Management
-- **Dependency** - `CrestApps.OrchardCore.Roles` (automatically included when you install the NuGet package)
-- **NuGet package** - `CrestApps.OrchardCore.ContentAccessControl`
-
-### How It Works
-
-1. The module registers a `RoleBasedContentItemAuthorizationHandler` as a scoped `IAuthorizationHandler`.
-2. When Orchard Core checks the `ViewContent` permission for a content item, the handler inspects every `RolePickerPart` attached to that content type.
-3. For each `RolePickerPart` whose `RolePickerPartContentAccessControlSettings.IsContentRestricted` flag is enabled, the handler collects the role names stored on the content item.
-4. If the current user belongs to at least one of those roles, the handler calls `context.Succeed(requirement)` and grants access.
-5. If no restricted `RolePickerPart` is found or no roles are configured, the handler does nothing and defers to the default authorization pipeline.
-
-### Key Services
-
-| Service | Lifetime | Purpose |
-|---------|----------|---------|
-| `RoleBasedContentItemAuthorizationHandler` | Scoped | Intercepts `ViewContent` permission checks and enforces role-based restrictions |
-| `RolePickerPartContentAccessControlSettingsDisplayDriver` | Scoped | Provides the "Restrict content?" checkbox in the content type editor for each `RolePickerPart` |
+You are an Orchard Core expert. Content Access Control (`CrestApps.OrchardCore.ContentAccessControl`) restricts who may view individual content items. It adds a **Restrict content?** setting to each `RolePickerPart` attached to a content type; when it is on, the roles picked on an item decide who may view that item.
 
 ### Guidelines
 
-- Install the NuGet package in your web/startup project.
-- The module depends on `CrestApps.OrchardCore.Roles`, which provides the `RolePickerPart`. You do not need to install it separately; it is included as a package dependency.
-- The access control check only applies to the `ViewContent` permission. Other permissions (edit, delete, publish) are not affected.
-- A content type must have a `RolePickerPart` attached before the "Restrict content?" option appears in the content type editor.
-- When the "Restrict content?" checkbox is enabled for a `RolePickerPart` on a content type, editors will pick roles when creating or editing content items of that type.
-- If multiple `RolePickerPart` instances are attached (named parts), each one is evaluated independently and all selected roles across all restricted parts are combined.
+- Install `CrestApps.OrchardCore.ContentAccessControl` in the web or startup project and enable the feature. It depends on `CrestApps.OrchardCore.Roles` (Enhanced Roles), which provides `RolePickerPart`; see the `orchardcore-crestapps-roles` skill.
+- Attach a `RolePickerPart` to the type first; **Restrict content?** appears in that part's settings.
+- Only `CommonPermissions.ViewContent` checked against a `ContentItem` resource is affected. Edit, publish and delete checks are not.
+- Use `RolePickerPartSettings.ExcludedRoles` to keep roles such as `Administrator`, `Authenticated` and `Anonymous` out of the picker.
+- Code that shows content without calling `IAuthorizationService.AuthorizeAsync(user, CommonPermissions.ViewContent, contentItem)` is not protected; authorize every item you render from custom queries, APIs or lists.
+- Enable `CrestApps.OrchardCore.Recipes` for schema support of `RolePickerPartContentAccessControlSettings`.
 
-### Enabling the Feature via Recipe
+### Feature overview
+
+| Item | Value |
+|---|---|
+| Feature ID | `CrestApps.OrchardCore.ContentAccessControl` (category Content Management) |
+| Dependency | `CrestApps.OrchardCore.Roles` |
+| Authorization handler | `RoleBasedContentItemAuthorizationHandler` (scoped `IAuthorizationHandler` for `PermissionRequirement`) |
+| Settings driver | `RolePickerPartContentAccessControlSettingsDisplayDriver` (adds **Restrict content?**) |
+| Settings model | `RolePickerPartContentAccessControlSettings.IsContentRestricted` (namespace `CrestApps.OrchardCore.Roles.Core.Models`) |
+| Recipe schema | `RolePickerPartContentAccessControlSchemaDefinition`, registered when `CrestApps.OrchardCore.Recipes` is enabled |
 
 ```json
 {
@@ -55,15 +40,71 @@ The **Content Access Control** module (`CrestApps.OrchardCore.ContentAccessContr
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.ContentAccessControl"
-      ]
+      ],
+      "disable": []
     }
   ]
 }
 ```
 
-### Attaching RolePickerPart and Enabling Content Restriction
+## How authorization works
 
-To use content access control on a content type, first attach a `RolePickerPart` (provided by `CrestApps.OrchardCore.Roles`) and then enable the "Restrict content?" setting on that part. Below is a recipe that creates an `Article` content type with content restriction enabled.
+For a `ViewContent` check on a `ContentItem`, `RoleBasedContentItemAuthorizationHandler`:
+
+1. Returns without acting for users in the `Administrator` role, so administrators see every item.
+2. Loads the type definition and collects the role names from every `RolePickerPart` attachment (named or unnamed) whose `IsContentRestricted` is `true`.
+3. Succeeds the requirement when the user is in any collected role.
+4. Fails the requirement when roles were collected and the user is in none of them, even if another handler already succeeded it (Orchard Core grants **View content** to everyone, anonymous visitors included).
+5. Does nothing when no roles were picked, so an item with an empty picker is not restricted.
+
+Role names are compared case insensitively. Roles from several restricted attachments are combined.
+
+## Configure a restricted type
+
+### In a migration
+
+```csharp
+using CrestApps.OrchardCore.Roles.Core.Models;
+using OrchardCore.ContentManagement.Metadata;
+using OrchardCore.ContentManagement.Metadata.Settings;
+using OrchardCore.Data.Migration;
+
+namespace MyModule.Migrations;
+
+public sealed class MembersArticleMigrations : DataMigration
+{
+    private readonly IContentDefinitionManager _contentDefinitionManager;
+
+    public MembersArticleMigrations(IContentDefinitionManager contentDefinitionManager)
+    {
+        _contentDefinitionManager = contentDefinitionManager;
+    }
+
+    public async Task<int> CreateAsync()
+    {
+        await _contentDefinitionManager.AlterTypeDefinitionAsync("MembersArticle", type => type
+            .WithPart<RolePickerPart>(part => part
+                .WithDisplayName("Limit access to selected roles")
+                .WithSettings(new RolePickerPartContentAccessControlSettings
+                {
+                    IsContentRestricted = true,
+                })
+                .WithSettings(new RolePickerPartSettings
+                {
+                    AllowSelectMultiple = true,
+                    Required = true,
+                    Hint = "Select the roles that may view this article.",
+                    ExcludedRoles = ["Administrator", "Authenticated", "Anonymous"],
+                })));
+
+        return 1;
+    }
+}
+```
+
+Register it with `services.AddDataMigration<MembersArticleMigrations>();`.
+
+### In a recipe
 
 ```json
 {
@@ -72,15 +113,14 @@ To use content access control on a content type, first attach a `RolePickerPart`
       "name": "ContentDefinition",
       "ContentTypes": [
         {
-          "Name": "Article",
-          "DisplayName": "Article",
+          "Name": "MembersArticle",
+          "DisplayName": "Members Article",
           "Settings": {
             "ContentTypeSettings": {
               "Creatable": true,
               "Listable": true,
               "Draftable": true,
-              "Versionable": true,
-              "Securable": true
+              "Versionable": true
             }
           },
           "ContentTypePartDefinitionRecords": [
@@ -95,10 +135,29 @@ To use content access control on a content type, first attach a `RolePickerPart`
               "Settings": {
                 "RolePickerPartContentAccessControlSettings": {
                   "IsContentRestricted": true
+                },
+                "RolePickerPartSettings": {
+                  "Required": true,
+                  "AllowSelectMultiple": true,
+                  "ExcludedRoles": [ "Administrator", "Authenticated", "Anonymous" ]
                 }
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "content",
+      "data": [
+        {
+          "ContentType": "MembersArticle",
+          "DisplayText": "Members update",
+          "Published": true,
+          "Latest": true,
+          "RolePickerPart": {
+            "RoleNames": [ "Member" ]
+          }
         }
       ]
     }
@@ -106,39 +165,55 @@ To use content access control on a content type, first attach a `RolePickerPart`
 }
 ```
 
-With this configuration, every `Article` content item will display a role picker. Only users who belong to at least one of the selected roles will be able to view the article.
+### In the admin
 
-### Programmatic Registration
+1. Enable **Content Access Control**.
+2. Under **Content Definition > Content Types**, edit the type, add the **Role Picker** part, open its settings and tick **Restrict content?**.
+3. Edit an item and pick the roles allowed to view it.
 
-The module registers its services in the `Startup` class.
+## Check access in custom code
 
 ```csharp
-using CrestApps.OrchardCore.ContentAccessControl.Drivers;
-using CrestApps.OrchardCore.ContentAccessControl.Handlers;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
-using OrchardCore.ContentTypes.Editors;
-using OrchardCore.Modules;
+using OrchardCore.ContentManagement;
+using OrchardCore.Contents;
 
-namespace CrestApps.OrchardCore.ContentAccessControl;
+namespace MyModule.Services;
 
-public sealed class Startup : StartupBase
+public sealed class VisibleContentFilter
 {
-    public override void ConfigureServices(IServiceCollection services)
+    private readonly IAuthorizationService _authorizationService;
+
+    public VisibleContentFilter(IAuthorizationService authorizationService)
     {
-        services
-            .AddScoped<IContentTypePartDefinitionDisplayDriver, RolePickerPartContentAccessControlSettingsDisplayDriver>()
-            .AddScoped<IAuthorizationHandler, RoleBasedContentItemAuthorizationHandler>();
+        _authorizationService = authorizationService;
+    }
+
+    public async Task<IReadOnlyList<ContentItem>> FilterAsync(System.Security.Claims.ClaimsPrincipal user, IEnumerable<ContentItem> items)
+    {
+        var visible = new List<ContentItem>();
+
+        foreach (var item in items)
+        {
+            if (await _authorizationService.AuthorizeAsync(user, CommonPermissions.ViewContent, item))
+            {
+                visible.Add(item);
+            }
+        }
+
+        return visible;
     }
 }
 ```
 
-### Summary
+## Upgrading from 2.x
 
-| Task | How |
-|------|-----|
-| Install the package | `dotnet add package CrestApps.OrchardCore.ContentAccessControl` in the web/startup project |
-| Enable the feature | Recipe step with `"enable": ["CrestApps.OrchardCore.ContentAccessControl"]` |
-| Attach role picker to a content type | Add `RolePickerPart` via content type editor or recipe |
-| Turn on restriction | Check "Restrict content?" in the `RolePickerPart` settings or set `IsContentRestricted` to `true` in the recipe |
-| Assign roles to a content item | Edit the content item and select roles in the role picker field |
+- The handler no longer stops when another handler already succeeded the requirement. In 2.x a restriction had no effect on anyone who held **View content** (including anonymous visitors), so restricted items were effectively public. In 3.0 a restricted item is refused to whoever is not in its roles. Review restricted types after upgrading: visitors and users outside the picked roles lose access.
+- Users in the `Administrator` role bypass the restriction.
+
+## Troubleshooting
+
+- **Restrict content?** is missing: the type has no `RolePickerPart`, or the feature is disabled.
+- Everyone can still see an item: no roles are picked on it, the restriction is off for that attachment, or the page renders the item without a `ViewContent` authorization check.
+- An editor cannot open an item they should see: confirm their role is picked and is not in `ExcludedRoles`.
+- Recipe tooling does not know `RolePickerPartContentAccessControlSettings`: enable `CrestApps.OrchardCore.Recipes`.
