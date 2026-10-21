@@ -326,9 +326,12 @@ public sealed class StripMetadataHandler : IMediaCreatingEventHandler
 Register with `services.AddScoped<IMediaEventHandler, MediaQuotaEventHandler>()`
 and `services.AddScoped<IMediaCreatingEventHandler, StripMetadataHandler>()`.
 `IMediaEventHandler` has default implementations for every method (deleting,
-moving, copying, directory events). Uploads through `IMediaFileStore` also run
-the shared `IFileEventHandler` pipeline (`FileCreationService`), which
-`orchardcore-antivirus` uses to scan files.
+moving, copying, directory events). The plain
+`IMediaFileStore.CreateFileFromStreamAsync(path, stream)` only runs
+`IMediaCreatingEventHandler`. To also run the shared `IFileEventHandler`
+pipeline (which `orchardcore-antivirus` uses to scan files), call the
+`CreateFileFromStreamAsync(fileCreationService, path, stream, ...)` overload
+from `MediaFileStoreExtensions`; see `orchardcore-file-upload-security`.
 
 ## Media Indexing
 

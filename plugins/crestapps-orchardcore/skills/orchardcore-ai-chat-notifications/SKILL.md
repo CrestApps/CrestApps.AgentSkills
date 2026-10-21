@@ -25,7 +25,8 @@ You are an Orchard Core expert. Generate C# integration code for transient, non-
 - A notification type identifies the UI style and replacement/removal target. Reusing a type replaces the active notification of that type.
 - Use `SendAsync` for a new notification, `UpdateAsync` for a changed notification, and `RemoveAsync` to clear it.
 - Register custom action callbacks as keyed `IChatNotificationActionHandler` services where the key exactly equals `ChatNotificationAction.Name`.
-- `ChatHubBase.HandleNotificationAction` resolves the keyed handler in a child shell scope and passes a `ChatNotificationActionContext`.
+- The hub's `HandleNotificationAction` resolves the keyed handler in a child shell scope and passes a `ChatNotificationActionContext`. On `AIChatHub` it first authorizes the caller against the session's profile, so a caller cannot act on an arbitrary session id.
+- The types live in CrestApps.Core: `IChatNotificationSender`, `IChatNotificationActionHandler`, `IChatNotificationTransport` and `ChatNotificationTypes` in `CrestApps.Core.AI.Chat`; `ChatNotification`, `ChatNotificationAction`, `ChatNotificationActionContext` and `ChatContextType` in `CrestApps.Core.AI.Models`.
 - Localize UI text through `IStringLocalizer`; do not hard-code user-facing messages in reusable modules.
 - Do not expose sensitive data in notification content, metadata, action names, or client-visible CSS classes.
 - Install CrestApps packages in the web/startup project.
@@ -217,7 +218,7 @@ await notifications.SendAsync(sessionId, ChatContextType.AIChatSession, new Chat
 
 ### Create a Custom Transport
 
-Use a transport only when adding a new chat hub and context type. Implement `IChatNotificationTransport`, broadcast to the appropriate SignalR group, then register it keyed by the new `ChatContextType`.
+`ChatContextType` is an enum with two values, `AIChatSession` and `ChatInteraction`, and the transport is resolved as a keyed service by that value. A custom transport therefore replaces the delivery for one of those two chat types, for example when a module serves profile chat from its own hub. Implement `IChatNotificationTransport` (`SendNotificationAsync`, `UpdateNotificationAsync`, `RemoveNotificationAsync`), broadcast to your hub's group, and register it for the chat type it serves:
 
 ```csharp
 public sealed class Startup : StartupBase
@@ -225,12 +226,12 @@ public sealed class Startup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddKeyedScoped<IChatNotificationTransport, MyChatNotificationTransport>(
-            MyChatContextType);
+            ChatContextType.AIChatSession);
     }
 }
 ```
 
-Do not replace the standard `AIChatNotificationTransport` or `ChatInteractionNotificationTransport` for ordinary profile and interaction notifications.
+The built-in `AIChatNotificationTransport` and `ChatInteractionNotificationTransport` are internal. Do not replace them for ordinary profile and interaction notifications.
 
 ### Security Checklist
 

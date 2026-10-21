@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-documents-elasticsearch
-description: Skill for indexing CrestApps Orchard Core AI Documents with Elasticsearch. Covers Elasticsearch index profiles, dense vector chunk mappings, k-nearest-neighbor retrieval, default search fields, and scoped RAG results. Use this skill when requests mention AI Documents Elasticsearch, AIDocumentElasticsearchIndexProfileHandler, ElasticsearchVectorSearchService, document vector indexing, or Elasticsearch document retrieval. Strong matches include work with CrestApps.OrchardCore.AI.Documents.Elasticsearch, IVectorSearchService, IDocumentIndexHandler, AddElasticsearchIndexingSource, ElasticsearchIndexMetadata, and AIConstants.AIDocumentsIndexingTaskType.
+description: Skill for indexing CrestApps Orchard Core AI Documents with Elasticsearch. Covers Elasticsearch index profiles, the embedding deployment picked from the embedding slot (textEmbedding capability), dense vector chunk mappings, k-nearest-neighbor retrieval, default search fields, and scoped RAG results. Use this skill when requests mention AI Documents Elasticsearch, AIDocumentElasticsearchIndexProfileHandler, ElasticsearchVectorSearchService, document vector indexing, or Elasticsearch document retrieval. Strong matches include work with CrestApps.OrchardCore.AI.Documents.Elasticsearch, IVectorSearchService, IDocumentIndexHandler, AddElasticsearchIndexingSource, ElasticsearchIndexMetadata, and AIConstants.AIDocumentsIndexingTaskType.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,7 +20,7 @@ embedding dimensions, and reference-scoped retrieval rather than hand-written qu
 - Enable the exact feature ID `CrestApps.OrchardCore.AI.Documents.Elasticsearch`.
 - Its manifest depends on AI Documents through `ChatInteractionsConstants.Feature.ChatDocuments` and on `OrchardCore.Elasticsearch`; the base document feature is enabled by dependency.
 - Create the index at **Search → Indexing** using **AI Documents (Elasticsearch)**.
-- Configure an embedding-capable deployment before creating or reindexing the profile.
+- Create an embedding deployment that declares `textEmbedding` before creating or reindexing the profile.
 - The service is registered as a keyed `IVectorSearchService` using `ElasticsearchConstants.ProviderName`.
 - Keep document storage separate from indexing. Azure Blob Storage is optional and does not replace this provider.
 - Install the package in the web or startup project and keep Elasticsearch connection secrets outside recipes and source control.
@@ -59,10 +59,13 @@ support. These processor features are not required by Elasticsearch itself.
 ### Create and use an index profile
 
 1. Configure the Orchard Core Elasticsearch connection and ensure the application can create and query indexes.
-2. Configure an embedding deployment with dimensions supported by the target Elasticsearch version.
+2. Create an embedding deployment that declares the `textEmbedding` capability; the
+   picker lists deployments in the `embedding` slot only (see `orchardcore-ai-model-capabilities`).
 3. In **Search → Indexing**, create **AI Documents (Elasticsearch)**.
-4. Select the desired embedding deployment.
-5. Associate the profile with the enabled chat, profile, or session document context.
+4. Select the embedding deployment. It is stored in
+   `DataSourceIndexProfileMetadata.EmbeddingDeploymentName` and locked once the index exists.
+5. Select the profile as the **Index profile** in the documents section of
+   **Settings → Artificial Intelligence**.
 6. Upload or reindex documents and test a query that is unique to an uploaded source.
 
 Changing embeddings after data has been indexed can make existing vectors incompatible.
@@ -74,28 +77,28 @@ Create a compatible new index and reindex rather than mixing different dimension
 
 | Field | Elasticsearch mapping |
 |---|---|
-| `ChunkId` | Keyword and index key field |
-| `DocumentId` | Keyword |
-| `Content` | Text |
-| `FileName` | Keyword |
-| `ReferenceId` | Keyword |
-| `ReferenceType` | Keyword |
-| `ChunkIndex` | Integer |
-| `Embedding` | Indexed `dense_vector` with cosine similarity |
+| `chunkId` | Keyword and index key field |
+| `documentId` | Keyword |
+| `content` | Text |
+| `fileName` | Keyword |
+| `referenceId` | Keyword |
+| `referenceType` | Keyword |
+| `chunkIndex` | Integer |
+| `embedding` | Indexed `dense_vector` with cosine similarity |
 
 The dense vector dimensions come from the profile's selected embedding deployment.
-When no default Elasticsearch query fields exist, the handler sets `Content` as the
-default textual search field. Keep `ChunkId` stable so indexing updates and deletes
+When no default Elasticsearch query fields exist, the handler sets `content` as the
+default textual search field. Keep `chunkId` stable so indexing updates and deletes
 target the correct document.
 
 ### Vector retrieval behavior
 
 `ElasticsearchVectorSearchService` performs k-nearest-neighbor search over
-`Embedding` in the selected index. It requests `K = topN` and `NumCandidates = topN * 10`
+`embedding` in the selected index. It requests `K = topN` and `NumCandidates = topN * 10`
 and applies a Boolean filter requiring both:
 
-- `ReferenceId` equals the active document context ID
-- `ReferenceType` equals the active context type
+- `referenceId` equals the active document context ID
+- `referenceType` equals the active context type
 
 The service reads content, chunk index, document ID, and file name from each hit,
 sorts by score descending, and returns no more than `topN` chunks. Invalid Elasticsearch
@@ -136,10 +139,10 @@ Configure the index profile and embedding deployment in the admin UI afterward.
 |---|---|
 | Index source is absent | Confirm `OrchardCore.Elasticsearch` and the exact document backend feature are enabled. |
 | Index mapping rejects vectors | Ensure the selected embedding dimensions match the generated `dense_vector` mapping and target Elasticsearch capabilities. |
-| RAG produces no sources | Verify indexing completed, `Content` is non-empty, and the document context selects this profile. |
-| Expected chunks are missing | Verify `ReferenceId` and `ReferenceType`; the service deliberately filters both. |
+| RAG produces no sources | Verify indexing completed, `content` is non-empty, and the document context selects this profile. |
+| Expected chunks are missing | Verify `referenceId` and `referenceType`; the service deliberately filters both. |
 | Search errors appear in logs | Check endpoint, authentication, TLS, index availability, and application network access. |
-| Text search behavior is unexpected | Inspect the profile default query metadata; this handler defaults it to `Content` only when no fields are already selected. |
+| Text search behavior is unexpected | Inspect the profile default query metadata; this handler defaults it to `content` only when no fields are already selected. |
 
 ### Operational and security notes
 

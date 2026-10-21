@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-documents-azureai
-description: Skill for indexing CrestApps Orchard Core AI Documents with Azure AI Search. Covers Azure AI Search index profiles, managed chunk mappings, embeddings, vector retrieval, and scoped RAG results. Use this skill when requests mention AI Documents Azure AI Search, AIDocumentAzureAISearchIndexProfileHandler, AzureAISearchVectorSearchService, document vector indexes, or Azure AI Search document retrieval. Strong matches include work with CrestApps.OrchardCore.AI.Documents.AzureAI, IVectorSearchService, IDocumentIndexHandler, AddAzureAISearchIndexingSource, AzureAISearchIndexMetadata, and AIConstants.AIDocumentsIndexingTaskType.
+description: Skill for indexing CrestApps Orchard Core AI Documents with Azure AI Search. Covers Azure AI Search index profiles, managed chunk mappings, the embedding deployment picked from the embedding slot (textEmbedding capability), vector retrieval, and scoped RAG results. Use this skill when requests mention AI Documents Azure AI Search, AIDocumentAzureAISearchIndexProfileHandler, AzureAISearchVectorSearchService, document vector indexes, or Azure AI Search document retrieval. Strong matches include work with CrestApps.OrchardCore.AI.Documents.AzureAI, IVectorSearchService, IDocumentIndexHandler, AddAzureAISearchIndexingSource, AzureAISearchIndexMetadata, and AIConstants.AIDocumentsIndexingTaskType.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -58,14 +58,18 @@ They are optional processors and not dependencies of this index provider.
 ### Create the index profile
 
 1. Configure an Azure AI Search connection in the Orchard Core Azure AI Search feature.
-2. Make an embedding deployment available from a configured AI provider.
+2. Create an embedding deployment that declares the `textEmbedding` capability. The
+   picker lists deployments in the `embedding` slot only (see `orchardcore-ai-model-capabilities`).
 3. Go to **Search → Indexing** and create **AI Documents (Azure AI Search)**.
-4. Select the connection and embedding deployment for the profile.
-5. Configure the active AI Documents context to use that document index profile.
+4. Select the embedding deployment. It is stored in
+   `DataSourceIndexProfileMetadata.EmbeddingDeploymentName` and locked once the index exists.
+5. Select the profile as the **Index profile** in the documents section of
+   **Settings → Artificial Intelligence**.
 6. Upload a document and verify chunks appear in the Azure AI Search index.
 
-The embedding deployment determines vector dimensions. Treat it as stable after data
-exists; a model dimension change requires a compatible new index and reindexing.
+The embedding deployment determines vector dimensions: the handler embeds a sample text
+to measure them, and falls back to 1536 when it cannot. A model dimension change requires
+a compatible new index and reindexing.
 
 ### Managed Azure AI Search mappings
 
@@ -73,14 +77,14 @@ exists; a model dimension change requires a compatible new index and reindexing.
 
 | Field | Mapping |
 |---|---|
-| `ChunkId` | Text, key, and filterable |
-| `DocumentId` | Text and filterable |
-| `Content` | Text and searchable |
-| `FileName` | Text and filterable |
-| `ReferenceId` | Text and filterable |
-| `ReferenceType` | Text and filterable |
-| `ChunkIndex` | Integer |
-| `Embedding` | Vector, searchable, HNSW profile `default` |
+| `chunkId` | Text, key, and filterable |
+| `documentId` | Text and filterable |
+| `content` | Text and searchable |
+| `fileName` | Text and filterable |
+| `referenceId` | Text and filterable |
+| `referenceType` | Text and filterable |
+| `chunkIndex` | Integer |
+| `embedding` | Vector, searchable, HNSW profile `default` |
 
 The handler computes embedding dimensions from the selected deployment. It configures
 the `default` vector profile to use `default-hnsw`, preserves custom mappings, and
@@ -90,10 +94,10 @@ Do not manually add a second managed mapping to work around an index issue.
 ### Retrieval behavior
 
 `AzureAISearchVectorSearchService` converts the prompt embedding to a
-`VectorizedQuery` against the `Embedding` field. Every search is constrained by:
+`VectorizedQuery` against the `embedding` field. Every search is constrained by:
 
-- `ReferenceId`
-- `ReferenceType`
+- `referenceId`
+- `referenceType`
 
 It selects the chunk ID, document ID, content, file name, and chunk index, orders the
 returned chunks by descending Azure score, and returns at most the requested `topN`.
@@ -137,7 +141,7 @@ not require Azure Blob Storage because file storage and vector indexing are inde
 | Symptom | Check |
 |---|---|
 | No AI Documents index source | Confirm `OrchardCore.Indexing`, `OrchardCore.AzureAI`, and the exact backend feature are enabled. |
-| Index creation cannot select embeddings | Configure an embedding-capable deployment, not only a chat deployment. |
+| Index creation cannot select embeddings | Declare `textEmbedding` on an embedding deployment; chat deployments are not offered. |
 | Search returns no chunks | Verify indexed chunks exist, the vector dimensions match the profile, and the reference ID and type match the requesting context. |
 | Managed fields duplicate after editing | Reopen and save the profile. The handler normalizes duplicate managed mappings while retaining custom fields. |
 | Azure request failure | Check endpoint, credential, network access, index name, and Azure Search service logs. |

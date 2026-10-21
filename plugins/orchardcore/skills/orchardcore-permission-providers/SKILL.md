@@ -53,7 +53,7 @@ public static class TeamPermissions
 }
 ```
 
-`LocalizationSource.Create<TeamPermissions>("Manage teams")` is equivalent. A plain `string` description (`new Permission("ManageTeams", "Manage teams")`) still compiles but creates a context-free source that is translated only through Data Localization, not PO files.
+Use `typeof()` here: a `static` class cannot be the `T` of `LocalizationSource.Create<T>()`. A plain `string` description (`new Permission("ManageTeams", "Manage teams")`) still compiles but creates a context-free source that is translated only through Data Localization, not PO files.
 
 ### PermissionProvider Class
 
@@ -114,39 +114,15 @@ public sealed class Startup : StartupBase
 
 ### Displaying and Translating Descriptions
 
-`Permission.Description` is a `LocalizationSource`, not a `string`. Translate it at display time:
+`Permission.Description` is a `LocalizationSource`, not a `string`. Show it with `stringLocalizerFactory.Localize(permission.Description)?.Value ?? permission.Name`, and read `permission.Description?.Value` for the original text. The roles editor and the admin menu and menu item permission pickers translate typed descriptions with PO files, using the type's full name as `msgctxt`:
 
-```csharp
-using Microsoft.Extensions.Localization;
-using OrchardCore.Security.Permissions;
-
-public sealed class PermissionLabelService
-{
-    private readonly IStringLocalizerFactory _localizerFactory;
-
-    public PermissionLabelService(IStringLocalizerFactory localizerFactory)
-    {
-        _localizerFactory = localizerFactory;
-    }
-
-    public string GetLabel(Permission permission)
-        => _localizerFactory.Localize(permission.Description)?.Value ?? permission.Name;
-
-    // Original, untranslated text.
-    public string GetRawText(Permission permission)
-        => permission.Description?.Value;
-}
-```
-
-The roles editor and the admin menu and menu item permission pickers translate typed sources with PO files, using the type's full name as `msgctxt`:
-
-```text
+```po
 msgctxt "CrestApps.Sports.Teams.Core.Permissions.TeamPermissions"
 msgid "Manage teams"
 msgstr "Gérer les équipes"
 ```
 
-Typed descriptions are no longer listed in Data Localization, and Data Localization translations entered for built-in permission descriptions are ignored. Context-free descriptions, dynamic template permissions (for example "Edit Article"), and permission categories are still translated with Data Localization.
+Typed descriptions are not listed in Data Localization; context-free descriptions, permissions built from templates (for example "Edit Article"), and categories still are. `orchardcore-localization-source` covers the API, the Data Localization interaction, and migration in detail.
 
 ### Dynamic Permission Templates
 
@@ -191,8 +167,7 @@ The feature project should reference the core project and use that shared model 
 
 ### Upgrading from 3.x
 
-- `Permission.Description` changed from `string` to `LocalizationSource`. Replace `permission.Description` string usage with `permission.Description.Value` (raw text) or `IStringLocalizerFactory.Localize(permission.Description)` (translated). Modules compiled against 3.x must be recompiled.
-- Prefer `LocalizationSource.Create("...", typeof(MyPermissions))` over string descriptions so PO files can translate them.
+- `Permission.Description` changed from `string` to `LocalizationSource`. Replace `permission.Description` string usage with `permission.Description.Value` (raw text) or `IStringLocalizerFactory.Localize(permission.Description)` (translated), and create descriptions with `LocalizationSource.Create("...", typeof(MyPermissions))`. Modules compiled against 3.x must be recompiled. See `orchardcore-localization-source`.
 - The `[Obsolete]` permission members were removed. Build on the latest 3.x, fix every `CS0618` warning, then upgrade. Stored role claims use the same permission names, so no data migration is needed. Common replacements:
   - `OrchardCore.Users.CommonPermissions.*` becomes `OrchardCore.Users.UsersPermissions.*`
   - `OrchardCore.Deployment.CommonPermissions.*` becomes `OrchardCore.Deployment.DeploymentPermissions.*`
@@ -207,4 +182,4 @@ The feature project should reference the core project and use that shared model 
   - `AdminMenu.Permissions.ManageAdminMenu` and `ViewAdminMenuAll` were swapped; use `AdminMenuPermissions.ManageAdminMenu` and `AdminMenuPermissions.ViewAdminMenuAll` and re-check what each call site intends.
   - `CommonPermissions.CreateAssignRoleToUsersPermission(role)` actually returned the edit-users-in-role permission. `UsersPermissions.CreateAssignRoleToUsersPermission(role)` now returns the real assign-role permission, so code relying on the old behavior must use `UsersPermissions.CreateEditUsersInRolePermission(role)`.
 - Provider classes such as `OrchardCore.Workflows.Permissions` are still registered; only their static members were removed.
-- `DeploymentStep.Category` and `Title` are also `LocalizationSource` now; assign them in the step's parameterless constructor.
+- `DeploymentStep.Category` and `Title` are also `LocalizationSource` now; assign them in the step's parameterless constructor (see `orchardcore-localization-source`).

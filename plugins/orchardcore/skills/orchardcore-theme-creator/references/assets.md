@@ -2,7 +2,12 @@
 
 ## Asset Pipeline
 
-Orchard Core's Asset Manager builds the entries of each project's `Assets.json` with `yarn build`. A typical theme compiles SCSS with `sass` and bundles scripts with `parcel` (or `min` for plain files); `vite` is used for Vue and TypeScript apps.
+A theme serves whatever is in its `wwwroot/` folder, so any tool that writes there works. Two options:
+
+- **Orchard Core Assets Manager** (`Assets.json` + `yarn build`). It is not published to npm; copy `.scripts/assets-manager` from the Orchard Core repository into your solution and wire a root `package.json` as described in `orchardcore-asset-manager`. A typical theme compiles SCSS with `sass` and bundles scripts with `parcel` (or `min` for plain files); `vite` is for Vue and TypeScript apps.
+- **Plain npm scripts** in the theme's `Assets/package.json` (for example the `sass` CLI or `vite build`) writing to `../wwwroot/`, when you do not want to vendor the tool.
+
+Orchard Core packages ship their own compiled assets; you only build your theme's files.
 
 ## Assets.json Configuration
 
@@ -10,14 +15,14 @@ Orchard Core's Asset Manager builds the entries of each project's `Assets.json` 
 [
   {
     "action": "sass",
-    "name": "theme-yourtheme",
+    "name": "theme-contoso",
     "source": "Assets/scss/site.scss",
     "dest": "wwwroot/css/",
     "tags": ["theme", "css"]
   },
   {
     "action": "min",
-    "name": "theme-yourtheme",
+    "name": "theme-contoso",
     "source": "Assets/js/site.js",
     "dest": "wwwroot/js/",
     "tags": ["theme", "js"]
@@ -41,7 +46,7 @@ See `orchardcore-asset-manager` for every action.
 
 ```json
 {
-  "name": "@orchardcore/your-theme",
+  "name": "@contoso/theme",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -153,11 +158,10 @@ function initializeTheme() {
 
 ## Building Assets
 
-```bash
-# From repository root
-cd /path/to/orchardcore
+With the Assets Manager vendored into the solution:
 
-# Install dependencies (first time)
+```bash
+# From the solution root (first time)
 corepack enable
 yarn
 
@@ -165,11 +169,29 @@ yarn
 yarn build
 
 # Build only this theme's assets
-yarn build -n theme-yourtheme
+yarn build -n theme-contoso
 
 # Rebuild on save while developing
-yarn watch -n theme-yourtheme
+yarn watch -n theme-contoso
 ```
+
+Without it, a minimal `Assets/package.json` script does the same for SCSS:
+
+```json
+{
+  "name": "@contoso/theme",
+  "private": true,
+  "scripts": {
+    "build": "sass scss/site.scss ../wwwroot/css/site.css && sass --style=compressed --no-source-map scss/site.scss ../wwwroot/css/site.min.css"
+  },
+  "devDependencies": {
+    "bootstrap": "5.3.8",
+    "sass": "^1.85.1"
+  }
+}
+```
+
+Commit the generated `wwwroot` files or build them in CI before `dotnet publish`.
 
 ## Output Structure
 
@@ -189,18 +211,18 @@ wwwroot/
 ### Link CSS
 
 ```html
-<style asp-name="YourTheme" asp-src="~/YourTheme/css/site.min.css" debug-src="~/YourTheme/css/site.css" at="Head"></style>
+<style asp-name="Contoso.Theme" asp-src="~/Contoso.Theme/css/site.min.css" debug-src="~/Contoso.Theme/css/site.css" at="Head"></style>
 ```
 
 ### Include JavaScript
 
 ```html
-<script asp-name="YourTheme" asp-src="~/YourTheme/js/site.min.js" debug-src="~/YourTheme/js/site.js" at="Foot"></script>
+<script asp-name="Contoso.Theme" asp-src="~/Contoso.Theme/js/site.min.js" debug-src="~/Contoso.Theme/js/site.js" at="Foot"></script>
 ```
 
 ### Using a Resource Manifest
 
-Define named resources once in an `IConfigureOptions<ResourceManagementOptions>` class registered with `services.AddResourceConfiguration<T>()`, then require them by name (`<style asp-name="YourTheme">`). From C# code, inject `IResourceManager` and call `RegisterResource("stylesheet", "YourTheme")` or `RegisterResource("script", "YourTheme").AtFoot()`. See `orchardcore-resources`.
+Define named resources once in an `IConfigureOptions<ResourceManagementOptions>` class registered with `services.AddResourceConfiguration<T>()`, then require them by name (`<style asp-name="Contoso.Theme">`). From C# code, inject `IResourceManager` and call `RegisterResource("stylesheet", "Contoso.Theme")` or `RegisterResource("script", "Contoso.Theme").AtFoot()`. See `orchardcore-resources`.
 
 ## Third-Party Libraries
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-content-fields
-description: Skill for adding CrestApps content fields to Orchard Core with PhoneField. Covers PhoneField storage, E.164 validation, country selection, editor settings, recipe schema support, display drivers, and content-definition migrations. Use this skill when requests mention CrestApps PhoneField, international telephone fields, country-aware phone input, E.164 phone storage, PhoneFieldSettings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.ContentFields, PhoneField, PhoneFieldDisplayDriver, PhoneFieldSettingsDriver, PhoneFieldSchemaDefinition, IPhoneNumberService, and CrestApps.OrchardCore.Resources.
+description: Skill for the CrestApps Content Fields module in Orchard Core, which adds PhoneField and AddressField. Covers PhoneField storage with E.164 validation, country selection and PhoneFieldSettings, the Address Field feature with country-aware editing through the Addresses module, AddressFieldSettings, the AddressFieldIndex for querying by place, recipe schema support, display drivers and content-definition migrations. Use this skill when requests mention CrestApps PhoneField, AddressField, international telephone fields, country-aware phone input, E.164 phone storage, postal address fields, or querying content by country or region. Strong matches include CrestApps.OrchardCore.ContentFields, CrestApps.OrchardCore.ContentFields.Address, PhoneField, PhoneFieldSettings, InitialCountryMode, AddressField, AddressFieldSettings, AddressFieldIndex, PhoneFieldDisplayDriver, AddressFieldDisplayDriver and IPhoneNumberService.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,35 +9,29 @@ metadata:
 
 # CrestApps Content Fields
 
-## Configure PhoneField
+## Add CrestApps content fields
 
-You are an Orchard Core expert. Generate focused code, migrations, and recipes for the CrestApps `PhoneField`. It is a custom content field, not a text field convention. It persists normalized phone data and uses the CrestApps phone-number service and the shared `intl-tel-input` resource.
+You are an Orchard Core expert. Generate focused code, migrations and recipes for the CrestApps content fields: `PhoneField` (international phone numbers stored in E.164 with their country) and `AddressField` (a postal address laid out and validated for its country).
 
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.ContentFields` in the web or startup project, never only in a class library.
-- Enable the exact `CrestApps.OrchardCore.ContentFields` feature. Its manifest dependencies bring in `CrestApps.OrchardCore.Resources`, the CrestApps phone-number feature, `OrchardCore.ContentFields`, and `OrchardCore.ContentTypes`.
-- The field type name is exactly `PhoneField`.
-- Store `PhoneNumber` in E.164 form when it is valid, such as `+14155552671`.
-- Persist `CountryCode` as an ISO 3166-1 alpha-2 code, such as `US`, as countries can share a calling code.
-- `NationalNumber` is the local part without the calling code. Do not derive identity or uniqueness from it alone.
-- The editor calls `IPhoneNumberService.IsValidNumber()` and normalizes successfully validated values through `TryFormatToE164()`.
-- A required field rejects an empty submitted number. Invalid submitted numbers add a model-state error.
-- Use `InitialCountryMode.CurrentCulture` only where the request culture reliably includes a region. It intentionally yields no initial country for neutral and invariant cultures.
-- `InitialCountryMode.Specific` requires an ISO country code. The settings driver clears `SpecificCountryCode` for every other mode.
-- `CrestApps.OrchardCore.Resources` registers the local and CDN-capable `intl-tel-input` script and style used by the editor. Do not add a duplicate CDN tag for it.
-- Enable `CrestApps.OrchardCore.Recipes` too when recipe JSON schema support for this field is needed.
-- Use file-scoped namespaces and sealed classes in C# examples. View Models are the exception when model binding needs inheritance.
+- Enable `CrestApps.OrchardCore.ContentFields` for `PhoneField`. It depends on `CrestApps.OrchardCore.Resources`, `CrestApps.OrchardCore.PhoneNumbers`, `OrchardCore.ContentFields` and `OrchardCore.ContentTypes`.
+- Enable `CrestApps.OrchardCore.ContentFields.Address` for `AddressField`. It depends on `CrestApps.OrchardCore.Addresses`, `OrchardCore.ContentFields` and `OrchardCore.ContentTypes`, and is separate so the phone field does not pull in Addresses.
+- Field type names are exactly `PhoneField` and `AddressField`. Fields live in `CrestApps.OrchardCore.ContentFields.Fields`; settings and `InitialCountryMode` in `CrestApps.OrchardCore.ContentFields.Settings`.
+- Store `PhoneNumber` in E.164 form (for example `+14155552671`) and `CountryCode` as ISO 3166-1 alpha-2, because countries can share a calling code.
+- The phone editor validates with `IPhoneNumberService.IsValidNumber()` and normalizes with `TryFormatToE164()`; see the `orchardcore-phone-numbers` skill.
+- Query addresses through `AddressFieldIndex` rather than loading every item.
+- Do not add a duplicate CDN tag for `intl-tel-input`; the field's own `international-telephone-editor` resource depends on the shared one.
+- Enable `CrestApps.OrchardCore.Recipes` for recipe JSON Schema support of both fields.
 
 ### Feature overview
 
 | Feature ID | Purpose |
 |---|---|
-| `CrestApps.OrchardCore.ContentFields` | Registers `PhoneField`, its display driver, and its settings driver |
-| `CrestApps.OrchardCore.Resources` | Provides shared resources including `intl-tel-input` |
-| `CrestApps.OrchardCore.Recipes` | Enables `PhoneFieldSchemaDefinition` when both features are enabled |
-
-### Enable the feature
+| `CrestApps.OrchardCore.ContentFields` | `PhoneField`, its display and settings drivers, the `international-telephone-editor` script and style |
+| `CrestApps.OrchardCore.ContentFields.Address` | `AddressField`, its drivers, `AddressFieldIndex` and Liquid member access |
+| `CrestApps.OrchardCore.Recipes` | Adds `PhoneFieldSchemaDefinition` and `AddressFieldSchemaDefinition` when enabled with the field features |
 
 ```json
 {
@@ -46,6 +40,7 @@ You are an Orchard Core expert. Generate focused code, migrations, and recipes f
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.ContentFields",
+        "CrestApps.OrchardCore.ContentFields.Address",
         "CrestApps.OrchardCore.Recipes"
       ],
       "disable": []
@@ -54,33 +49,28 @@ You are an Orchard Core expert. Generate focused code, migrations, and recipes f
 }
 ```
 
-## PhoneField data and settings
-
-`PhoneField` has three persisted properties:
+## PhoneField
 
 | Property | Meaning |
 |---|---|
 | `PhoneNumber` | Normalized E.164 phone number |
 | `CountryCode` | ISO 3166-1 alpha-2 region used by the editor |
-| `NationalNumber` | Local number without the country calling code |
+| `NationalNumber` | Local number without the calling code |
 
-Configure `PhoneFieldSettings` on the content-part field definition:
-
-| Setting | Meaning |
-|---|---|
-| `Hint` | Editor help text |
-| `Required` | Rejects an empty number |
-| `InitialCountryMode` | `Globe`, `CurrentCulture`, or `Specific` |
-| `SpecificCountryCode` | Initial ISO country code for `Specific` mode |
-
-### Attach PhoneField in a migration
+| `PhoneFieldSettings` | Default | Meaning |
+|---|---|---|
+| `Hint` | `null` | Editor help text |
+| `Required` | `false` | Rejects an empty number |
+| `InitialCountryMode` | `Globe` | `Globe` (no preselection), `CurrentCulture` (region of the request culture, none for neutral cultures such as `en`), or `Specific` |
+| `SpecificCountryCode` | `null` | ISO code preselected in `Specific` mode; the settings driver clears it for other modes |
 
 ```csharp
 using CrestApps.OrchardCore.ContentFields.Settings;
 using OrchardCore.ContentManagement.Metadata;
+using OrchardCore.ContentManagement.Metadata.Settings;
 using OrchardCore.Data.Migration;
 
-namespace MyModule;
+namespace MyModule.Migrations;
 
 public sealed class ContactMigrations : DataMigration
 {
@@ -111,27 +101,96 @@ public sealed class ContactMigrations : DataMigration
 }
 ```
 
-Register the migration from the owning module startup:
+Register it with `services.AddDataMigration<ContactMigrations>();` in the owning module's startup.
+
+### Editor behavior
+
+`PhoneFieldDisplayDriver` uses the stored `CountryCode` on edit; for older records without one, it resolves the region from `PhoneNumber` and derives a national number only when none is stored. A required field rejects an empty number, and an invalid number adds a model-state error. The editor uses the `intl-tel-input` library from `CrestApps.OrchardCore.Resources` (see `orchardcore-crestapps-resources`).
+
+## AddressField
+
+`AddressField.Address` holds the shared `Address` model of the Addresses module (`CrestApps.OrchardCore.Addresses.Models`), or `null` when nothing was entered: `Name`, `Company`, `AddressLine1`, `AddressLine2`, `DependentLocality`, `City`, `Region` (ISO 3166-2 subdivision code without the country prefix, when the country lists regions), `County`, `District`, `PostalCode`, `SortingCode`, `Country` (ISO 3166-1 alpha-2) and `Phone`. A type can have several, such as Home and Work.
+
+| `AddressFieldSettings` | Default | Meaning |
+|---|---|---|
+| `Hint` | `null` | Help text above the address |
+| `Required` | `false` | An address must be entered; an optional blank one is stored as `null` |
+| `ShowName`, `ShowCompany`, `ShowPhone` | `true`, `true`, `false` | Which extra lines the editor asks for |
+| `Countries` | `null` | ISO codes offered; empty offers every country `ICountryService` lists |
+| `DefaultCountry` | `null` | Country a new address starts in |
+
+The editor is the Addresses module's `AddressEditor` shape bound under the field prefix and validated by `IAddressEditorService`, so required parts, postal code patterns, region lists and postal-code-in-region checks follow the chosen country. The `AddressField` display shape prints through `IAddressFormatter`. `AddressField` and `Address` are registered for Liquid member access. See the `orchardcore-addresses` skill for the address services.
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
+using CrestApps.OrchardCore.ContentFields.Settings;
+using OrchardCore.ContentManagement.Metadata;
+using OrchardCore.ContentManagement.Metadata.Settings;
 using OrchardCore.Data.Migration;
-using OrchardCore.Modules;
 
-namespace MyModule;
+namespace MyModule.Migrations;
 
-public sealed class Startup : StartupBase
+public sealed class VenueMigrations : DataMigration
 {
-    public override void ConfigureServices(IServiceCollection services)
+    private readonly IContentDefinitionManager _contentDefinitionManager;
+
+    public VenueMigrations(IContentDefinitionManager contentDefinitionManager)
     {
-        services.AddDataMigration<ContactMigrations>();
+        _contentDefinitionManager = contentDefinitionManager;
+    }
+
+    public async Task<int> CreateAsync()
+    {
+        await _contentDefinitionManager.AlterPartDefinitionAsync("Venue", part => part
+            .WithField("Location", field => field
+                .OfType("AddressField")
+                .WithDisplayName("Location")
+                .WithSettings(new AddressFieldSettings
+                {
+                    Required = true,
+                    ShowCompany = false,
+                    Countries = ["US", "CA"],
+                    DefaultCountry = "CA",
+                })));
+
+        return 1;
     }
 }
 ```
 
-## Define the field with a recipe
+### Query content by place
 
-`PhoneFieldSchemaDefinition` validates the `PhoneFieldSettings` envelope in the `ContentDefinition` step when the Recipes feature is enabled. Keep the recipe root object and `steps` array.
+`AddressFieldIndex` (namespace `CrestApps.OrchardCore.ContentFields.Indexes`, a `ContentFieldIndex`) has one row per address field with `Country`, `Region`, `City` and `PostalCode`.
+
+```csharp
+using CrestApps.OrchardCore.ContentFields.Indexes;
+using OrchardCore.ContentManagement;
+using YesSql;
+
+namespace MyModule.Services;
+
+public sealed class VenueQueries
+{
+    private readonly ISession _session;
+
+    public VenueQueries(ISession session)
+    {
+        _session = session;
+    }
+
+    public Task<IEnumerable<ContentItem>> GetOntarioVenuesAsync()
+        => _session
+            .Query<ContentItem, AddressFieldIndex>(index =>
+                index.ContentType == "Venue" &&
+                index.Country == "CA" &&
+                index.Region == "ON" &&
+                index.Published)
+            .ListAsync();
+}
+```
+
+## Recipes
+
+With CrestApps Recipes enabled, both fields have a content-definition settings schema and a content payload schema.
 
 ```json
 {
@@ -150,28 +209,30 @@ public sealed class Startup : StartupBase
               },
               "Settings": {
                 "PhoneFieldSettings": {
-                  "Hint": "Enter an international phone number.",
                   "Required": true,
                   "InitialCountryMode": "Specific",
                   "SpecificCountryCode": "US"
+                }
+              }
+            },
+            {
+              "Name": "Mailing",
+              "DisplayName": "Mailing address",
+              "ContentFieldDefinition": {
+                "Name": "AddressField"
+              },
+              "Settings": {
+                "AddressFieldSettings": {
+                  "Required": false,
+                  "ShowPhone": false,
+                  "DefaultCountry": "US"
                 }
               }
             }
           ]
         }
       ]
-    }
-  ]
-}
-```
-
-### Content item payload
-
-For the `content` recipe step, use all three properties where the country and national components are known. The schema permits the field payload alongside other content fields.
-
-```json
-{
-  "steps": [
+    },
     {
       "name": "content",
       "data": [
@@ -183,6 +244,16 @@ For the `content` recipe step, use all three properties where the country and na
               "PhoneNumber": "+14155552671",
               "CountryCode": "US",
               "NationalNumber": "4155552671"
+            },
+            "Mailing": {
+              "Address": {
+                "Name": "Jane Doe",
+                "AddressLine1": "1 Market St",
+                "City": "San Francisco",
+                "Region": "CA",
+                "PostalCode": "94105",
+                "Country": "US"
+              }
             }
           }
         }
@@ -192,24 +263,14 @@ For the `content` recipe step, use all three properties where the country and na
 }
 ```
 
-## Editor and display behavior
-
-`PhoneFieldDisplayDriver` supplies editor and display shapes. On edit it first uses the stored `CountryCode`; for older records without it, it attempts to resolve a region from `PhoneNumber`. It derives a national number only when one has not already been stored.
-
-Use the content-type editor to add `PhoneField` when no migration is appropriate:
-
-1. Navigate to **Content Definition → Content Parts**.
-2. Edit the target part and add a field of type **PhoneField**.
-3. Set requiredness, hint text, and an initial-country mode.
-4. Attach the part to a content type and save.
-5. Create or edit an item and enter a full number with its country selection.
-
-Do not manually alter a submitted E.164 value after `PhoneFieldDisplayDriver` has normalized it. If importing external records, populate a valid E.164 number and compatible uppercase ISO country code, then let normal editor updates retain the normalized structure.
+The schemas validate shape only. Imported phone numbers should already be valid E.164 with a matching uppercase country code, and imported addresses are not run through the country rules until an editor saves them.
 
 ## Troubleshooting
 
-- Missing country flag or input behavior usually means the Content Fields feature is not enabled or its Resources dependency is unavailable.
-- A number that looks valid locally can fail because `IPhoneNumberService` validates it using the selected country.
-- `CurrentCulture` does not guess a country from a neutral culture such as `en`; choose `Specific` for deterministic behavior.
-- If generated recipe tooling does not suggest `PhoneFieldSettings`, enable both `CrestApps.OrchardCore.ContentFields` and `CrestApps.OrchardCore.Recipes`.
-- `PhoneNumber`, `CountryCode`, and `NationalNumber` are the supported content payload names. Do not substitute names such as `Value` or `Region`.
+- Missing country flags or input behavior: the Content Fields feature or its Resources dependency is not enabled.
+- A number that looks valid locally can fail because `IPhoneNumberService` validates it for the selected country.
+- `CurrentCulture` does not guess a country from a neutral culture; use `Specific` for deterministic behavior.
+- **AddressField** missing from the field list: enable `CrestApps.OrchardCore.ContentFields.Address` (and with it Addresses).
+- Address queries return nothing for older items: the index fills when items are saved; resave or reindex affected items.
+- Recipe tooling does not suggest the settings: enable the field feature together with `CrestApps.OrchardCore.Recipes`.
+- Use only the documented payload names (`PhoneNumber`, `CountryCode`, `NationalNumber`, `Address`). Do not substitute `Value` or `Region` at the phone level.

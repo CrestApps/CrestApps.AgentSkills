@@ -1,91 +1,42 @@
 ---
 name: orchardcore-ai-providers
-description: Skill for configuring AI provider modules in Orchard Core using CrestApps packages. Covers OpenAI, Azure OpenAI, Azure AI Inference (GitHub Models), Ollama, Claude orchestrator, and Copilot orchestrator. Use this skill when requests mention AI Providers, Provider Connections, Provider Deployments, OpenAI Connection, Azure OpenAI Connection, Ollama Setup, Claude Settings, Copilot Settings, or closely related Orchard Core provider setup work. Strong matches include CrestApps.OrchardCore.OpenAI, CrestApps.OrchardCore.OpenAI.Azure, CrestApps.OrchardCore.AzureAIInference, CrestApps.OrchardCore.Ollama, CrestApps.OrchardCore.AI.Chat.Claude, CrestApps.OrchardCore.AI.Chat.Copilot, OpenAIConnectionMetadata, AzureConnectionMetadata, AzureAIInferenceConnectionMetadata, ClaudeSettings, CopilotSettings. It also helps with connection recipes, deployment recipes, orchestrator configuration, plus the admin flows and referenced examples captured in this skill.
+description: Skill for the CrestApps.OrchardCore 3.0 AI provider modules. Covers CrestApps.OrchardCore.OpenAI (OpenAI and OpenAI-compatible services such as DeepSeek, Gemini and vLLM), CrestApps.OrchardCore.OpenAI.Azure (Azure OpenAI plus contained AzureSpeech deployments and GStreamer), CrestApps.OrchardCore.AzureAIInference (GitHub Models), CrestApps.OrchardCore.Ollama, the built-in CascadedRealtime deployment provider, provider connections and AIDeployment recipes with AIDeploymentMetadata capabilities, the AzureClient retry and logging options, how the Claude and Copilot orchestrators differ from providers, and writing a custom provider with AIClientProviderBase, IAIClientMarker, ProviderAICompletionClient, AddCoreAICompletionClient, AddCoreAIDeploymentProvider and AddCoreAIConnectionSource. Use this skill when requests mention AI providers, OpenAI setup, Azure OpenAI setup, Azure AI Speech, GitHub Models, Ollama, OpenAI-compatible endpoints, provider deployments, or adding a new AI provider to Orchard Core.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Providers - Prompt Templates
+# Orchard Core AI Providers
 
-## Configure AI Providers
+A provider module teaches the CrestApps AI suite to talk to one AI platform: it creates chat clients,
+embedding generators, image generators and speech clients, registers a connection source and a deployment
+provider, and contributes its connection editor. Configure a **connection** (credentials), then
+**deployments** (models with declared capabilities), then point profiles or site defaults at deployments.
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for setting up AI provider modules in an Orchard Core application using CrestApps packages.
+## Guidelines
 
-### Guidelines
-- Every AI feature in Orchard Core requires a provider module. Enable at least one provider alongside `CrestApps.OrchardCore.AI`.
-- Provider modules fall into two categories: **connection-based providers** (OpenAI, Azure OpenAI, Azure AI Inference, Ollama) that create connections and deployments, and **orchestrators** (Claude, Copilot) that provide alternative chat session orchestration via site settings.
-- Connection-based providers follow a three-layer model: a **connection** holds credentials, a **deployment** maps a model name to a connection, and an **AI profile** references deployments by name.
-- Always secure API keys using `dotnet user-secrets` during development and environment variables or Azure Key Vault in production. Never hardcode keys.
-- Install all CrestApps provider NuGet packages in the web/startup project.
-- When multiple shared connections exist for the same provider, assign the intended `ConnectionName` on each deployment explicitly.
+- Install provider packages in the web/startup project and enable the provider feature; it enables
+  `CrestApps.OrchardCore.AI`. Enable `CrestApps.OrchardCore.AI.ConnectionManagement` for the connection UI
+  and the `AIProviderConnections` recipe step.
+- Declare each deployment's capabilities under `Properties.AIDeploymentMetadata.Features`. There is no
+  `Purpose` and no `IsDefault`; defaults are site settings (see `orchardcore-ai-model-capabilities`).
+- Use the OpenAI provider for any OpenAI-compatible API.
+- Keep secrets in user secrets, environment variables or Key Vault. Prefer managed identity on Azure.
 
-### Provider Feature Overview
+## Providers
 
-| Provider | Feature ID | NuGet Package | Description |
-|----------|-----------|---------------|-------------|
-| OpenAI | `CrestApps.OrchardCore.OpenAI` | `CrestApps.OrchardCore.OpenAI` | Connect to OpenAI or any OpenAI-compatible endpoint (DeepSeek, Gemini, Together AI, LM Studio, etc.) |
-| Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | `CrestApps.OrchardCore.OpenAI.Azure` | Azure-hosted OpenAI models with support for API key, Managed Identity, and Azure AI Services speech |
-| Azure AI Inference | `CrestApps.OrchardCore.AzureAIInference` | `CrestApps.OrchardCore.AzureAIInference` | Azure AI Inference service and GitHub Models |
-| Ollama | `CrestApps.OrchardCore.Ollama` | `CrestApps.OrchardCore.Ollama` | Local Ollama models for self-hosted AI |
-| Claude Orchestrator | `CrestApps.OrchardCore.AI.Chat.Claude` | `CrestApps.OrchardCore.AI.Chat.Claude` | Claude-based orchestrator for AI chat sessions using the Anthropic API |
-| Copilot Orchestrator | `CrestApps.OrchardCore.AI.Chat.Copilot` | `CrestApps.OrchardCore.AI.Chat.Copilot` | GitHub Copilot SDK-based orchestrator for AI chat sessions |
+| Provider | Feature ID | `ClientName` | Notes |
+| --- | --- | --- | --- |
+| OpenAI | `CrestApps.OrchardCore.OpenAI` | `OpenAI` | OpenAI and any OpenAI-compatible endpoint |
+| Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | `Azure` | Also registers the contained `AzureSpeech` deployment provider (**Azure AI Services**) |
+| Azure AI Inference | `CrestApps.OrchardCore.AzureAIInference` | `AzureAIInference` | GitHub Models and Azure AI model inference endpoints |
+| Ollama | `CrestApps.OrchardCore.Ollama` | `Ollama` | Local models; no API key |
+| Cascaded Realtime | built into `CrestApps.OrchardCore.AI` | `CascadedRealtime` | Chains speech-to-text, chat and text-to-speech deployments; see `orchardcore-ai-realtime-voice` |
 
-### Enabling Provider Features
+Connection metadata per provider and the `AIProviderConnections` recipe are in `orchardcore-ai-connections`.
 
-Enable one or more providers alongside the core AI feature:
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.OpenAI",
-        "CrestApps.OrchardCore.OpenAI.Azure",
-        "CrestApps.OrchardCore.AzureAIInference",
-        "CrestApps.OrchardCore.Ollama"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-Only include the providers you need. Each provider registers its own connection source, deployment provider, and AI profile source.
-
-## OpenAI Provider
-
-The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API or any OpenAI-compatible endpoint. Its `Source` / `ClientName` is `"OpenAI"`.
-
-### OpenAI Connection via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "OpenAI",
-          "Name": "default",
-          "DisplayText": "OpenAI",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "https://api.openai.com/v1",
-              "ApiKey": "{{YourOpenAIApiKey}}"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### OpenAI Connection via appsettings.json
+## OpenAI
 
 ```json
 {
@@ -93,25 +44,37 @@ The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API 
     "CrestApps": {
       "AI": {
         "Connections": [
-          {
-            "Name": "default",
-            "ClientName": "OpenAI",
-            "Endpoint": "https://api.openai.com/v1",
-            "ApiKey": "<!-- Your API Key -->"
-          }
+          { "Name": "openai-cloud", "ClientName": "OpenAI", "ApiKey": "<secret>" },
+          { "Name": "deepseek", "ClientName": "OpenAI", "Endpoint": "https://api.deepseek.com/v1", "ApiKey": "<secret>" }
         ],
         "Deployments": [
           {
-            "Name": "gpt-4o",
+            "Name": "chat-default",
             "ClientName": "OpenAI",
-            "ConnectionName": "default",
-            "Purpose": "Chat"
+            "ConnectionName": "openai-cloud",
+            "ModelName": "gpt-4o",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "textGeneration", "toolCalling", "streaming", "structuredOutputs" ] } }
           },
           {
-            "Name": "gpt-4o-mini",
+            "Name": "embedding-default",
             "ClientName": "OpenAI",
-            "ConnectionName": "default",
-            "Purpose": "Utility"
+            "ConnectionName": "openai-cloud",
+            "ModelName": "text-embedding-3-large",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "textEmbedding" ] } }
+          },
+          {
+            "Name": "image-default",
+            "ClientName": "OpenAI",
+            "ConnectionName": "openai-cloud",
+            "ModelName": "dall-e-3",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "imageOutput" ] } }
+          },
+          {
+            "Name": "deepseek-reasoner",
+            "ClientName": "OpenAI",
+            "ConnectionName": "deepseek",
+            "ModelName": "deepseek-reasoner",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "textGeneration", "reasoning", "streaming" ] } }
           }
         ]
       }
@@ -120,150 +83,45 @@ The OpenAI provider (`CrestApps.OrchardCore.OpenAI`) connects to the OpenAI API 
 }
 ```
 
-### OpenAI Deployments via Recipe
+A Gemini connection typically uses `https://generativelanguage.googleapis.com/v1` as `Endpoint`.
 
-```json
-{
-  "steps": [
-    {
-      "name": "AIDeployment",
-      "deployments": [
-        {
-          "ItemId": "openai-chat",
-          "Name": "gpt-4o",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
-        },
-        {
-          "ItemId": "openai-utility",
-          "Name": "gpt-4o-mini",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Utility",
-          "IsDefault": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Using OpenAI-Compatible Endpoints
-
-To connect to DeepSeek, Together AI, LM Studio, or other OpenAI-compatible services, create an OpenAI connection with a custom endpoint:
+## Azure OpenAI
 
 ```json
 {
   "steps": [
     {
       "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "OpenAI",
-          "Name": "deepseek",
-          "DisplayText": "DeepSeek",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "https://api.deepseek.com/v1",
-              "ApiKey": "{{YourDeepSeekApiKey}}"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-## Azure OpenAI Provider
-
-The Azure OpenAI provider (`CrestApps.OrchardCore.OpenAI.Azure`) connects to Azure-hosted OpenAI models. Its `Source` / `ClientName` is `"Azure"`. It also registers an `"AzureSpeech"` deployment provider for Azure AI Services speech.
-
-### Azure OpenAI Connection via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProviderConnections",
-      "connections": [
+      "Connections": [
         {
           "Source": "Azure",
-          "Name": "default",
+          "Name": "azure-openai",
           "DisplayText": "Azure OpenAI",
           "Properties": {
             "AzureConnectionMetadata": {
-              "Endpoint": "https://{{YourResourceName}}.openai.azure.com",
-              "AuthenticationType": "ApiKey",
-              "ApiKey": "{{YourAzureApiKey}}"
+              "Endpoint": "https://my-resource.openai.azure.com/",
+              "AuthenticationType": "ManagedIdentity"
             }
           }
         }
       ]
-    }
-  ]
-}
-```
-
-### Azure OpenAI Authentication Types
-
-| AuthenticationType | Description |
-|--------------------|-------------|
-| `Default` | Uses Azure Default Credential (environment, managed identity, Visual Studio, etc.) |
-| `ApiKey` | API key authentication |
-| `ManagedIdentity` | Azure Managed Identity with optional `IdentityId` for user-assigned identities |
-
-### Azure OpenAI Connection with Managed Identity
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "Azure",
-          "Name": "azure-managed",
-          "DisplayText": "Azure OpenAI (Managed Identity)",
-          "Properties": {
-            "AzureConnectionMetadata": {
-              "Endpoint": "https://{{YourResourceName}}.openai.azure.com",
-              "AuthenticationType": "ManagedIdentity",
-              "IdentityId": "{{OptionalUserAssignedIdentityId}}"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Azure OpenAI Deployments via Recipe
-
-```json
-{
-  "steps": [
+    },
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "azure-chat",
-          "Name": "gpt-4o",
+          "Name": "chat-deployment",
           "ClientName": "Azure",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
+          "ConnectionName": "azure-openai",
+          "ModelName": "gpt-4.1",
+          "Properties": { "AIDeploymentMetadata": { "Features": [ "textGeneration", "toolCalling", "streaming" ] } }
         },
         {
-          "ItemId": "azure-embedding",
-          "Name": "text-embedding-3-large",
+          "Name": "embedding-deployment",
           "ClientName": "Azure",
-          "ConnectionName": "default",
-          "Purpose": "Embedding",
-          "IsDefault": true
+          "ConnectionName": "azure-openai",
+          "ModelName": "text-embedding-3-small",
+          "Properties": { "AIDeploymentMetadata": { "Features": [ "textEmbedding" ] } }
         }
       ]
     }
@@ -271,69 +129,48 @@ The Azure OpenAI provider (`CrestApps.OrchardCore.OpenAI.Azure`) connects to Azu
 }
 ```
 
-### Azure Client Options via appsettings.json
+`AuthenticationType` is `Default`, `ManagedIdentity` (optional `IdentityId` for a user-assigned identity)
+or `ApiKey` (requires `ApiKey`).
 
-Configure Azure-specific client options at the shell level:
+### Azure client options
 
 ```json
 {
   "OrchardCore": {
-    "CrestApps:AI:AzureClient": {
-      "Retry": {
-        "MaxRetries": 3
+    "CrestApps": {
+      "AI": {
+        "AzureClient": {
+          "MaxRetryAttempts": 3,
+          "EnableLogging": false
+        }
       }
     }
   }
 }
 ```
 
-## Azure AI Inference Provider
+Keys: `EnableDefaultRetryPolicy` (`true`), `MaxRetryAttempts` (`5`), `RateLimitRetryDelay` (`00:00:01`),
+`MaxRetryDelay` (`00:00:32`), `BackoffType` (`Exponential`), `UseJitter` (`true`), `EnableLogging`,
+`EnableMessageLogging`, `EnableMessageContentLogging` (all `false`).
 
-The Azure AI Inference provider (`CrestApps.OrchardCore.AzureAIInference`) connects to Azure AI Inference and GitHub Models. Its `Source` / `ClientName` is `"AzureAIInference"`.
+### Azure AI Speech deployments
 
-### Azure AI Inference Connection via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "AzureAIInference",
-          "Name": "default",
-          "DisplayText": "GitHub Models",
-          "Properties": {
-            "AzureAIInferenceConnectionMetadata": {
-              "Endpoint": "https://models.inference.ai.azure.com",
-              "AuthenticationType": "ApiKey",
-              "ApiKey": "{{YourGitHubToken}}"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-The `AzureAIInferenceConnectionMetadata` supports the same authentication types as Azure OpenAI (`Default`, `ApiKey`, `ManagedIdentity`).
-
-### Azure AI Inference Deployments via Recipe
+`AzureSpeech` deployments carry their own connection (no `ConnectionName`). In the admin, choose
+**Azure AI Services** under **Add Deployment** and tick **Speech to text (transcription)**.
 
 ```json
 {
   "steps": [
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "github-chat",
-          "Name": "gpt-4o",
-          "ClientName": "AzureAIInference",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
+          "Name": "speech-to-text",
+          "ClientName": "AzureSpeech",
+          "Endpoint": "https://eastus.api.cognitive.microsoft.com/",
+          "AuthenticationType": "ApiKey",
+          "ApiKey": "{{SpeechApiKey}}",
+          "Properties": { "AIDeploymentMetadata": { "Features": [ "speechToText" ] } }
         }
       ]
     }
@@ -341,261 +178,185 @@ The `AzureAIInferenceConnectionMetadata` supports the same authentication types 
 }
 ```
 
-## Ollama Provider
+Then set **Default Speech-to-Text Deployment** (`DefaultSpeechToTextDeploymentName`). The Azure Speech SDK
+needs **GStreamer** on every host to decode the compressed audio browsers send (OGG/Opus, WebM/Opus, MP3,
+FLAC); without it requests fail with `SPXERR_GSTREAMER_NOT_FOUND_ERROR` (`0x29`). In Docker install
+`libgstreamer1.0-0` and the `gstreamer1.0-plugins-base/good/bad/ugly` packages before the app layer.
 
-The Ollama provider (`CrestApps.OrchardCore.Ollama`) connects to a local Ollama instance. Its `Source` / `ClientName` is `"Ollama"`. It uses the connection entry's flat `Endpoint` property; it does not use `OpenAIConnectionMetadata`. No API key is required for a normal local setup.
-
-### Ollama Connection via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "Ollama",
-          "Name": "default",
-          "DisplayText": "Ollama",
-          "Endpoint": "http://localhost:11434"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Ollama Deployments via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIDeployment",
-      "deployments": [
-        {
-          "ItemId": "ollama-chat",
-          "Name": "llama3.1",
-          "ClientName": "Ollama",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-## Claude Orchestrator
-
-The Claude orchestrator (`CrestApps.OrchardCore.AI.Chat.Claude`) provides an alternative chat orchestration layer using the Anthropic Claude API. Unlike connection-based providers, Claude is configured through site settings or shell configuration, not through the `AIProviderConnections` recipe step.
-
-### Enabling the Claude Orchestrator
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Chat.Claude"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Claude Configuration via appsettings.json
+## Azure AI Inference (GitHub Models)
 
 ```json
 {
   "OrchardCore": {
-    "CrestApps:AI:Claude": {
-      "ApiKey": "{{YourClaudeApiKey}}",
-      "BaseUrl": "https://api.anthropic.com",
-      "DefaultModel": "claude-sonnet-4-20250514"
-    }
-  }
-}
-```
-
-### Claude Site Settings
-
-Navigate to **Settings → AI → Claude** in the admin UI to configure:
-
-| Setting | Description |
-|---------|-------------|
-| Authentication Type | `ApiKey` or `NotConfigured` |
-| API Key | Anthropic API key (stored encrypted) |
-| Base URL | API endpoint (defaults to `https://api.anthropic.com`) |
-| Default Model | The Claude model to use |
-
-Site settings override values from `appsettings.json`. The orchestrator appears as an option when creating or editing AI chat profiles.
-
-## Copilot Orchestrator
-
-The Copilot orchestrator (`CrestApps.OrchardCore.AI.Chat.Copilot`) provides chat orchestration using the GitHub Copilot SDK. Like Claude, it is configured via site settings or shell configuration.
-
-### Enabling the Copilot Orchestrator
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Chat.Copilot"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Copilot Configuration via appsettings.json (GitHub OAuth)
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps:AI:Copilot": {
-      "AuthenticationType": "GitHubOAuth",
-      "ClientId": "{{YourGitHubAppClientId}}",
-      "ClientSecret": "{{YourGitHubAppClientSecret}}",
-      "Scopes": ["user:email", "read:org"]
-    }
-  }
-}
-```
-
-### Copilot Configuration via appsettings.json (API Key)
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps:AI:Copilot": {
-      "AuthenticationType": "ApiKey",
-      "ProviderType": "openai",
-      "BaseUrl": "{{YourEndpointUrl}}",
-      "DefaultModel": "{{YourModelName}}",
-      "ApiKey": "{{YourApiKey}}"
-    }
-  }
-}
-```
-
-### Copilot Authentication Types
-
-| AuthenticationType | Description |
-|--------------------|-------------|
-| `GitHubOAuth` | GitHub OAuth flow requiring `ClientId` and `ClientSecret` from a GitHub App. Per-user credentials are stored and refreshed automatically. |
-| `ApiKey` | Direct API-key authentication. Requires `ProviderType`, `BaseUrl`, and `DefaultModel`. An API key is required for `azure`; it can be omitted for a local OpenAI-compatible provider. |
-
-For API-key authentication, `ProviderType` is always required. Use `openai`, `azure`, or `anthropic`. When `ProviderType` is `azure`, `AzureApiVersion` and an API key are also required; the Azure base URL is the resource URL without an added `/openai/v1` path.
-
-### Copilot Site Settings
-
-Navigate to **Settings → AI → Copilot** in the admin UI. Site settings overlay configuration values and support both authentication types. Secrets are stored encrypted using data protection.
-
-## Connections, Deployments, and Profiles
-
-The CrestApps AI module uses a three-layer architecture for connection-based providers:
-
-1. **Connection** — holds provider credentials (API key, endpoint, authentication type). Created via the `AIProviderConnections` recipe step or the admin UI at **Artificial Intelligence → Connections**.
-2. **Deployment** — maps a model name to a connection and specifies the deployment type (`Chat`, `Utility`, `Embedding`, `Image`, `SpeechToText`). Created via the `AIDeployment` recipe step or the admin UI at **Artificial Intelligence → Deployments**.
-3. **Profile** — references deployments by name (`ChatDeploymentName`, `UtilityDeploymentName`) and is source-agnostic. Created via the `AIProfile` recipe step.
-
-Orchestrators (Claude, Copilot) bypass the connection/deployment layer entirely. They appear as orchestration options in the chat profile editor once their feature is enabled and configured.
-
-### Full Setup Example (OpenAI)
-
-This recipe enables the OpenAI provider, creates a connection, adds deployments, and creates a chat profile:
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    },
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "OpenAI",
-          "Name": "default",
-          "DisplayText": "OpenAI",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "https://api.openai.com/v1",
-              "ApiKey": "{{YourApiKey}}"
-            }
+    "CrestApps": {
+      "AI": {
+        "Connections": [
+          {
+            "Name": "github-models",
+            "ClientName": "AzureAIInference",
+            "Endpoint": "https://models.inference.ai.azure.com",
+            "AuthenticationType": "ApiKey",
+            "ApiKey": "<github token>"
           }
-        }
-      ]
-    },
-    {
-      "name": "AIDeployment",
-      "deployments": [
-        {
-          "ItemId": "openai-chat",
-          "Name": "gpt-4o",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
-        },
-        {
-          "ItemId": "openai-utility",
-          "Name": "gpt-4o-mini",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Utility",
-          "IsDefault": true
-        }
-      ]
-    },
-    {
-      "name": "AIProfile",
-      "profiles": [
-        {
-          "Name": "assistant",
-          "DisplayText": "AI Assistant",
-          "WelcomeMessage": "Hello! How can I help you?",
-          "Type": "Chat",
-          "TitleType": "InitialPrompt",
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
-          "Properties": {
-            "AIProfileMetadata": {
-              "SystemMessage": "You are a helpful assistant.",
-              "Temperature": 0.3,
-              "MaxTokens": 2048,
-              "PastMessagesCount": 10
-            }
+        ],
+        "Deployments": [
+          {
+            "Name": "phi-chat",
+            "ClientName": "AzureAIInference",
+            "ConnectionName": "github-models",
+            "ModelName": "Phi-3-medium-4k-instruct",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "textGeneration", "streaming" ] } }
           }
-        }
-      ]
+        ]
+      }
     }
-  ]
+  }
 }
 ```
 
-### Security Best Practices
+## Ollama
 
-- Store API keys using `dotnet user-secrets` during development.
-- Use environment variables or Azure Key Vault in production.
-- For Azure providers, prefer Managed Identity authentication over API keys when possible.
-- API keys in connections are encrypted at rest using data protection.
-- Orchestrator secrets (Claude API key, Copilot client secret) are also encrypted in site settings.
-- Restrict provider configuration access with Orchard Core permissions.
+```json
+{
+  "OrchardCore": {
+    "CrestApps": {
+      "AI": {
+        "Connections": [
+          { "Name": "local-ollama", "ClientName": "Ollama", "Endpoint": "http://localhost:11434" }
+        ],
+        "Deployments": [
+          {
+            "Name": "local-chat",
+            "ClientName": "Ollama",
+            "ConnectionName": "local-ollama",
+            "ModelName": "deepseek-v2:16b",
+            "Properties": { "AIDeploymentMetadata": { "Features": [ "textGeneration", "toolCalling", "streaming" ] } }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+In a recipe, put the Ollama endpoint in `Properties.Endpoint` (see `orchardcore-ai-connections`). Declare
+`toolCalling` only for models that support it. The repository's Aspire app host
+(`CrestApps.Aspire.AppHost`) starts Ollama and adds its connection through environment variables.
+
+## Orchestrators are not providers
+
+`CrestApps.OrchardCore.AI.Chat.Claude` and `CrestApps.OrchardCore.AI.Chat.Copilot` replace the chat
+orchestrator instead of adding a connection. They are configured under **Settings > Artificial
+Intelligence** or `OrchardCore:CrestApps:AI:Claude` / `OrchardCore:CrestApps:AI:Copilot`, choose their own
+models, and hide the deployment fields on a profile. See `orchardcore-ai-chat-claude` and
+`orchardcore-ai-chat-copilot`.
+
+## Write a custom provider
+
+```csharp
+using CrestApps.Core.AI;
+using CrestApps.Core.AI.Models;
+using CrestApps.Core.AI.Services;
+using CrestApps.Core.Infrastructure;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using OrchardCore.Modules;
+
+public readonly struct AcmeClientMarker : IAIClientMarker
+{
+    public static string ClientName => "Acme";
+}
+
+public sealed class AcmeClientProvider : AIClientProviderBase
+{
+    public AcmeClientProvider(IServiceProvider serviceProvider)
+        : base(serviceProvider)
+    {
+    }
+
+    protected override string GetProviderName() => AcmeClientMarker.ClientName;
+
+    protected override IChatClient GetChatClient(AIProviderConnectionEntry connection, string deploymentName)
+        => new AcmeChatClient(connection.GetEndpoint(), connection.GetApiKey(), deploymentName);
+
+    protected override IEmbeddingGenerator<string, Embedding<float>> GetEmbeddingGenerator(AIProviderConnectionEntry connection, string deploymentName)
+        => throw new NotSupportedException();
+
+#pragma warning disable MEAI001
+    protected override IImageGenerator GetImageGenerator(AIProviderConnectionEntry connection, string deploymentName)
+        => throw new NotSupportedException();
+
+    protected override ISpeechToTextClient GetSpeechToTextClient(AIProviderConnectionEntry connection, string deploymentName)
+        => throw new NotSupportedException();
+#pragma warning restore MEAI001
+}
+
+public sealed class Startup : StartupBase
+{
+    private readonly IStringLocalizer S;
+
+    public Startup(IStringLocalizer<Startup> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddScoped<IAIClientProvider, AcmeClientProvider>();
+
+        services.AddCoreAICompletionClient<ProviderAICompletionClient<AcmeClientMarker>>(AcmeClientMarker.ClientName, o =>
+        {
+            o.DisplayName = S["Acme"];
+            o.Description = S["Provides AI profiles using Acme."];
+        });
+
+        services.AddCoreAIDeploymentProvider(AcmeClientMarker.ClientName, o =>
+        {
+            o.DisplayName = S["Acme"];
+            o.Description = S["Acme model deployments."];
+        });
+
+        services.AddCoreAIConnectionSource(AcmeClientMarker.ClientName, o =>
+        {
+            o.DisplayName = S["Acme"];
+            o.Description = S["Connects to the Acme AI API."];
+        });
+    }
+}
+```
+
+- `AcmeChatClient` stands for your `IChatClient` implementation.
+- The connection entry is a dictionary of the connection's `Properties` plus values added by
+  `IAIProviderConnectionHandler.Initializing` (use a handler to decrypt a stored API key with the
+  `AIProviderConnection` data protector). `GetEndpoint()` and `GetApiKey()` read the `Endpoint` and
+  `ApiKey` keys.
+- Override `GetTextToSpeechClientAsync`, `GetSpeechVoicesAsync`, `GetRealtimeClientAsync` and
+  `GetRealtimeVoicesAsync` when the platform supports them.
+- Set `UseContainedConnection = true` on the deployment provider for deployments that carry their own
+  endpoint, like `AzureSpeech`.
+- Register capabilities the platform adds with `AddAIDeploymentFeature` (see
+  `orchardcore-ai-model-capabilities`).
+- For the admin connection editor, add an `AIProviderConnection` display driver in a startup marked
+  `[RequireFeatures("CrestApps.OrchardCore.AI.ConnectionManagement")]`, as the shipped providers do.
+- Every client created through `IAIClientFactory` is metered automatically (`orchardcore-ai-usage-analytics`).
+
+## Upgrading from 2.x
+
+- Replace `"Purpose"` on deployments with `Properties.AIDeploymentMetadata.Features`; legacy values are
+  still projected on read (`Chat`/`Utility` become `textGeneration`, `toolCalling`, `streaming`).
+- Remove `"IsDefault"` from deployment recipes and set `DefaultAIDeploymentSettings` instead.
+- Recipe arrays are `Connections` and `Deployments` (PascalCase, as in the published schemas).
+- The Azure client section is `OrchardCore:CrestApps:AI:AzureClient` with flat keys such as
+  `MaxRetryAttempts`; there is no nested `Retry` object.
+- Custom providers implement `IAIClientProvider` (`CanHandle`, `GetChatClientAsync(AIProviderConnectionEntry, string)`, ...)
+  or derive from `AIClientProviderBase`; the `CreateChatClientAsync(AIProviderConnection, string)` shape
+  and `AddAIProfile<TClient>` registration are gone.
+
+## Related skills
+
+- `orchardcore-ai-connections` for connection recipes and the admin UI.
+- `orchardcore-ai-model-capabilities` for capabilities, parameters and slots.
+- `orchardcore-ai` for site defaults, profiles and resolving deployments in code.
+- `crestapps-core-openai`, `crestapps-core-azure-openai`, `crestapps-core-azure-ai-inference`,
+  `crestapps-core-ollama` for the framework provider packages.

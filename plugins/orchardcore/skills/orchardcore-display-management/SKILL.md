@@ -1,6 +1,6 @@
 ---
 name: orchardcore-display-management
-description: Skill for using Orchard Core's display management system. Covers display drivers, display managers, ShapeResult helpers (Initialize, Factory, Dynamic, Copy, View, Combine), typed-state ValueTask initializers, shape table providers, display types, placement locations, editor and display mode patterns, IShapeHtmlRenderer for rendering shapes outside of a view, ShapeRenderingOptions and shape debug information, shape rendering telemetry with OpenTelemetry and dotnet-counters, and upgrading display drivers from Orchard Core 3 (obsolete Shape method, Factory overrides). Use this skill when requests mention Orchard Core Display Management, ContentPartDisplayDriver, ContentFieldDisplayDriver, SiteDisplayDriver, IDisplayResult, wrapper templates for DisplayDriver models, rendering a shape to an HTML string, or related troubleshooting. Strong matches include OrchardCore.DisplayManagement, OrchardCore.DisplayManagement.Views, OrchardCore.ContentManagement.Display, DisplayManagementDiagnostics.
+description: Skill for Orchard Core display management. Covers the driver, shape, placement and zone pipeline, choosing a display driver or placement, driver base classes (ContentPartDisplayDriver, ContentFieldDisplayDriver, SiteDisplayDriver, SectionDisplayDriver, DisplayDriver), GetDisplayShapeType, GetEditorShapeType, editor validation with Prefix, UseDisplayDriver, ForEditor and ForDisplayMode, ShapeResult helpers (Initialize, Factory, Dynamic, Copy, View, Combine), typed-state ValueTask initializers, shape table providers, display types, wrapper templates for DisplayDriver models, IShapeHtmlRenderer, shape debug information, rendering telemetry, and upgrading drivers from Orchard Core 3 (obsolete Shape method, Factory overrides). Use this skill when requests mention Orchard Core Display Management, display drivers, IDisplayResult, rendering a shape to an HTML string, or related troubleshooting. Strong matches include OrchardCore.DisplayManagement, OrchardCore.ContentManagement.Display, DisplayManagementDiagnostics.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,6 +9,30 @@ metadata:
 
 # Orchard Core Display Management - Prompt Templates
 
+## Mental Model
+
+```text
+model ──display drivers──▶ shapes ──placement──▶ zones ──templates (alternates)──▶ HTML
+```
+
+- **Shape**: a dynamic view model with a shape type and `Metadata` (alternates, wrappers, differentiator, placement). The shape type selects both the template and the placement rule.
+- **Driver**: `Display`, `Edit`, and `UpdateAsync` return `IDisplayResult`s, each with a default `.Location(...)` per display type.
+- **Placement**: `placement.json` at the root of a module or theme (or the admin Placements UI) overrides where a shape goes, whether it renders, and which template it uses.
+- **Zone**: a named region of the root shape (`Content`, `Meta`, `Actions`, `Parts`, ...) or of the layout (`Header`, `Footer`, ...), or an editor group (tab, card, column).
+
+### Driver or Placement?
+
+| Want to... | Use |
+|---|---|
+| Reposition or hide a shape someone else built | `placement.json` |
+| Move a shape to a layout zone | `placement.json` (`place` starting with `/`) |
+| Swap the template, add alternates or wrappers | `placement.json` (`shape`, `alternates`, `wrappers`) or a shape table provider |
+| Lay out an admin editor in tabs, cards, columns | `placement.json` groupings or the driver's `.Location(...)` |
+| Produce a new shape from your part, field, or model | A display driver |
+| Read and validate posted editor values | A display driver (`UpdateAsync`) |
+
+Prefer placement for layout; a theme can override it without recompiling the module. See `orchardcore-placement`.
+
 ## Create Display Drivers and Shapes
 
 You are an Orchard Core expert. Generate display drivers, shapes, and display management code for Orchard Core.
@@ -16,7 +40,15 @@ You are an Orchard Core expert. Generate display drivers, shapes, and display ma
 ### Guidelines
 
 - Every content part that needs custom rendering requires a `DisplayDriver`.
-- Content part drivers inherit from `ContentPartDisplayDriver<TPart>`, field drivers from `ContentFieldDisplayDriver<TField>`, site settings drivers from `SiteDisplayDriver<TSettings>`, and any other model from `DisplayDriver<TModel>`.
+- Pick the base class by model:
+
+  | Base class | Contexts (Display / Edit / Update) | For |
+  |---|---|---|
+  | `ContentPartDisplayDriver<TPart>` | `BuildPartDisplayContext` / `BuildPartEditorContext` / `UpdatePartEditorContext` | A content part |
+  | `ContentFieldDisplayDriver<TField>` | `BuildFieldDisplayContext` / `BuildFieldEditorContext` / `UpdateFieldEditorContext` | A content field |
+  | `SiteDisplayDriver<TSettings>` | `BuildDisplayContext` / `BuildEditorContext` / `UpdateEditorContext` | A site settings group (`SettingsGroupId`) |
+  | `SectionDisplayDriver<TModel, TSection>` | Same as `DisplayDriver` | A section (named property) of any `IEntity`, such as user settings |
+  | `DisplayDriver<TModel>` | `BuildDisplayContext` / `BuildEditorContext` / `UpdateEditorContext` | Any other model |
 - Drivers handle three operations: `Display`, `Edit`, and `Update` (sync or `...Async` variants).
 - Each operation returns `IDisplayResult` (shapes to render). `ShapeResult` resolves placement first and only creates the shape when it is actually displayed.
 - View models are used to pass data between drivers and views.
@@ -130,6 +162,19 @@ public sealed class Startup : StartupBase
     }
 }
 ```
+
+The content part and field builders (`AddContentPart<T>()`, `AddContentField<T>()`) also offer:
+
+| Method | Effect |
+|---|---|
+| `UseDisplayDriver<TDriver>()` | Driver for every display mode and editor (safe to call again to reconfigure) |
+| `UseDisplayDriver<TDriver>(predicate)` | Driver only for display modes and editors whose name matches |
+| `ForEditor<TDriver>(predicate)` | Driver only for matching editor names (e.g. `"PredefinedList"`) |
+| `ForDisplayMode<TDriver>(predicate)` | Driver only for matching display modes |
+| `RemoveDisplayDriver<TDriver>()` | Removes a driver registered by another module |
+| `AddHandler<THandler>()` | Registers a `ContentPartHandler<T>` / `ContentFieldHandler<T>` |
+
+There are no `AddContentPartDisplayDriver` or `AddContentFieldDisplayDriver` helpers; always go through the part or field builder.
 
 ### Content Part with Handler Pattern
 
@@ -356,11 +401,22 @@ Positions also accept `before`, `after`, and the terminal sentinels `start` and 
 ### Content Field Display Driver
 
 ```csharp
+using Microsoft.Extensions.Localization;
 using OrchardCore.ContentManagement.Display.ContentDisplay;
 using OrchardCore.ContentManagement.Display.Models;
+using OrchardCore.ContentManagement.Metadata.Models;
+using OrchardCore.DisplayManagement.Views;
+using OrchardCore.Mvc.ModelBinding;
 
 public sealed class {{FieldName}}FieldDisplayDriver : ContentFieldDisplayDriver<{{FieldName}}Field>
 {
+    internal readonly IStringLocalizer S;
+
+    public {{FieldName}}FieldDisplayDriver(IStringLocalizer<{{FieldName}}FieldDisplayDriver> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
     public override IDisplayResult Display({{FieldName}}Field field, BuildFieldDisplayContext context)
     {
         return Initialize<{{FieldName}}FieldViewModel>(
@@ -374,8 +430,38 @@ public sealed class {{FieldName}}FieldDisplayDriver : ContentFieldDisplayDriver<
             .Location("Detail", "Content")
             .Location("Summary", "Content");
     }
+
+    public override IDisplayResult Edit({{FieldName}}Field field, BuildFieldEditorContext context)
+    {
+        return Initialize<Edit{{FieldName}}FieldViewModel>(GetEditorShapeType(context), model =>
+        {
+            model.Value = field.Value;
+            model.Field = field;
+            model.Part = context.ContentPart;
+            model.PartFieldDefinition = context.PartFieldDefinition;
+        });
+    }
+
+    public override async Task<IDisplayResult> UpdateAsync({{FieldName}}Field field, UpdateFieldEditorContext context)
+    {
+        await context.Updater.TryUpdateModelAsync(field, Prefix, f => f.Value);
+
+        var settings = context.PartFieldDefinition.GetSettings<{{FieldName}}FieldSettings>();
+
+        if (settings.Required && string.IsNullOrWhiteSpace(field.Value))
+        {
+            // AddModelError(prefix, key, message) from OrchardCore.Mvc.ModelBinding.
+            context.Updater.ModelState.AddModelError(Prefix, nameof(field.Value), S["A value is required for {0}.", context.PartFieldDefinition.DisplayName()]);
+        }
+
+        return Edit(field, context);
+    }
 }
 ```
+
+- `GetDisplayShapeType(context)` and `GetEditorShapeType(context)` (on both part and field drivers) return the shape type for the selected display mode or editor, for example `TextField_Display__Header` or `TextField_Edit__PredefinedList`. Use them instead of hard-coded names so display modes, editors, alternates, and placement resolve.
+- `Prefix` keeps form names unique when the same shape appears several times; always bind and report errors with it.
+- `S` is an `IStringLocalizer<TDriver>` injected in the constructor.
 
 ### Shape Table Provider
 
@@ -479,6 +565,17 @@ dotnet-counters monitor --name OrchardCore.Cms.Web --counters OrchardCore.Displa
 ### Liquid Shape Templates
 
 Liquid shape templates are rendered by `LiquidShapeTemplateViewEngine` with Fluid directly (no per-shape Razor `LiquidPage`). `LiquidViewExtensionProvider` is no longer registered and `RazorShapeTemplateViewEngine` no longer handles `.liquid` files. Liquid views returned by controllers still use `LiquidPage`. PO file contexts of localized strings are unchanged.
+
+## Gotchas
+
+- The shape type is not the part type. A part without its own driver renders as `ContentPart` (`ContentPart_Summary` in Summary) with the part name as differentiator, so a placement rule keyed on `GalleryPart` never matches.
+- To hide or move a whole part editor row (label and wrapper), target `ContentPart_Edit` with differentiator `{ContentType}-{PartName}`, not the inner `XxxPart_Edit`.
+- Field display modes change the shape type to `{FieldType}_Display` and the differentiator to `{PartName}-{FieldName}-{FieldType}_Display__{Mode}`.
+- A driver location is only a default; placement from the Placements admin, the startup project, the active theme, and modules overrides it.
+- Display types do not inherit placement: `SummaryAdmin` locations do not reach `SummaryAdminGrid`.
+- Shapes with the same position keep registration order, which is not predictable across modules; use distinct positions when order matters.
+- A shape placed in a zone the parent template never renders is silently dropped. Check the wrapper template first when a shape disappears.
+- Enable **Write shape debug information** to see the actual shape type and the winning template binding of every fragment before writing placement or overrides.
 
 ## Upgrading from 3.x
 

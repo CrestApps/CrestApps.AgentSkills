@@ -1,236 +1,25 @@
 ---
 name: orchardcore-ai-agent
-description: Skill for the CrestApps Orchard Core AI Agent module that provides 50+ natural-language AI tools for managing an Orchard Core site. Covers content management, content definitions, feature toggling, tenant management, recipe execution, user and role lookup, workflow management, email/SMS/notification sending, AI profile inspection, and chat analytics. Use this skill when requests mention AI Agent tools, natural language site management, CrestApps.OrchardCore.AI.Agent, AI-powered content operations, or closely related Orchard Core AI tool integration and troubleshooting work. Strong matches include searchForContentItems, createOrUpdateContentItem, importOrchardCoreRecipe, createTenant, enableSiteFeature, sendEmail, sendNotification, listWorkflowTypes, listAIProfiles, queryChatSessionMetrics, and the code patterns, admin flows, recipe steps, and tool categories captured in this skill.
+description: Skill for the CrestApps Orchard Core AI Agent module (CrestApps.OrchardCore.AI.Agent) and agent profiles. Covers the 50+ Orchard-aware AI tools it registers and the Orchard Core feature that enables each group (content, content definitions, features, tenants, recipes, users, roles, workflows, email, SMS, notifications, AI profiles, chat analytics), system tools such as getContentItemSchema and tool dependencies, recipe-schema-driven tools that need CrestApps.OrchardCore.Recipes, AI profiles of type Agent with AgentMetadata Availability (OnDemand or AlwaysAvailable) and AgentInvocationMetadata, attaching agents to other profiles, exposing agents through the A2A host and the MCP server, and the security model for agent tools. Use this skill when requests mention AI Agent tools, natural-language site management, agent profiles, searchForContentItems, createOrUpdateContentItem, importOrchardCoreRecipe, createTenant, enableSiteFeature, sendEmail, listWorkflowTypes, listAIProfiles or queryChatSessionMetrics.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Agent - Prompt Templates
+# Orchard Core AI Agent
 
-## Manage an Orchard Core Site with AI Tools
+The AI Agent module registers Orchard-aware tools that let an AI profile manage the site in natural language: content, content definitions, features, tenants, recipes, users, roles, workflows, communications, and AI profiles. Agent **profiles** (profiles of type Agent) are a separate concept that comes from the base AI module and can use these tools.
 
-You are an Orchard Core expert. Generate configuration and guidance for enabling and using the CrestApps AI Agent module to manage an Orchard Core site through natural language.
+## Guidelines
 
-### Guidelines
-- Use feature ID `CrestApps.OrchardCore.AI.Agent`.
-- The module depends on `CrestApps.OrchardCore.AI` and `CrestApps.OrchardCore.Recipes`.
-- All tools are selectable per AI profile (toggled on/off individually).
-- Tools are conditionally loaded based on which Orchard Core features are enabled.
-- Install the NuGet package into the web/startup project.
+- Feature ID `CrestApps.OrchardCore.AI.Agent`; it depends on `CrestApps.OrchardCore.AI` and `CrestApps.OrchardCore.Recipes`. Install `CrestApps.OrchardCore.AI.Agent` in the web/startup project.
+- Each tool group registers only when its Orchard Core feature is enabled.
+- Almost every tool is **selectable**: it appears grouped by category in the **Tools** section of the **Capabilities** tab, and nothing runs until a profile, template, or interaction selects it.
+- `getContentItemSchema` is a **system** tool (auto-included, never in pickers). `createOrUpdateContentItem` depends on it and `importOrchardCoreRecipe` depends on `getOrchardCoreRecipeJsonSchema`, so selecting the main tool brings in its schema tool.
+- AI profile sessions run the profile as configured and the tools do not re-check site permissions, so attach management tools only to profiles whose query permission is restricted (see `orchardcore-ai-tools`).
 
-### Feature Overview
-
-| Feature | Feature ID | Description |
-|---------|-----------|-------------|
-| Orchard Core AI Agent | `CrestApps.OrchardCore.AI.Agent` | Provides AI-powered tools for managing content, definitions, features, tenants, recipes, users, roles, workflows, communications, AI profiles, and analytics through natural language |
-
-### Install the NuGet Package
-
-```shell
-dotnet add package CrestApps.OrchardCore.AI.Agent
-```
-
-### Enable the Feature
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Agent"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### How It Works
-
-When the `CrestApps.OrchardCore.AI.Agent` feature is enabled, the module registers AI tools that can be invoked through any AI profile. Each tool is:
-
-- **Selectable** - can be individually toggled on/off per AI profile from the admin UI.
-- **Permission-aware** - respects Orchard Core's built-in permissions system.
-- **Feature-gated** - only loads when its required Orchard Core feature is enabled.
-
-### Tool Categories and Available Tools
-
-The AI Agent module provides tools across these categories. Each tool is registered via `AddCoreAITool<T>()` and marked `.Selectable()`.
-
-#### System Tools
-
-Available when the base feature is enabled.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `listTimeZones` | Retrieves a list of available time zones in the system |
-
-#### Recipe Tools
-
-Requires `OrchardCore.Recipes.Core`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `applySiteSettings` | Applies predefined system configurations and settings using AI assistance |
-| `getOrchardCoreRecipeJsonSchema` | Returns a JSON Schema definition for Orchard Core recipes or a specific recipe step |
-| `listOrchardCoreRecipeStepsAndSchemas` | Lists all available Orchard Core recipe steps and returns their JSON schema definitions |
-| `importOrchardCoreRecipe` | Imports and runs an Orchard Core recipe within the site |
-| `listNonStartupRecipes` | Retrieves all available recipes that are not executed during startup |
-| `executeNonStartupRecipe` | Executes a recipe that is not configured to run at application startup |
-
-#### Tenant Management Tools
-
-Requires `OrchardCore.Tenants`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `listStartupRecipes` | Retrieves startup recipes available for tenant setup |
-| `createTenant` | Creates a new tenant in the Orchard Core application |
-| `getTenant` | Retrieves detailed information about a specific tenant |
-| `listTenant` | Returns information about all tenants in the system |
-| `enableTenant` | Enables a tenant that is currently disabled |
-| `disableTenant` | Disables a tenant that is currently active |
-| `removeTenant` | Removes an existing tenant that can be safely deleted |
-| `reloadTenant` | Reloads the configuration and state of an existing tenant |
-| `setupTenant` | Sets up a new tenant with initial configuration |
-
-#### Content Management Tools
-
-Requires `OrchardCore.Contents`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `searchForContentItems` | Searches for content items using filters and queries |
-| `getSampleContentItemForContentType` | Generates a structured sample content item for a specified content type |
-| `publishContentItem` | Publishes a draft or previously unpublished content item |
-| `unpublishContentItem` | Unpublishes a currently published content item |
-| `getContentItemById` | Retrieves a specific content item by its ID or type |
-| `getContentItemSchema` | Returns the current content-item JSON schema for one or more Orchard Core content types |
-| `deleteContentItem` | Deletes a content item from the system |
-| `cloneContentItem` | Creates a duplicate of an existing content item |
-| `createOrUpdateContentItem` | Creates a new content item or updates an existing one |
-| `getLinkForContentItem` | Retrieves a link for a content item |
-
-#### Content Definition Tools
-
-Requires `OrchardCore.ContentTypes`. The last three tools also require `OrchardCore.Recipes.Core`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `getContentTypeDefinition` | Retrieves a content type definition |
-| `getContentPartDefinition` | Retrieves a content part definition |
-| `listContentTypesDefinitions` | Lists available content type definitions |
-| `listContentPartsDefinitions` | Lists available content part definitions |
-| `listContentFieldDefinitions` | Lists available content field definitions |
-| `removeContentTypeDefinition` | Removes a content type definition |
-| `removeContentPartDefinition` | Removes a content part definition |
-| `applyContentTypeDefinitionFromRecipe` | Creates or updates a content type definition via recipe |
-
-#### Feature Management Tools
-
-Requires `OrchardCore.Features`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `disableSiteFeature` | Disables one or more site features |
-| `enableSiteFeature` | Enables one or more site features |
-| `searchSiteFeature` | Searches available features for a match |
-| `listSiteFeature` | Retrieves all available site features |
-| `getSiteFeature` | Retrieves information about a specific feature |
-
-#### Communication Tools
-
-Each tool requires its respective Orchard Core feature.
-
-| Tool Name | Required Feature | Description |
-|-----------|-----------------|-------------|
-| `sendNotification` | `OrchardCore.Notifications` | Sends a notification message to a user |
-| `sendEmail` | `OrchardCore.Email` | Sends an email message on behalf of the logged-in user |
-| `sendSmsMessage` | `OrchardCore.Sms` | Sends an SMS message to a user |
-
-#### User Management Tools
-
-Requires `OrchardCore.Users`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `getUserInfo` | Gets information about a user |
-| `searchForUsers` | Searches the system for users |
-
-#### Role Management Tools
-
-Requires `OrchardCore.Roles`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `getRoleInfo` | Gets information about a specific role |
-
-#### Workflow Management Tools
-
-Requires `OrchardCore.Workflows`. The last two tools also require `OrchardCore.Recipes.Core`.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `getWorkflowType` | Gets information about a specific workflow type |
-| `listWorkflowTypes` | Lists all workflow types in the system |
-| `createOrUpdateWorkflow` | Creates or updates a workflow definition |
-| `listWorkflowActivities` | Lists all available workflow tasks and activities |
-
-#### AI Profile Tools
-
-Available when the base feature is enabled.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `listAIProfiles` | Lists AI profiles with optional filters for type, analytics, data extraction, and post-session processing |
-| `viewAIProfile` | Retrieves detailed configuration for a specific AI profile by ID or name |
-
-#### AI Analytics Tools
-
-Requires the Chat Analytics feature.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `queryChatSessionMetrics` | Queries aggregated chat session analytics metrics with optional date range and profile filters for generating charts and reports |
-
-### Tool Selectability per AI Profile
-
-Each registered tool is marked as **selectable**, meaning administrators can control which tools an AI profile has access to. To configure tool access:
-
-1. Navigate to **Artificial Intelligence → AI Profiles**.
-2. Edit the desired profile.
-3. In the **Tools** section, toggle individual tools on or off.
-
-This allows creating specialized profiles. For example, a "Content Editor" profile might only have content management tools enabled, while an "Admin" profile has all tools enabled.
-
-### Feature Dependencies and Tool Availability
-
-Tools are **automatically registered** when their required Orchard Core features are enabled. The following table summarizes the feature dependencies:
-
-| Tool Category | Required Features |
-|---------------|------------------|
-| System | Base feature only |
-| Recipes | `OrchardCore.Recipes.Core` |
-| Tenant Management | `OrchardCore.Tenants` |
-| Content Management | `OrchardCore.Contents` |
-| Content Definitions | `OrchardCore.ContentTypes` (and `OrchardCore.Recipes.Core` for create/update/remove) |
-| Feature Management | `OrchardCore.Features` |
-| Notifications | `OrchardCore.Notifications` |
-| Email | `OrchardCore.Email` |
-| SMS | `OrchardCore.Sms` |
-| Users | `OrchardCore.Users` |
-| Roles | `OrchardCore.Roles` |
-| Workflows | `OrchardCore.Workflows` (and `OrchardCore.Recipes.Core` for create/update) |
-| AI Profiles | Base feature only |
-| AI Analytics | Chat Analytics feature |
-
-### Enable Additional Features for More Tools
-
-To make all tools available, enable the relevant Orchard Core features:
+## Enable
 
 ```json
 {
@@ -243,14 +32,10 @@ To make all tools available, enable the relevant Orchard Core features:
         "OrchardCore.Contents",
         "OrchardCore.ContentTypes",
         "OrchardCore.Features",
-        "OrchardCore.Tenants",
         "OrchardCore.Recipes.Core",
         "OrchardCore.Users",
         "OrchardCore.Roles",
-        "OrchardCore.Workflows",
-        "OrchardCore.Email",
-        "OrchardCore.Sms",
-        "OrchardCore.Notifications"
+        "OrchardCore.Workflows"
       ],
       "disable": []
     }
@@ -258,18 +43,92 @@ To make all tools available, enable the relevant Orchard Core features:
 }
 ```
 
-### Example - Create Content via AI
+Add `OrchardCore.Tenants`, `OrchardCore.Email`, `OrchardCore.Sms`, `OrchardCore.Notifications`, or `CrestApps.OrchardCore.AI.Chat.Analytics` only when you want those tool groups.
 
-Once the AI Agent is enabled with content tools, an AI profile can handle requests like "Create a new Blog Post titled Getting Started" by invoking the `createOrUpdateContentItem` tool internally.
+## Tool catalog
 
-The tool constructs and saves the content item through the standard Orchard Core content management pipeline, respecting all permissions, content handlers, and workflow triggers.
+| Group | Requires | Tools |
+|---|---|---|
+| System and AI profiles | Base feature | `listTimeZones`, `listAIProfiles`, `viewAIProfile` |
+| Recipes | `OrchardCore.Recipes.Core` | `applySiteSettings`, `getOrchardCoreRecipeJsonSchema`, `listOrchardCoreRecipeStepsAndSchemas`, `importOrchardCoreRecipe`, `listNonStartupRecipes`, `executeNonStartupRecipe` |
+| Tenants | `OrchardCore.Tenants` | `listStartupRecipes`, `createTenant`, `getTenant`, `listTenant`, `enableTenant`, `disableTenant`, `removeTenant`, `reloadTenant`, `setupTenant` |
+| Content | `OrchardCore.Contents` | `searchForContentItems`, `getSampleContentItemForContentType`, `publishContentItem`, `unpublishContentItem`, `getContentItemById`, `deleteContentItem`, `cloneContentItem`, `createOrUpdateContentItem`, `getLinkForContentItem` |
+| Content schema (system) | `OrchardCore.Contents` + `CrestApps.OrchardCore.Recipes` | `getContentItemSchema` |
+| Content definitions | `OrchardCore.ContentTypes` | `getContentTypeDefinition`, `getContentPartDefinition`, `listContentTypesDefinitions`, `listContentPartsDefinitions`, `listContentFieldDefinitions` |
+| Content definition changes | `OrchardCore.ContentTypes` + `OrchardCore.Recipes.Core` | `removeContentTypeDefinition`, `removeContentPartDefinition`, `applyContentTypeDefinitionFromRecipe` |
+| Features | `OrchardCore.Features` | `disableSiteFeature`, `enableSiteFeature`, `searchSiteFeature`, `listSiteFeature`, `getSiteFeature` |
+| Notifications | `OrchardCore.Notifications` | `sendNotification` |
+| Email | `OrchardCore.Email` | `sendEmail` |
+| SMS | `OrchardCore.Sms` | `sendSmsMessage` |
+| Users | `OrchardCore.Users` | `getUserInfo`, `searchForUsers` |
+| Roles | `OrchardCore.Roles` | `getRoleInfo` |
+| Workflows | `OrchardCore.Workflows` | `getWorkflowType`, `listWorkflowTypes` |
+| Workflow changes | `OrchardCore.Workflows` + `OrchardCore.Recipes.Core` | `createOrUpdateWorkflow`, `listWorkflowActivities` |
+| Analytics | `CrestApps.OrchardCore.AI.Chat.Analytics` | `queryChatSessionMetrics` |
 
-### Example - Manage Tenants via AI
+### Schema-driven writes
 
-With tenant tools enabled, requests like "Create a new tenant called marketing-site" invoke the `createTenant` tool. The AI agent can also list, enable, disable, reload, and remove tenants.
+- Call `getOrchardCoreRecipeJsonSchema` before `importOrchardCoreRecipe`. It returns the root `{ "steps": [...] }` schema and can expand one step while still listing every valid step name. Recipe steps contributed by enabled features (including CrestApps steps such as `Customers` or `IndexUsers`) are listed by these tools and by the MCP recipe-step resource.
+- Call `getContentItemSchema` for the parent and nested content types before `createOrUpdateContentItem`, and send nested items (`BagPart`, `FlowPart`, widgets) inside the parent payload. With `CrestApps.OrchardCore.Recipes` enabled the payload is validated against the content type's recipe schema and corrective guidance is returned when it does not match.
 
-### Security Considerations
+## Agent profiles
 
-- All tools respect Orchard Core's permission system. Users can only perform actions they are authorized for.
-- Tools run in the context of the authenticated user's permissions.
-- Use AI profile tool selectability to limit which operations are exposed.
+An AI profile with **Profile type** `Agent` is a reusable specialist that other AI experiences can call.
+
+| Field | Stored in | Meaning |
+|---|---|---|
+| **Description** | `AIProfile.Description` | What the agent does; used by orchestrators, A2A cards, and MCP tool descriptions |
+| **Availability** | `AgentMetadata.Availability` | `OnDemand` (selectable per profile) or `AlwaysAvailable` (offered to every profile) |
+
+Select on-demand agents in the **Agents** section of another profile's or template's **Capabilities** tab; the selection is stored in `AgentInvocationMetadata.Names`. Always-available agents are not listed there because they are always offered.
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "profiles": [
+        {
+          "Name": "content-editor-agent",
+          "DisplayText": "Content Editor Agent",
+          "Description": "Finds, drafts, and publishes site content on request.",
+          "Type": "Agent",
+          "ChatDeploymentName": "default-chat",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You manage site content. Confirm before deleting anything."
+            },
+            "AgentMetadata": {
+              "Availability": "OnDemand"
+            },
+            "FunctionInvocationMetadata": {
+              "Names": [ "searchForContentItems", "createOrUpdateContentItem", "publishContentItem" ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Agent profiles can be exposed outside the site:
+
+- **A2A** - every Agent profile is published by the A2A Host feature (`orchardcore-ai-a2a-host`).
+- **MCP** - name the profile in `McpServerOptions.Agents` (or set `ExposeAllAgents`) to expose it as an MCP tool (`orchardcore-ai-mcp-server`).
+
+## Security
+
+- The tools call Orchard Core services directly (for example `deleteContentItem` calls `IContentManager.RemoveAsync`) and do **not** run their own content, feature, or tenant permission checks in the current source. The tool permission and the profile permission are the gates.
+- Chat interactions re-check each selected tool's `AccessAITool_{toolName}` at send time. AI profile sessions do not, so restrict who may query a profile that carries management tools.
+- Background callers (workflows, recipes) have no user and skip tool access checks.
+- Keep destructive groups (tenants, features, content deletion, recipe import) on dedicated, tightly permissioned profiles.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| A tool group is missing from the picker | Its Orchard Core feature is disabled, or the editing user lacks the tool permission. |
+| `createOrUpdateContentItem` produces invalid items | Enable `CrestApps.OrchardCore.Recipes` so `getContentItemSchema` is registered and payloads are validated. |
+| An agent is not offered on another profile | It is `AlwaysAvailable` (already included) or not of type Agent. |
+| A2A clients see no agents | No profile has type Agent, or the A2A Host feature is disabled. |

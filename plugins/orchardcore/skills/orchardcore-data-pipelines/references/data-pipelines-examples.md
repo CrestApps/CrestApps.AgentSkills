@@ -1,283 +1,10 @@
 # Data Pipelines Examples
 
-## Custom transform step: Mask text
+The settings type names below are the ones an export shows (`{StepType}StepSettings` under `Properties`). Enumerations are written by name. Prefer exporting a pipeline designed in the admin and editing the payload; imported pipelines are drafts until a user publishes them.
 
-A module that depends on the `OrchardCore.DataPipelines` feature adds a **Mask text** transform. The module project references `OrchardCore.DataPipelines.Abstractions`, `OrchardCore.DataPipelines.Core` and `OrchardCore.DataSources.Abstractions` (version `4.*`); the web/startup project references `OrchardCore.DataPipelines`.
+## Import a CSV from the media library as content items
 
-### Manifest
-
-```csharp
-using OrchardCore.Modules.Manifest;
-
-[assembly: Module(
-    Name = "Data Masking",
-    Version = "1.0.0",
-    Dependencies = ["OrchardCore.DataPipelines"]
-)]
-```
-
-### Step type
-
-```csharp
-using Microsoft.Extensions.Localization;
-using OrchardCore.DataPipelines.Steps;
-using OrchardCore.DataSources;
-using OrchardCore.Localization;
-
-namespace DataMasking.Steps;
-
-public sealed class MaskTextStepSettings
-{
-    public List<string> Fields { get; set; } = [];
-
-    public int VisibleCharacters { get; set; } = 4;
-}
-
-public sealed class MaskTextStep : DataPipelineStepType<MaskTextStep, MaskTextStepSettings>, IDataPipelineStepType
-{
-    public const string StepName = "MaskText";
-
-    private readonly IStringLocalizer S;
-
-    public MaskTextStep(IStringLocalizer<MaskTextStep> localizer)
-    {
-        S = localizer;
-    }
-
-    public static string Name => StepName;
-
-    public static LocalizationSource DisplayName { get; } = LocalizationSource.Create<MaskTextStep>("Mask text");
-
-    public static LocalizationSource Description { get; } = LocalizationSource.Create<MaskTextStep>("Hides all but the last characters of text fields.");
-
-    // Transform: one required rows input, one rows output.
-    public static DataPipelineStepCategory Category => DataPipelineStepCategory.Transform;
-
-    public override Task DescribeAsync(DataPipelineDescribeContext context)
-    {
-        var fields = context.GetInputFields();
-        var settings = GetSettings(context.Step);
-
-        if (settings.Fields.Count == 0)
-        {
-            context.AddWarning(S["Choose the fields to mask."]);
-        }
-
-        foreach (var name in settings.Fields)
-        {
-            var field = fields.Find(name);
-
-            if (field is null)
-            {
-                context.AddError(S["The input has no field named '{0}'.", name]);
-            }
-            else if (field.Type != DataFieldType.Text)
-            {
-                context.AddError(S["The field '{0}' isn't text.", name]);
-            }
-        }
-
-        context.SetOutputFields(fields);
-
-        return Task.CompletedTask;
-    }
-
-    public override async Task ExecuteAsync(DataPipelineStepContext context)
-    {
-        var settings = GetSettings(context.Step);
-        var output = context.GetOutput();
-
-        await foreach (var batch in context.GetInput().ReadBatchesAsync(context.CancellationToken))
-        {
-            // Every downstream step stopped reading (e.g. Keep first rows).
-            if (output.IsClosed)
-            {
-                return;
-            }
-
-            var indexes = settings.Fields.Select(batch.IndexOf).Where(index => index >= 0).ToArray();
-            var rows = new List<object[]>(batch.Count);
-
-            foreach (var source in batch.Rows)
-            {
-                // Rows may be shared with other steps on the same output: copy before changing.
-                var row = (object[])source.Clone();
-
-                foreach (var index in indexes)
-                {
-                    if (row[index] is string { Length: > 0 } text && text.Length > settings.VisibleCharacters)
-                    {
-                        row[index] = new string('*', text.Length - settings.VisibleCharacters) + text[^settings.VisibleCharacters..];
-                    }
-                }
-
-                rows.Add(row);
-            }
-
-            // Waits while downstream steps are busy (back-pressure).
-            await output.WriteAsync(new DataBatch(batch.Fields, rows), context.CancellationToken);
-        }
-    }
-}
-```
-
-### Display driver and view model
-
-```csharp
-using OrchardCore.DataPipelines.Drivers;
-using OrchardCore.DataPipelines.Models;
-using OrchardCore.DisplayManagement.Handlers;
-
-namespace DataMasking.Drivers;
-
-public sealed class MaskTextStepDisplayDriver : DataPipelineStepDisplayDriver<MaskTextStepSettings, MaskTextStepViewModel>
-{
-    protected override string StepName => MaskTextStep.StepName;
-
-    protected override ValueTask EditAsync(DataPipelineStep step, MaskTextStepSettings settings, MaskTextStepViewModel model)
-    {
-        model.Fields = string.Join(", ", settings.Fields);
-        model.VisibleCharacters = settings.VisibleCharacters;
-
-        return ValueTask.CompletedTask;
-    }
-
-    protected override ValueTask UpdateAsync(
-        DataPipelineStep step,
-        MaskTextStepSettings settings,
-        MaskTextStepViewModel model,
-        UpdateEditorContext context)
-    {
-        settings.Fields = (model.Fields ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
-        settings.VisibleCharacters = Math.Max(0, model.VisibleCharacters);
-
-        return ValueTask.CompletedTask;
-    }
-}
-
-public class MaskTextStepViewModel
-{
-    public string Fields { get; set; }
-
-    public int VisibleCharacters { get; set; }
-}
-```
-
-Report invalid values with `context.Updater.ModelState.AddModelError(Prefix, nameof(model.Property), message)` in `UpdateAsync`.
-
-### Views
-
-The base driver renders `{StepName}_Fields_Edit` (Settings tab) and `{StepName}_Fields_Design` (canvas summary).
-
-`Views/MaskText.Fields.Edit.cshtml`:
-
-```razor
-@model MaskTextStepViewModel
-
-<div class="mb-3" asp-validation-class-for="Fields">
-    <label asp-for="Fields" class="form-label">@T["Fields"]</label>
-    <input asp-for="Fields" class="form-control" />
-    <span asp-validation-for="Fields"></span>
-    <span class="hint">@T["The text fields to mask, separated by commas."]</span>
-</div>
-
-<div class="mb-3" asp-validation-class-for="VisibleCharacters">
-    <label asp-for="VisibleCharacters" class="form-label">@T["Visible characters"]</label>
-    <input asp-for="VisibleCharacters" type="number" min="0" class="form-control" />
-    <span asp-validation-for="VisibleCharacters"></span>
-</div>
-```
-
-`Views/MaskText.Fields.Design.cshtml`:
-
-```razor
-@model MaskTextStepViewModel
-
-<span>@T["Masks {0}", Model.Fields]</span>
-```
-
-`Views/DataPipelineStepIcon-MaskText.cshtml` (otherwise the category icon is used):
-
-```html
-<i class="fa-solid fa-mask" aria-hidden="true"></i>
-```
-
-### Registration
-
-```csharp
-using OrchardCore.Modules;
-
-namespace DataMasking;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddDataPipelineStep<MaskTextStep, MaskTextStepDisplayDriver>();
-    }
-}
-```
-
-## Sort-like step with data operations
-
-```csharp
-using OrchardCore.DataPipelines.Steps;
-using OrchardCore.DataSources.Operations;
-
-public override async Task ExecuteAsync(DataPipelineStepContext context)
-{
-    await using var reader = await DataPipelineRowReader.OpenAsync(context.GetInput(), context.CancellationToken);
-
-    var comparer = DataSorter.CreateComparer([(reader.Fields.IndexOf("Amount"), Descending: true)]);
-
-    // Spill options use StepMemoryLimitMegabytes and the run's temporary folder.
-    var sorted = DataSorter.SortAsync(
-        reader.ReadRowsAsync(),
-        comparer,
-        DataPipelineRowReader.CreateSpillOptions(context),
-        context.CancellationToken);
-
-    await DataPipelineRowReader.WriteRowsAsync(context.GetOutput(), reader.Fields, sorted, context.CancellationToken);
-}
-```
-
-## Run completion handler
-
-```csharp
-using Microsoft.Extensions.Logging;
-using OrchardCore.DataPipelines.Models;
-using OrchardCore.DataPipelines.Services;
-
-public sealed class FailedRunHandler : IDataPipelineRunHandler
-{
-    private readonly ILogger _logger;
-
-    public FailedRunHandler(ILogger<FailedRunHandler> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task CompletedAsync(DataPipelineRun run)
-    {
-        if (run.Status == DataPipelineRunStatus.Failed)
-        {
-            _logger.LogWarning("The data pipeline '{PipelineName}' failed: {Error}", run.PipelineName, run.Error);
-        }
-
-        return Task.CompletedTask;
-    }
-}
-```
-
-```csharp
-services.AddScoped<IDataPipelineRunHandler, FailedRunHandler>();
-```
-
-## Import a CSV from the media library as content items (recipe)
-
-The settings type names below are the ones an export shows. Prefer exporting a pipeline designed in the admin and editing the resulting recipe.
+Reads `imports/products.csv`, updates the `Product` item whose display text matches the `Name` column (or creates it), and writes the rows that can't be saved to a CSV file shared with an administrator.
 
 ```json
 {
@@ -297,7 +24,11 @@ The settings type names below are the ones an export shows. Prefer exporting a p
                 "X": 180,
                 "Y": 320,
                 "Properties": {
-                  "ReadMediaFileStepSettings": { "Path": "imports/products.csv" }
+                  "ReadMediaFileStepSettings": {
+                    "Path": "imports/products.csv",
+                    "Delimiter": ",",
+                    "HasHeaderRow": true
+                  }
                 }
               },
               {
@@ -305,11 +36,48 @@ The settings type names below are the ones an export shows. Prefer exporting a p
                 "Type": "SaveContentItems",
                 "X": 480,
                 "Y": 320,
-                "Properties": {}
+                "Properties": {
+                  "SaveContentItemsStepSettings": {
+                    "ContentType": "Product",
+                    "Mode": "CreateOrUpdate",
+                    "MatchBy": "DisplayText",
+                    "KeyField": "Name",
+                    "Mappings": [
+                      { "Target": "Product.Price", "Source": "Price" },
+                      { "Target": "Product.Sku", "Source": "Sku" }
+                    ],
+                    "Publish": true,
+                    "BatchSize": 100
+                  }
+                }
+              },
+              {
+                "StepId": "rejected",
+                "Type": "CreateFile",
+                "X": 780,
+                "Y": 320,
+                "Properties": {
+                  "CreateFileStepSettings": { "Format": "csv", "FileName": "rejected-products-{Date:yyyyMMdd}" }
+                }
+              },
+              {
+                "StepId": "share",
+                "Type": "ShareDownloadLink",
+                "X": 1080,
+                "Y": 320,
+                "Properties": {
+                  "ShareDownloadLinkStepSettings": {
+                    "Recipients": [ "admin" ],
+                    "ExpiresAfterDays": 7,
+                    "Subject": "{PipelineName}: rows that couldn't be saved"
+                  }
+                }
               }
             ],
             "Connections": [
-              { "SourceStepId": "read", "SourcePort": "Output", "TargetStepId": "save", "TargetPort": "Input" }
+              { "SourceStepId": "read", "SourcePort": "Output", "TargetStepId": "save", "TargetPort": "Input" },
+              { "SourceStepId": "save", "SourcePort": "Rejected", "TargetStepId": "rejected", "TargetPort": "Input" },
+              { "SourceStepId": "rejected", "SourcePort": "Output", "TargetStepId": "share", "TargetPort": "Input" }
             ]
           }
         }
@@ -319,4 +87,182 @@ The settings type names below are the ones an export shows. Prefer exporting a p
 }
 ```
 
-The imported pipeline is a draft: open it in the designer, finish the **Save content items** mapping, and publish it.
+- Every CSV column is read as text; the step converts each value to the type of the part or field value it writes (a value it can't convert is written empty). Add a **Select fields** step with types to catch bad values earlier, and rely on **Rejected** for items that fail validation.
+- `Product.Price` and `Product.Sku` must be values the `Contents` data source reads for the content type (see `orchardcore-data-sources`).
+
+## Filtered nightly export to an SFTP server
+
+Reads the orders modified in the last 7 days whose status isn't `Cancelled`, keeps three renamed fields, and uploads a CSV. The password or private key is a secret: enter it in the designer after the import (settings starting with `Protected` aren't exported or imported).
+
+```json
+{
+  "steps": [
+    {
+      "name": "DataPipelines",
+      "Pipelines": [
+        {
+          "PipelineId": "ordersexport0000000000001",
+          "Name": "Orders export",
+          "IsEnabled": true,
+          "Definition": {
+            "Steps": [
+              {
+                "StepId": "orders",
+                "Type": "DataSource",
+                "Title": "Recent orders",
+                "X": 180,
+                "Y": 320,
+                "Properties": {
+                  "DataSourceStepSettings": {
+                    "Source": "Contents",
+                    "DataSet": "Order",
+                    "Fields": [ "ContentItemId", "DisplayText", "Order.Status", "Order.Total", "ModifiedUtc" ],
+                    "Filters": [
+                      { "Field": "ModifiedUtc", "Operator": "InLastDays", "Values": [ "7" ] },
+                      { "Field": "Order.Status", "Operator": "NotIn", "Values": [ "Cancelled" ] }
+                    ]
+                  }
+                }
+              },
+              {
+                "StepId": "select",
+                "Type": "SelectFields",
+                "X": 480,
+                "Y": 320,
+                "Properties": {
+                  "SelectFieldsStepSettings": {
+                    "Fields": [
+                      { "Field": "DisplayText", "Name": "OrderNumber" },
+                      { "Field": "Order.Total", "Name": "Total", "Type": "Decimal" },
+                      { "Field": "ModifiedUtc", "Name": "Modified" }
+                    ]
+                  }
+                }
+              },
+              {
+                "StepId": "file",
+                "Type": "CreateFile",
+                "X": 780,
+                "Y": 320,
+                "Properties": {
+                  "CreateFileStepSettings": { "Format": "csv", "FileName": "orders-{Date:yyyy-MM-dd}" }
+                }
+              },
+              {
+                "StepId": "sftp",
+                "Type": "UploadToSftp",
+                "X": 1080,
+                "Y": 320,
+                "Properties": {
+                  "UploadToSftpStepSettings": {
+                    "Host": "sftp.example.com",
+                    "Port": 22,
+                    "Username": "exports",
+                    "HostKeyFingerprint": "SHA256:ohD8VZEXGWo6Ez8GSEJQ9WpafgLFsOfLOtGGQCQo6Og",
+                    "RemoteFolder": "/incoming/{Date:yyyy}",
+                    "Overwrite": true
+                  }
+                }
+              }
+            ],
+            "Connections": [
+              { "SourceStepId": "orders", "SourcePort": "Output", "TargetStepId": "select", "TargetPort": "Input" },
+              { "SourceStepId": "select", "SourcePort": "Output", "TargetStepId": "file", "TargetPort": "Input" },
+              { "SourceStepId": "file", "SourcePort": "Output", "TargetStepId": "sftp", "TargetPort": "Input" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Schedule it with a workflow: **Timer Event** (for example `0 2 * * *`) followed by **Run Data Pipeline Task** on this pipeline with **Skip when a run is already queued or running** enabled. The `UploadToSftp` step requires the `OrchardCore.DataPipelines.Sftp` module.
+
+## Several data sets in one Excel workbook
+
+Two sources connected to the same **Create a file** step write two worksheets, in connection order. `SheetName` holds one worksheet name per line (`\n`); an empty line keeps the title of the source step.
+
+```json
+{
+  "steps": [
+    {
+      "name": "DataPipelines",
+      "Pipelines": [
+        {
+          "PipelineId": "siteworkbook0000000000001",
+          "Name": "Site workbook",
+          "IsEnabled": true,
+          "Definition": {
+            "Steps": [
+              {
+                "StepId": "users",
+                "Type": "DataSource",
+                "Title": "Users",
+                "X": 180,
+                "Y": 220,
+                "Properties": {
+                  "DataSourceStepSettings": { "Source": "Users", "DataSet": "Users", "Fields": [ "UserName", "Email", "Roles" ] }
+                }
+              },
+              {
+                "StepId": "posts",
+                "Type": "DataSource",
+                "Title": "Blog posts",
+                "X": 180,
+                "Y": 420,
+                "Properties": {
+                  "DataSourceStepSettings": { "Source": "Contents", "DataSet": "BlogPost", "Fields": [ "DisplayText", "Owner", "PublishedUtc" ] }
+                }
+              },
+              {
+                "StepId": "workbook",
+                "Type": "CreateFile",
+                "X": 480,
+                "Y": 320,
+                "Properties": {
+                  "CreateFileStepSettings": {
+                    "Format": "xlsx",
+                    "FileName": "site-{Date}",
+                    "UseDisplayNames": true,
+                    "SheetName": "Accounts\nPosts"
+                  }
+                }
+              },
+              {
+                "StepId": "media",
+                "Type": "SaveToMedia",
+                "X": 780,
+                "Y": 320,
+                "Properties": {
+                  "SaveToMediaStepSettings": { "Folder": "reports", "Overwrite": true }
+                }
+              }
+            ],
+            "Connections": [
+              { "SourceStepId": "users", "SourcePort": "Output", "TargetStepId": "workbook", "TargetPort": "Input" },
+              { "SourceStepId": "posts", "SourcePort": "Output", "TargetStepId": "workbook", "TargetPort": "Input" },
+              { "SourceStepId": "workbook", "SourcePort": "Output", "TargetStepId": "media", "TargetPort": "Input" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+`.xlsx` is accepted by the media library by default; `.csv`, `.json`, `.jsonl` and `.zip` must be added to `OrchardCore:Media:AllowedFileExtensions` first.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---------|---------------|
+| Run fails with "The media library doesn't accept files with the extension" | Add the extension to `OrchardCore:Media:AllowedFileExtensions` (the list replaces the defaults), or write `.xlsx`. |
+| Runs fail after the publisher left | The publishing user was deleted or disabled. Publish the pipeline again with an active user. |
+| A data set is "missing" in a run but visible in the designer | Runs read as the publisher, previews as the designer. Give the publisher the permission, or publish as a user who has it. |
+| A step reports a secret can't be read | The database was copied from another site or keys changed. Enter the secret again. |
+| Incremental runs miss rows | The incremental field didn't change with the row, or a long transaction wrote a smaller value. Read a change queue instead (see `orchardcore-data-pipeline-steps`). |
+| Runs pile up in the queue | Enable **Skip when a run is already queued or running** on the Run Data Pipeline Task. |
+| Workbook run fails past about a million rows | A worksheet holds at most 1,048,576 rows. Use CSV or split into several worksheets. |

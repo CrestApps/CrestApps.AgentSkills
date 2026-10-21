@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin-lists
-description: Skill for Orchard Core 4.0 admin list pages rendered with the AdminList shape. Covers the List and Grid layouts, AdminListContext of TModel, the admin-list, admin-list-column, admin-list-grid and admin-list-list tag helpers, AdminListColumn width, alignment and no-wrap, row display drivers placing shapes for SummaryAdmin and SummaryAdminGrid, AdminListActions Buttons and Menu layouts, AdminListToolbar, AdminListSearch, IAdminListColumnsProvider with AddAdminListColumnsProvider, AdminListOptions, user layout selection, per-list alternates, sortable lists, and upgrading overridden list views. Use this skill when requests mention Orchard Core admin index pages, admin lists, grid layout, list columns, row actions menu, adding a column to the content items list, or related implementation or troubleshooting work. Strong matches include OrchardCore.Admin.Abstractions, AdminListContext, AdminListColumn, IAdminListColumnsProvider, AdminListOptions, AdminListLayout, ContentsAdminList.
+description: Skill for Orchard Core 4.0 admin index views (list pages) rendered with the AdminList shape. Covers the List and Grid layouts, AdminListContext of TModel, the admin-list and admin-list-column tag helpers, column width and alignment, row display drivers placing shapes for SummaryAdmin and SummaryAdminGrid, row templates and zones, AdminListActions Buttons and Menu layouts, AdminListToolbar, AdminListSearch, the list-management script for select-all and bulk actions, IAdminListColumnsProvider, AdminListOptions, user layout selection, per-list alternates, sortable lists, and upgrading overridden list views. Use this skill when requests mention Orchard Core admin index views, an admin index page, admin lists, converting a hand-written admin listing, grid layout, list columns, row actions menu, or adding a column to the content items list. Strong matches include OrchardCore.Admin.Abstractions, AdminListContext, AdminListColumn, IAdminListColumnsProvider, AdminListOptions, AdminListLayout, ContentsAdminList.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,6 +28,20 @@ Exactly these values exist; templates can restyle them but cannot register more 
 | View | Render `<admin-list name="..." context="Model.List">` and declare the grid columns and presentation. |
 | Row display driver | A `DisplayDriver<TModel>` returning shapes with a `SummaryAdmin` location (List) **and** a `SummaryAdminGrid` location (Grid). |
 | Column provider | Optional `IAdminListColumnsProvider` adding or changing another list's columns. |
+| `AdminList` shape | Resolves the layout at display time, builds each row once with that layout's display type, and renders the whole listing. |
+
+Do not add column or cell drivers, column metadata classes, or build both representations of a row.
+
+## When to Use
+
+| Situation | Do this |
+|---|---|
+| New admin page that lists items | Follow "Building a List Page" below. |
+| Controller already builds rows with `BuildDisplayAsync(item, updater, "SummaryAdmin")` and the view loops over them | Move the raw items into `AdminListContext<TModel>.Source`, delete the row building, add `SummaryAdminGrid` locations to the driver, render `<admin-list>`. |
+| Rows are hard-coded `<li>` markup in Razor | Write a `DisplayDriver<TModel>` for the row model first, so each row is a zone-holding shape, then build the page. |
+| Adding a column to another module's list | Column provider plus a `SummaryAdminGrid` location in your driver (see "Extending Another Module's Columns"). |
+| The page edits one entity | Not a list; see `orchardcore-admin-edit-views`. |
+| The page arranges items rather than listing them (a tree, a canvas, a media library, widgets by zone) | Keep its own presentation. |
 
 ## Building a List Page
 
@@ -52,19 +66,37 @@ Import the tag helpers once (for example in `Views/_ViewImports.cshtml`):
 @addTagHelper *, OrchardCore.Admin.Abstractions
 ```
 
+The view keeps the form, its hidden inputs, and the action bar, and renders the list inside the form:
+
 ```cshtml
-<admin-list name="Announcements" context="Model.List"
-            bulk-actions="Model.Options.BulkActions"
-            empty-message="@T["<strong>Nothing here!</strong> There are no announcements yet."]">
-    <admin-list-list item-css-class="list-group-item" />
-    <admin-list-grid>
-        <admin-list-column type="Select" />
-        <admin-list-column name="Title" title="@T["Title"]" position="20" />
-        <admin-list-column name="Status" title="@T["Status"]" position="30" width="auto" no-wrap="true" />
-        <admin-list-column type="Actions" title="@T["Actions"]" />
-    </admin-list-grid>
-</admin-list>
+<form asp-action="Index" method="post" class="no-multisubmit" data-list-management data-selected-label="@T["selected"]">
+    @* Keep the hidden filter submit first: Enter in the search box triggers it. *@
+    <input type="submit" name="submit.Filter" id="submitFilter" class="visually-hidden" />
+    <input asp-for="Options.BulkAction" type="hidden" />
+    <input type="submit" name="submit.BulkAction" class="visually-hidden" />
+
+    @* Search input group and page buttons in a sticky action bar, see references/admin-lists-examples.md *@
+
+    <admin-list name="Announcements" context="Model.List"
+                bulk-actions="Model.Options.BulkActions"
+                empty-message="@T["<strong>Nothing here!</strong> There are no announcements yet."]">
+        <admin-list-list item-css-class="list-group-item" />
+        <admin-list-grid>
+            <admin-list-column type="Select" />
+            <admin-list-column name="Title" title="@T["Title"]" position="20" />
+            <admin-list-column name="Status" title="@T["Status"]" position="30" width="auto" no-wrap="true" />
+            <admin-list-column type="Actions" title="@T["Actions"]" />
+        </admin-list-grid>
+    </admin-list>
+</form>
+
+<script asp-name="list-management" at="Foot"></script>
 ```
+
+- `name` identifies the list for column providers, the user's layout choice, and alternates. Use a string literal when only the view uses it; keep a module constant (like `ContentsAdminList.Name`) only when code reuses it.
+- The search is an input group ending with a magnifying-glass submit button (`name="submit.Filter"`), never an icon inside the input. The `AdminListSearch` shape renders exactly that.
+- The `list-management` script resource (from `OrchardCore.Resources`) wires every `[data-list-management]` root: the toolbar's `#select-all`, `#items`, `#selected-items`, and `#actions` elements, `itemIds` row checkboxes, bulk action `.dropdown-item[data-action]` links (confirmed through TheAdmin's `confirmDialog` when they carry `data-message`, as the generated toolbar's do), the hidden `Options.BulkAction` input, and `submit.BulkAction`. Override names with `data-item-input-name`, `data-bulk-action-input-name`, `data-submit-bulk-action-name`, and `data-min-selected-items`; add `data-client-side-search="true"` to filter rows by their `data-filter-value` attribute as the user types in `#search-box`, with an optional `#list-alert` element shown when nothing matches.
+- Keep those ids as the toolbar renders them; scripts and alternates rely on them.
 
 ### 3. Row Display Driver
 
@@ -75,6 +107,13 @@ public sealed class AnnouncementDisplayDriver : DisplayDriver<Announcement>
 {
     public override Task<IDisplayResult> DisplayAsync(Announcement announcement, BuildDisplayContext context)
     {
+        // Row classes and attributes render on the row element in both layouts.
+        if (context.DisplayType is OrchardCoreConstants.DisplayType.SummaryAdmin or OrchardCoreConstants.DisplayType.SummaryAdminGrid
+            && context.Shape is Shape row)
+        {
+            row.Attributes["data-filter-value"] = announcement.Title?.ToLowerInvariant() ?? string.Empty;
+        }
+
         return CombineAsync(
             View("Announcement_Checkbox_SummaryAdmin", announcement)
                 .Location(OrchardCoreConstants.DisplayType.SummaryAdmin, "Checkbox:1")
@@ -92,7 +131,12 @@ public sealed class AnnouncementDisplayDriver : DisplayDriver<Announcement>
 }
 ```
 
-Register it with `services.AddDisplayDriver<Announcement, AnnouncementDisplayDriver>()` in the feature that owns the list. The row shape type is `typeof(TModel).Name` plus the display type, so drive a domain model or a dedicated entry record, not a `*ViewModel`.
+Register it with `services.AddDisplayDriver<Announcement, AnnouncementDisplayDriver>()` in the feature that owns the list; a driver registered by a neighbouring feature leaves every row empty on sites where that feature is off. The row shape type is `typeof(TModel).Name` plus the display type (`Announcement_SummaryAdmin`), so drive a domain model or a dedicated entry record named what the shape should be called, not a `*ViewModel`.
+
+- Every visible piece of a row (checkbox, title, badges, dates, buttons, menu items) is its own shape in a zone. Anything hard-coded in the row template is missing from the grid.
+- A location without a display type applies to both, so `.Location("Tags:5")` lands in a `Tags` zone no column renders. Pair every `SummaryAdmin` location with a `SummaryAdminGrid` one, unless the zone name is also a column name (such as `Actions`).
+- A grid-only shape declares only a `SummaryAdminGrid` location. Display types do not inherit placement, whether it comes from a driver or `placement.json`.
+- Never use editor `|Column` groupings for cells; columns come from `<admin-list-column>`.
 
 The full controller, views, and templates are in `references/admin-lists-examples.md`.
 
@@ -144,10 +188,33 @@ The default `IAdminListItemDisplayManager<TModel>` delegates to `IDisplayManager
 
 ## Row Templates and Placement
 
-- `{Model}.SummaryAdmin.cshtml` renders the zones for the `List` layout only. Render actions with `@await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))` so the Buttons/Menu setting applies.
-- Zone conventions: `Content` is the title as a plain link (not a heading); `Tags`/`Meta` hold `<span class="badge ta-badge fw-normal">` badges with an icon and `title`; `Description` is a `<div class="admin-list-secondary">`; `ActionsMenu` items are bare `<a>` or `<button>` elements with `.dropdown-item`, never wrapped in `<li>`.
-- Display types do not inherit placement. A location without a display type (`.Location("Tags:5")`) lands in a `Tags` zone the grid never renders; an empty grid column is the symptom.
-- `placement.json` can target the grid independently:
+`{Model}.SummaryAdmin.cshtml` renders the zones for the `List` layout only (the grid renders column zones directly). Every shipped row uses the same structure so lists look alike:
+
+```cshtml
+<div class="row g-0 align-items-center">
+    <div class="col">
+        <div class="title d-flex align-items-center">
+            @* Checkbox zone, then <div class="summary d-flex flex-column flex-md-row list-item-search-text"> with Content, Tags, Meta *@
+        </div>
+        @if (Model.Description != null)
+        {
+            @await DisplayAsync(Model.Description)
+        }
+    </div>
+    <div class="col-auto d-flex justify-content-end ps-2">
+        @await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))
+    </div>
+</div>
+```
+
+| Zone | Renders as | Never |
+|---|---|---|
+| `Content` | The title, a plain link to the edit page | A heading (`<h5>`) |
+| `Tags`, `Meta` | One `<span class="badge ta-badge fw-normal">` per fact, with a leading icon and a `title` tooltip | Plain text or `<span class="hint">` |
+| `Description` | `<div class="admin-list-secondary">`, its own line under the title | A full-width row running under the actions |
+| `Actions`, `ActionsMenu` | Through `CreateAdminListActionsAsync`, so the Buttons/Menu setting applies; menu items are bare `<a>`/`<button class="dropdown-item">` | A hand-written button group, or menu items wrapped in `<li>` |
+
+- `placement.json` rules filtered by `"displayType": "SummaryAdminGrid"` move a shape to another column zone, hide it (`"place": "-"`), change its template, or add wrappers and alternates, independently of the List layout:
 
 ```json
 {
@@ -159,6 +226,8 @@ The default `IAdminListItemDisplayManager<TModel>` delegates to `IDisplayManager
 
 - Whole-row templates such as `Content-BlogPost.SummaryAdmin.cshtml` affect only `List`; customize grid cells with `AdminListCell-{ListName}-{Column}.cshtml`, which receives `Row` and `Column`. The grid only creates `AdminListCell` shapes for overridden cells (see `CellRenderings`).
 - The content items row now places the title link and type badge as `ContentsTitle_SummaryAdmin` and `ContentsType_SummaryAdmin` in the `Title` and `Type` zones.
+- The Actions cell renders the row's `Actions` and `ActionsMenu` zones through `AdminListActions`; moving an action shape to another zone removes it from that cell.
+- On the shape, `Rows` is output built during display (never an input) and `DisplayType` is the resolved row display type. Rows and regions inherit the list name and layout, so their alternates work without the page passing them.
 
 ## Extending Another Module's Columns
 
@@ -262,6 +331,19 @@ Examples are `AdminList-Contents-Grid.cshtml` and `AdminListActions-Menu.cshtml`
 
 Mark the rows container with `rows-*` attributes (e.g. `rows-id="rewrite-rules-sortable-list"`) and drag the rows, not their container: in `Grid` the container is `display: contents`. Use SortableJS `oldDraggableIndex`/`newDraggableIndex`, which count only rows. Force `Layout = AdminListLayout.List` only when the page cannot render a grid while sorting.
 
+## Gotchas
+
+1. **Never name a view model's rows `Items`**: `Shape` already exposes `Items` (its child shapes).
+2. **An empty grid column** means a shape has no `SummaryAdminGrid` location for that column's zone.
+3. **Per-type row templates only affect `List`**: change the grid with `SummaryAdminGrid` placement or `AdminListCell-{List}-{Column}.cshtml`.
+4. **Never wrap `ActionsMenu` items in `<li>`**: the dropdown sits inside the row's `<li>` in the List layout, the HTML parser hoists the nested `<li>` out, and the menu renders empty with stray links under the list.
+5. **No viewport classes such as `d-md-none` in row Razor**: the grid stacks through a container query on the list itself, because the admin sidebar makes the viewport a poor proxy for the list width.
+6. **Rows are built while the view renders**, from the `AdminList` displaying event, so driver queries and exceptions surface at render time, not in the controller.
+
+## Checking a List
+
+Check every list page in both layouts and both actions layouts (Buttons and Menu), with rows and with none (empty message), and in a narrow window where the grid stacks its cells. In the Grid layout every declared column should render something on every row. Enable **Let users choose the layout of a list** while developing to switch quickly.
+
 ## Upgrading from 3.x
 
 - Overriding a module's list view (e.g. `Views/Admin/Index.cshtml`) is a breaking change: an override that writes its own `<ul class="list-group">` keeps the old look and ignores the selected layout. Render the view model's `List` context with `<admin-list>` and declare columns with `<admin-list-column>`.
@@ -273,6 +355,7 @@ Mark the rows container with `rows-*` attributes (e.g. `rows-id="rewrite-rules-s
 ## Related Skills
 
 - `orchardcore-admin` for admin controllers, routes, and settings pages.
+- `orchardcore-admin-edit-views` for the create and edit pages a list links to.
 - `orchardcore-breadcrumbs` for the page title trail; reuse the list name as the trail name.
 - `orchardcore-navigation` for pager shapes and page size selection.
 - `orchardcore-contents-admin-list-filters` and `orchardcore-users-admin-list-filters` for list filters.

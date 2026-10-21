@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-documents-azure-storage
-description: Skill for storing CrestApps Orchard Core AI Documents in Azure Blob Storage. Covers AIDocumentBlobStorageOptions, BlobFileStore replacement, tenant container lifecycle, cleanup choices, and Azure configuration. Use this skill when requests mention Orchard Core AI Documents Azure Blob Storage, AIDocumentBlobStorageOptions, AIDocumentBlobContainerTenantEvents, document file storage, or Azure document containers. Strong matches include work with CrestApps.OrchardCore.AI.Documents.Azure, IDocumentFileStore, DefaultDocumentFileStore, BlobFileStore, MediaBlobStorageOptionsBase, and IModularTenantEvents.
+description: Skill for storing CrestApps Orchard Core AI Documents in Azure Blob Storage (CrestApps.OrchardCore 3.0 on Orchard Core 4.0). Covers AIDocumentBlobStorageOptions, the BlobFileStore replacement, Liquid container names and base paths per tenant, tenant container lifecycle, cleanup choices, and Azure configuration. Use this skill when requests mention Orchard Core AI Documents Azure Blob Storage, AIDocumentBlobStorageOptions, AIDocumentBlobContainerTenantEvents, document file storage, or Azure document containers. Strong matches include work with CrestApps.OrchardCore.AI.Documents.Azure, IDocumentFileStore, DefaultDocumentFileStore, BlobFileStore, MediaBlobStorageOptionsBase, and IModularTenantEvents.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -90,8 +90,8 @@ Configure the tenant under `OrchardCore:CrestApps:AI:AzureDocuments`.
 | Option | Behavior |
 |---|---|
 | `ConnectionString` | Azure Storage account connection string required to activate the replacement store. |
-| `ContainerName` | Required blob container. Use a lowercase name that meets Azure naming rules. |
-| `BasePath` | Optional prefix for AI document files. It supports Orchard Core shell-token formatting. |
+| `ContainerName` | Required blob container. Supports Liquid, such as `ai-documents-{{ ShellSettings.Name }}`; the result must meet Azure naming rules. |
+| `BasePath` | Optional prefix for AI document files. Supports Liquid, such as `{{ ShellSettings.Name }}`. |
 | `CreateContainer` | Creates the container when a configured tenant activates. |
 | `RemoveContainer` | Deletes the entire container during tenant removal. |
 | `RemoveFilesFromBasePath` | Deletes only blobs beneath `BasePath` during tenant removal. |
@@ -129,9 +129,32 @@ container.
 Blob Storage does not make a file publicly accessible and does not alter authorization
 for upload, download, or document removal.
 
-### Example deployment layout
+### Separate tenants with Liquid
 
-For a shared account and container, isolate tenants by path:
+`ContainerName` and `BasePath` are rendered with Liquid and the tenant's `ShellSettings`
+through Orchard Core's blob-storage options pipeline, so one configuration in the root
+`appsettings.json` serves every tenant.
+
+A container per tenant, deleted with the tenant:
+
+```json
+{
+  "OrchardCore": {
+    "CrestApps": {
+      "AI": {
+        "AzureDocuments": {
+          "ConnectionString": "Set through a production secret provider",
+          "ContainerName": "ai-documents-{{ ShellSettings.Name }}",
+          "CreateContainer": true,
+          "RemoveContainer": true
+        }
+      }
+    }
+  }
+}
+```
+
+One shared container separated by folder, deleting only the tenant's folder:
 
 ```json
 {
@@ -141,7 +164,7 @@ For a shared account and container, isolate tenants by path:
         "AzureDocuments": {
           "ConnectionString": "Set through a production secret provider",
           "ContainerName": "ai-documents",
-          "BasePath": "tenants/{ ShellName }/documents",
+          "BasePath": "{{ ShellSettings.Name }}",
           "CreateContainer": true,
           "RemoveContainer": false,
           "RemoveFilesFromBasePath": true
@@ -152,8 +175,12 @@ For a shared account and container, isolate tenants by path:
 }
 ```
 
-Verify the shell-token syntax and the resolved path for the Orchard Core version in
-use before relying on it for retention isolation.
+The resolved container name is lowercased and must be a valid Azure container name: 3 to
+63 characters, lowercase letters, digits, and single hyphens, starting and ending with a
+letter or digit. A tenant name with an underscore, for example, resolves to an invalid
+name and logs an error when the tenant starts; use the shared container for such tenants.
+A tenant's own `App_Data/Sites/{tenant}/appsettings.json` writes the same keys starting at
+`CrestApps`, without the `OrchardCore` wrapper.
 
 ### Troubleshooting
 

@@ -10,13 +10,13 @@ using OrchardCore.Modules.Manifest;
 
 [assembly: Module(
     Name = "Site Settings",
-    Author = ManifestConstants.OrchardCoreTeam,
-    Website = ManifestConstants.OrchardCoreWebsite,
-    Version = ManifestConstants.OrchardCoreVersion
+    Author = "Contoso",
+    Website = "https://contoso.com",
+    Version = "1.0.0"
 )]
 
 [assembly: Feature(
-    Id = "OrchardCore.SiteSettings",
+    Id = "Contoso.SiteSettings",
     Name = "Site Settings",
     Description = "Provides custom site settings.",
     Category = "Configuration"
@@ -25,7 +25,7 @@ using OrchardCore.Modules.Manifest;
 
 ### Models/SiteSettings.cs
 ```csharp
-namespace OrchardCore.SiteSettings.Models;
+namespace Contoso.SiteSettings.Models;
 
 public sealed class SiteSettingsModel
 {
@@ -40,10 +40,10 @@ public sealed class SiteSettingsModel
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Modules;
 using OrchardCore.Navigation;
-using OrchardCore.SiteSettings.Drivers;
-using OrchardCore.SiteSettings.Navigation;
+using Contoso.SiteSettings.Drivers;
+using Contoso.SiteSettings.Navigation;
 
-namespace OrchardCore.SiteSettings;
+namespace Contoso.SiteSettings;
 
 public sealed class Startup : StartupBase
 {
@@ -63,13 +63,13 @@ The driver derives from `SiteDisplayDriver<SiteSettingsModel>`, checks `ManageSi
 
 ## Example: Content Part Module
 
-A module that adds a "Rating" part to content items.
+A module that adds a "Rating" part to content items. `dotnet new ocmodulecms -n Contoso.Rating --AddPart true --PartName Rating` generates the same skeleton (part, driver, handler, settings, migration, views); the driver follows the pattern in `patterns.md`.
 
 ### Models/RatingPart.cs
 ```csharp
 using OrchardCore.ContentManagement;
 
-namespace OrchardCore.Rating.Models;
+namespace Contoso.Rating.Models;
 
 public sealed class RatingPart : ContentPart
 {
@@ -81,7 +81,7 @@ public sealed class RatingPart : ContentPart
 
 ### ViewModels/RatingPartViewModel.cs
 ```csharp
-namespace OrchardCore.Rating.ViewModels;
+namespace Contoso.Rating.ViewModels;
 
 public class RatingPartViewModel
 {
@@ -93,7 +93,7 @@ public class RatingPartViewModel
 
 ### Views/RatingPart.cshtml
 ```html
-@model OrchardCore.Rating.ViewModels.RatingPartViewModel
+@model Contoso.Rating.ViewModels.RatingPartViewModel
 
 <div class="rating-display">
     <span class="stars">@Model.Stars / 5</span>
@@ -104,7 +104,7 @@ public class RatingPartViewModel
 
 ### Views/RatingPart_Edit.cshtml
 ```html
-@model OrchardCore.Rating.ViewModels.RatingPartViewModel
+@model Contoso.Rating.ViewModels.RatingPartViewModel
 
 <div class="ocat-wrapper" asp-validation-class-for="Stars">
     <label asp-for="Stars" class="ocat-label">Stars (1-5)</label>
@@ -133,7 +133,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrchardCore.Admin;
 
-namespace OrchardCore.YourModule.Controllers;
+namespace Contoso.YourModule.Controllers;
 
 [Admin("YourModule/{action}/{id?}", "YourModule.{action}")]
 public sealed class AdminController : Controller
@@ -196,7 +196,7 @@ public sealed class AdminController : Controller
 
 <zone Name="Title">
     <breadcrumb name="YourModuleCreate" title="@T["New item"]">
-        <breadcrumb-item id="YourModule" action="Index" controller="Admin" area="OrchardCore.YourModule" permission="@YourModulePermissions.ManageYourFeature.Name">@T["Your Module"]</breadcrumb-item>
+        <breadcrumb-item id="YourModule" action="Index" controller="Admin" area="Contoso.YourModule" permission="@YourModulePermissions.ManageYourFeature.Name">@T["Your Module"]</breadcrumb-item>
     </breadcrumb>
 </zone>
 
@@ -221,7 +221,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrchardCore.ContentManagement;
 
-namespace OrchardCore.YourModule.Controllers;
+namespace Contoso.YourModule.Controllers;
 
 [Route("api/yourmodule")]
 [ApiController]
@@ -283,7 +283,7 @@ public sealed record CreateRequest(string ContentType, string Title);
 ### Assets/package.json
 ```json
 {
-  "name": "@orchardcore/your-module",
+  "name": "@contoso/your-module",
   "version": "1.0.0",
   "private": true,
   "dependencies": {

@@ -1,13 +1,13 @@
 ---
 name: orchardcore-time-zones
-description: Skill for managing friendly named IANA time-zone maps in CrestApps Orchard Core. Covers mapped time-zone selectors, catalog management, recipe import, deployment export, seeded maps, and consuming ITimeZoneSelectListProvider. Use this skill when requests mention Orchard Core time zones, friendly time-zone labels, time-zone maps, TimeZoneMaps recipes, or time-zone deployment. Strong matches include work with CrestApps.OrchardCore.TimeZones, TimeZoneMap, ITimeZoneSelectListProvider, MappedTimeZoneSelectListProvider, TimeZoneMapStep, and TimeZoneMapDeploymentStep.
+description: Skill for managing friendly named IANA time-zone maps with the CrestApps Time Zones module in Orchard Core. Covers the Tools > Time Zones admin list, the ManageTimeZoneMaps permission, unique names and time zone ids validated against the tz database, the mapped ITimeZoneSelectListProvider that limits the site Default Time Zone and user time zone menus, the TimeZoneMaps recipe step and its schema, deployment export, and seeded starter maps. Use this skill when requests mention Orchard Core time zones, friendly time-zone labels, time-zone maps, a missing time zone in a selector, TimeZoneMaps recipes, or time-zone deployment. Strong matches include CrestApps.OrchardCore.TimeZones, TimeZoneMap, ITimeZoneSelectListProvider, MappedTimeZoneSelectListProvider, TimeZoneMapHandler, TimeZoneMapStep, TimeZoneMapDeploymentStep and TimeZonesConstants.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Time Zones - Prompt Templates
+# CrestApps Time Zones
 
 ## Configure Friendly Time-Zone Maps
 
@@ -20,8 +20,9 @@ You are an Orchard Core expert. Generate accurate code, recipes, deployment guid
 - Use the module for friendly labels and curated choices, not for converting dates.
 - Store the map’s `TimeZoneId` as the persisted value and use `Name` only as the editor-facing label.
 - Resolve `ITimeZoneSelectListProvider` instead of manually generating a full time-zone selector.
-- Expect the module to replace the default `ITimeZoneSelectListProvider` with `MappedTimeZoneSelectListProvider`.
-- Keep `TimeZoneMap.Name` unique and treat it as immutable after creation.
+- Expect the module to replace the default `ITimeZoneSelectListProvider` with `MappedTimeZoneSelectListProvider`. Once enabled, every menu built from it (including the site **Default Time Zone** and the **User Time Zone** profile setting, and the Omnichannel contact and activity screens) offers only mapped zones.
+- Keep `TimeZoneMap.Name` unique and treat it as immutable after creation. Each `TimeZoneId` can be mapped only once.
+- `TimeZoneMapHandler` validates `TimeZoneId` against the NodaTime tz database (`DateTimeZoneProviders.Tzdb`) and stores the canonical id; unknown ids are rejected.
 - Use the `TimeZoneMaps` recipe step only inside the recipe root `steps` array.
 - Enable `OrchardCore.Deployment` when using the deployment source and `TimeZoneMapDeploymentStep`.
 - Use IANA identifiers such as `America/New_York`, not Windows time-zone ids.
@@ -72,7 +73,7 @@ The initial migration executes an embedded `default-timezones` recipe, creating 
 
 ## Admin Management
 
-After enabling the feature, manage maps from the Time Zones administration area. The feature registers the `ManageTimeZoneMaps` permission and an admin navigation provider.
+After enabling the feature, manage maps under **Tools > Time Zones**. The screen requires `TimeZonesConstants.Permissions.ManageTimeZoneMaps` (*Manage time zone maps*, declared with `LocalizationSource`), granted to **Administrator** by default. The list follows Orchard Core's `AdminList` standard (List or Grid layout per site and user; see the framework `orchardcore-admin-lists` skill) and shows each map's `TimeZoneId`, author display name and latest created or modified time as badges. Rows are the `TimeZoneMap_SummaryAdmin` shape.
 
 Create one record per approved choice:
 
@@ -109,10 +110,7 @@ public sealed class ScheduleTimeZoneOptions
 }
 ```
 
-`ITimeZoneSelectListProvider.GetTimeZoneSelectListItemsAsync()` returns display
-items. `GetTimeZoneSelectListAsync(CancellationToken)` returns key/value pairs
-when that is the consumer's required shape. Resolve the interface rather than
-hard-coding a time-zone array or bypassing the curated maps.
+`ITimeZoneSelectListProvider.GetTimeZoneSelectListItemsAsync()` returns `SelectListItem`s with the map `Name` as text and the `TimeZoneId` as value. `GetTimeZoneSelectListAsync(CancellationToken)` returns the same data as key/value pairs (key `TimeZoneId`, value `Name`). Resolve the interface rather than hard-coding a time-zone array or bypassing the curated maps.
 
 `MappedTimeZoneSelectListProvider` orders maps by `Name` and then `TimeZoneId`. Consumers receive select-list items and matching key/value data based on the catalog.
 
@@ -144,11 +142,11 @@ The `TimeZoneMaps` recipe step creates or updates maps. It matches an existing m
 }
 ```
 
-The recipe step can also accept `CreatedUtc` and `ModifiedUtc` to preserve audit history. Only enable the step in tenants where `CrestApps.OrchardCore.TimeZones` and `OrchardCore.Recipes.Core` are enabled.
+The recipe step can also accept `CreatedUtc` and `ModifiedUtc` to preserve audit history. The step handler (`TimeZoneMapStep`) is registered when `OrchardCore.Recipes.Core` is enabled, which the feature depends on. With `CrestApps.OrchardCore.Recipes` enabled, the step also has a JSON Schema (`TimeZoneMaps`) for validation and editor autocomplete; see the `orchardcore-crestapps-recipes` skill.
 
 ## Export Maps with Deployment
 
-Enable `OrchardCore.Deployment` to register the deployment source and `TimeZoneMapDeploymentStep`. In a deployment plan, select all maps or a subset. The exported payload uses the same `TimeZoneMaps` recipe shape and can be imported into a destination tenant.
+Enable `OrchardCore.Deployment` to register the deployment source and `TimeZoneMapDeploymentStep`. In a deployment plan, add **Time Zone Maps** (category **Infrastructure**; both labels are `LocalizationSource` values) and select all maps or a subset. The exported payload uses the same `TimeZoneMaps` recipe shape and can be imported into a destination tenant.
 
 Use deployment when moving curated time-zone governance between tenants. It exports maps, not user profile choices or arbitrary schedule data.
 
@@ -181,11 +179,18 @@ Validate a submitted `TimeZoneId` against the mapped selector before persisting 
 
 Do not create a View Model as `sealed` if it is used for model binding. Domain and service classes should remain `sealed`.
 
+## Upgrading from 2.x
+
+- The **Tools > Time Zones** list renders through Orchard Core's `AdminList` shape. A theme override of the whole list view must be redone; the List layout row is `TimeZoneMap_SummaryAdmin`, and the Grid layout is customized with `SummaryAdminGrid` placement.
+- The `ManageTimeZoneMaps` description and the deployment step's title and category are `LocalizationSource` values, translated from PO files with the declaring type as context.
+
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
 | Orchard selectors still show the full list | Ensure the Time Zones feature is enabled in the active tenant |
+| The site or user time zone menu lacks a zone | Add a map for it; once the feature is on, only mapped zones are offered |
+| Saving a map fails with "already exists" | Another map uses that `TimeZoneId`; each id can be mapped once |
 | A friendly label is missing | Create its `TimeZoneMap` entry and verify its unique name |
 | A schedule fails to resolve a zone | Correct the stored value to a valid IANA `TimeZoneId` |
 | Recipe import has no effect | Use the `TimeZoneMaps` step within `{ "steps": [...] }` and enable recipe support |
