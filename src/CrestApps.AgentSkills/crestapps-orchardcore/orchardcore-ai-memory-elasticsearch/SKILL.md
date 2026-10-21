@@ -59,9 +59,9 @@ masters unless the application intentionally manages separate indexes and migrat
 ### Configure the profile
 
 1. Configure Orchard Core Elasticsearch connectivity and permissions.
-2. Configure an embedding deployment compatible with Elasticsearch dense vectors.
+2. Create an embedding deployment that declares `textEmbedding`; the picker lists deployments in the `embedding` slot only (see `orchardcore-ai-model-capabilities`).
 3. Create **AI Memory (Elasticsearch)** under **Search → Indexing**.
-4. Select the embedding deployment and save.
+4. Select the embedding deployment and save. It is stored in `DataSourceIndexProfileMetadata.EmbeddingDeploymentName` and becomes read-only once the index exists.
 5. Select the profile in the AI Memory site setting.
 6. Enable user memory for the desired AI profile or interaction, then test as an authenticated user.
 

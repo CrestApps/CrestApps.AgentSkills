@@ -1,74 +1,63 @@
 ---
 name: orchardcore-omnichannel
-description: Skill for configuring Omnichannel communication in Orchard Core using CrestApps modules. Covers subject flows, subject actions, campaigns as grouping/reporting records, activity batches, dispositions, multi-channel messaging (SMS, email, phone, chat), AI-powered automation, Azure Event Grid webhooks, and Twilio integration. Use this skill when requests mention Orchard Core Omnichannel, Subject Flows, Manage Flow, Omnichannel SMS, Contact Management, Channel Endpoints, Communication Preferences, Activity Batches, Campaigns, Dispositions, or related setup and troubleshooting. Strong matches include CrestApps.OrchardCore.Omnichannel, CrestApps.OrchardCore.Omnichannel.Managements, CrestApps.OrchardCore.Omnichannel.Sms, CrestApps.OrchardCore.Omnichannel.EventGrid, OmnichannelContactPart, SubjectFlowSettings, SubjectAction, IOmnichannelProcessor, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for the CrestApps Orchard Core Omnichannel base module and the map of the Omnichannel module family. Covers the CrestApps.OrchardCore.Omnichannel feature (shared OmnichannelMessage store in the Omnichannel YesSql collection, IOmnichannelProcessor and IOmnichannelEventHandler contracts, OmnichannelEvent and SmsReceived, ISmsProviderRouter), the Omnichannel - Azure Communication Services feature CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices, the inbound webhook map (api/azure/webhook/eventgrid, api/twilio/webhook/sms, api/telnyx/webhook/sms), and which sibling feature to enable. Use this skill when requests mention Orchard Core Omnichannel, Azure Communication Services for Omnichannel, omnichannel processors or event handlers, or choosing Omnichannel features. Strong matches include CrestApps.OrchardCore.Omnichannel.Core, OmnichannelConstants, OmnichannelMessage, OmnichannelEvent, IOmnichannelProcessor, and IOmnichannelEventHandler.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Omnichannel - Prompt Templates
+# Orchard Core Omnichannel (Base Module)
 
-## Configure Omnichannel
+## Choose and Enable Omnichannel Features
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding omnichannel communication capabilities to an Orchard Core application using CrestApps modules.
+You are an Orchard Core expert. Use this skill to pick the right Omnichannel
+feature and to build on the shared contracts that every Omnichannel channel
+uses. The base feature is plumbing: it stores messages and preferences and
+defines contracts. It sends nothing, places no calls and has no admin screens.
 
 ### Guidelines
 
-- The base Omnichannel feature (`CrestApps.OrchardCore.Omnichannel`) provides shared message storage, contact communication-preference indexing, and communication contracts. It does not itself send SMS or email, place calls, expose an activity UI, or implement channel routing.
-- The Managements feature (`CrestApps.OrchardCore.Omnichannel.Managements`) adds an admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints under the **Interaction Center** menu.
-- The SMS feature (`CrestApps.OrchardCore.Omnichannel.Sms`) enables AI-powered SMS automation. It integrates with the AI Chat module to run AI-driven conversations over SMS using Twilio webhooks.
-- The Event Grid feature (`CrestApps.OrchardCore.Omnichannel.EventGrid`) receives inbound events through a webhook endpoint. Prefer Microsoft Entra bearer-token delivery; a configured `aeg-sas-key` is a supported shared-secret alternative.
-- The Azure Communication Services feature (`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`) only declares the dependency bridge to Orchard Core Azure Email and SMS features. It does not add an Omnichannel channel processor or its own ACS settings and routing implementation.
-- Omnichannel domain data (messages, activities, batches, AI chat sessions) is stored in a dedicated `Omnichannel` YesSql collection.
-- Communication preferences (`DoNotCall`, `DoNotSms`, `DoNotEmail`, `DoNotChat`) are tracked per contact with UTC timestamps.
-- The SMS module validates inbound Twilio requests using HMAC-SHA1 signature verification against the Twilio AuthToken.
-- A background task runs every 5 minutes to process automated activities that are scheduled and ready for dispatch.
-- Always secure API keys, SAS keys, and Twilio credentials using user secrets or environment variables; never hardcode them.
-- Install CrestApps packages in the web/startup project.
+- Install the CrestApps Omnichannel packages in the web/startup project.
+- The base feature `CrestApps.OrchardCore.Omnichannel` is enabled by every
+  other Omnichannel feature through dependencies; you rarely enable it alone.
+- Omnichannel domain data (messages, activities, batches, AI session links) is
+  stored in the dedicated `Omnichannel` YesSql collection
+  (`OmnichannelConstants.CollectionName`).
+- The base feature defines no HTTP endpoint. Inbound traffic arrives through the
+  channel or provider feature that owns the webhook.
+- Message bodies and customer and service addresses are stored as plaintext in
+  the tenant database. Protect them with database or disk encryption and treat
+  them as personal data.
+- Keep provider credentials in user secrets, environment variables or Key Vault,
+  never in recipes or source.
+- C# samples use `sealed` classes and file-scoped namespaces.
 
-### Available Omnichannel Features
+## Feature Map
 
-| Feature | Feature ID | Description |
-|---------|-----------|-------------|
-| Omnichannel | `CrestApps.OrchardCore.Omnichannel` | Shared message storage, preferences, indexes, and contracts |
-| Azure Communication Services | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | Dependency bridge for Orchard Core Azure Email and SMS features; not an Omnichannel processor |
-| Azure Event Grid | `CrestApps.OrchardCore.Omnichannel.EventGrid` | Webhook endpoint for receiving inbound messages from Azure Event Grid |
-| Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin UI for contacts, activities, activity batches, campaigns, subject flows, dispositions, and channel endpoints |
-| SMS Automation | `CrestApps.OrchardCore.Omnichannel.Sms` | AI-powered SMS channel automation via Twilio with AI chat session integration |
+| Need | Feature ID | Skill |
+|---|---|---|
+| Shared message store, preferences, contracts | `CrestApps.OrchardCore.Omnichannel` | this skill |
+| Azure Communication Services email and SMS providers | `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` | this skill |
+| Headless contacts, subjects, campaigns, activities | `CrestApps.OrchardCore.Omnichannel.Activities` | `orchardcore-omnichannel-management` |
+| Omnichannel addresses (channel endpoints) admin | `CrestApps.OrchardCore.Omnichannel.ChannelEndpoints` (dependency only) | `orchardcore-omnichannel-management` |
+| CRM admin, loads, subject flows, cadences, reports | `CrestApps.OrchardCore.Omnichannel.Managements` | `orchardcore-omnichannel-management` |
+| Leads, accounts, opportunities | `CrestApps.OrchardCore.Omnichannel.Crm` | `orchardcore-omnichannel-management` |
+| AI-driven SMS conversations | `CrestApps.OrchardCore.Omnichannel.Sms` | `orchardcore-omnichannel-sms` |
+| AI-driven voice calls (provider neutral) | `CrestApps.OrchardCore.Omnichannel.Voice` | `orchardcore-omnichannel-voice` |
+| Human messaging inbox | `CrestApps.OrchardCore.Omnichannel.Messaging` | `orchardcore-omnichannel-messaging` |
+| SMS channel of the inbox | `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` | `orchardcore-omnichannel-messaging` |
+| Push routing for the inbox | `CrestApps.OrchardCore.Omnichannel.Messaging.RoutedDistribution` | `orchardcore-omnichannel-messaging` |
+| Azure Event Grid inbound webhook | `CrestApps.OrchardCore.Omnichannel.EventGrid` | `orchardcore-omnichannel-event-grid` |
 
-### NuGet Packages
+Related skills owned elsewhere: `orchardcore-contact-center` (queues, entry
+points, agents, dialer, business hours), `orchardcore-telephony`,
+`orchardcore-telephony-telnyx` (Telnyx SMS and the Telnyx AI Voice Agent),
+`orchardcore-telephony-asterisk`, `orchardcore-dnc-registry`,
+`orchardcore-phone-numbers`, `orchardcore-signalr`, and the framework skills
+`orchardcore-sms` and `orchardcore-sms-azure`.
 
-| Package | Description |
-|---------|-------------|
-| `CrestApps.OrchardCore.Omnichannel` | Base omnichannel module |
-| `CrestApps.OrchardCore.Omnichannel.EventGrid` | Azure Event Grid webhook handler |
-| `CrestApps.OrchardCore.Omnichannel.Managements` | Contact and activity management UI |
-| `CrestApps.OrchardCore.Omnichannel.Sms` | SMS automation with Twilio and AI |
-
-### Supported Channels
-
-The omnichannel system supports the following communication channels:
-
-- **SMS** - Text messaging via Twilio; the Azure Communication Services feature is currently a placeholder and does not yet provide ACS SMS wiring
-- **Email** - Email communication with contact email tracking
-- **Phone** - Voice call tracking with do-not-call preferences
-- **Chat** - Chat messaging with do-not-chat preferences
-
-### Content Types and Parts
-
-| Content Type / Part | Stereotype | Description |
-|---------------------|-----------|-------------|
-| `OmnichannelContactPart` | Content part | Attachable contact part; it is not a content-type stereotype |
-| `PhoneNumber` | `ContactMethod` | Contact method with Number, Extension, and Type fields |
-| `EmailAddress` | `ContactMethod` | Contact method with an Email field |
-| `PhoneNumberInfoPart` | — | Reusable part with phone number, extension, and type fields |
-| `EmailInfoPart` | — | Reusable part with an email field |
-| `OmnichannelContactInfoPart` | — | Contact information part |
-
-### Enabling Omnichannel Features via Recipe
-
-Enable the base omnichannel and management features:
+## Enable via Recipe
 
 ```json
 {
@@ -85,31 +74,14 @@ Enable the base omnichannel and management features:
 }
 ```
 
-### Enabling SMS Automation via Recipe
+## Azure Communication Services
 
-Enable SMS automation with AI chat integration. This requires the AI and AI Chat features to be enabled alongside the SMS feature:
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.Omnichannel",
-        "CrestApps.OrchardCore.Omnichannel.Managements",
-        "CrestApps.OrchardCore.Omnichannel.Sms"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Enabling Azure Event Grid via Recipe
-
-Enable the Event Grid webhook endpoint for receiving inbound messages from Azure:
+`CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices` (**Omnichannel -
+Azure Communication Services**) depends on `CrestApps.OrchardCore.Omnichannel`,
+`OrchardCore.Email.Azure` and `OrchardCore.Sms.Azure`. It adds no settings,
+connection-string model or processor of its own: it switches on Orchard Core's
+ACS email and SMS providers so Omnichannel components can send through the
+standard `ISmsService` and email services.
 
 ```json
 {
@@ -117,8 +89,7 @@ Enable the Event Grid webhook endpoint for receiving inbound messages from Azure
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.Omnichannel",
-        "CrestApps.OrchardCore.Omnichannel.EventGrid"
+        "CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices"
       ],
       "disable": []
     }
@@ -126,82 +97,116 @@ Enable the Event Grid webhook endpoint for receiving inbound messages from Azure
 }
 ```
 
-### Azure Event Grid Configuration
+After enabling it:
 
-Configure Event Grid webhook authentication in your shell configuration (`appsettings.json`):
+1. Configure the Azure email provider at **Settings > Communication > Email**.
+2. Configure the Azure SMS provider at **Settings > Communication > SMS**.
+   Enabling the feature does not change a tenant's selected default provider.
+3. Enable a consumer: **SMS Omnichannel Automation** for AI SMS, or the **SMS
+   Messaging Channel**, whose SMS addresses can pin the Azure provider per number.
+4. For inbound ACS texts, enable **Omnichannel - Azure Event Grid** and subscribe
+   it to the ACS resource's SMS events. `Microsoft.Communication.SMSReceived` is
+   routed as an `SMS` inbound text; `Microsoft.Communication.SMSDeliveryReportReceived`
+   is stored but not routed (the sent message's status is not updated). The ACS
+   number must exist as an SMS omnichannel address so the event matches it.
 
-```json
+## Inbound Webhook Map
+
+| Provider path | Endpoint | Owning feature |
+|---|---|---|
+| Azure Event Grid (including ACS SMS) | `POST ~/api/azure/webhook/eventgrid` | `CrestApps.OrchardCore.Omnichannel.EventGrid` |
+| Twilio inbound SMS | `POST ~/api/twilio/webhook/sms` | `CrestApps.OrchardCore.Omnichannel.Sms` or `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` (mapped once when both are on); refused while the Twilio provider is disabled in the SMS settings |
+| Telnyx inbound SMS | `POST ~/api/telnyx/webhook/sms` | Telnyx SMS (`orchardcore-telephony-telnyx`) |
+
+Every SMS receiver raises the same `OmnichannelConstants.Events.SmsReceived`
+event on the `SMS` channel, so SMS Automation and the SMS Messaging Channel act
+on Twilio, Telnyx and ACS texts identically.
+
+## Shared Contracts
+
+All types are in `CrestApps.OrchardCore.Omnichannel.Core` (models in
+`CrestApps.OrchardCore.Omnichannel.Core.Models`, services in
+`CrestApps.OrchardCore.Omnichannel.Core.Services`).
+
+| Type | Purpose |
+|---|---|
+| `IOmnichannelProcessor` | Starts an automated activity on one channel (`Channel`, `StartAsync(activity, cancellationToken)`). SMS Automation registers `SMS`; Telnyx AI Voice registers `Phone`. |
+| `IOmnichannelEventHandler` | Receives every inbound `OmnichannelEvent` (`HandleAsync(event, cancellationToken)`). |
+| `OmnichannelEvent` | `Id`, `EventType`, `Subject`, `Message`, `Data` (`BinaryData`) and `GetDataFromJson<T>()`. |
+| `OmnichannelMessage` | Stored message: `Channel`, `CustomerAddress`, `ServiceAddress`, `Content`, `IsInbound`, `ConversationId`, `ProviderMessageId`, `DeliveryStatus`, `MediaReferences`, `ErrorCode`. |
+| `ISmsProviderRouter` | Resolves the SMS provider that owns a sending number (`ResolveProviderNameAsync`, `GetProviderAsync`, `SendAsync`), falling back to the tenant default. |
+| `OmnichannelConstants.Channels` | `Phone`, `SMS`, `Email`. |
+| `OmnichannelConstants.SmsErrorCodes` | Provider-neutral refusals such as `recipient_opted_out` and `media_not_supported`. |
+
+### Handle an Inbound Event
+
+Every handler is called for every event, so filter by event type, channel and
+direction before acting, and keep side effects idempotent because providers
+retry.
+
+```csharp
+using CrestApps.OrchardCore.Omnichannel.Core;
+using CrestApps.OrchardCore.Omnichannel.Core.Models;
+
+namespace MyCompany.OrchardCore.Communications;
+
+public sealed class ProviderReceiptHandler : IOmnichannelEventHandler
 {
-  "CrestApps": {
-    "Omnichannel": {
-      "EventGrid": {
-        "EventGridSasKey": "<!-- Your Event Grid SAS Key -->",
-        "AADIssuer": "<!-- Your AAD Issuer URL -->",
-        "AADAudience": "<!-- Your AAD Audience -->",
-        "AADMetadataAddress": "<!-- Your AAD OpenID Metadata Address -->"
-      }
+    public Task HandleAsync(OmnichannelEvent omnichannelEvent, CancellationToken cancellationToken = default)
+    {
+        if (!string.Equals(omnichannelEvent.EventType, "Contoso.MessageDelivered", StringComparison.Ordinal))
+        {
+            return Task.CompletedTask;
+        }
+
+        // Read the provider payload with omnichannelEvent.GetDataFromJson<T>().
+        return Task.CompletedTask;
     }
-  }
 }
 ```
 
-The webhook endpoint is available at `POST Omnichannel/webhook/AzureEventGrid`. Prefer Entra bearer-token delivery by configuring `AADIssuer`, `AADAudience`, and `AADMetadataAddress`; it also accepts a configured SAS key in the `aeg-sas-key` header.
+Register it in the owning feature's startup with
+`services.AddScoped<IOmnichannelEventHandler, ProviderReceiptHandler>();`.
 
-### Webhook Endpoints
+### Add an Automated Channel Processor
 
-| Method | Route | Module | Authentication |
-|--------|-------|--------|---------------|
-| POST | `Omnichannel/webhook/AzureEventGrid` | Event Grid | SAS key or AAD bearer token |
-| POST | `Omnichannel/webhook/Twilio` | SMS | Twilio HMAC-SHA1 signature |
-| POST | `Omnichannel/webhook/TwilioEventGrid` | SMS | Twilio HMAC-SHA1 signature |
+```csharp
+using CrestApps.OrchardCore.Omnichannel.Core;
+using CrestApps.OrchardCore.Omnichannel.Core.Models;
 
-All webhook endpoints are anonymous and do not require antiforgery tokens. They validate authenticity using their respective authentication mechanisms.
+namespace MyCompany.OrchardCore.Communications;
 
-### AI-Powered SMS Automation
+public sealed class WhatsAppOmnichannelProcessor : IOmnichannelProcessor
+{
+    public string Channel => "WhatsApp";
 
-The SMS module integrates with the CrestApps AI Chat module to enable automated SMS conversations:
+    public Task StartAsync(OmnichannelActivity activity, CancellationToken cancellationToken)
+    {
+        // Send the opening message for the automated activity.
+        return Task.CompletedTask;
+    }
+}
+```
 
-1. **Outbound** - The `SmsOmnichannelProcessor` creates AI chat sessions, renders initial messages using the configured subject flow and AI profile, and sends them via `ISmsService`.
-2. **Inbound** - The `SmsOmnichannelEventHandler` receives customer SMS replies, feeds them into the AI chat session as user prompts, runs AI completion, and sends the AI response back as SMS.
-3. **Conclusion Analysis** - A deferred task uses AI with the `sms-conclusion-analysis` prompt template to determine if the conversation has concluded. When concluded, it auto-sets the disposition and triggers the `CompletedActivityEvent` workflow event.
+Register with
+`services.TryAddEnumerable(ServiceDescriptor.Scoped<IOmnichannelProcessor, WhatsAppOmnichannelProcessor>());`
+and also register the channel in `ActivityChannelOptions` (see
+`orchardcore-omnichannel-management`) so loads and filters offer it. The
+management feature's `AutomatedActivitiesProcessorBackgroundTask` dispatches
+due automated activities to the processor whose `Channel` matches.
 
-### Admin UI - Interaction Center
+## Upgrading from 2.x
 
-The Managements feature adds an **Interaction Center** menu in the admin dashboard with the following sections:
-
-1. **Activities** - View and manage omnichannel activities (calls, SMS, emails). Filter by status, channel, campaign, and assignee.
-2. **Activity Batches** - Group and manage activities in batches for bulk operations. Batches choose a subject and contacts, then resolve campaign, interaction type, channel, and endpoint from the subject flow when activities are loaded.
-3. **Campaigns** - Define campaign names and descriptions used for grouping and reporting.
-4. **Subject Flows** - Configure campaign association, interaction type, channel, channel endpoint, and AI settings per `OmnichannelSubject` content type.
-5. **Dispositions** - Configure unique activity outcome categories (e.g., completed, no answer, callback requested) used by subject actions.
-6. **Channel Endpoints** - Manage communication channel endpoints (phone numbers, SMS numbers, email addresses).
-
-### Subject Flows and Manage Flow
-
-- A subject is any content type with the `OmnichannelSubject` stereotype.
-- Subject flow settings live at the subject-content-type level, not the campaign level.
-- Campaigns are used for grouping and reporting only; they no longer define channel, interaction type, endpoint, or action logic.
-- The **Configure** screen stores the campaign, interaction type, channel, endpoint, and AI-related settings for the subject.
-- The **Manage Flow** screen stores disposition-driven **Subject Actions** for that subject.
-- Subjects with no actions show a **Missing flow** badge in the Subject Flows list.
-- When the AI feature is enabled, automated subject flows expose a chat AI profile selector plus subject goal and initial outbound prompt pattern fields.
-
-### Permissions
-
-| Permission | Description |
-|-----------|-------------|
-| `ListActivities` | List all omnichannel activities |
-| `ListContactActivities` | List activities for a specific contact |
-| `CompleteActivity` | Complete any activity |
-| `CompleteOwnActivity` | Complete only own assigned activities |
-| `EditActivity` | Edit activity details |
-| `ManageDispositions` | Manage disposition categories |
-| `ManageCampaigns` | Manage campaigns |
-| `ManageActivityBatches` | Manage activity batches |
-| `ManageChannelEndpoints` | Manage channel endpoints |
-
-By default, the **Administrator** role has all permissions. The **Agent** role has `ListActivities` and `ListContactActivities`.
-
-### Background Processing
-
-The `AutomatedActivitiesProcessorBackgroundTask` runs on a cron schedule (`*/5 * * * *`, every 5 minutes). It queries activities with `Status = NotStarted` and `InteractionType = Automated` that are scheduled for dispatch (`ScheduledUtc <= now`), then routes them to the appropriate `IOmnichannelProcessor` implementation (e.g., `SmsOmnichannelProcessor`) in batches of 100.
+- Webhooks follow `api/{provider}/webhook/{action}`: point Event Grid at
+  `api/azure/webhook/eventgrid` and Twilio at `api/twilio/webhook/sms`. The old
+  `Omnichannel/webhook/AzureEventGrid`, `Omnichannel/webhook/Twilio` and
+  `Omnichannel/webhook/TwilioEventGrid` routes are gone.
+- Contacts no longer carry `DoNotChat`; the preferences are `DoNotCall`,
+  `DoNotSms` and `DoNotEmail`.
+- Read contact phone numbers and emails through `IContactMethodsAccessor`
+  (see `orchardcore-omnichannel-management`), not by walking the
+  `ContactMethods` bag.
+- The Dialpad provider is removed; use Telnyx or Asterisk.
+- CrestApps SignalR is deprecated in favor of `OrchardCore.SignalR`; the
+  messaging hub is mapped with `SignalRHubRoutes.GetHubPath<T>()` (see
+  `orchardcore-signalr`).

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-omnichannel-sms
-description: Skill for implementing AI-assisted Omnichannel SMS automation in Orchard Core using CrestApps modules. Covers outbound activity dispatch, inbound Twilio webhooks, signature validation, AI chat sessions, channel endpoints, and conclusion processing. Use this skill when requests mention Orchard Core Omnichannel SMS, Twilio webhooks, automated SMS activities, AI SMS conversations, SMS channel endpoints, or inbound message handlers. Strong matches include work with CrestApps.OrchardCore.Omnichannel.Sms, SmsOmnichannelProcessor, SmsOmnichannelEventHandler, TwilioWebhookEndpoint, TwilioEventGridEndpoint, IOmnichannelProcessor, and TwillioRequestValidator.
+description: Skill for AI-driven SMS automation in Orchard Core with the CrestApps SMS Omnichannel Automation feature CrestApps.OrchardCore.Omnichannel.Sms. Covers dependencies, automatic SMS activity loads driven by a Chat AI profile, SmsOmnichannelProcessor and SmsOmnichannelEventHandler, the Twilio webhook api/twilio/webhook/sms with signature and Base URL validation, Telnyx and ACS inbound texts, per-number providers, no-response timeout, response delay, opt-out keywords, cadences and business hours, owed-reply recovery and re-engagement tasks, the sms-conclusion-analysis prompt, AI lead conversion, handoff into the messaging workspace, and the AI agent route on text entry points. Use this skill when requests mention Omnichannel SMS automation, AI SMS conversations, automated SMS activities, the Twilio inbound SMS webhook, or SMS opt-out keywords. Strong matches include SmsOmnichannelProcessor, SmsOmnichannelEventHandler, SmsReEngagementBackgroundTask, and SmsEntryPointAIConversationStarter.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,46 +9,34 @@ metadata:
 
 # Orchard Core Omnichannel SMS Automation
 
-## Configure AI-Assisted SMS
+## Configure AI-Driven SMS
 
-You are an Orchard Core expert. Configure the SMS Omnichannel feature as an
-automated activity channel backed by Orchard Core SMS and the CrestApps AI Chat
-services. Secure inbound Twilio traffic before it enters the Omnichannel event
-pipeline.
+You are an Orchard Core expert. Configure the SMS Omnichannel Automation
+feature so an AI chat profile carries SMS conversations for automated
+activities, and connect the SMS provider's inbound webhook so customer replies
+reach the AI.
 
 ### Guidelines
 
-- Install `CrestApps.OrchardCore.Omnichannel.Sms` in the web/startup project.
-- Enable the exact feature ID `CrestApps.OrchardCore.Omnichannel.Sms`; its
-  manifest depends on the AI base feature, dependency-only AI Chat Core,
-  Omnichannel Management, and `OrchardCore.Sms`.
-- The SMS feature supplies `SmsOmnichannelProcessor` as an
-  `IOmnichannelProcessor` for the `SMS` channel and registers
-  `SmsOmnichannelEventHandler` as an `IOmnichannelEventHandler`.
-- Configure a working Orchard Core SMS provider before scheduling outbound
-  automated activities. This module calls `ISmsService`; it does not replace an
-  SMS provider.
-- Configure a channel endpoint for the SMS service address and choose that
-  endpoint on an automated SMS subject flow.
-- The direct Twilio webhook and the Twilio Event Grid endpoint are anonymous
-  and disable antiforgery, but each validates `X-Twilio-Signature` using the
-  configured Twilio auth token.
-- Keep the Twilio auth token encrypted in Orchard Core SMS settings and inject
-  provider credentials through secrets or environment configuration. Never put
-  tokens in source code or recipes.
-- Keep custom code `sealed` with file-scoped namespaces. View Models remain
-  unsealed only when model binding requires them.
+- Install `CrestApps.OrchardCore.Omnichannel.Sms` in the web/startup project and
+  enable `CrestApps.OrchardCore.Omnichannel.Sms`.
+- Its manifest depends on `CrestApps.OrchardCore.AI`,
+  `CrestApps.OrchardCore.AI.Chat.Core`,
+  `CrestApps.OrchardCore.Omnichannel.Managements`, `OrchardCore.Sms` and
+  `CrestApps.OrchardCore.ContactCenter.BusinessHours` (business-hours calendars
+  gate background follow-ups).
+- An AI provider connection and a chat deployment must exist (see
+  `orchardcore-ai` and `orchardcore-ai-connections`).
+- Configure at least one Orchard Core SMS provider (Twilio, Azure, or Telnyx from
+  `orchardcore-telephony-telnyx`) and the tenant default at
+  **Settings > Communication > SMS**. Sends go through `ISmsProviderRouter`, so
+  an SMS address that pins a provider sends through that provider.
+- Only **Chat** profiles with **Start the conversation automatically** can drive
+  automated SMS, because the opening message is rendered and sent first.
+- Twilio secrets live in Orchard Core's Twilio settings (protected at rest);
+  never place tokens in recipes or source.
 
-## Feature and Package
-
-| Item | Value |
-|---|---|
-| NuGet package | `CrestApps.OrchardCore.Omnichannel.Sms` |
-| SMS feature | `CrestApps.OrchardCore.Omnichannel.Sms` |
-| Required AI feature | `CrestApps.OrchardCore.AI` |
-| Required chat dependency | `CrestApps.OrchardCore.AI.Chat.Core` activated by the SMS feature |
-| Required management feature | `CrestApps.OrchardCore.Omnichannel.Managements` |
-| Required platform feature | `OrchardCore.Sms` |
+## Enable via Recipe
 
 ```json
 {
@@ -56,10 +44,6 @@ pipeline.
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.Omnichannel",
-        "CrestApps.OrchardCore.Omnichannel.Managements",
-        "OrchardCore.Sms",
         "CrestApps.OrchardCore.Omnichannel.Sms"
       ],
       "disable": []
@@ -68,136 +52,109 @@ pipeline.
 }
 ```
 
-## Configure the Flow Before Dispatch
+Add `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` as well when the AI must
+be able to hand SMS conversations to people (see Live Agent Handoff).
 
-Configure the management layer first:
+## Set Up an Automated SMS Campaign
 
-1. Add `OmnichannelContactPart` to the contact content type and create contacts.
-2. Create an `OmnichannelSubject` content type.
-3. Create the campaign, channel endpoint, dispositions, and subject flow.
-4. Set the subject flow's interaction type to `Automated` and its channel to
-   `SMS`.
-5. Select the SMS channel endpoint and configure the flow's AI settings.
-6. Ensure the selected chat profile has a resolvable chat deployment before
-   loading automated activities.
-7. Create activities through the Interaction Center or an activity batch.
+1. Build the CRM: a contact type with `OmnichannelContactPart`, a subject type
+   with `OmnichannelSubjectPart`, dispositions, a campaign, and subject actions
+   with **When to choose this disposition** guidance on each (see
+   `orchardcore-omnichannel-management`).
+2. Create a Chat AI profile with **Start the conversation automatically**. The
+   **Qualify leads by text** and **Customer care by text** starting points ship
+   with this module (see `orchardcore-ai-profile-templates`). The opening
+   message can use Liquid such as `{{ Contact.DisplayText }}`.
+3. Add the sending number as an omnichannel address with the **Text messages
+   (SMS)** capability.
+4. Connect the provider webhook (below).
+5. Create an **Automatic** activity load: subject, campaign, AI profile (or
+   leave empty to use the subject's), channel **SMS**, the sending address,
+   reply delay, optional cadence and business-hours calendar. Run **Actions >
+   Load activities**.
 
-The management background task invokes `SmsOmnichannelProcessor` for scheduled
-automated SMS activities. It does not send messages for an unconfigured
-channel, an absent processor, or an activity outside the processor's channel.
+`AutomatedActivitiesProcessorBackgroundTask` (every five minutes) hands each due
+automated `SMS` activity to `SmsOmnichannelProcessor`, which checks opt-outs,
+renders and sends the opening message, and sets the activity to
+`AwaitingCustomerAnswer`.
 
-## Outbound SMS Behavior
+## Inbound Webhooks
 
-`SmsOmnichannelProcessor.StartAsync`:
-
-1. Finds or creates an `AIChatSession` for the activity.
-2. Resolves the configured chat profile and creates a session when one is not
-   already linked to the activity.
-3. Renders that profile's required initial-prompt pattern with `Activity`,
-   `Contact`, `FlowSettings`, `Profile`, `Session`, and, when available,
-   `Campaign`.
-4. Sends the rendered text through `ISmsService`.
-5. Uses the matching `OmnichannelChannelEndpoint` value as the SMS `From`
-   address when one is selected.
-6. Stores the assistant prompt, saves the session, and sets the activity to
-   `AwaitingCustomerAnswer` after a successful send.
-
-The initial pattern must render nonempty content. Treat a render failure or SMS
-provider failure as an operational error rather than marking the activity as
-successfully started.
-
-## Inbound Webhook Endpoints
-
-| Route | Payload path | Signature behavior |
+| Provider | Endpoint | Validation |
 |---|---|---|
-| `POST /Omnichannel/webhook/Twilio` | Direct Twilio form webhook | Uses `TwillioRequestValidator` with the full URL, form values, and `X-Twilio-Signature` |
-| `POST /Omnichannel/webhook/TwilioEventGrid` | Twilio form event delivered to this route | Builds the sorted form signature input and validates `X-Twilio-Signature` |
+| Twilio | `POST ~/api/twilio/webhook/sms` | `X-Twilio-Signature` against the Twilio auth token |
+| Telnyx | `POST ~/api/telnyx/webhook/sms` | Ed25519 signature (see `orchardcore-telephony-telnyx`) |
+| Azure Communication Services | via `POST ~/api/azure/webhook/eventgrid` | Event Grid SAS key or Entra token (see `orchardcore-omnichannel-event-grid`) |
 
-Both endpoints read `From`, `To`, `Body`, and `MessageSid`, save an inbound
-`OmnichannelMessage` in the `Omnichannel` collection, create an
-`OmnichannelEvent` with event type `OmnichannelConstants.Events.SmsReceived`,
-then invoke all `IOmnichannelEventHandler` implementations.
+The Twilio webhook is registered by this feature and by the SMS Messaging
+Channel; with both on, it is mapped once. Its full address shows as a read-only
+**Webhook URL** on the Twilio tab of **Settings > Communication > SMS**; set the
+Twilio number's *A message comes in* to that URL with HTTP POST.
 
-Configure Twilio's public webhook URL with the actual HTTPS host and route:
+- Returns `404` while the Twilio provider is disabled, `400` when the auth
+  token is missing, and refuses an invalid signature.
+- Twilio signs the public URL. Behind a TLS-terminating proxy, set **Base URL**
+  in **Settings > General** so the signature is checked against it.
+- Each receiver raises `OmnichannelConstants.Events.SmsReceived` on the `SMS`
+  channel, which `SmsOmnichannelEventHandler` and the messaging workspace both
+  consume.
 
-```text
-https://<host>/Omnichannel/webhook/Twilio
-```
+## Conversation Behavior
 
-Do not add application authentication to this callback without preserving
-Twilio signature validation. The endpoint has to be reachable by Twilio, while
-the signature protects it from forged requests.
+- Each inbound reply is appended to the activity's AI chat session; the profile
+  generates the next reply, which is sent after the reply delay with natural
+  pacing. A reply delay set on the load is stored on each activity and wins over
+  the subject's **Response delay**.
+- An opt-out keyword (default `STOP`, configurable on the subject) cancels the
+  activity and sets the contact's **Do not SMS**, even when the AI may not update
+  the contact.
+- **No-response timeout** fails the activity when the customer stops answering.
+- After the conversation ends, the `sms-conclusion-analysis` prompt picks a
+  disposition from the subject's wired dispositions, writes the summary to the
+  activity notes, and runs the subject actions exactly as an agent completion
+  would. With the CRM feature and AI conversion on the load, a qualified open
+  lead is converted first (see `orchardcore-omnichannel-management`).
+- The subject's AI settings decide whether the AI may update the contact or the
+  subject.
 
-## Inbound SMS and AI Response
+### Background Tasks
 
-`SmsOmnichannelEventHandler` processes only inbound messages whose event type
-is `SmsReceived` and whose channel is `SMS`.
+| Task | Schedule | Purpose |
+|---|---|---|
+| `SmsReEngagementBackgroundTask` (**Automated SMS Re-Engagement**) | `*/5 * * * *` | Sends due cadence follow-ups while the load's business-hours calendar is open in the contact's time zone. |
+| `SmsOwedReplyRecoveryBackgroundTask` (**Automated SMS Owed-Reply Recovery**) | `*/10 * * * *` | Sends a reply that was owed but lost, for example after a restart, when the contact's last message is recent. |
 
-1. It resolves the channel endpoint from the service address.
-2. It finds the automated SMS activity by endpoint and customer address.
-3. It sets the activity to `AwaitingAgentResponse`, then checks configured
-   opt-out keywords before invoking AI.
-4. It appends the customer message as an AI chat user prompt.
-5. It resolves the selected chat profile and deployment, then requests a completion.
-6. It sends the generated assistant text through `ISmsService`.
-7. It appends the assistant prompt and changes the activity status to
-   `AwaitingCustomerAnswer`.
+## Live Agent Handoff
 
-If no channel endpoint, matching activity, campaign, AI session, or deployment
-exists, the handler logs the condition and does not send a reply. Configure
-these records before allowing customers to reply.
+Configure **Live agent handoff** on the subject (handoff queue plus at least one
+**Escalate when** condition). The SMS handoff is carried out by the messaging
+workspace, so enable `CrestApps.OrchardCore.Omnichannel.Messaging.Sms`. The
+thread, with its full automated transcript, moves into the queue's inbox. See
+`orchardcore-omnichannel-messaging`.
 
-## Conversation Conclusion
+## Let the AI Answer Incoming Texts
 
-After a successful AI SMS reply, the handler schedules deferred conclusion
-analysis using the `sms-conclusion-analysis` template. The analysis can:
+With the SMS Messaging Channel also enabled, `EntryPointAIAgentStartup` adds an
+**AI agent** routing choice to text entry points (`SmsEntryPointAIConversationStarter`).
+Set **Route to** to **AI agent** on the number's **Text messages** entry point
+and pick a Chat profile. Texts go to people instead when the entry point is
+closed, a person already holds an open conversation with the customer, the
+customer's last AI conversation ended less than an hour ago, or the profile was
+deleted. Entry points are covered by `orchardcore-contact-center`.
 
-- select a disposition and mark the activity `Completed`
-- execute the matching `ISubjectActionExecutor` actions
-- update the subject when the campaign allows it
-- update the contact when the campaign allows it
+## Extend
 
-This deferred step is intentionally separate from the webhook response. Avoid
-blocking Twilio delivery on long-running AI conclusion analysis.
+- Add a supplementary `IOmnichannelEventHandler` only for behavior this module
+  does not cover; filter by event type and channel (see `orchardcore-omnichannel`).
+- To send through another carrier, implement an Orchard Core `ISmsProvider`
+  (see `orchardcore-sms`) and pin it on the SMS address.
 
-## Implement a Supplementary Handler
+## Upgrading from 2.x
 
-Add a separate event handler only for behavior that is not covered by
-`SmsOmnichannelEventHandler`, such as recording a provider delivery event.
-
-```csharp
-using CrestApps.OrchardCore.Omnichannel.Core;
-using CrestApps.OrchardCore.Omnichannel.Core.Models;
-
-namespace MyCompany.OrchardCore.Sms;
-
-public sealed class DeliveryStatusHandler : IOmnichannelEventHandler
-{
-    public Task HandleAsync(OmnichannelEvent omnichannelEvent, CancellationToken cancellationToken = default)
-    {
-        if (!string.Equals(omnichannelEvent.EventType, "Contoso.SmsDelivered", StringComparison.Ordinal))
-        {
-            return Task.CompletedTask;
-        }
-
-        // Persist or report the provider delivery status.
-        return Task.CompletedTask;
-    }
-}
-```
-
-Because the dispatcher calls every registered handler, always filter the event
-type, channel, and direction before applying side effects.
-
-## Security and Operations Checklist
-
-- Configure `OrchardCore.Sms` and protect the Twilio auth token at rest.
-- Use HTTPS and the external URL Twilio signs when validating webhooks.
-- Test a valid signature, an invalid signature, a missing token, and a normal
-  inbound reply.
-- Normalize and configure the SMS channel endpoint so it matches the inbound
-  service address.
-- Make custom side effects idempotent because providers can retry webhooks.
-- Monitor failed `ISmsService` sends and AI completion failures.
-- Configure opt-out handling through Omnichannel contact preferences and
-  disposition actions before automating outreach.
+- The Twilio webhook moved from `Omnichannel/webhook/Twilio` to
+  `api/twilio/webhook/sms`; the `Omnichannel/webhook/TwilioEventGrid` route is
+  removed (deliver ACS texts through `api/azure/webhook/eventgrid`).
+- Subject flows are configured on the `OmnichannelSubjectPart` content-type
+  part settings, and the per-run campaign, channel and address are chosen on the
+  activity load (see `orchardcore-omnichannel-management`).
+- Enabling the feature now also enables **Contact Center Business Hours**.

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-copilot
-description: Skill for configuring the GitHub Copilot chat orchestrator in Orchard Core using the CrestApps AI Chat Copilot module. Covers GitHub OAuth and API key authentication modes, encrypted tenant and profile credentials, Copilot callback flow, model, effort, and allow-all selection on AI profiles, profile templates, and chat interactions. Use this skill when requests mention Orchard Core Copilot Orchestrator, GitHub Copilot SDK, GitHub OAuth, Copilot API Key, CopilotAuthController, CopilotOptionsConfiguration, Copilot Profiles, Copilot Templates, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat.Copilot, CopilotOptionsConfiguration, CopilotAuthController, OrchardCoreCopilotCredentialStore, CopilotSettingsDisplayDriver, AIProfileCopilotDisplayDriver, ChatInteractionCopilotDisplayDriver.
+description: Skill for configuring the GitHub Copilot chat orchestrator in Orchard Core using the CrestApps AI Chat Copilot module. Covers GitHub OAuth and API key authentication modes, encrypted tenant and profile credentials, Copilot callback flow, CopilotOptions refreshed live through IOptionsMonitor, the copilot orchestrator name, and CopilotSessionMetadata model, effort, and allow-all selection on AI profiles, profile templates, and chat interactions. Use this skill when requests mention Orchard Core Copilot Orchestrator, GitHub Copilot SDK, GitHub OAuth, Copilot API Key, CopilotAuthController, CopilotOptionsConfiguration, Copilot Profiles, Copilot Templates, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat.Copilot, CopilotOptionsConfiguration, CopilotAuthController, OrchardCoreCopilotCredentialStore, CopilotSettingsDisplayDriver, AIProfileCopilotDisplayDriver, ChatInteractionCopilotDisplayDriver.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -82,7 +82,9 @@ Provide non-secret defaults through the section used by `CopilotOptionsConfigura
 }
 ```
 
-Use environment variables or a secret store for `ApiKey` and OAuth client secrets. Tenant settings can override shell values.
+Use environment variables or a secret store for `ApiKey` and OAuth client secrets. Tenant settings win for every value they hold. Keys: `AuthenticationType` (`NotConfigured`, `GitHubOAuth`, `ApiKey`), `ClientId`, `ClientSecret` and `Scopes` for OAuth; `ProviderType`, `BaseUrl`, `ApiKey`, `DefaultModel`, `WireApi` and `AzureApiVersion` for API-key mode. The example is a tenant `App_Data/Sites/{tenant}/appsettings.json`; the host file wraps the same keys in `OrchardCore`, for example `OrchardCore__CrestApps__AI__Copilot__ApiKey`.
+
+CrestApps.Core reads `CopilotOptions` through `IOptionsMonitor<CopilotOptions>`. The module registers `services.AddSignalOptionsChangeTokenSource<CopilotOptions>()` and the settings editor calls `IOptionsUpdateNotifier.RequestUpdate<CopilotOptions>()` on save, so saved settings apply without a tenant restart. Code of your own that reads Copilot settings must also use `IOptionsMonitor<CopilotOptions>`; see `orchardcore-site-settings`.
 
 ### Configure GitHub OAuth
 
@@ -119,7 +121,36 @@ Use `completions` for the compatible chat-completions wire format. Use `response
 5. Decide whether **Allow all tool executions** is appropriate.
 6. Save the profile.
 
-Copilot does not use the ordinary connection and deployment fields. `AIProfileCopilotDisplayDriver` instead stores `CopilotSessionMetadata`. The orchestrator resolves profile credentials before user credentials.
+Copilot does not use the ordinary connection and deployment fields. `AIProfileCopilotDisplayDriver` instead stores `CopilotSessionMetadata`. The orchestrator resolves profile credentials before user credentials. Model pickers show each model's Copilot cost multiplier, for example `(x1)` or `(x3)`, when GitHub reports one. **Allow all tool executions** is checked by default.
+
+The orchestrator is registered under the name `copilot`. A recipe sets it with `OrchestratorName` and the per-profile values in `CopilotSessionMetadata`:
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "Profiles": [
+        {
+          "Name": "copilot-assistant",
+          "DisplayText": "Copilot Assistant",
+          "Type": "Chat",
+          "OrchestratorName": "copilot",
+          "Properties": {
+            "CopilotSessionMetadata": {
+              "CopilotModel": "gpt-4o",
+              "ReasoningEffort": "Default",
+              "IsAllowAll": false
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Never put OAuth tokens in a recipe; profile-scoped credentials are created by signing in from the profile editor.
 
 ### Reuse Settings with a Profile Template
 

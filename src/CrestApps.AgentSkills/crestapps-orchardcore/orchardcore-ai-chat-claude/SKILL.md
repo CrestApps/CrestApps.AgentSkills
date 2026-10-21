@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat-claude
-description: Skill for configuring the Claude chat orchestrator in Orchard Core using the CrestApps AI Chat Claude module. Covers tenant Claude options, encrypted Anthropic credentials, model discovery, Claude model and effort selection on AI profiles, profile templates, and chat interactions, plus permission management. Use this skill when requests mention Orchard Core Claude Orchestrator, ClaudeOptionsConfiguration, Claude Settings, Anthropic API Key, Claude Profiles, Claude Templates, Claude Chat Interactions, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat.Claude, ClaudeOptionsConfiguration, ClaudeSettingsDisplayDriver, AIProfileClaudeDisplayDriver, AIProfileTemplateClaudeDisplayDriver, ChatInteractionClaudeDisplayDriver, ClaudePermissionProvider.
+description: Skill for configuring the Claude chat orchestrator in Orchard Core using the CrestApps AI Chat Claude module. Covers tenant Claude options from CrestApps AI Claude configuration and site settings, encrypted Anthropic credentials, model discovery, the anthropic orchestrator name, ClaudeSessionMetadata model and effort selection on AI profiles, profile templates, and chat interactions in recipes and editors, plus permission management. Use this skill when requests mention Orchard Core Claude Orchestrator, ClaudeOptionsConfiguration, Claude Settings, Anthropic API Key, Claude Profiles, Claude Templates, Claude Chat Interactions, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat.Claude, ClaudeOptionsConfiguration, ClaudeSettingsDisplayDriver, AIProfileClaudeDisplayDriver, AIProfileTemplateClaudeDisplayDriver, ChatInteractionClaudeDisplayDriver, ClaudePermissionProvider.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -81,7 +81,9 @@ Provide non-secret defaults through the tenant shell configuration. Use user sec
 }
 ```
 
-The configuration key is `CrestApps:AI:Claude`. This module binds `ClaudeOptions` from that section before it reads tenant site settings.
+The configuration key is `CrestApps:AI:Claude` (`ApiKey`, `BaseUrl` default `https://api.anthropic.com`, `DefaultModel`). This module binds `ClaudeOptions` from that section before it reads tenant site settings. The example above is a tenant `App_Data/Sites/{tenant}/appsettings.json`; the host `appsettings.json` wraps the same keys in `OrchardCore`, and the environment-variable form is `OrchardCore__CrestApps__AI__Claude__ApiKey`.
+
+CrestApps.Core reads `ClaudeOptions` through `IOptionsSnapshot<ClaudeOptions>`, so saved site settings apply on the next request without a tenant restart.
 
 ### Configure Tenant Settings
 
@@ -103,6 +105,35 @@ The configuration key is `CrestApps:AI:Claude`. This module binds `ClaudeOptions
 5. Save and test the profile with a user authorized to query it.
 
 Use Claude session settings for per-profile behavior. Do not create an `AIProviderConnection` or an `AIDeployment` merely to select the Claude orchestration runtime.
+
+The orchestrator is registered under the name `anthropic` (title **Claude**). In a recipe, set `OrchestratorName` and store the per-profile values in `ClaudeSessionMetadata`:
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "Profiles": [
+        {
+          "Name": "claude-assistant",
+          "DisplayText": "Claude Assistant",
+          "Type": "Chat",
+          "OrchestratorName": "anthropic",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You are a concise technical assistant."
+            },
+            "ClaudeSessionMetadata": {
+              "ClaudeModel": "claude-sonnet-4-5",
+              "EffortLevel": "Medium"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Reuse Claude Settings with Templates
 
@@ -135,7 +166,7 @@ Enable `CrestApps.OrchardCore.AI.Chat.Interactions` when administrators need ad-
 }
 ```
 
-In the interaction editor, select Claude, then select an available model and effort level. `ChatInteractionClaudeDisplayDriver` persists those orchestrator-specific values without changing the generic interaction infrastructure.
+In the interaction settings panel, select Claude, then select an available model and effort level. `ChatInteractionClaudeDisplayDriver` renders the fields, and CrestApps.Core's `ClaudeChatInteractionSettingsHandler` (an `IChatInteractionSettingsHandler`) stores them as `ClaudeSessionMetadata` when the panel saves over SignalR, without changing the generic interaction infrastructure.
 
 ### Permission Management
 
@@ -159,7 +190,8 @@ Assign the permission through a role only to trusted operators:
 | `AIProfileClaudeDisplayDriver` | Adds Claude settings to an AI Profile editor |
 | `AIProfileTemplateClaudeDisplayDriver` | Adds Claude settings to a profile-template editor |
 | `ChatInteractionClaudeDisplayDriver` | Adds Claude settings to a Chat Interaction editor |
-| `ClaudePermissionProvider` | Provides `ManageClaudeSettings` |
+| `ClaudePermissionProvider` | Provides `ManageClaudeSettings`, which `AddSiteSettingsPermission` also accepts for the **Settings → Artificial Intelligence** group |
+| `ClaudeChatInteractionSettingsHandler` | CrestApps.Core handler that saves the interaction's Claude fields |
 
 ### Security Checklist
 

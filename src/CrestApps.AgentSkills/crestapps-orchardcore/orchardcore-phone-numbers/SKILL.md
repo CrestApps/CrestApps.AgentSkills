@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-numbers
-description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, region lookup, and time-zone lookup services. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, and TryFormatToE164.
+description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, display formatting, region lookup, and time-zone lookup services. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers feature, IPhoneNumberService, the canonical PhoneNumber value type with TryParse, FromE164 and TryFromE164, FormatForDisplay, PhoneNumberComparisonKey for matching stored raw values, and how DNC screening, verifications, Omnichannel and the soft phone consume canonical numbers. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, phone number display formatting, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, CrestApps.OrchardCore.PhoneNumbers.Abstractions, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, PhoneNumberComparisonKey, and TryFormatToE164.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,10 +15,12 @@ You are an Orchard Core expert. Generate code and configuration for the CrestApp
 
 ### Guidelines
 
-- Install `CrestApps.OrchardCore.PhoneNumbers` in the web/startup project.
+- Install `CrestApps.OrchardCore.PhoneNumbers` in the web/startup project. Code that only consumes the contracts references `CrestApps.OrchardCore.PhoneNumbers.Abstractions` (namespace `CrestApps.OrchardCore.PhoneNumbers`).
 - Enable `CrestApps.OrchardCore.PhoneNumbers`; it is marked dependency-only and normally activates through a dependent feature.
 - Resolve `IPhoneNumberService` rather than parsing numbers with string manipulation.
 - Store normalized phone numbers in E.164 format for comparisons, indexes, DNC lists, and external APIs.
+- Pass canonical numbers between services as the `PhoneNumber` value type (built with `IPhoneNumberService.TryParse`), not as raw strings. DNC registries require it.
+- Show numbers to people with `FormatForDisplay`; store and dial E.164.
 - Supply an ISO 3166-1 alpha-2 region when input has no leading `+`.
 - Do not infer a country from a local number without an explicit region context.
 - Preserve user-facing formatting separately when required; E.164 is a canonical storage and transport value.
@@ -33,9 +35,11 @@ You are an Orchard Core expert. Generate code and configuration for the CrestApp
 | Item | Value |
 |---|---|
 | Package | `CrestApps.OrchardCore.PhoneNumbers` |
-| Feature ID | `CrestApps.OrchardCore.PhoneNumbers` |
-| Service | `IPhoneNumberService` |
-| Implementation | `DefaultPhoneNumberService` |
+| Feature | Phone Numbers Services, ID `CrestApps.OrchardCore.PhoneNumbers` (dependency only, category Phone Verification) |
+| Contracts package | `CrestApps.OrchardCore.PhoneNumbers.Abstractions` |
+| Service | `IPhoneNumberService` (singleton) |
+| Implementation | `DefaultPhoneNumberService` (libphonenumber) |
+| Canonical value type | `PhoneNumber` (`readonly record struct`, always E.164 or empty) |
 | Normalized standard | E.164 |
 
 ### Enable Phone Number Services
@@ -61,6 +65,7 @@ The feature has `EnabledByDependencyOnly = true`. Enabling DNC Registry or Phone
 | Method | Use |
 |---|---|
 | `TryFormatToE164` | Parse input and obtain canonical E.164 output |
+| `FormatForDisplay` | Format a number for reading (grouped, without the country code when local to `regionCode`); unparseable input is returned unchanged |
 | `IsValidNumber` | Validate input for a given region |
 | `GetTimeZones` | Obtain IANA time-zone ids associated with an E.164 number |
 | `GetRegionCode` | Determine an ISO alpha-2 region from an E.164 number |
@@ -97,6 +102,32 @@ public sealed class ContactPhoneNormalizer
 For a local number such as `702-499-3350`, pass `US`. For a number that already begins with `+`, a region can be omitted when calling the service.
 
 Do not strip non-digits yourself before invoking the service. Formatting characters, prefixes, and regional numbering rules must be interpreted by the phone-number service.
+
+## The `PhoneNumber` Value Type
+
+`PhoneNumber` holds a number that is E.164 by construction, so a consumer never has to guess the format. Build it once, at the boundary:
+
+```csharp
+using CrestApps.OrchardCore.PhoneNumbers;
+
+if (_phoneNumberService.TryParse(model.PhoneNumber, model.RegionCode, out var phoneNumber))
+{
+    // phoneNumber.Value is "+17024993350", phoneNumber.Digits is "17024993350".
+    var registered = await registry.GetRegisteredNumbersAsync([phoneNumber], cancellationToken);
+}
+```
+
+| Member | Use |
+|---|---|
+| `TryParse(rawNumber, regionCode, out PhoneNumber)` | Extension on `IPhoneNumberService`; parses and normalizes in one step |
+| `PhoneNumber.TryFromE164` / `FromE164` | Wrap a value that is already E.164 (`FromE164` throws otherwise) |
+| `PhoneNumber.IsE164` | Shape check only (leading `+`, no leading zero, at most 15 digits) |
+| `HasValue`, `Value`, `Digits` | Inspect the number; `default(PhoneNumber)` has no value |
+| `GetRegionCode(PhoneNumber)` | Extension returning the region, or `null` for an empty number |
+
+`PhoneNumber` serializes to JSON as its E.164 string through `PhoneNumberJsonConverter`.
+
+To compare a stored raw value that may not have parsed, use `PhoneNumberComparisonKey.For(canonical, rawValue)` (the E.164 value when known, otherwise the digits) or `AllFor(...)` for every key a lookup should try.
 
 ## Validate Input
 
@@ -157,7 +188,8 @@ Normalize and validate `NormalizedPhoneNumber` before a record is saved. Do not 
 | `CrestApps.OrchardCore.PhoneNumbers.Verifications` | Stores and revalidates provider verification results on content items; see `orchardcore-phone-number-verifications` |
 | `CrestApps.OrchardCore.DncRegistry` | Normalizes imports and checks do-not-call records |
 | `CrestApps.OrchardCore.TimeZones` | Provides friendly editor labels for IANA zones, not phone-number discovery |
-| Telephony providers | Should use canonical values when placing calls |
+| `CrestApps.OrchardCore.Omnichannel.Managements` | Indexes every contact number in E.164 for caller and sender matching; see `orchardcore-omnichannel-management` |
+| `CrestApps.OrchardCore.Telephony` | The soft phone keypad normalizes a valid national number to E.164 before dialing so outbound screening can canonicalize it; see `orchardcore-telephony` |
 
 Phone Numbers itself does not manage external verification providers, send SMS, create a content type, or supply an admin page.
 
