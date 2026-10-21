@@ -3,29 +3,35 @@
 ## Directory Layout
 
 ```
-src/OrchardCore.Modules/OrchardCore.YourModule/
+src/Modules/Contoso.YourModule/
 ├── Manifest.cs                 # Module metadata and features
 ├── Startup.cs                  # Service registration
 ├── Migrations.cs               # Database migrations
 ├── Permissions.cs              # IPermissionProvider (static definitions in *Permissions class)
 ├── AdminMenu.cs                # Admin navigation (AdminNavigationProvider)
+├── placement.json              # Optional default placement
 ├── ConfigurationSchema.json    # Optional appsettings.json schema for the module's sections
 ├── Controllers/                # MVC controllers
 ├── Drivers/                    # Content part/field drivers
+├── Endpoints/                  # Minimal API endpoints
 ├── Fields/                     # Custom content fields
 ├── Handlers/                   # Event handlers
+├── Indexes/                    # YesSql indexes
 ├── Models/                     # Data models
 ├── Services/                   # Business logic services
 ├── Settings/                   # Part/field settings
-├── ViewModels/                 # View models
-├── Views/                      # Razor views
-├── Assets/                     # Frontend assets (JS, CSS, SCSS)
+├── ViewModels/                 # View models (not sealed)
+├── Views/                      # Razor/Liquid templates
+├── Assets/                     # Frontend sources (JS, CSS, SCSS)
 │   ├── js/                     # ES modules, no jQuery
 │   ├── scss/
 │   └── package.json
-├── wwwroot/                    # Static files output
-└── OrchardCore.YourModule.csproj
+├── Assets.json                 # Optional asset build actions
+├── wwwroot/                    # Static files, served at ~/Contoso.YourModule/...
+└── Contoso.YourModule.csproj
 ```
+
+The web (startup) project references the module project; modules that are not referenced by the startup project are not discovered.
 
 ## Required Files
 
@@ -36,13 +42,13 @@ using OrchardCore.Modules.Manifest;
 
 [assembly: Module(
     Name = "Your Module",
-    Author = ManifestConstants.OrchardCoreTeam,
-    Website = ManifestConstants.OrchardCoreWebsite,
-    Version = ManifestConstants.OrchardCoreVersion
+    Author = "Contoso",
+    Website = "https://contoso.com",
+    Version = "1.0.0"
 )]
 
 [assembly: Feature(
-    Id = "OrchardCore.YourModule",
+    Id = "Contoso.YourModule",
     Name = "Your Module",
     Description = "Description of your module.",
     Dependencies = ["OrchardCore.ContentTypes"],
@@ -50,13 +56,15 @@ using OrchardCore.Modules.Manifest;
 )]
 ```
 
+A module with a single feature can put `Description`, `Dependencies`, and `Category` on `[Module]` instead; the module ID (assembly name) is then the feature ID.
+
 ### Startup.cs
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Modules;
 
-namespace OrchardCore.YourModule;
+namespace Contoso.YourModule;
 
 public sealed class Startup : StartupBase
 {
@@ -73,11 +81,10 @@ public sealed class Startup : StartupBase
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Razor">
+
   <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <Title>OrchardCore Your Module</Title>
-    <Description>Your module description.</Description>
-    <PackageTags>$(PackageTags) OrchardCoreCMS</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -85,11 +92,16 @@ public sealed class Startup : StartupBase
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\OrchardCore\OrchardCore.Module.Targets\OrchardCore.Module.Targets.csproj" />
-    <!-- Add other dependencies as needed -->
+    <PackageReference Include="OrchardCore.Module.Targets" Version="3.*" />
+    <PackageReference Include="OrchardCore.ContentManagement" Version="3.*" />
+    <PackageReference Include="OrchardCore.ContentTypes.Abstractions" Version="3.*" />
+    <PackageReference Include="OrchardCore.DisplayManagement" Version="3.*" />
   </ItemGroup>
+
 </Project>
 ```
+
+Reference only the abstractions and libraries the code uses (for example `OrchardCore.Admin.Abstractions`, `OrchardCore.Navigation.Core`, `OrchardCore.Data.YesSql.Abstractions`). Third-party modules your module depends on must also be installed in the web project.
 
 ## Optional Files
 
@@ -99,7 +111,8 @@ public sealed class Startup : StartupBase
 | `Permissions.cs` | `IPermissionProvider` exposing static permissions | When securing features |
 | `ConfigurationSchema.json` | IntelliSense/validation of the module's `OrchardCore:*` section | When reading configuration |
 | `AdminMenu.cs` | Admin navigation | When adding admin UI |
-| `Controllers/` | HTTP endpoints | When handling requests |
+| `placement.json` | Default shape placement | When the module's shapes need default zones |
+| `Controllers/` | HTTP endpoints (HTML) | When handling requests |
 | `Drivers/` | Content display/edit | When creating content parts |
 | `Handlers/` | Event handling | When responding to events |
 | `Services/` | Business logic | When encapsulating logic |
@@ -117,3 +130,5 @@ Common dependencies to consider:
 | `OrchardCore.Users` | User management |
 | `OrchardCore.Workflows` | Workflow integration |
 | `OrchardCore.Liquid` | Liquid template support |
+
+Feature dependencies are feature IDs, not package names. Depending on a feature also makes your `Startup` run after its startup, which is required when you change its registrations (for example `ForEditor` on a built-in field).

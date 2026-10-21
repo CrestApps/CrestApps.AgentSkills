@@ -1,6 +1,6 @@
 ---
 name: orchardcore-theming
-description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding, Liquid and Razor layouts (render_section, render_body, RenderSectionAsync, RenderBodyAsync), zones, shape templates, alternates, placement rules, assets, resource manifests, theme settings, admin themes based on TheAdmin (bootstrap-select styles, admin menu color CSS custom properties), extra Feature attributes in theme manifests, and the jQuery and Vue 3 changes of Orchard Core 4. Use this skill when requests mention Orchard Core Theming, Create a Theme, theme layouts, shape overrides, template discovery, admin theme customization, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.DisplayManagement.Manifest, OrchardCore.Theme.Targets, OrchardCore.ResourceManagement, IOrchardHelper, BagPart, FlowPart, ListPart, ResourceManifest, TheTheme, TheAdmin.
+description: Skill for creating and customizing Orchard Core themes. Covers theme scaffolding with dotnet new octheme and the Theme.png thumbnail, Liquid and Razor layouts (render_section, render_body, RenderSectionAsync, RenderBodyAsync), zones, shape templates, alternates, placement rules, assets, resource manifests, theme settings, admin themes based on TheAdmin (bootstrap-select styles, admin menu color CSS custom properties), extra Feature attributes in theme manifests, and the jQuery and Vue 3 changes of Orchard Core 4. Use this skill when requests mention Orchard Core Theming, Create a Theme, theme layouts, shape overrides, template discovery, admin theme customization, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.DisplayManagement.Manifest, OrchardCore.Theme.Targets, OrchardCore.ResourceManagement, IOrchardHelper, BagPart, FlowPart, ListPart, ResourceManifest, TheTheme, TheAdmin.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -61,6 +61,8 @@ Use these cues to decide which reference file to open:
 - Determine template language (Razor vs Liquid).
 
 ## Create a Theme
+
+Scaffold with `dotnet new octheme -n {{ThemeName}}` (from `OrchardCore.ProjectTemplates`), create it next to the web project, and add a project reference to it **from the web project**; unreferenced themes are not discovered. Add `wwwroot/Theme.png` for the thumbnail on **Design → Themes**. See `orchardcore-theme-creator` for the step-by-step workflow.
 
 ### Manifest Pattern
 

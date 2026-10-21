@@ -7,7 +7,7 @@ A content part is a reusable piece of content that can be attached to content ty
 ```csharp
 using OrchardCore.ContentManagement;
 
-namespace OrchardCore.YourModule.Models;
+namespace Contoso.YourModule.Models;
 
 public sealed class YourPart : ContentPart
 {
@@ -25,10 +25,10 @@ Drivers handle display and editing of content parts.
 using OrchardCore.ContentManagement.Display.ContentDisplay;
 using OrchardCore.ContentManagement.Display.Models;
 using OrchardCore.DisplayManagement.Views;
-using OrchardCore.YourModule.Models;
-using OrchardCore.YourModule.ViewModels;
+using Contoso.YourModule.Models;
+using Contoso.YourModule.ViewModels;
 
-namespace OrchardCore.YourModule.Drivers;
+namespace Contoso.YourModule.Drivers;
 
 public sealed class YourPartDisplayDriver : ContentPartDisplayDriver<YourPart>
 {
@@ -89,7 +89,7 @@ Custom fields for content types.
 ```csharp
 using OrchardCore.ContentManagement;
 
-namespace OrchardCore.YourModule.Fields;
+namespace Contoso.YourModule.Fields;
 
 public sealed class YourField : ContentField
 {
@@ -106,7 +106,7 @@ Database migrations for creating indexes and tables.
 using OrchardCore.Data.Migration;
 using YesSql.Sql;
 
-namespace OrchardCore.YourModule;
+namespace Contoso.YourModule;
 
 public sealed class Migrations : DataMigration
 {
@@ -141,7 +141,7 @@ public sealed class Migrations : DataMigration
 ```csharp
 using YesSql.Indexes;
 
-namespace OrchardCore.YourModule.Indexes;
+namespace Contoso.YourModule.Indexes;
 
 public sealed class YourIndex : MapIndex
 {
@@ -173,7 +173,7 @@ Declare permissions in a static class (put it in a `Core`/`Abstractions` project
 using OrchardCore.Localization;
 using OrchardCore.Security.Permissions;
 
-namespace OrchardCore.YourModule;
+namespace Contoso.YourModule;
 
 public static class YourModulePermissions
 {
@@ -222,7 +222,7 @@ Register with `services.AddPermissionProvider<Permissions>()`. `Permission.Descr
 using Microsoft.Extensions.Localization;
 using OrchardCore.Navigation;
 
-namespace OrchardCore.YourModule;
+namespace Contoso.YourModule;
 
 public sealed class AdminMenu : AdminNavigationProvider
 {
@@ -239,7 +239,7 @@ public sealed class AdminMenu : AdminNavigationProvider
             .Add(S["Tools"], tools => tools
                 .Add(S["Your Item"], S["Your Item"].PrefixPosition(), item => item
                     .Id("yourModule")
-                    .Action("Index", "Admin", "OrchardCore.YourModule")
+                    .Action("Index", "Admin", "Contoso.YourModule")
                     .Permission(YourModulePermissions.ManageYourFeature)
                     .LocalNav()
                 )
@@ -257,7 +257,7 @@ public sealed class AdminMenu : AdminNavigationProvider
 ```csharp
 using OrchardCore.ContentManagement.Handlers;
 
-namespace OrchardCore.YourModule.Handlers;
+namespace Contoso.YourModule.Handlers;
 
 public sealed class YourContentHandler : ContentHandlerBase
 {
@@ -286,7 +286,7 @@ public sealed class YourContentHandler : ContentHandlerBase
 ```csharp
 using OrchardCore.BackgroundTasks;
 
-namespace OrchardCore.YourModule;
+namespace Contoso.YourModule;
 
 [BackgroundTask(Schedule = "*/15 * * * *", Description = "Runs every 15 minutes")]
 public sealed class YourBackgroundTask : IBackgroundTask
@@ -331,6 +331,8 @@ public override void ConfigureServices(IServiceCollection services)
     services.AddScoped<IContentHandler, YourContentHandler>();
 }
 ```
+
+Part- and field-specific handlers (`ContentPartHandler<TPart>`, `ContentFieldHandler<TField>`) are chained on the builder: `services.AddContentPart<YourPart>().UseDisplayDriver<YourPartDisplayDriver>().AddHandler<YourPartHandler>()`. There is no `AddContentHandler` extension.
 
 ## DisplayDriver for Non-Content Models (Admin CRUD)
 
@@ -512,9 +514,17 @@ public sealed class YourImportService
 
 The provider only hands out paths; delete what you create.
 
-## User Uploads Outside the Media Library
+## User Uploads
 
-Run every user-uploaded file through `FileCreationService` (antivirus and other `IFileEventHandler`s) before writing it permanently. `IMediaFileStore` already does this.
+Run every user-uploaded file through `FileCreationService` (antivirus and other `IFileEventHandler`s) before writing it permanently. Writing to a file store does **not** do this for you: `IMediaFileStore.CreateFileFromStreamAsync(path, stream)` only runs the `IMediaCreatingEventHandler`s. For the media library, call the extension overload that runs the pipeline:
+
+```csharp
+// MediaFileStoreExtensions (OrchardCore.Media.Abstractions); throws FileStoreException when a handler rejects the file.
+var path = await _mediaFileStore.CreateFileFromStreamAsync(
+    _fileCreationService, mediaPath, stream, overwrite: false, file.Length, file.ContentType, cancellationToken);
+```
+
+For any other `IFileStore`, run the pipeline yourself:
 
 ```csharp
 using OrchardCore.FileStorage;
@@ -550,6 +560,8 @@ public sealed class YourUploadService
     }
 }
 ```
+
+See `orchardcore-file-upload-security` for the file event pipeline.
 
 ## Editor Scripts (No jQuery)
 

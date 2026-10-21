@@ -50,9 +50,14 @@ Placement controls where shapes render, whether they render, and which alternate
 {
   "HtmlBodyPart": [
     { "place": "/Content:1", "displayType": "Detail" }
+  ],
+  "Parts_Contents_Publish": [
+    { "place": "/Sidebar:5", "displayType": "Detail" }
   ]
 }
 ```
+
+The layout must render the target zone with `@await RenderSectionAsync("Sidebar", required: false)` or `{% render_section "Sidebar", required: false %}`; a `<zone>` tag only adds content.
 
 ## Differentiators
 

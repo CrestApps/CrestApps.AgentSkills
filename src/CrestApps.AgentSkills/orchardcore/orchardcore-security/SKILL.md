@@ -22,7 +22,7 @@ You are an Orchard Core expert. Generate security and authorization configuratio
 - Content permissions (`ViewContent`, `EditContent`, `PublishContent`, `DeleteContent`, and their `Own` variants) live in `OrchardCore.Contents.CommonPermissions`; pass the content item as the resource so dynamic per-type permissions apply.
 - `OrchardCore.Security` adds security headers configured from **Settings → Security → Security Headers** (permission `ManageSecurityHeadersSettings`).
 - API endpoints authenticate with the shared `Api` scheme (`OrchardCoreConstants.AuthenticationSchemes.Api`), which accepts bearer tokens (for example from `OrchardCore.OpenId.Validation`) and never cookies.
-- Related skills: `orchardcore-cors`, `orchardcore-https`, `orchardcore-reverse-proxy`, `orchardcore-openid`, `orchardcore-openapi`, `orchardcore-rate-limits`, `orchardcore-antivirus`, `orchardcore-users-roles`.
+- Related skills: `orchardcore-cors`, `orchardcore-https`, `orchardcore-reverse-proxy`, `orchardcore-openid`, `orchardcore-openapi`, `orchardcore-rate-limits`, `orchardcore-antivirus`, `orchardcore-file-upload-security`, `orchardcore-localization-source`, `orchardcore-users-roles`.
 - All recipe JSON must be wrapped in the root `{ "steps": [...] }` format.
 - All C# classes must use the `sealed` modifier, except View Models.
 
