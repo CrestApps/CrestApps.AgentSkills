@@ -15,15 +15,16 @@ You are an Orchard Core expert. Generate configuration and code for Orchard Core
 
 ### Guidelines
 
-- Orchard Core 4.0 writes temporary files through `ITempDirectoryProvider` (namespace `OrchardCore.FileStorage`): media chunked uploads, TUS resumable uploads, deployment and recipe import/export archives, and tenant recipe uploads.
-- The default `DefaultTempDirectoryProvider` stores files under `{Path}/{TenantName}/...`. The tenant sub-directory is added automatically.
-- Configure the base path with `OrchardCore:TempDirectory:Path`. When it is omitted, `Path.GetTempPath()` is used, which matches the previous behavior.
-- On Unix-like systems, new tenant directories get owner-only permissions (`700`).
+- Orchard Core 4.0 writes temporary files through `ITempDirectoryProvider` (namespace `OrchardCore.FileStorage`, package `OrchardCore.Infrastructure.Abstractions`): in-progress media chunked uploads, TUS resumable uploads, deployment and recipe import/export archives (local and remote), workflow type import/export, recipes written to disk before tenant setup (tenant API recipe uploads), PDF text extraction for media indexing, and ClamAV buffering of non-seekable uploads.
+- The default `DefaultTempDirectoryProvider` stores files under `{Path}/{TenantName}/...`. The tenant sub-directory is added automatically; never compose it yourself. Tenants cannot see or collide with each other's files.
+- Configure the base path with `OrchardCore:TempDirectory:Path` (bound to `TempDirectoryOptions`). When it is omitted, `Path.GetTempPath()` is used, which matches the previous behavior.
+- On Unix-like systems, new tenant directories get owner-only permissions (`700`), like `Directory.CreateTempSubdirectory()`.
+- Why it exists: the OS temporary volume is often small (system disks, ephemeral container disks) and could fill up under concurrent large uploads. A configurable path can also be a shared volume, so an upload started on one instance can be completed on another.
 - Point `Path` at a mounted file share (local disk, SAN/NAS, Azure Files over SMB, AWS EFS/FSx over NFS), never at object storage. Consumers need seekable local files (`Seek`/`SetLength`, `ZipFile.ExtractToDirectory`, `PhysicalFileProvider`).
 - TUS partial uploads go to a `TusUploads` sub-directory of the same location. `MediaOptions.TusTempPath` was removed.
 - Media cleanup such as the `TemporaryFileLifetime` purge runs against the configured path.
 - Module code that writes temporary files must inject `ITempDirectoryProvider` instead of calling `Path.GetTempPath()`.
-- Temporary storage does not scan files. Run user uploads through `FileCreationService` (see `orchardcore-antivirus`) before storing them permanently.
+- Temporary storage does not scan files. Run user uploads through `FileCreationService` (see `orchardcore-file-upload-security`) before storing them permanently.
 - All C# classes must use the `sealed` modifier, except View Models.
 
 ### Configuration
@@ -64,8 +65,9 @@ New-SmbGlobalMapping -RemotePath "\\<account>.file.core.windows.net\<share>" -Cr
 { "OrchardCore": { "TempDirectory": { "Path": "Z:\\octemp" } } }
 ```
 
-- Azure App Service: **Configuration → Path mappings → Azure Storage Mounts**. Azure Container Apps: an `AzureFile` volume. Set `Path` to the mount path, for example `/mounts/octemp`.
+- Azure App Service: **Configuration → Path mappings → Azure Storage Mounts**. Azure Container Apps: an `AzureFile` volume. Set `Path` to the mount path, for example `/mounts/octemp`. The platform manages the credentials and reconnection.
 - Make the mount writable by the application identity and keep it in the same region as the app.
+- `DefaultTempDirectoryProvider` uses plain `System.IO`, so any storage presented as a mounted filesystem path (local disk, SAN/NAS, SMB, NFS) works without code changes.
 
 ### Multi-Instance TUS Uploads
 
@@ -95,9 +97,9 @@ volumes:
 
 | Member | Returns |
 |---|---|
-| `GetRootDirectory()` | The tenant-scoped root directory, created on demand. Use it as a base for tools that need a directory. |
-| `GetTempFileName(string extension = null)` | A unique file path (not created). The extension may include or omit the leading dot. |
-| `CreateTempSubdirectory(string prefix = null)` | A newly created unique sub-directory, for extracting archives or a `PhysicalFileProvider`. |
+| `GetRootDirectory()` | The tenant-scoped root directory, created on demand. Use it as a base for tools that need a directory, such as the deployment `TemporaryFileBuilder` (`OrchardCore.Deployment.Core`). |
+| `GetTempFileName(string extension = null)` | A unique file path (not created; the root directory is). The extension may include or omit the leading dot. |
+| `CreateTempSubdirectory(string prefix = null)` | A newly created unique sub-directory, optionally prefixed, for extracting archives or a `PhysicalFileProvider`. |
 
 ```csharp
 using System.IO.Compression;

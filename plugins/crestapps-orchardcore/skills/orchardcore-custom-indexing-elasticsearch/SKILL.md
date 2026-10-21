@@ -1,128 +1,154 @@
 ---
 name: orchardcore-custom-indexing-elasticsearch
-description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Elasticsearch, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Elasticsearch, Create a custom Elasticsearch index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.Elasticsearch, OrchardCore.Indexing.Core, OrchardCore.Elasticsearch, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for building a custom Elasticsearch index for arbitrary records in Orchard Core 4.0, following the CrestApps AI Memory pattern of CrestApps.OrchardCore 3.0. Covers a custom index profile type with AddElasticsearchIndexingSource, IndexProfileHandlerBase mappings with ElasticsearchIndexMetadata and dense vectors, an embedding deployment chosen from the embedding slot and stored in DataSourceIndexProfileMetadata, IDocumentIndexHandler mapping, a custom indexing service with the keyed IDocumentIndexManager and BuildDocumentIndexContext, deferred lifecycle indexing with ShellScope, re-sync through SynchronizedAsync, and a master index site setting read through IOptionsMonitor. Use it for custom Elasticsearch indexing of non-content data, vector search over custom records, or questions about CrestApps.OrchardCore.AI.Memory.Elasticsearch, OrchardCore.Indexing, OrchardCore.Elasticsearch, IIndexProfileStore, IndexProfileEmbeddingMetadataAccessor, and IAIClientFactory.CreateEmbeddingGeneratorAsync.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Custom Indexing for Elasticsearch - Prompt Templates
+# Orchard Core Custom Indexing for Elasticsearch
 
-## Create a custom Elasticsearch index for arbitrary data
+## Index arbitrary records into Elasticsearch
 
-You are an Orchard Core expert. Generate code and configuration for indexing arbitrary records into Elasticsearch using Orchard Core index profiles, document handlers, and provider-specific mappings.
+You are an Orchard Core expert. Generate code that indexes custom records (not content items) into an Elasticsearch index profile, optionally with embeddings for vector search. Model it on `CrestApps.OrchardCore.AI.Memory` (records, settings, indexing service) and `CrestApps.OrchardCore.AI.Memory.Elasticsearch` (provider registration and mappings).
 
-### When to use this skill
+### When to use it
 
-Use this skill when the data source is not standard Orchard content-item indexing. Good examples:
+- Records you store yourself: CRM or ERP rows, generated summaries, user-scoped facts, imported business data.
+- Full-text, filtered, or vector search over them through Orchard Core's index profiles.
+- For Orchard content items use the built-in content index instead (see `orchardcore-elasticsearch`). For retrieval-augmented chat over an index you already have, an AI data source is usually enough (see `orchardcore-ai-data-sources`).
 
-- user-scoped AI memory records
-- CRM or ERP records stored in a custom catalog
-- generated AI summaries
-- external records synchronized into a tenant document store
-- any custom record set that needs full-text search, filtering, or vector search
+### Architecture
 
-## Architecture to follow
+1. A shared module owns the records, a provider-neutral index document, the master-index setting, and the indexing service.
+2. A provider module registers the index source, the index-profile handler that shapes the Elasticsearch mapping, and the `IDocumentIndexHandler` that maps the neutral document.
+3. Indexing runs from the record store's lifecycle, deferred to the end of the request, never from a single controller or tool.
+4. One index profile type per record family; a site setting picks the active profile by name.
 
-Use the CrestApps AI Memory modules as the reference architecture:
+### Key pieces
 
-- `CrestApps.OrchardCore.AI.Memory` defines the source record, master index settings, indexing service, and shared index-profile logic.
-- `CrestApps.OrchardCore.AI.Memory.Elasticsearch` registers the Elasticsearch indexing source and provider-specific handlers.
-- `CrestApps.OrchardCore.AI.Memory.AzureAI` uses the same shared record/indexing pattern but with Azure AI Search mappings.
+| Piece | Namespace | Role |
+|---|---|---|
+| `AddElasticsearchIndexingSource(type, o => ...)` | `OrchardCore.Elasticsearch` | Adds the index type to **Search > Indexing** |
+| `IndexProfileHandlerBase` | `OrchardCore.Indexing.Core.Handlers` | Shapes the profile on initialize, create, update, and reacts to `SynchronizedAsync` |
+| `ElasticsearchIndexMetadata`, `ElasticsearchDefaultQueryMetadata` | `OrchardCore.Elasticsearch.Core.Models`, `OrchardCore.Elasticsearch.Models` | Mapping and default query fields |
+| `IDocumentIndexHandler`, `BuildDocumentIndexContext` | `OrchardCore.Indexing` | Map a record into a `DocumentIndex` |
+| keyed `IDocumentIndexManager` | `OrchardCore.Indexing` | `AddOrUpdateDocumentsAsync`, `DeleteDocumentsAsync` per provider |
+| `IIndexProfileStore` | `OrchardCore.Indexing` | `FindByNameAsync`, `GetByTypeAsync` |
+| `IndexProfileEmbeddingMetadataAccessor` | `CrestApps.OrchardCore.AI.Core` | Reads the embedding deployment stored in `DataSourceIndexProfileMetadata` |
+| `IAIDeploymentManager`, `IAIClientFactory` | `CrestApps.Core.AI.Deployments`, `CrestApps.Core.AI.Clients` | Resolve the deployment and create the embedding generator |
 
-### Master index pattern
-
-For arbitrary data, create one logical master index profile type for that record family. Then:
-
-1. Store the source records in your own catalog/store.
-2. Configure a site setting that chooses the active index profile name.
-3. Build a provider-neutral index document model from each source record.
-4. Let provider-specific `IDocumentIndexHandler` implementations map that neutral document into Elasticsearch fields.
-5. Trigger indexing from the data lifecycle, not from one individual controller, tool, or UI action.
-
-## Key Orchard Core pieces
-
-- `IIndexProfileStore` - loads index profiles
-- `IndexProfileHandlerBase` - reacts when an index profile is created, updated, or synchronized
-- `IDocumentIndexHandler` - maps a neutral record into `DocumentIndex`
-- keyed `IDocumentIndexManager` - writes provider-specific documents
-- `services.AddElasticsearchIndexingSource(type, options => ...)` - registers a new index source in the admin UI
-
-## Recommended implementation steps
-
-### 1. Define a source record and index type constant
+### 1. Constants and the neutral document
 
 ```csharp
 public static class CustomerInsightsConstants
 {
     public const string IndexingTaskType = "CustomerInsights";
+
+    public static class ColumnNames
+    {
+        public const string RecordId = "recordId";
+        public const string CustomerId = "customerId";
+        public const string Title = "title";
+        public const string Content = "content";
+        public const string UpdatedUtc = "updatedUtc";
+        public const string Embedding = "embedding";
+    }
 }
 
-public sealed class CustomerInsightRecord : CatalogItem
+// The stored record. Here it is a CrestApps catalog item (CrestApps.Core.Models), kept in its own store.
+public sealed class CustomerInsight : CatalogItem
 {
     public string CustomerId { get; set; }
+
     public string Title { get; set; }
-    public string Summary { get; set; }
+
     public string Content { get; set; }
+
     public DateTime UpdatedUtc { get; set; }
+}
+
+// What the provider handlers receive.
+public sealed class CustomerInsightIndexDocument
+{
+    public string RecordId { get; set; }
+
+    public string CustomerId { get; set; }
+
+    public string Title { get; set; }
+
+    public string Content { get; set; }
+
+    public DateTime UpdatedUtc { get; set; }
+
     public float[] Embedding { get; set; }
 }
 ```
 
-### 2. Add index-profile metadata when the index needs extra configuration
-
-Use metadata for provider-independent settings such as embedding provider, connection, deployment, or other indexing options.
+### 2. Register the provider
 
 ```csharp
-public sealed class CustomerInsightIndexProfileMetadata
-{
-    public string EmbeddingProviderName { get; set; }
-    public string EmbeddingConnectionName { get; set; }
-    public string EmbeddingDeploymentName { get; set; }
-}
-```
-
-### 3. Register the Elasticsearch index source
-
-```csharp
-using OrchardCore.Indexing;
-using OrchardCore.Indexing.Core;
-using OrchardCore.Elasticsearch;
-
 public sealed class Startup : StartupBase
 {
+    internal readonly IStringLocalizer S;
+
+    public Startup(IStringLocalizer<Startup> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddIndexProfileHandler<CustomerInsightElasticsearchIndexProfileHandler>();
         services.AddScoped<IDocumentIndexHandler, CustomerInsightElasticsearchDocumentIndexHandler>();
 
-        services.AddElasticsearchIndexingSource(CustomerInsightsConstants.IndexingTaskType, options =>
+        services.AddElasticsearchIndexingSource(CustomerInsightsConstants.IndexingTaskType, o =>
         {
-            options.DisplayName = S["Customer insights (Elasticsearch)"];
-            options.Description = S["Create an Elasticsearch index for custom customer insight records."];
+            o.DisplayName = S["Customer insights (Elasticsearch)"];
+            o.Description = S["Create an Elasticsearch index for customer insight records."];
         });
     }
 }
 ```
 
-### 4. Create a provider-specific index-profile handler
+The provider module depends on your shared feature and on `OrchardCore.Elasticsearch`.
 
-This is where Elasticsearch mappings are defined.
+### 3. Shape the mapping
+
+Measure the vector size from the selected embedding deployment, as the memory and data source handlers do, and fall back to 1536 when it cannot be measured.
 
 ```csharp
-using Elastic.Clients.Elasticsearch.Mapping;
-using OrchardCore.Entities;
-using OrchardCore.Indexing.Models;
-using OrchardCore.Infrastructure.Entities;
-using OrchardCore.Elasticsearch;
-using OrchardCore.Elasticsearch.Core.Models;
-using OrchardCore.Elasticsearch.Models;
-
 public sealed class CustomerInsightElasticsearchIndexProfileHandler : IndexProfileHandlerBase
 {
-    public override Task InitializingAsync(InitializingContext<IndexProfile> context)
-        => SetMappingAsync(context.Model);
+    private const int DefaultDimensions = 1536;
+
+    private readonly IAIDeploymentManager _deploymentManager;
+    private readonly IAIClientFactory _aiClientFactory;
+
+    public CustomerInsightElasticsearchIndexProfileHandler(
+        IAIDeploymentManager deploymentManager,
+        IAIClientFactory aiClientFactory)
+    {
+        _deploymentManager = deploymentManager;
+        _aiClientFactory = aiClientFactory;
+    }
+
+    public override async Task InitializingAsync(InitializingContext<IndexProfile> context)
+    {
+        await SetMappingAsync(context.Model);
+
+        if (CanHandle(context.Model))
+        {
+            var query = context.Model.GetOrCreate<ElasticsearchDefaultQueryMetadata>();
+
+            if (query.DefaultSearchFields is null || query.DefaultSearchFields.Length == 0)
+            {
+                query.DefaultSearchFields = [CustomerInsightsConstants.ColumnNames.Title, CustomerInsightsConstants.ColumnNames.Content];
+                context.Model.Put(query);
+            }
+        }
+    }
 
     public override Task CreatingAsync(CreatingContext<IndexProfile> context)
         => SetMappingAsync(context.Model);
@@ -130,152 +156,346 @@ public sealed class CustomerInsightElasticsearchIndexProfileHandler : IndexProfi
     public override Task UpdatingAsync(UpdatingContext<IndexProfile> context)
         => SetMappingAsync(context.Model);
 
-    private static Task SetMappingAsync(IndexProfile indexProfile)
+    private async Task SetMappingAsync(IndexProfile indexProfile)
     {
-        if (!string.Equals(indexProfile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(indexProfile.ProviderName, ElasticsearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase))
+        if (!CanHandle(indexProfile))
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        if (!indexProfile.TryGet<ElasticsearchIndexMetadata>(out var metadata))
-        {
-            metadata = new ElasticsearchIndexMetadata();
-        }
-
+        var metadata = indexProfile.GetOrCreate<ElasticsearchIndexMetadata>();
         metadata.IndexMappings ??= new ElasticsearchIndexMap();
         metadata.IndexMappings.Mapping ??= new TypeMapping();
         metadata.IndexMappings.Mapping.Properties ??= [];
 
-        metadata.IndexMappings.KeyFieldName = "RecordId";
-        metadata.IndexMappings.Mapping.Properties["RecordId"] = new KeywordProperty();
-        metadata.IndexMappings.Mapping.Properties["CustomerId"] = new KeywordProperty();
-        metadata.IndexMappings.Mapping.Properties["Title"] = new TextProperty();
-        metadata.IndexMappings.Mapping.Properties["Summary"] = new TextProperty();
-        metadata.IndexMappings.Mapping.Properties["Content"] = new TextProperty();
-        metadata.IndexMappings.Mapping.Properties["UpdatedUtc"] = new DateProperty();
-        metadata.IndexMappings.Mapping.Properties["Embedding"] = new DenseVectorProperty
+        var properties = metadata.IndexMappings.Mapping.Properties;
+
+        metadata.IndexMappings.KeyFieldName = CustomerInsightsConstants.ColumnNames.RecordId;
+        properties[CustomerInsightsConstants.ColumnNames.RecordId] = new KeywordProperty();
+        properties[CustomerInsightsConstants.ColumnNames.CustomerId] = new KeywordProperty();
+        properties[CustomerInsightsConstants.ColumnNames.Title] = new TextProperty();
+        properties[CustomerInsightsConstants.ColumnNames.Content] = new TextProperty();
+        properties[CustomerInsightsConstants.ColumnNames.UpdatedUtc] = new DateProperty();
+        properties[CustomerInsightsConstants.ColumnNames.Embedding] = new DenseVectorProperty
         {
-            Dims = 1536,
+            Dims = await GetEmbeddingDimensionsAsync(indexProfile),
             Index = true,
             Similarity = DenseVectorSimilarity.Cosine,
         };
 
         indexProfile.Put(metadata);
+    }
 
-        if (!indexProfile.TryGet<ElasticsearchDefaultQueryMetadata>(out var queryMetadata))
+    private async Task<int> GetEmbeddingDimensionsAsync(IndexProfile indexProfile)
+    {
+        var deploymentName = IndexProfileEmbeddingMetadataAccessor.GetMetadata(indexProfile).GetEmbeddingDeploymentName();
+
+        if (string.IsNullOrWhiteSpace(deploymentName))
         {
-            queryMetadata = new ElasticsearchDefaultQueryMetadata();
+            return DefaultDimensions;
         }
 
-        queryMetadata.DefaultSearchFields = ["Title", "Summary", "Content"];
-        indexProfile.Put(queryMetadata);
+        var deployment = await _deploymentManager.FindByNameAsync(deploymentName);
 
-        return Task.CompletedTask;
+        if (deployment is null)
+        {
+            return DefaultDimensions;
+        }
+
+        var generator = await _aiClientFactory.CreateEmbeddingGeneratorAsync(deployment, builder => builder
+            .UseDefaultResilience()
+            .UseUsageLabels(purpose: AIUsagePurposes.Indexing));
+
+        if (generator is null)
+        {
+            return DefaultDimensions;
+        }
+
+        var embeddings = await generator.GenerateAsync(["Sample"]);
+
+        return embeddings?.Count > 0 && embeddings[0].Vector.Length > 0
+            ? embeddings[0].Vector.Length
+            : DefaultDimensions;
     }
+
+    private static bool CanHandle(IndexProfile indexProfile)
+        => string.Equals(indexProfile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase) &&
+           string.Equals(indexProfile.ProviderName, ElasticsearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase);
 }
 ```
 
-### 5. Create a provider-specific document index handler
+Wrap the dimension probe in a `try`/`catch` that logs and falls back in production code, as the CrestApps handlers do.
 
-Follow the AI Memory pattern: check the record type, read the `IndexProfile` from `AdditionalProperties`, verify the provider name, then map the fields.
+### 4. Map the neutral document
 
 ```csharp
-using OrchardCore.Indexing;
-using OrchardCore.Indexing.Models;
-using OrchardCore.Elasticsearch;
-
 public sealed class CustomerInsightElasticsearchDocumentIndexHandler : IDocumentIndexHandler
 {
     public Task BuildIndexAsync(BuildDocumentIndexContext context)
     {
-        if (context.Record is not CustomerInsightIndexDocument record)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (!context.AdditionalProperties.TryGetValue(nameof(IndexProfile), out var profile) ||
-            profile is not IndexProfile indexProfile ||
+        if (context.Record is not CustomerInsightIndexDocument record ||
+            !context.AdditionalProperties.TryGetValue(nameof(IndexProfile), out var value) ||
+            value is not IndexProfile indexProfile ||
             !string.Equals(indexProfile.ProviderName, ElasticsearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase))
         {
             return Task.CompletedTask;
         }
 
-        context.DocumentIndex.Set("RecordId", record.RecordId, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("CustomerId", record.CustomerId, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Title", record.Title, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Summary", record.Summary, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Content", record.Content, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("UpdatedUtc", record.UpdatedUtc, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Embedding", record.Embedding, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.RecordId, record.RecordId, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.CustomerId, record.CustomerId, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.Title, record.Title, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.Content, record.Content, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.UpdatedUtc, record.UpdatedUtc, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(
+            CustomerInsightsConstants.ColumnNames.Embedding,
+            record.Embedding,
+            record.Embedding?.Length ?? 0,
+            DocumentIndexOptions.Store,
+            new Dictionary<string, object> { ["VectorSearchConfiguration"] = "default" });
 
         return Task.CompletedTask;
     }
 }
 ```
 
-### 6. Implement the indexing service
+### 5. Choose the embedding deployment
 
-Use a custom indexing service when you are indexing arbitrary records. This is the correct choice when the source is not Orchard content items.
+Store the choice in `DataSourceIndexProfileMetadata.EmbeddingDeploymentName` so `IndexProfileEmbeddingMetadataAccessor` reads it. Add a `DisplayDriver<IndexProfile>` for your type, following `AIMemoryIndexProfileDisplayDriver`:
 
-Follow the AI Memory pattern:
+- List candidates with `IAIDeploymentManager.GetAllBySlotAsync(AIDeploymentSlotNames.Embedding)`.
+- On save, accept only a deployment whose `AIDeploymentMetadata` supports `AIDeploymentFeatureNames.TextEmbedding`.
+- Lock the field once the index exists, because the vector size is fixed.
+- Write it with `IndexProfileEmbeddingMetadataAccessor.StoreMetadata(indexProfile, metadata)` after `metadata.SetEmbeddingDeploymentName(deployment.Name)`.
 
-- load the active site setting that points to the master index profile
-- resolve the profile from `IIndexProfileStore`
-- build one neutral index document per record
-- get the keyed `IDocumentIndexManager` for the current provider
-- call `AddOrUpdateDocumentsAsync()` or `DeleteDocumentsAsync()`
+### 6. The indexing service
 
-### 7. Trigger indexing from the data lifecycle
+```csharp
+public sealed class CustomerInsightIndexingService
+{
+    private readonly IOptionsMonitor<CustomerInsightOptions> _options;
+    private readonly IIndexProfileStore _indexProfileStore;
+    private readonly IAIDeploymentManager _deploymentManager;
+    private readonly IAIClientFactory _aiClientFactory;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IEnumerable<IDocumentIndexHandler> _documentIndexHandlers;
+    private readonly ILogger _logger;
 
-Do not call Elasticsearch indexing directly from just one controller or tool.
+    public CustomerInsightIndexingService(
+        IOptionsMonitor<CustomerInsightOptions> options,
+        IIndexProfileStore indexProfileStore,
+        IAIDeploymentManager deploymentManager,
+        IAIClientFactory aiClientFactory,
+        IServiceProvider serviceProvider,
+        IEnumerable<IDocumentIndexHandler> documentIndexHandlers,
+        ILogger<CustomerInsightIndexingService> logger)
+    {
+        _options = options;
+        _indexProfileStore = indexProfileStore;
+        _deploymentManager = deploymentManager;
+        _aiClientFactory = aiClientFactory;
+        _serviceProvider = serviceProvider;
+        _documentIndexHandlers = documentIndexHandlers;
+        _logger = logger;
+    }
 
-Preferred pattern:
+    public async Task IndexAsync(CustomerInsight insight, CancellationToken cancellationToken = default)
+    {
+        var indexProfile = await GetActiveProfileAsync();
 
-- track created, updated, and deleted records in a scoped handler
-- flush those indexing operations after the store successfully saves changes
+        if (indexProfile is null)
+        {
+            return;
+        }
 
-That keeps every write path synchronized, including admin pages, tools, background jobs, and future integrations.
+        var manager = _serviceProvider.GetKeyedService<IDocumentIndexManager>(indexProfile.ProviderName);
 
-### 8. Support full re-sync when an index profile changes
+        if (manager is null)
+        {
+            return;
+        }
 
-Override `SynchronizedAsync(IndexProfileSynchronizedContext)` in the shared
-index-profile handler and call the module's indexing service to rebuild the
-affected profile ID. AI Memory uses this pattern to call
-`SyncByIndexProfileIdsAsync`.
+        var document = await BuildDocumentAsync(insight, indexProfile, manager, cancellationToken);
 
-This is how CrestApps AI Memory handles changes to index-profile metadata or mapping configuration.
+        if (document is not null)
+        {
+            await manager.AddOrUpdateDocumentsAsync(indexProfile, [document]);
+        }
+    }
 
-## Building vector search indexes
+    public async Task DeleteAsync(IEnumerable<string> recordIds)
+    {
+        var indexProfile = await GetActiveProfileAsync();
+        var manager = indexProfile is null ? null : _serviceProvider.GetKeyedService<IDocumentIndexManager>(indexProfile.ProviderName);
 
-If the index uses embeddings:
+        if (manager is not null)
+        {
+            await manager.DeleteDocumentsAsync(indexProfile, recordIds);
+        }
+    }
 
-- store embedding configuration in index-profile metadata
-- resolve the embedding generator from `IAIClientFactory`
-- generate embeddings during document build
-- map vectors with `DenseVectorProperty`
-- set `Similarity = DenseVectorSimilarity.Cosine` unless another metric is required
+    private async Task<IndexProfile> GetActiveProfileAsync()
+    {
+        var name = _options.CurrentValue.IndexProfileName;
 
-## Choosing between Orchard indexing service styles
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
 
-### Use a custom service like `AIMemoryIndexingService` when
+        var profile = await _indexProfileStore.FindByNameAsync(name);
 
-- the source is arbitrary data
-- you need site settings to select the active master profile
-- you must build a custom neutral document model
-- you need provider-specific handlers to shape the final document
-- indexing must be triggered from a catalog/store lifecycle
+        return profile is not null && string.Equals(profile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase)
+            ? profile
+            : null;
+    }
 
-## CrestApps reference points
+    private async Task<DocumentIndex> BuildDocumentAsync(
+        CustomerInsight insight,
+        IndexProfile indexProfile,
+        IDocumentIndexManager manager,
+        CancellationToken cancellationToken)
+    {
+        var deploymentName = IndexProfileEmbeddingMetadataAccessor.GetMetadata(indexProfile).GetEmbeddingDeploymentName();
+        var deployment = string.IsNullOrWhiteSpace(deploymentName) ? null : await _deploymentManager.FindByNameAsync(deploymentName);
 
-- `CrestApps.OrchardCore.AI.Memory` - source records, settings, and indexing service
-- `CrestApps.OrchardCore.AI.Memory.Elasticsearch` - Elasticsearch source registration and mappings
-- `CrestApps.OrchardCore.AI.Memory.AzureAI` - Azure AI Search variant of the same pattern
+        if (deployment is null)
+        {
+            return null;
+        }
 
-When generating new code, follow that same separation:
+        var generator = await _aiClientFactory.CreateEmbeddingGeneratorAsync(deployment, builder => builder
+            .UseDefaultResilience()
+            .UseUsageLabels(purpose: AIUsagePurposes.Indexing));
+        var embeddings = await generator.GenerateAsync([$"{insight.Title}{Environment.NewLine}{insight.Content}"], cancellationToken: cancellationToken);
 
-1. shared core module for source records and indexing orchestration
-2. provider module for Elasticsearch-specific mapping and provider registration
+        var record = new CustomerInsightIndexDocument
+        {
+            RecordId = insight.ItemId,
+            CustomerId = insight.CustomerId,
+            Title = insight.Title,
+            Content = insight.Content,
+            UpdatedUtc = insight.UpdatedUtc,
+            Embedding = embeddings[0].Vector.ToArray(),
+        };
 
-For the Azure AI Search mapping counterpart, use the sibling
-`orchardcore-custom-indexing-azureai` skill.
+        var documentIndex = new DocumentIndex(insight.ItemId);
+        var buildContext = new BuildDocumentIndexContext(documentIndex, record, [insight.ItemId], manager.GetContentIndexSettings())
+        {
+            AdditionalProperties = new Dictionary<string, object>
+            {
+                [nameof(IndexProfile)] = indexProfile,
+            },
+        };
+
+        await _documentIndexHandlers.InvokeAsync((handler, ctx) => handler.BuildIndexAsync(ctx), buildContext, _logger);
+
+        return documentIndex;
+    }
+}
+```
+
+Add a `SyncByIndexProfileIdsAsync` that loads `_indexProfileStore.GetByTypeAsync(CustomerInsightsConstants.IndexingTaskType)`, filters by id, and writes every record, for the re-sync in step 8.
+
+### 7. Index from the store lifecycle
+
+Collect changes in a scoped catalog handler and flush once, after the request commits:
+
+```csharp
+public sealed class CustomerInsightIndexingHandler : CatalogEntryHandlerBase<CustomerInsight>
+{
+    private readonly Dictionary<string, CustomerInsight> _upserts = [];
+    private readonly HashSet<string> _deletes = [];
+    private bool _scheduled;
+
+    public override Task CreatedAsync(CreatedContext<CustomerInsight> context, CancellationToken cancellationToken = default)
+        => QueueUpsert(context.Model);
+
+    public override Task UpdatedAsync(UpdatedContext<CustomerInsight> context, CancellationToken cancellationToken = default)
+        => QueueUpsert(context.Model);
+
+    public override Task DeletedAsync(DeletedContext<CustomerInsight> context, CancellationToken cancellationToken = default)
+    {
+        _upserts.Remove(context.Model.ItemId);
+        _deletes.Add(context.Model.ItemId);
+        Schedule();
+
+        return Task.CompletedTask;
+    }
+
+    private Task QueueUpsert(CustomerInsight insight)
+    {
+        _deletes.Remove(insight.ItemId);
+        _upserts[insight.ItemId] = insight;
+        Schedule();
+
+        return Task.CompletedTask;
+    }
+
+    private void Schedule()
+    {
+        if (_scheduled)
+        {
+            return;
+        }
+
+        _scheduled = true;
+        var upserts = _upserts;
+        var deletes = _deletes;
+
+        ShellScope.AddDeferredTask(async scope =>
+        {
+            var service = scope.ServiceProvider.GetRequiredService<CustomerInsightIndexingService>();
+
+            foreach (var insight in upserts.Values)
+            {
+                await service.IndexAsync(insight);
+            }
+
+            if (deletes.Count > 0)
+            {
+                await service.DeleteAsync(deletes);
+            }
+        });
+    }
+}
+```
+
+Register it with `services.AddScoped<ICatalogEntryHandler<CustomerInsight>, CustomerInsightIndexingHandler>()` in the shared module. `CatalogEntryHandlerBase<T>` comes from CrestApps.Core (`CrestApps.Core.Handlers`); use the equivalent lifecycle hook of your own store if it is not a CrestApps catalog.
+
+### 8. Re-sync when the profile is synchronized
+
+```csharp
+public sealed class CustomerInsightIndexProfileHandler : IndexProfileHandlerBase
+{
+    private readonly CustomerInsightIndexingService _indexingService;
+
+    public CustomerInsightIndexProfileHandler(CustomerInsightIndexingService indexingService)
+    {
+        _indexingService = indexingService;
+    }
+
+    public override async Task SynchronizedAsync(IndexProfileSynchronizedContext context)
+    {
+        if (string.Equals(context.IndexProfile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase))
+        {
+            await _indexingService.SyncByIndexProfileIdsAsync([context.IndexProfile.Id]);
+        }
+    }
+}
+```
+
+### 9. The master-index setting
+
+Project the site setting onto an options class and refresh it without a tenant release: register `IConfigureOptions<CustomerInsightOptions>` that reads `ISiteService.GetSettings<CustomerInsightSettings>()`, call `services.AddSignalOptionsChangeTokenSource<CustomerInsightOptions>()`, and call `IOptionsUpdateNotifier.RequestUpdate<CustomerInsightOptions>()` from the settings driver when the value changes. Read it with `IOptionsMonitor<CustomerInsightOptions>.CurrentValue`. Mechanics are in `orchardcore-site-settings`.
+
+### Querying
+
+For vector search, embed the query with the same deployment and run a k-nearest-neighbor query on `embedding`, always adding the filters that scope results (the memory service filters on `userId`; a per-customer index filters on `customerId`). Use `ElasticsearchMemoryVectorSearchService` in `CrestApps.OrchardCore.AI.Memory.Elasticsearch` as the reference implementation.
+
+### Checklist
+
+- Every write path goes through the store, so the deferred handler sees it.
+- The key field (`KeyFieldName`) and the `DocumentIndex` id are the same stable record id.
+- Index dimensions match the embedding deployment; a model change needs a new index profile and a re-sync.
+- Mandatory scope filters are applied in the search service, not left to callers.
+- The Azure AI Search variant of this pattern is `orchardcore-custom-indexing-azureai`.

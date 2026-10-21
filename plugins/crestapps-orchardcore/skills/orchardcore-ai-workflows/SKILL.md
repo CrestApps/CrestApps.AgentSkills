@@ -1,50 +1,27 @@
 ---
 name: orchardcore-ai-workflows
-description: Skill for integrating CrestApps AI Services with Orchard Core Workflows. Covers AI completion tasks using profiles or direct configuration, Liquid prompt rendering, AI response workflow output, selectable workflow tools, and AI chat session lifecycle events for field extraction, session closure, and post-session processing. Use this skill when requests mention Orchard Core AI Workflows, AI Completion using Profile, AI Completion using Direct Config, AIChatSessionClosedEvent, workflow AI profile, AI chat session events, or closely related CrestApps implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, AICompletionFromProfileTask, AICompletionWithConfigTask, DataExtractionChatSessionHandler, PostSessionProcessingChatSessionHandler, AIChatSessionFieldExtractedEvent, AIChatSessionPostProcessedEvent.
+description: Skill for using CrestApps AI Services in Orchard Core Workflows. Covers the AI Completion using Profile task (AICompletionFromProfileTask) and the AI Completion using Direct Config task (AICompletionWithConfigTask, which needs CrestApps.OrchardCore.AI.Chat.Interactions and stores an embedded ChatInteraction), the Content, Knowledge and Capabilities fields contributed by data sources, documents, prompting, personas, tool instances, MCP and A2A features, Liquid prompt rendering, chat deployment resolution through the chat slot, the Done, Drew Blank and Failed outcomes, AIResponseMessage output read with Workflow.Output, metering under the Workflow usage category, and the AIChatSessionFieldExtractedEvent, AIChatSessionAllFieldsExtractedEvent, AIChatSessionClosedEvent and AIChatSessionPostProcessedEvent events and their inputs. Use this skill when requests mention Orchard Core AI workflows, AI completion tasks, reacting to chat session events, or an AI workflow task that fails or draws blank.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Workflows - Prompt Templates
+# Orchard Core AI Workflows
 
-## Use AI Services in Orchard Core Workflows
+With `OrchardCore.Workflows` enabled, CrestApps AI Services adds two completion tasks and four chat session events.
 
-You are an Orchard Core expert. Generate workflow configurations and extension code that use CrestApps AI Services. The AI workflow activities are registered by the AI Services module only when `OrchardCore.Workflows` is enabled.
+## Guidelines
 
-### Guidelines
-- Enable `CrestApps.OrchardCore.AI` and `OrchardCore.Workflows` before adding AI activities to a workflow.
-- Use **AI Completion using Profile** when a reusable AI Profile defines orchestration, deployments, system instructions, and selected capabilities.
-- Use **AI Completion using Direct Config** only when the workflow must own its deployment, system message, generation settings, and tool selection.
-- Both completion tasks render their prompt template with Orchard Liquid before sending a user chat message.
-- Both tasks save a non-empty response as an `AIResponseMessage` in `Workflow.Output`.
-- Use a unique result property name, preferably prefixed with `AI-`, to avoid collisions with other workflow output.
-- Read the text output through `.Content`, for example `Workflow.Output["AI-summary"].Content`.
-- Both task activities have `Done`, `Drew Blank`, and `Failed` outcomes. Branch workflows deliberately for all three.
-- The profile task fails if the selected profile, generated prompt, or chat deployment cannot be resolved.
-- The direct-config task fails if the deployment lacks a valid connection, the prompt is empty, or the completion throws.
-- Direct-config tasks may select registered non-system tools. The task configures automatic tool use and honors the configured maximum function-iteration limit.
-- AI workflow event activities filter by optional `ProfileId` and use the chat session ID as their workflow correlation ID.
-- The field-extraction, all-fields-extracted, closed, and post-processed events require AI chat session processing plus `OrchardCore.Workflows`.
-- Do not place secrets, access tokens, or untrusted raw input in workflow prompt templates.
+- **AI Completion using Profile** needs `CrestApps.OrchardCore.AI` and `OrchardCore.Workflows`.
+- **AI Completion using Direct Config** additionally needs `CrestApps.OrchardCore.AI.Chat.Interactions`, because it reuses the chat interaction configuration model and completion pipeline.
+- The chat session events need an enabled chat feature (which brings `CrestApps.OrchardCore.AI.Chat.Core`) plus `OrchardCore.Workflows`. Do not enable `CrestApps.OrchardCore.AI.Chat.Core` directly; enable a public chat feature such as `CrestApps.OrchardCore.AI.Chat`.
+- Both tasks render their prompt with Liquid, save a non-empty reply as an `AIResponseMessage` in `Workflow.Output[ResultPropertyName]` (default `ChatResponse`), and end on **Done**, **Drew Blank**, or **Failed**.
+- Prefix result names with `AI-` to avoid collisions, and read the text with `.Content`.
+- Prefer the profile task in production so deployment, instructions, and capabilities are governed in one place.
 - Install CrestApps packages in the web/startup project.
 
-### Feature Overview
-
-| Feature | Feature ID | Purpose |
-|---|---|---|
-| AI Services | `CrestApps.OrchardCore.AI` | AI profiles, deployments, completion tasks, and workflow event activities |
-| AI Chat Services | `CrestApps.OrchardCore.AI.Chat.Core` | Dependency feature activated by an enabled chat capability |
-| Orchard Core Workflows | `OrchardCore.Workflows` | Workflow runtime and activity registration |
-
-### Install and Enable
-
-Install AI Services in the web/startup project:
-
-```shell
-dotnet add package CrestApps.OrchardCore.AI
-```
+## Enable
 
 ```json
 {
@@ -53,6 +30,8 @@ dotnet add package CrestApps.OrchardCore.AI
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.AI",
+        "CrestApps.OrchardCore.AI.Chat",
+        "CrestApps.OrchardCore.AI.Chat.Interactions",
         "OrchardCore.Workflows"
       ],
       "disable": []
@@ -61,22 +40,15 @@ dotnet add package CrestApps.OrchardCore.AI
 }
 ```
 
-`CrestApps.OrchardCore.AI.Chat.Core` is dependency-only. Do not enable it directly in a recipe. Enable an appropriate public chat feature, such as `CrestApps.OrchardCore.AI.Chat`, only when the workflow also reacts to live profile chat sessions.
+Drop `CrestApps.OrchardCore.AI.Chat.Interactions` if you only use the profile task, and `CrestApps.OrchardCore.AI.Chat` if you do not react to chat sessions.
 
-### AI Completion Using Profile
+## AI Completion using Profile
 
-Use **AI Completion using Profile** for governed, reusable behavior:
+1. Create an AI profile with a chat deployment and the capabilities the workflow needs.
+2. Add **AI Completion using Profile**, select the profile, write a Liquid **Prompt template**, and set a **Result Property Name** such as `AI-order-summary`.
+3. Wire all three outcomes.
 
-1. Create an AI Profile with a valid chat deployment and any required tools.
-2. Add **AI Completion using Profile** to the workflow.
-3. Select the profile.
-4. Write a Liquid prompt template.
-5. Set a unique result property, such as `AI-order-summary`.
-6. Connect the `Done`, `Drew Blank`, and `Failed` outcomes.
-
-The task renders the Liquid template with the selected profile available as `Profile`, builds an `AICompletionContext`, resolves the profile chat deployment, and sends the rendered prompt.
-
-Example prompt template:
+The template is rendered with the selected profile available as `Profile`. The task builds the completion context from the profile, resolves the chat deployment through the `chat` slot (`IAIDeploymentManager.ResolveSlotAsync(AIDeploymentSlotNames.Chat, ...)`), and sends the prompt as a user message.
 
 ```liquid
 Summarize this order for the support team.
@@ -84,82 +56,84 @@ Order number: {{ Workflow.Input.OrderNumber }}
 Customer note: {{ Workflow.Input.CustomerNote }}
 ```
 
-Read the response in a later workflow activity:
-
 ```liquid
 {{ Workflow.Output["AI-order-summary"].Content }}
 ```
 
-### AI Completion Using Direct Config
+| Outcome | When |
+|---|---|
+| **Failed** | Unknown profile, empty rendered prompt, no resolvable chat deployment, or an exception |
+| **Drew Blank** | The model returned no text |
+| **Done** | A reply was stored |
 
-Use **AI Completion using Direct Config** for a specific workflow-owned completion:
+## AI Completion using Direct Config
 
-1. Add the task.
-2. Select a chat deployment.
-3. Enter a Liquid prompt template.
-4. Optionally enter a system message.
-5. Set temperature, top P, penalties, and maximum output tokens.
-6. Select approved local tools only when the task needs them.
-7. Set a unique result property.
+The task owns its configuration. It stores it as an embedded `ChatInteraction` (the task's `Interaction` property), builds the completion context with `IAICompletionContextBuilder`, and resolves the interaction's chat deployment through the `chat` slot. The editor uses the chat interaction tabs, and each enabled feature contributes its own fields:
 
-The task creates a chat client through `IAIClientFactory`, applies the selected deployment, then sends the optional system message and rendered user prompt.
-
-### Use Tools in Direct Config Tasks
-
-The task editor lists `AIToolDefinitionOptions.GetSelectableTools()`. System tools are not shown. Selected names become `AICompletionWithConfigTask.ToolNames`.
-
-At runtime the task:
-
-1. Enables `ChatToolMode.Auto`.
-2. Builds function invocation middleware.
-3. Resolves each name through `IAIToolsService`.
-4. Adds found tools to `ChatOptions.Tools`.
-5. Executes the completion.
-
-Give workflow identities only the dynamic per-tool permissions they require. Do not select management or destructive tools simply because a workflow is administrator-triggered.
-
-### Chat Lifecycle Workflow Events
-
-| Activity | When it triggers | Key input |
+| Tab | Fields | Contributed by |
 |---|---|---|
-| `AIChatSessionFieldExtractedEvent` | A newly extracted field is recorded | `FieldName`, `Value`, `IsMultiple`, `Session`, `Profile` |
-| `AIChatSessionAllFieldsExtractedEvent` | Extraction processing completes with the session data | `ExtractedData`, `Session`, `Profile` |
-| `AIChatSessionClosedEvent` | A session is closed during extraction processing | `ClosedAtUtc`, `Session`, `Profile` |
-| `AIChatSessionPostProcessedEvent` | Configured post-session tasks complete | `Results`, `Session`, `Profile` |
+| **Content** | Result property name, prompt template, orchestrator, chat and utility deployments, system instructions, max tokens, temperature, top P, penalties | AI Services |
+| **Content** | Prompt template selection | `CrestApps.OrchardCore.AI.Prompting` |
+| **Content** | Persona | `CrestApps.OrchardCore.AI.Personas` |
+| **Knowledge** | Data source, restrict to retrieved data, strictness, retrieved documents, OData filter | `CrestApps.OrchardCore.AI.DataSources` |
+| **Knowledge** | Document retrieval mode and uploaded knowledge files | `CrestApps.OrchardCore.AI.Documents` module |
+| **Capabilities** | Tools | AI Services |
+| **Capabilities** | Tool instances | `CrestApps.OrchardCore.AI.ToolInstances` |
+| **Capabilities** | MCP connections | `CrestApps.OrchardCore.AI.Mcp` |
+| **Capabilities** | A2A connections | `CrestApps.OrchardCore.AI.A2A` |
 
-Every event supplies `SessionId`, `ProfileId`, `Session`, `Profile`, and a timestamp as applicable. Configure an optional `ProfileId` on the event activity to scope a workflow to one profile.
+The deployment pickers list deployments by model capability (see `orchardcore-ai-model-capabilities`), not by the removed deployment purpose. Uploaded documents are chunked and indexed against the activity's embedded interaction, so they are retrieved whenever the task runs.
 
-### Build a Field-Extraction Workflow
+| Outcome | When |
+|---|---|
+| **Failed** | Empty rendered prompt, no chat deployment with a valid connection, or an exception |
+| **Drew Blank** | The model returned no text |
+| **Done** | A reply was stored |
 
-1. Create a chat profile with data extraction configured.
-2. Create a workflow starting with **AI Chat Session Field Extracted**.
-3. Optionally choose the profile ID.
-4. Use `Workflow.Input.FieldName` and `Workflow.Input.Value` in later activities.
-5. Add an idempotency check because multiple fields can trigger independent executions.
+A workflow that runs in the background (timer, deferred task) has no caller, so tool access checks are skipped. One triggered inside a user's request runs as that user, and a direct-config task can then drop tools that user may not access. Select only the tools the workflow genuinely needs.
 
-The `DataExtractionChatSessionHandler` triggers the event after the shared extraction handler records a new field change. The correlation ID is the chat session ID.
+## Usage metering
 
-### Build a Post-Session Workflow
+Both tasks run inside an `AIUsageScope` with the **Workflow** category, so their tokens appear under that category in **AI Usage Analytics** (`orchardcore-ai-usage-analytics`).
 
-1. Configure post-session processing for the profile.
-2. Create a workflow beginning with **AI Chat Session Post-Processed**.
-3. Use `Workflow.Input.Results` for task results.
-4. Record or route the results without repeating the session's post-processing action.
+## Chat session events
 
-`PostSessionProcessingChatSessionHandler` triggers this only when `PostSessionTasksCompletedNow` is true, preventing repeat event delivery for already completed work.
+All events use the chat session ID as the workflow correlation ID and accept an optional **Profile** filter (`ProfileId`). Every event input contains `SessionId`, `ProfileId`, `Session` (`AIChatSession`), and `Profile` (`AIProfile`).
 
-### Outcomes and Error Handling
+| Event | Triggers | Extra input |
+|---|---|---|
+| **AI Chat Session Field Extracted** (`AIChatSessionFieldExtractedEvent`) | Each newly extracted data field | `FieldName`, `Value`, `IsMultiple`, `Timestamp` |
+| **AI Chat Session All Fields Extracted** (`AIChatSessionAllFieldsExtractedEvent`) | Once every configured extraction field has a value | `ExtractedData`, `Timestamp` |
+| **AI Chat Session Closed** (`AIChatSessionClosedEvent`) | A session closes during extraction processing or by the inactivity close task | `ClosedAtUtc` |
+| **AI Chat Session Post-Processed** (`AIChatSessionPostProcessedEvent`) | Post-session tasks complete for the first time | `Results` |
 
-- Route `Done` to activities that consume `AIResponseMessage.Content`.
-- Route `Drew Blank` to a fallback, retry queue, or human review path.
-- Route `Failed` to error handling with non-sensitive diagnostic context.
-- Keep prompts concise and validate workflow input before it reaches Liquid rendering.
-- Prefer profiles for production workflows so deployment and capability policy are centrally maintained.
+`DataExtractionChatSessionHandler` raises the extraction and closed events; `PostSessionProcessingChatSessionHandler` raises the post-processed event only when the tasks completed in that run, so it is not delivered twice. The background `AIChatSessionCloseBackgroundTask` raises the closed event for inactive sessions.
 
-### Security Checklist
+### Field-extraction workflow
 
-- Use the least-privileged AI Profile and tool set for each workflow.
-- Limit workflow access and event triggers to trusted roles and profiles.
-- Treat AI output as untrusted data before using it in content updates, notifications, or external calls.
-- Avoid embedding secrets in Liquid prompts or workflow output.
-- Test all three completion outcomes and each chat event with representative data.
+1. Configure data extraction on a chat profile (`orchardcore-ai-chat`).
+2. Start a workflow with **AI Chat Session Field Extracted** and optionally select the profile.
+3. Use `{{ Workflow.Input.FieldName }}` and `{{ Workflow.Input.Value }}` in later activities.
+4. Make the workflow idempotent; several fields can fire separate executions for one session.
+
+### Post-session workflow
+
+1. Configure post-session processing on the profile.
+2. Start a workflow with **AI Chat Session Post-Processed**.
+3. Read `Workflow.Input.Results` and route or store them.
+
+## Upgrading from 2.x
+
+- Deployments are resolved through the `chat` slot by model capability; the deployment purpose is gone. Workflows that named a deployment keep using it; an empty selection resolves through the `chat` slot's defaults (`orchardcore-ai-model-capabilities`).
+- Both tasks are now metered per request under the **Workflow** usage category.
+- If the workflow uses a persona, enable `CrestApps.OrchardCore.AI.Personas` to get the persona picker on the direct-config task (`orchardcore-ai-personas`).
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Direct-config task missing from the activity picker | Enable `CrestApps.OrchardCore.AI.Chat.Interactions`. |
+| Task ends on **Failed** at once | The prompt rendered empty, the profile was deleted, or no chat deployment has a connection. Check the log. |
+| Task ends on **Drew Blank** | The model replied with no text; check the deployment and the prompt. |
+| Chat events never fire | No chat feature is enabled, data extraction or post-processing is not configured, or the profile filter does not match. |
+| Output is empty in a later activity | The result property name differs, or the read omits `.Content`. |

@@ -95,6 +95,30 @@ start  <  before  <  0 (empty)  <  1  <  1.1  <  2  <  10  <  after  <  free-tex
 
 `PartName` is the attached part name. For non-named parts it is usually the part type, such as `BagPart`, `FlowPart`, `WidgetsListPart`, or `TitlePart`. For named parts, use the custom name such as `Services`.
 
+## placement.json rules
+
+`placement.json` sits at the **root** of a module or theme. Each property is a shape type; its value is an array of rules. A rule combines filters (which shapes) with placement info (what to do). Every filter is optional.
+
+| Filter | Matches |
+| --- | --- |
+| *(property name)* | The shape's original type, such as `TextField`, `ContentPart`, `ContentPart_Edit`, `Parts_Contents_Publish` |
+| `displayType` | `Detail`, `Summary`, `SummaryAdmin`, `SummaryAdminGrid`, `DetailAdmin`, `Edit`, or a custom display type |
+| `differentiator` | One instance of a reused shape (see the table above) |
+| `contentType` | A content type or stereotype, or an array; `Art*` matches every type starting with `Art` |
+| `contentPart` | A part name, or an array, that the content item must contain |
+| `path` | A request path, or an array |
+
+| Placement info | Effect |
+| --- | --- |
+| `place` | `Zone:position` plus optional groupings; `-` hides the shape; a leading `/` targets a layout zone |
+| `alternates` | Adds alternate shape types (more specific templates) |
+| `wrappers` | Wraps the shape in other shapes |
+| `shape` | Substitutes another shape type |
+
+Custom filters implement `IPlacementNodeFilterProvider` (`Key` is the JSON property name, `IsMatch(ShapePlacementContext, object expression)` evaluates it) and are registered as scoped services.
+
+A layout zone target (`/Sidebar:5`) is only visible if the theme layout renders it with `RenderSectionAsync("Sidebar", required: false)` or `{% render_section "Sidebar", required: false %}`.
+
 ## placement.json examples
 
 ### Basic placement
@@ -253,6 +277,50 @@ This places `MyFieldA_Edit`, `MyFieldB_Edit`, and `MyFieldC_Edit` in three separ
 
 Use this pattern when you need to hide or move the whole editor row. Do not use `BagPart_Edit`, `FlowPart_Edit`, `WidgetsListPart_Edit`, or `TitlePart_Edit` for this unless you intentionally want to target only the inner editor shape.
 
+### Dynamic parts in a custom zone
+
+A part defined only in the content definition (no driver) renders as `ContentPart` in `Detail` and `ContentPart_Summary` in `Summary`, with the part name as differentiator. A rule keyed on the part name (`GalleryPart`) never matches.
+
+```json
+{
+  "ContentPart": [
+    {
+      "place": "MyGalleryZone",
+      "differentiator": "GalleryPart"
+    }
+  ],
+  "ContentPart_Summary": [
+    {
+      "place": "MyGalleryZone",
+      "differentiator": "GalleryPart"
+    }
+  ]
+}
+```
+
+Render the custom zone where it belongs in the content template, for example in `Content-Product.cshtml`:
+
+```cshtml
+@await DisplayAsync(Model.MyGalleryZone)
+```
+
+The part itself still renders with `GalleryPart.cshtml` (or `GalleryPart.Summary.cshtml`).
+
+### Field display modes
+
+A field rendered with a display mode uses the shape type `{FieldType}_Display` and the full differentiator:
+
+```json
+{
+  "TextField_Display": [
+    {
+      "place": "Content:1",
+      "differentiator": "Blog-MyField-TextField_Display__Header"
+    }
+  ]
+}
+```
+
 ## Display driver placement
 
 You can use either the string form or the fluent builder form.
@@ -369,6 +437,10 @@ public sealed class Startup : StartupBase
 - Shapes without a column modifier render full-width outside the row, before or after the column row based on placement order.
 - Use the column width modifier to control Bootstrap sizing, for example `_4` for `col-md-4` or `_lg-3` for `col-lg-3`.
 - If the width is omitted, Orchard Core uses an equal-width Bootstrap column (`col-md`).
+- Widths above 12 wrap to the next line (standard Bootstrap behavior).
+- All column shapes at the same grouping level (same tab or card) share one row. For two separate rows of columns, put them in two cards.
+- Shapes without any grouping fall into a default `Content` group as soon as other shapes in the zone use groupings.
+- The shape position (`:N`) orders shapes inside a group; the group position (`;N`) orders the tabs, cards, or columns themselves. In `Parts:2#Settings;1`, the shape is at position 2 and the `Settings` tab is at group position 1.
 - When placing display-driver editor shapes into cards, prefer keeping everything inside the `Content` zone unless Orchard specifically expects another zone.
 - In CrestApps-style editors, a card-only placement such as `Content:4%Interaction;1` is valid and preferred over inventing custom zones like `Interaction:10`.
 

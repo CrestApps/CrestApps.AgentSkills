@@ -203,7 +203,7 @@ See `orchardcore-admin-lists` for the row display driver, row templates, search,
 
 ## Admin Edit View with a Breadcrumb
 
-`Views/Announcement/Edit.cshtml`:
+`Views/Announcement/Edit.cshtml` (see `orchardcore-admin-edit-views` for every row pattern and the validation rules):
 
 ```cshtml
 @model AnnouncementEditViewModel
@@ -215,7 +215,9 @@ See `orchardcore-admin-lists` for the row display driver, row templates, search,
     </breadcrumb>
 </zone>
 
-<form asp-action="Edit" method="post">
+<div asp-validation-summary="ModelOnly"></div>
+
+<form asp-action="Edit" method="post" class="no-multisubmit">
     <div class="ocat-wrapper" asp-validation-class-for="Title">
         <label asp-for="Title" class="ocat-label ocat-label-required">@T["Title"]</label>
         <div class="ocat-end">

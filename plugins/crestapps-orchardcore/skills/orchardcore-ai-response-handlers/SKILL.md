@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-response-handlers
-description: Skill for implementing CrestApps chat response handlers in Orchard Core. Covers IChatResponseHandler, streaming and deferred results, external relay contracts, notifications, and handler registration. Use this skill when requests mention Orchard Core Chat Response Handlers, IChatResponseHandler, ChatResponseHandlerResult, streaming responses, deferred chat replies, IExternalChatRelay, ChatNotification, or live-agent handoff.
+description: Skill for implementing CrestApps chat response handlers in Orchard Core with CrestApps.OrchardCore 3.0. Covers IChatResponseHandler and IChatResponseHandlerResolver, ChatResponseHandlerContext and AssistantAppearance, streaming and deferred results, the AI handler fallback in Conversation chat mode, ResponseHandlerProfileSettings.InitialResponseHandlerName on AI profiles and profile templates, external relay contracts (IExternalChatRelay, IExternalChatRelayManager), IChatNotificationSender notifications, and handler registration. Use this skill when requests mention Orchard Core chat response handlers, IChatResponseHandler, ChatResponseHandlerResult, streaming responses, deferred chat replies, initial response handler, IExternalChatRelay, ChatNotification, or live-agent handoff.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -52,10 +52,47 @@ services.TryAddEnumerable(
     ServiceDescriptor.Scoped<IChatResponseHandler, LiveAgentResponseHandler>());
 ```
 
-The active handler is selected from `AIChatSession.ResponseHandlerName` or
-`ChatInteraction.ResponseHandlerName`. The built-in AI path handles the normal
-case. Do not claim a custom handler is selected for a Conversation-mode session
-without checking the active chat feature's resolver behavior.
+The active handler is selected by `IChatResponseHandlerResolver.Resolve(handlerName, chatMode)` from
+`AIChatSession.ResponseHandlerName` or `ChatInteraction.ResponseHandlerName`. An empty or unknown name
+falls back to the built-in AI handler (`ChatResponseHandlerNames.AI`, `"AI"`), and so does every request in
+`ChatMode.Conversation`: spoken conversations always run through the AI handler, and a custom name is
+logged and ignored.
+
+`ChatResponseHandlerContext` gives the handler `Prompt`, `ConnectionId`, `SessionId`, `ChatType`,
+`ConversationHistory`, `Services`, and the `Profile`, `ChatSession` or `Interaction` it serves. A handler can
+set `AssistantAppearance` (`Label`, `Icon`, `CssClass`, `DisableStreamingAnimation`) to change how its
+replies are labelled in the chat UI, for example to show a live agent's name.
+
+## Start new sessions on a handler
+
+A profile can route new chat sessions to a handler from the first message. The setting is stored on
+`profile.Settings` as `ResponseHandlerProfileSettings.InitialResponseHandlerName` and edited as
+**Initial response handler** on the profile's **General** card (registered by the AI Chat Services
+feature, `CrestApps.OrchardCore.AI.Chat.Core`, and useful only once a non-AI handler is registered).
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "Profiles": [
+        {
+          "Name": "live-support",
+          "DisplayText": "Live Support",
+          "Type": "Chat",
+          "Settings": {
+            "ResponseHandlerProfileSettings": { "InitialResponseHandlerName": "LiveAgent" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Profile templates carry the same value as `ProfileTemplateMetadata.InitialResponseHandlerName`. A tool or
+an external event can switch an active session later by updating the session's or interaction's
+`ResponseHandlerName`.
 
 ## Return streaming or deferred output
 
@@ -217,3 +254,5 @@ tenant scope as the session or interaction being changed.
 - Use `orchardcore-ai-workflows` for AI completion workflow activities.
 - Use `orchardcore-ai-chat-interactions` for the interaction UI and its
   capability configuration.
+- Use `orchardcore-ai-chat-notifications` for the notification UI and action handlers.
+- Use `orchardcore-ai-realtime-voice` for spoken conversations, which always use the AI handler.

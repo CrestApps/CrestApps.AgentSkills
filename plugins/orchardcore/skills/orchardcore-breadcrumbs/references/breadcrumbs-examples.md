@@ -101,6 +101,34 @@ Drop the `oc-breadcrumb-title` block to let the trail stand in for the title, or
 </li>
 ```
 
+## Alternate Tables
+
+The display engine tries the most specific alternate first (the last row of each table). For a trail named `ContentsEdit` on an admin request (`DetailAdmin`):
+
+| `Breadcrumb` shape alternate | File | Matches |
+|---|---|---|
+| `Breadcrumb` | `Breadcrumb.cshtml` | Every trail |
+| `Breadcrumb__ContentsEdit` | `Breadcrumb-ContentsEdit.cshtml` | This trail, admin and front end |
+| `Breadcrumb_DetailAdmin` | `Breadcrumb.DetailAdmin.cshtml` | Every admin trail |
+| `Breadcrumb_DetailAdmin__ContentsEdit` | `Breadcrumb-ContentsEdit.DetailAdmin.cshtml` | This trail on the admin |
+
+For its current node (`Id = "Title"`):
+
+| `BreadcrumbItem` shape alternate | File |
+|---|---|
+| `BreadcrumbItem` | `BreadcrumbItem.cshtml` |
+| `BreadcrumbItem__ContentsEdit` | `BreadcrumbItem-ContentsEdit.cshtml` |
+| `BreadcrumbItem__Title` | `BreadcrumbItem-Title.cshtml` |
+| `BreadcrumbItem__ContentsEdit__Title` | `BreadcrumbItem-ContentsEdit-Title.cshtml` |
+| `BreadcrumbItem_DetailAdmin` | `BreadcrumbItem.DetailAdmin.cshtml` |
+| `BreadcrumbItem_DetailAdmin__ContentsEdit` | `BreadcrumbItem-ContentsEdit.DetailAdmin.cshtml` |
+| `BreadcrumbItem_DetailAdmin__Title` | `BreadcrumbItem-Title.DetailAdmin.cshtml` |
+| `BreadcrumbItem_DetailAdmin__ContentsEdit__Title` | `BreadcrumbItem-ContentsEdit-Title.DetailAdmin.cshtml` |
+
+Ancestors get the same set with their own ID instead of `Title`; nodes without an ID only get the name and display type alternates. A trail named `My.Trail` contributes `Breadcrumb__My_Trail` (`.` becomes `_`, `-` becomes `__`), so keep names and IDs to letters and digits.
+
+Restyle without templates through the `oc-breadcrumb` and `breadcrumb-{name}` classes (e.g. `breadcrumb-contents-edit`) and the Bootstrap `--bs-breadcrumb-*` custom properties.
+
 ## Low-Level Shape Creation
 
 `IShapeFactory.BreadcrumbAsync` (namespace `OrchardCore.DisplayManagement`) renders a prebuilt sequence. The caller supplies every node, including the final current node, with `Href` and `IsCurrent` already resolved. It does not run providers, authorize links, add Dashboard, or register the browser title, so prefer the tag helper in views.
@@ -115,4 +143,4 @@ var items = new[]
 var shape = await _shapeFactory.BreadcrumbAsync("RecordsImport", items, heading: "h1", displayType: "DetailAdmin");
 ```
 
-Pass `showTrail: false` to render only the heading through the template.
+Pass `showTrail: false` to create a shape with `ShowTrail` false and the last item's text as `Title`, which the default template renders as the heading only. Custom `Breadcrumb` templates must honor `ShowTrail` and use `Title` in that case instead of relying on the child item shapes.

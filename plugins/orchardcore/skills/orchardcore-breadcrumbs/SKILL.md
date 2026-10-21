@@ -17,6 +17,8 @@ Orchard Core 4.0 renders admin page titles as a **named trail with an explicit c
 - Every `<breadcrumb-item>` child is an **ancestor**, never the current page.
 - For a visible trail the helper collects children in declaration order, runs every `IBreadcrumbProvider` in DI registration order on the same ancestor list, keeps the resulting order (no sorting), then **always appends the title as the final, unlinked current node** with the fixed `Id = "Title"`.
 - On admin requests the helper also renders the title as an `<h1>` below the trail and registers it as a `<title>` segment, so the view must not render its own heading.
+- Visibility is decided first. A hidden admin trail skips all child and provider work and uses only the explicit title (see "Hiding Admin Breadcrumbs").
+- Keep built-in-style views inline: the title and screen-specific ancestors in the owning view, a lightweight provider only for shared or cross-module ancestor changes, and shape alternates for presentation. No breadcrumb manager, builder, or named-provider base class exists or is needed.
 - `INavigationProvider` is unrelated: it builds menus, not breadcrumb trails.
 
 ## Adding a Breadcrumb to a View
@@ -205,7 +207,7 @@ Enabling `OrchardCore.AdminDashboard` registers `OrchardCore.AdminDashboard.Serv
 }
 ```
 
-When hidden, the helper never evaluates its child content, never resolves or runs providers (Dashboard included), creates no `BreadcrumbContext` or items, and renders no shapes. It renders only the title, directly in a heading with the `oc-breadcrumb-title` class, and registers the browser title according to `heading` and `page-title`. Breadcrumb template overrides therefore do not apply to the hidden state. Attribute expressions and Razor code outside the child content still run.
+When hidden, the helper never evaluates its child content, never resolves or runs providers (Dashboard included), creates no `BreadcrumbContext` or items, generates no URLs, checks no permissions, and renders no shapes. It renders only the title, directly in a heading with the `oc-breadcrumb-title` class, and registers the browser title according to `heading` and `page-title`; with `heading=""` and `page-title="false"` it still requires a non-null title but does not even render it. Breadcrumb template overrides therefore do not apply to the hidden state. Attribute expressions (`T[...]`, `HtmlContentString` wrappers) and Razor code or model lookups outside the child content still run.
 
 **All visibility decisions belong to the tag helper.** Views must not read `AdminSettings.ShowBreadcrumb` or guard lookups, ancestor declarations, or the helper on it. Front-end trails ignore the setting.
 
@@ -221,6 +223,8 @@ The same helpers work in a front-end theme with display type `Detail` and no hea
 </breadcrumb>
 ```
 
+A visible front-end trail always evaluates its children and providers, even with no heading and `page-title="false"`. Providers see front-end trails too unless they filter on the request, and the Dashboard provider leaves them unchanged.
+
 ## Theming
 
 | Shape | Alternates (least to most specific) |
@@ -232,9 +236,23 @@ The same helpers work in a front-end theme with display type `Detail` and no hea
 - In names and IDs, `.` encodes to `_` and `-` to `__`.
 - `Breadcrumb.cshtml` renders the `<ol class="breadcrumb">` trail and the heading together, so it is the one template to override to rearrange them. Template `Breadcrumb.DetailAdmin.cshtml` to restyle only the admin, or `Breadcrumb.Detail.cshtml` for the front end.
 - The trail carries `oc-breadcrumb` and `breadcrumb-{name}` classes and is plain Bootstrap markup, so `--bs-breadcrumb-*` custom properties restyle it without a template.
-- `Breadcrumb` exposes `Name`, `Heading`, `Title`, and `ShowTrail`; `BreadcrumbItem` exposes `Name`, `Item`, `Text`, `Href`, `IsCurrent`, and `Level`. Render text with `@Model.Text` or `TagBuilder.InnerHtml.Append(...)`, never `Html.Raw`, and link only when `Href` is set.
+- `Breadcrumb` exposes `Name`, `Heading`, `Title`, and `ShowTrail`; `BreadcrumbItem` (`BreadcrumbItemViewModel`) exposes `Name`, `Item` (the `BreadcrumbItem`), `Breadcrumb` (the parent shape), `Text`, `Href`, `IsCurrent`, and `Level`. Render text with `@Model.Text` or `TagBuilder.InnerHtml.Append(...)`, never `Html.Raw` or a second decode, and link only when `Href` is set rather than rebuilding links from route values.
+- The default item renders `<li class="breadcrumb-item">`, adding `active` and `aria-current="page"` to the current node. Classes a provider adds to `BreadcrumbItem.Classes` are rendered on that `<li>`.
+- `[Id]` alternates exist only for nodes with an ID. On the Dashboard page, `BreadcrumbItem-Dashboard-Title.cshtml` restyles its current node; `BreadcrumbItem-Dashboard.cshtml` matches both the Dashboard ancestor (by ID) and every node of the `Dashboard` trail (by name).
+- Ship a `.DetailAdmin` or `.Detail` template only when the admin and the front end really differ.
 
-See `references/breadcrumbs-examples.md` for a title-above-trail override and the low-level shape API.
+See `references/breadcrumbs-examples.md` for the full alternate tables, a title-above-trail override, and the low-level shape API.
+
+## Gotchas
+
+- **A missing title is invalid**, even on a self-closing helper and on the hidden path. `HtmlString.Empty` is valid and still leaves a current node in a visible trail.
+- **Children are ancestors only.** Never add a child for the current page; the helper appends it with ID `Title`, and providers can neither remove nor replace it.
+- **Second heading.** Remove the view's old `<h1>` and `RenderTitleSegments` call when the helper owns the title.
+- **No visibility guards in views.** Never read `AdminSettings.ShowBreadcrumb` or wrap lookups or markup in setting-dependent branches.
+- **`route-values` type.** It takes `IDictionary<string, string>`, not an anonymous object or `RouteValueDictionary`.
+- **Link checks are not endpoint security.** `permission` and `link-enabled` only control whether an ancestor is rendered as a link.
+- **Renaming breaks customizations.** Trail names and ancestor IDs are the contract for providers and alternates; keep them stable.
+- **Hidden trails bypass templates.** A `Breadcrumb` override cannot change the directly rendered heading of a hidden admin trail.
 
 ## Upgrading from 3.x
 
@@ -246,4 +264,5 @@ See `references/breadcrumbs-examples.md` for a title-above-trail override and th
 
 - `orchardcore-admin` for admin controllers, views, and settings.
 - `orchardcore-admin-lists` for list pages whose trail name matches the list name.
+- `orchardcore-admin-edit-views` for the edit pages and forms below the title.
 - `orchardcore-navigation` for `INavigationProvider` menus and pager shapes.

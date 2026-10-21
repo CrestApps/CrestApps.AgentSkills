@@ -1,6 +1,6 @@
 ---
 name: orchardcore-recipes
-description: Skill for authoring Orchard Core recipes and custom recipe steps. Covers recipe discovery, recipe manifests, execution and cancellation, built-in step contracts, the command and DataPipelines steps, nested recipes, migration recipes, the OpenApiPkce, OpenApiGeneration and MediaApiPkce recipes, and end-to-end IRecipeStepHandler development. Use this skill when requests mention Orchard Core Recipes, Create a Recipe, Recipe Steps, Recipe Discovery, Recipe Manifest, IRecipeHarvester, IRecipeExecutor, IRecipeMigrator, AddRecipeExecutionStep, RecipeExecutionException, or Custom Recipe Step Handlers. Strong matches include work with OrchardCore.Recipes, IRecipeStepHandler, NamedRecipeStepHandler, RecipeExecutionContext, RecipeDescriptor, RecipePermissions, ContentDefinition, WorkflowType, DeploymentPlansRecipeStep, and recipe.schema.json. It also helps with Recipe Structure, Common Recipe Steps, and Recipe Schema References.
+description: Skill for authoring Orchard Core recipes and custom recipe steps. Covers recipe discovery, recipe manifests, setup recipes with issetuprecipe and step ordering, variables and the js and file expressions (uuid, variables, parameters, configuration, file text), execution and cancellation, built-in step contracts and their registered names, the command, media, ReloadTenant and DataPipelines steps, nested recipes, migration recipes, the OpenApiPkce, OpenApiGeneration and MediaApiPkce recipes, and end-to-end IRecipeStepHandler development. Use this skill when requests mention Orchard Core Recipes, Create a Recipe, Setup Recipe, Recipe Steps, Recipe Variables, Recipe Discovery, IRecipeHarvester, IRecipeExecutor, IRecipeMigrator, AddRecipeExecutionStep, RecipeExecutionException, or Custom Recipe Step Handlers. Strong matches include OrchardCore.Recipes, IRecipeStepHandler, NamedRecipeStepHandler, RecipeExecutionContext, RecipeDescriptor, RecipePermissions, ContentDefinition, WorkflowType, and recipe.schema.json.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,7 +28,7 @@ Use `.recipe.json`, not arbitrary `.json`, for discovered extension recipes. Rec
 
 - Enable features before invoking their recipe steps, in an earlier step. A step whose handler is not registered (because its feature is not enabled yet) is silently skipped.
 - Keep content definition, settings, and workflow records under source control.
-- Use variables and helpers such as `[js: uuid()]`, `[file:text('...')]`, `[env:NAME]`, and `[appsettings:Section:Key]` rather than inventing stable IDs or embedding secrets.
+- Use variables and expressions such as `[js: uuid()]`, `[js: configuration('Section:Key', 'default')]` and `[file:text('...')]` rather than inventing stable IDs or embedding secrets (see Variables and expressions below).
 - All examples below are complete recipe fragments. Preserve the `{ "steps": [ ... ] }` root wrapper when composing a recipe.
 - For recipe-generated content, use expressions to generate `ContentItemId`, `ContentItemVersionId`, and timestamps rather than manually invented IDs.
 
@@ -65,6 +65,108 @@ Use `.recipe.json`, not arbitrary `.json`, for discovered extension recipes. Rec
   "steps": []
 }
 ```
+
+## Variables and expressions
+
+A string value of the form `[prefix: script]` is evaluated before the step runs. Only two prefixes exist: `js` (JavaScript, the default scripting engine) and `file`.
+
+| Expression | Result |
+|------------|--------|
+| `[js: uuid()]` | A new unique id (use for `ContentItemId`, `WorkflowTypeId` and similar). |
+| `[js: variables('name')]` | A value from the recipe `variables` object. |
+| `[js: parameters('AdminUsername')]` | A recipe environment value. The built-in providers supply `SiteName`, `AdminUsername` and `AdminUserId` (from setup or the site settings). |
+| `[js: configuration('OrchardCore:Admin:AdminUrlPrefix', 'Admin')]` | A configuration value with a default. Environment variables reach recipes this way, through the configuration sources. |
+| `[js: base64('...')]`, `[js: gzip('...')]`, `[js: html('...')]` | Decode base64, gzip plus base64, or HTML-encoded text. |
+| `[file:text('Snippets/home.liquid')]` | The text of a file, relative to the recipe file. |
+| `[file:base64('Assets/logo.png')]` | A file's bytes as base64 (for the `media` step `Base64` property). |
+
+- Each variable is evaluated the first time it is used and the result is cached, so `"homeId": "[js: uuid()]"` yields the same id in every step that reads it. Using an undefined variable fails the recipe with a validation error.
+- Some docs show `[env:...]`, `[appsettings:...]` and `[localization:...]` prefixes. No scripting engine is registered for them in Orchard Core 4.0; use `configuration()` instead.
+
+```json
+{
+  "variables": {
+    "homeContentItemId": "[js: uuid()]"
+  },
+  "steps": [
+    {
+      "name": "Content",
+      "data": [
+        {
+          "ContentItemId": "[js: variables('homeContentItemId')]",
+          "ContentType": "Page",
+          "DisplayText": "Home",
+          "Latest": true,
+          "Published": true,
+          "TitlePart": { "Title": "Home" },
+          "AutoroutePart": { "Path": "home", "SetHomepage": true }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "HomeRoute": {
+        "Action": "Display",
+        "Controller": "Item",
+        "Area": "OrchardCore.Contents",
+        "ContentItemId": "[js: variables('homeContentItemId')]"
+      }
+    }
+  ]
+}
+```
+
+## Setup recipes
+
+A setup recipe is an ordinary recipe with `"issetuprecipe": true`; it is listed on the setup screen (and in the tenant creation form) and provisions a new tenant. Ship it in the `Recipes` folder of your theme or module, or in the web project's `Recipes` folder.
+
+Order the steps so each one finds what it needs:
+
+1. `Feature`, enabling every module and the site theme's own feature.
+2. `Themes`, setting `site` and `admin`.
+3. `Settings` (site name, time zone, home route, feature settings) and `Roles`.
+4. `ContentDefinition`, then index profiles (`CreateOrUpdateIndexProfile`) and `Queries`.
+5. `Content`, `Media`, `Layers`, `Templates`, `AdminMenu`, `WorkflowType`, and other data.
+
+```json
+{
+  "name": "MySite",
+  "displayName": "My Site",
+  "description": "Provisions a My Site tenant.",
+  "author": "My Team",
+  "website": "https://example.invalid",
+  "version": "1.0.0",
+  "issetuprecipe": true,
+  "categories": [ "default" ],
+  "tags": [ "mysite" ],
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [
+        "OrchardCore.Admin",
+        "OrchardCore.Contents",
+        "OrchardCore.ContentTypes",
+        "OrchardCore.Title",
+        "OrchardCore.Autoroute",
+        "OrchardCore.HomeRoute",
+        "OrchardCore.Themes",
+        "TheAdmin",
+        "MySite.Theme"
+      ]
+    },
+    {
+      "name": "Themes",
+      "admin": "TheAdmin",
+      "site": "MySite.Theme"
+    }
+  ]
+}
+```
+
+- Enable the site theme's feature in the `Feature` step. Setting it in `Themes` alone leaves the front end without its layout.
+- Name the file in lowercase (`mysite.recipe.json`) and use a PascalCase `name`, which is what the `Recipes` step and `IRecipeHarvester` match on.
+- Test by setting up a fresh tenant with the recipe (or with `orchardcore-auto-setup`). Recipes without `issetuprecipe` run from **Configuration > Recipes** on an existing tenant.
+- Create index profiles before the `Content` step so imported items are indexed as they are created.
 
 ## Common built-in steps
 
@@ -178,7 +280,39 @@ The `command` step runs built-in commands, one per entry, as the command name fo
 
 ### Other common registered steps
 
-Use the matching schema before emitting any of these: `Themes`, `Layers`, `Queries`, `Media`, `MediaProfile`, `Roles`, `Users`, `Templates`, `AdminTemplates`, `AdminMenu`, `Placement`, `WorkflowType`, `deployment`, `LuceneIndex`, `LuceneIndexRebuild`, `LuceneIndexReset`, `ElasticsearchIndex`, `ElasticsearchIndexRebuild`, `ElasticsearchIndexReset`, `CreateOrUpdateIndexProfile`, `RebuildIndex`, `ResetIndex`, `Translations`, `Sitemaps`, `FeatureProfiles`, `CustomSettings`, `CustomUserSettings`, and provider-specific authentication settings.
+Use the matching schema before emitting any of these registered names: `Themes`, `Layers`, `Queries`, `media`, `MediaProfiles`, `Roles`, `Users`, `Templates`, `AdminTemplates`, `ShortcodeTemplates`, `AdminMenu`, `Placements`, `WorkflowType`, `deployment`, `CreateOrUpdateIndexProfile`, `RebuildIndex`, `ResetIndex`, `Translations`, `Sitemaps`, `UrlRewriting`, `FeatureProfiles`, `custom-settings`, `custom-user-settings`, `DeleteContentDefinition`, `ReplaceContentDefinition`, `move-attached-media-fields`, `CreateOrUpdateRateLimitPolicies` (see `orchardcore-rate-limits`), and provider-specific authentication settings. The provider-specific index steps `lucene-index`, `lucene-index-reset`, `lucene-index-rebuild`, `ElasticIndexSettings`, `elastic-index-reset`, `elastic-index-rebuild` and `azureai-index-*` are obsolete; use `CreateOrUpdateIndexProfile`, `ResetIndex` and `RebuildIndex` (see `orchardcore-indexing`).
+
+The `media` step imports files listed under `Files`; each entry has a `TargetPath` plus one of `SourcePath` (relative to the recipe), `SourceUrl` or `Base64`.
+
+```json
+{
+  "steps": [
+    {
+      "name": "media",
+      "Files": [
+        {
+          "TargetPath": "images/logo.png",
+          "SourcePath": "../wwwroot/images/logo.png"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Reload the tenant
+
+Some settings are cached at tenant start (for example CORS policies written by `Settings`) and otherwise take effect only after a feature change or restart. Orchard Core 4.0 adds a `ReloadTenant` step that requests a shell release when the recipe completes; place it after the steps whose settings must become live.
+
+```json
+{
+  "steps": [
+    {
+      "name": "ReloadTenant"
+    }
+  ]
+}
+```
 
 `DataPipelines` (Orchard Core 4.0, `OrchardCore.DataPipelines` feature) imports data pipeline definitions under a `Pipelines` array. It has no schema file here; export the pipelines with the **Data Pipelines** deployment step and reuse that payload (see `orchardcore-data-pipelines`).
 

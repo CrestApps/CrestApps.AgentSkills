@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-number-verifications
-description: Skill for verifying and revalidating phone numbers on Orchard Core content items with pluggable providers. Covers provider configuration, PhoneNumberVerificationPart, provider results, revalidation, SQL indexing, queues, and Omnichannel contact integration. Use this skill when requests mention Orchard Core phone verification, phone validation APIs, verification queues, or revalidating contact numbers. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers.Verifications, IPhoneNumberVerificationManager, IPhoneNumberVerificationProvider, PhoneNumberVerificationPart, PhoneNumberVerificationResult, and PhoneNumberRevalidationBackgroundTask.
+description: Skill for verifying and revalidating phone numbers on Orchard Core content items with pluggable providers. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers.Verifications feature and its AbstractApi, Veriphone and Twilio provider features, provider configuration and permissions, PhoneNumberVerificationPart, provider results, resilient provider HTTP clients that never replay unsafe requests, background revalidation, SQL indexing, the Phone Verifications Queue admin list, the shared Reports integration, and Omnichannel contact integration through IContactMethodsAccessor. Use this skill when requests mention Orchard Core phone verification, phone validation APIs, verification queues, or revalidating contact numbers. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers.Verifications, IPhoneNumberVerificationManager, IPhoneNumberVerificationProvider, PhoneNumberVerificationPart, PhoneNumberVerificationResult, and PhoneNumberRevalidationBackgroundTask.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,8 +16,8 @@ You are an Orchard Core expert. Generate accurate code, settings, recipes, and i
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.PhoneNumbers.Verifications` in the web/startup project.
-- Enable a provider feature as well as the core verification feature; a provider feature enables the core feature through its dependency.
-- The core feature depends on `OrchardCore.Contents` and `CrestApps.OrchardCore.PhoneNumbers`.
+- Enable a provider feature; the core feature is `EnabledByDependencyOnly` and is turned on by the provider's dependency.
+- The core feature depends on `OrchardCore.Contents`, `CrestApps.OrchardCore.Resources`, and `CrestApps.OrchardCore.PhoneNumbers`.
 - Attach `PhoneNumberVerificationPart` only to content types representing a contact or another verified number owner.
 - Use `IPhoneNumberVerificationManager` to select and invoke the configured provider.
 - Store results with `PhoneNumberVerificationPartExtensions`, not a hand-written parallel data structure.
@@ -25,6 +25,7 @@ You are an Orchard Core expert. Generate accurate code, settings, recipes, and i
 - Use `IPhoneNumberVerificationProvider` to add a provider and give it a stable provider key.
 - Add provider settings as a site display driver rather than application-wide static configuration.
 - Let the built-in background task throttle and revalidate due records.
+- Register provider HTTP clients with `AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods())` so a lost response never replays a paid lookup.
 - Install external-provider packages and CrestApps packages in the web/startup project.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except for View Models.
@@ -70,6 +71,16 @@ Enable exactly the provider features that the tenant can configure. The framewor
 | `PhoneNumberRevalidationBackgroundTask` | Finds due records and processes revalidation |
 
 Provider keys identify a provider independently of its display name. The built-in keys are exposed through `PhoneNumberVerificationsConstants.Providers`.
+
+### Permissions
+
+| Permission | Grants |
+|---|---|
+| `ManagePhoneNumberVerificationSettings` | **Settings → Phone Number Verifications** and provider tabs. The settings group registers it with `AddSiteSettingsPermission`, so a role holding only this permission can open the page. |
+| `RunPhoneNumberVerificationsReport` | **Tools → Phone Verifications Queue** and the report under **Reports**. Granted to the built-in **Supervisor** role on new tenants; grant it manually on existing tenants. |
+| `VerifyPhoneNumbers` | Re-queuing records (**Retry now**, **Retry selected**, **Retry all failed**). |
+
+All three are granted to **Administrator** by default.
 
 ## Configure Settings
 
@@ -169,11 +180,19 @@ After the configured maximum consecutive failures, a record is shown as **Needs 
 
 Queue retry actions set records pending and defer actual provider requests until after state is saved. Do not build a synchronous bulk web action that calls every external provider immediately.
 
+The queue renders through Orchard Core's `AdminList` shape (list name `PhoneNumberVerificationRecords`). Its row display model is `PhoneNumberVerificationRecord` in the module's `Models` namespace (it was a view model in 2.x), displayed by `PhoneNumberVerificationRecordDisplayDriver`. Customize the List layout with `PhoneNumberVerificationRecord_SummaryAdmin` placement and the Grid layout with `SummaryAdminGrid` placement; see `orchardcore-admin-lists`.
+
+## Reporting
+
+With `CrestApps.OrchardCore.Reports` enabled, the **Phone Number Verifications** report appears under **Reports → General** for users with `RunPhoneNumberVerificationsReport`. It reads `PhoneNumberVerificationPartIndex` and uses the shared report renderer and CSV and Excel exports. See `orchardcore-reports`.
+
 ## Omnichannel Contacts
 
-When `CrestApps.OrchardCore.Omnichannel.Managements` is enabled, `OmnichannelContactPhoneNumberVerificationHandler` examines contact methods. It prefers `Cell`, then `Home`, `Office`, `Work`, and `Other`, stores a changed value as unverified in the current content save, and schedules external verification after that save.
+When `CrestApps.OrchardCore.Omnichannel.Managements` is enabled, `OmnichannelContactPhoneNumberVerificationHandler` reads the contact's numbers through `IContactMethodsAccessor`, so it works for contact types that keep numbers in the `ContactMethods` bag or in their own fields through an `IContactMethodsProvider` (see `orchardcore-omnichannel-management`). It prefers `Cell` (a number typed `Mobile` counts as cell), then `Home`, `Office`, `Work`, and `Other`, stores a changed value as unverified in the current content save, and schedules external verification after that save.
 
-This handler is feature-gated. Do not assume it runs for arbitrary custom contact types unless they use the matching Omnichannel model.
+Whether a lookup is needed is decided from the verification stored on the contact. A save that rebuilds the bag item holding the number does not queue a new paid lookup; the item gets the contact's copy of the verification back. Removing the number clears the stored verification.
+
+This handler is feature-gated. Do not assume it runs for arbitrary custom contact types that do not carry `OmnichannelContactPart`.
 
 ## Custom Providers
 
@@ -200,7 +219,7 @@ Register a named provider in a dedicated feature startup:
 
 ```csharp
 services.AddHttpClient(nameof(MyPhoneNumberVerificationProvider))
-    .AddStandardResilienceHandler();
+    .AddStandardResilienceHandler(options => options.Retry.DisableForUnsafeHttpMethods());
 
 services.AddPhoneNumberVerificationProvider<MyPhoneNumberVerificationProvider>(
     "MyProvider",
@@ -217,6 +236,13 @@ provider has tenant settings. It adds the keyed provider and an
 provider is selectable. Keep the provider key and keyed-service registration
 identical.
 
+## Upgrading from 2.x
+
+- `PhoneNumberVerificationRecord` moved from view models to `Models` and is the queue's row display model; the queue uses `AdminList`, so overrides of the old list markup must move to `SummaryAdmin` and `SummaryAdminGrid` placement.
+- Provider HTTP clients retry only safe, idempotent requests. Apply `Retry.DisableForUnsafeHttpMethods()` to custom provider clients too.
+- The Omnichannel handler reads numbers through `IContactMethodsAccessor`; custom code that built it by hand must register `services.AddContactMethods()`.
+- Grant `RunPhoneNumberVerificationsReport` to the **Supervisor** role on existing tenants if supervisors should see the queue and report.
+
 ## Troubleshooting
 
 | Symptom | Check |
@@ -226,4 +252,4 @@ identical.
 | A failure shows invalid | Correct the provider mapping; request failures must remain retryable |
 | Background work is slow | Tune request delay and provider limits, not unbounded concurrent calls |
 | Records never retry | Check maximum attempts, due date, and queue failure state |
-| Contact changes do not verify | Confirm the Omnichannel Management feature and contact-method structure |
+| Contact changes do not verify | Confirm the Omnichannel Management feature and that the type's numbers are readable through `IContactMethodsAccessor` |

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tester
-description: Tests Orchard Core CMS features through browser automation with playwright-cli. Use when the user needs to build, run, set up, or test Orchard Core functionality including admin features, content management, the Vue 3 Media Gallery, and module testing. Covers the Orchard Core 4.0 admin UI including the redesigned admin menu and off-canvas sidebar, breadcrumb page titles, the Ctrl+K quick navigation palette, List and Grid admin list layouts, page size selection, and admin pages without jQuery. Use this skill when requests mention Orchard Core Feature Testing, Core Workflow, Build, Run Application in the background, Session Port, setup wizard, or closely related Orchard Core testing or troubleshooting work. Strong matches include OrchardCore.Cms.Web, OrchardCore.Cms.Web.csproj, AGENTS.md, playwright-cli.
+description: Tests a site built on Orchard Core through browser automation with playwright-cli. Use when the user needs to build, run, set up, or test an Orchard Core web project and its modules and themes. Covers running the site on a random port in the background, unattended provisioning with Auto Setup environment variables, the interactive setup wizard, the password field workaround for setup and login forms, playwright-cli browser installation and eval rules, log files, and the Orchard Core 4.0 admin UI including the redesigned admin menu, breadcrumb page titles, the Ctrl+K quick navigation palette, List and Grid admin list layouts, page size selection, and admin pages without jQuery. Use this skill when requests mention Orchard Core feature testing, running the site in the background, Auto Setup for tests, the setup wizard, or related testing or troubleshooting work. Strong matches include OrchardCore.Cms.Web, OrchardCore.AutoSetup, AddSetupFeatures, playwright-cli.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,36 +9,65 @@ metadata:
 
 # Orchard Core Feature Testing
 
-This skill guides you through testing Orchard Core CMS features using browser automation with `playwright-cli`.
+This skill guides you through testing a site built on Orchard Core (its web project plus your modules and themes) using browser automation with `playwright-cli`.
 
 ## Prerequisites
 
-- OrchardCore repository (working directory)
-- .NET SDK 10.0+ installed
-- `playwright-cli` skill available
-- If `playwright-cli` is unavailable, install it globally with `npm install -g @playwright/cli@latest`.
-
-> **Warning:** This installs the latest global CLI version. The existing `playwright-cli` commands in this skill remain valid.
+- An Orchard Core web (startup) project, for example one created with `dotnet new occms`. Below it is `$webProject` (PowerShell) or `$WEB_PROJECT` (bash), such as `src/MySite.Web`. Inside the Orchard Core repository itself it is `src/OrchardCore.Cms.Web`.
+- .NET SDK matching the project's target framework. Add `-f <tfm>` to `dotnet build`/`dotnet run` only when the project targets several frameworks.
+- The `playwright-cli` skill. If the CLI is missing, install it with `npm install -g @playwright/cli@latest` (this installs the latest global version; the commands below remain valid).
+- A browser engine for `playwright-cli`. Without Chrome (for example on macOS) install webkit and pass `--browser webkit` on the first `open` of a session; see `references/playwright-cli.md`.
 
 ## Core Workflow
 
-Testing an Orchard Core feature follows these steps:
-
-1. **Build** the application
-2. **Run** the application server (background)
-3. **Setup** a test site (if needed)
-4. **Test** the feature via browser
+1. **Build** the web project
+2. **Run** it in the background on a session port
+3. **Set up** a test site (Auto Setup is the recommended unattended path)
+4. **Test** the feature in the browser
 5. **Verify** results and clean up
+
+## Fastest Reliable Path (bash)
+
+```bash
+WEB_PROJECT=src/MySite.Web
+
+# 1. Build.
+dotnet build "$WEB_PROJECT" -c Debug
+
+# 2. Fresh state and a session port.
+rm -rf "$WEB_PROJECT/App_Data"
+PORT=$(( (RANDOM % 1000) + 5000 )); echo -n $PORT > .orchardcore-port
+
+# 3. Run with Auto Setup (provisions the Default tenant on the first request).
+#    Values are bare: quotes would become part of the value.
+OrchardCore__AutoSetup__AutoSetupPath= \
+OrchardCore__AutoSetup__Tenants__0__ShellName=Default \
+OrchardCore__AutoSetup__Tenants__0__SiteName=TestSite \
+OrchardCore__AutoSetup__Tenants__0__SiteTimeZone=America/Los_Angeles \
+OrchardCore__AutoSetup__Tenants__0__AdminUsername=admin \
+OrchardCore__AutoSetup__Tenants__0__AdminEmail=admin@test.com \
+OrchardCore__AutoSetup__Tenants__0__AdminPassword=Password1! \
+OrchardCore__AutoSetup__Tenants__0__DatabaseProvider=Sqlite \
+OrchardCore__AutoSetup__Tenants__0__RecipeName=Blog \
+dotnet run --project "$WEB_PROJECT" --no-build --urls "http://localhost:$PORT" > autosetup-console.log 2>&1 &
+
+# 4. Trigger and confirm.
+curl -s -o /dev/null "http://localhost:$PORT/"
+grep -m1 "successfully provisioned" autosetup-console.log
+```
+
+This requires Auto Setup to be registered in the web project (see Step 3). Then log in as described in Step 4; the login password field needs the native-setter workaround.
 
 ## Step 1: Build
 
 ```powershell
-dotnet build src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj -c Debug -f net10.0
+$webProject = "src/MySite.Web"
+dotnet build $webProject -c Debug
 ```
 
 ## Step 2: Run Application (Background)
 
-Since multiple agents may run Orchard Core from different worktrees simultaneously, use a random port and run in background.
+Several agents may run the site from different worktrees at the same time, so use a random port and run in the background.
 
 ### Get or Create Session Port
 
@@ -57,10 +86,10 @@ Write-Host "Using port: $port"
 ### Start Application in Background
 
 ```powershell
-# Start Orchard Core in background process
+# Start the site in a background process
 $proc = Start-Process dotnet `
-    -ArgumentList "run","-f","net10.0","--no-build","--urls","http://localhost:$port" `
-    -WorkingDirectory "src/OrchardCore.Cms.Web" `
+    -ArgumentList "run","--no-build","--urls","http://localhost:$port" `
+    -WorkingDirectory $webProject `
     -PassThru -NoNewWindow
 
 # Save PID for later cleanup
@@ -98,43 +127,74 @@ if (Test-Path ".orchardcore-pid") {
 }
 ```
 
+```bash
+# bash: backgrounding dotnet makes $! unreliable, so resolve the process by port.
+PORT=$(cat .orchardcore-port)
+PID=$(lsof -ti tcp:$PORT -sTCP:LISTEN | head -1)
+[ -n "$PID" ] && kill "$PID" && echo "Stopped Orchard Core (PID: $PID)"
+rm -f .orchardcore-pid
+```
+
 ## Step 3: Setup Test Site
 
-**Check if setup is needed**: Navigate to the app URL - if you see a setup wizard, the site needs setup.
+A fresh `App_Data` is uninitialized, so the site shows the setup wizard. Reset it to start over:
 
-**Reset for fresh setup** (optional):
 ```powershell
-Remove-Item -Recurse -Force src/OrchardCore.Cms.Web/App_Data
+Remove-Item -Recurse -Force "$webProject/App_Data"
 ```
 
-**Setup workflow**:
+### Option A: Auto Setup (recommended, unattended)
+
+Auto Setup provisions tenants from the `OrchardCore:AutoSetup` configuration section on their first request, with no browser and no wizard. The module ships in `OrchardCore.Application.Cms.Targets`, but project templates do not register it; add it to the web project's `Program.cs` (the Orchard Core repository's `OrchardCore.Cms.Web` already does):
+
+```csharp
+builder.Services
+    .AddOrchardCms()
+    .AddSetupFeatures("OrchardCore.AutoSetup");
+```
+
+Then pass the settings as environment variables (see the bash path above), user secrets, or a launch profile. Key rules, detailed in `references/autosetup.md`:
+
+- The prefix is `OrchardCore__AutoSetup__Tenants__0__<Option>`; `__` separates configuration levels. The deprecated `OrchardCore__OrchardCore_AutoSetup__` prefix still works.
+- Do not quote values in the bash inline form; the quotes become part of the password or email.
+- `SiteTimeZone` is required, and the first tenant must be `Default`.
+
+Success is logged as `The AutoSetup successfully provisioned the site 'TestSite'.` Keep this configuration out of production; see `orchardcore-auto-setup` for all options.
+
+### Option B: Interactive setup wizard
+
+Run the site without Auto Setup settings and drive the wizard. Site Name, User Name and Email fill normally, the recipe is a dropdown button backed by a hidden `RecipeName` input, and the password fields need the native-setter workaround. Full steps: `references/setup-wizard.md`.
+
 ```bash
-# Get the port
-$port = Get-Content ".orchardcore-port"
-
-playwright-cli open http://localhost:$port
+PORT=$(cat .orchardcore-port)
+playwright-cli --browser webkit open "http://localhost:$PORT/"
 playwright-cli snapshot
-# Fill: Site Name = "Test Site", Recipe = "Blog", Username = "admin", 
-# Email = "admin@test.com", Password = "Password1!"
-# Click "Finish Setup"
+# Fill Site Name, User Name, Email; choose Blog in the recipe dropdown;
+# set Password and PasswordConfirmation with the native setter; click Finish Setup.
 ```
-
-See `references/setup-wizard.md` for detailed field mapping.
 
 ## Step 4: Test Features
 
-**Important**: Replace `5000` with the actual port from `.orchardcore-port` file.
+**Important**: Replace `5000` with the actual port from the `.orchardcore-port` file.
 
 ### Login to Admin
 
+The username fills normally, but `fill`/`type` leave the login password (`input[name="LoginForm.Password"]`) empty with `playwright-cli`, so set it through the native value setter.
+
 ```bash
-playwright-cli open http://localhost:$port/Login
+PORT=$(cat .orchardcore-port)
+playwright-cli open "http://localhost:$PORT/Login"
 playwright-cli snapshot
-# Fill username: admin, password: Password1!
-# Click login button
-playwright-cli open http://localhost:$port/Admin
-playwright-cli snapshot
+playwright-cli fill <username-ref> "admin"
+
+playwright-cli eval '((p)=>{var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"value").set; s.call(p,"Password1!"); p.dispatchEvent(new Event("input",{bubbles:true})); p.dispatchEvent(new Event("change",{bubbles:true})); return p.value.length})(document.querySelector("input[name=\"LoginForm.Password\"]"))'
+
+playwright-cli click <login-button-ref>
+playwright-cli open "http://localhost:$PORT/Admin"
+playwright-cli eval 'window.location.pathname'   # "/Admin" when signed in
 ```
+
+The `eval` may print a benign `result is not a function` message because the expression returns a number; the value is still set.
 
 ### Common Test Scenarios
 
@@ -151,7 +211,7 @@ playwright-cli snapshot
 # Click New, select content type, fill fields, publish
 ```
 
-**Enable a Feature**:
+**Enable a Feature** (for example the module under test):
 ```bash
 playwright-cli open http://localhost:$port/Admin/Features
 playwright-cli snapshot
@@ -188,14 +248,14 @@ See `references/admin-navigation.md` for selectors.
 
 ### Debugging with Log Files
 
-Console output is not visible when running in background. Use log files instead:
+Console output is not visible when running in the background. Sites using NLog (the `dotnet new occms` default) write `App_Data/logs/orchard-log-{date}.log`:
 
 ```powershell
 # View last 50 lines of today's log
-Get-Content "src/OrchardCore.Cms.Web/App_Data/logs/orchard-log-$(Get-Date -Format 'yyyy-MM-dd').log" -Tail 50
+Get-Content "$webProject/App_Data/logs/orchard-log-$(Get-Date -Format 'yyyy-MM-dd').log" -Tail 50
 
 # Search for errors
-Select-String -Path "src/OrchardCore.Cms.Web/App_Data/logs/orchard-log-$(Get-Date -Format 'yyyy-MM-dd').log" -Pattern "ERROR|Exception" -Context 2,5
+Select-String -Path "$webProject/App_Data/logs/orchard-log-$(Get-Date -Format 'yyyy-MM-dd').log" -Pattern "ERROR|Exception" -Context 2,5
 ```
 
 See `references/debugging.md` for more debugging techniques.
@@ -221,6 +281,8 @@ See `references/debugging.md` for more debugging techniques.
 | `.orchardcore-port` | Persisted port number for session |
 | `.orchardcore-pid` | Process ID for cleanup |
 
+Close browser sessions with `playwright-cli session-stop-all` when done.
+
 ## Default Credentials
 
 - **Username**: admin
@@ -229,8 +291,9 @@ See `references/debugging.md` for more debugging techniques.
 
 ## References
 
+- `references/autosetup.md` - Unattended Auto Setup for tests (environment variables, options, troubleshooting)
+- `references/playwright-cli.md` - Browser install, `open` and `snapshot`, single-expression `eval`, the password field workaround
+- `references/setup-wizard.md` - Interactive setup wizard
 - `references/admin-navigation.md` - Admin URLs and UI patterns
-- `references/setup-wizard.md` - Site setup details
 - `references/common-features.md` - Feature-specific testing guides
 - `references/debugging.md` - Log files and troubleshooting
-- `AGENTS.md` (repo root) - Build and development instructions

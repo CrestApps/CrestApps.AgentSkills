@@ -156,12 +156,20 @@ public sealed class AnnouncementController : Controller
 
 ```csharp
 using OrchardCore.DisplayManagement.Handlers;
+using OrchardCore.DisplayManagement.Shapes;
 using OrchardCore.DisplayManagement.Views;
 
 public sealed class AnnouncementDisplayDriver : DisplayDriver<Announcement>
 {
     public override Task<IDisplayResult> DisplayAsync(Announcement announcement, BuildDisplayContext context)
     {
+        // Rendered on the row element in both layouts, e.g. for client-side filtering.
+        if (context.DisplayType is OrchardCoreConstants.DisplayType.SummaryAdmin or OrchardCoreConstants.DisplayType.SummaryAdminGrid
+            && context.Shape is Shape row)
+        {
+            row.Attributes["data-filter-value"] = announcement.Title?.ToLowerInvariant() ?? string.Empty;
+        }
+
         return CombineAsync(
             View("Announcement_Checkbox_SummaryAdmin", announcement)
                 .Location(OrchardCoreConstants.DisplayType.SummaryAdmin, "Checkbox:1")
@@ -212,8 +220,7 @@ public sealed class Startup : StartupBase
     <breadcrumb name="Announcements" title="@T["Announcements"]" />
 </zone>
 
-<form asp-action="Index" method="post" class="no-multisubmit bulk-select-list"
-      data-checkbox-name="itemIds" data-bulk-action-name="Options.BulkAction" data-selected-text="@T["selected"]">
+<form asp-action="Index" method="post" class="no-multisubmit" data-list-management data-selected-label="@T["selected"]">
     @* Keep the hidden filter submit first: Enter in the search box triggers it. *@
     <input type="submit" name="submit.Filter" id="submitFilter" class="visually-hidden" />
     <input asp-for="Options.BulkAction" type="hidden" />
@@ -224,7 +231,7 @@ public sealed class Startup : StartupBase
             <div class="row gx-2">
                 <div class="col">
                     <div class="input-group">
-                        <input asp-for="Options.Search" class="form-control" placeholder="@T["Search"]" type="search" autofocus autocomplete="off" />
+                        <input asp-for="Options.Search" id="search-box" class="form-control" placeholder="@T["Search"]" type="search" autofocus autocomplete="off" />
                         <button type="submit" name="submit.Filter" class="btn btn-outline-secondary" title="@T["Search"]" aria-label="@T["Search"]">
                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         </button>
@@ -250,7 +257,12 @@ public sealed class Startup : StartupBase
         </admin-list-grid>
     </admin-list>
 </form>
+
+@* Select-all, the item count, and the bulk actions dropdown of the generated toolbar. *@
+<script asp-name="list-management" at="Foot"></script>
 ```
+
+The `list-management` script finds the `itemIds` checkboxes, the `Options.BulkAction` hidden input, and the `submit.BulkAction` button by name. Orchard Core's own list pages bundle equivalent internal scripts; external modules use this registered resource.
 
 `Views/Announcement.SummaryAdmin.cshtml` (List layout row):
 
@@ -320,6 +332,25 @@ public sealed class Startup : StartupBase
 
 <a asp-action="Edit" asp-controller="Announcement" asp-route-id="@Model.Value.Id" class="btn btn-primary btn-sm">@T["Edit"]</a>
 <a asp-action="Delete" asp-controller="Announcement" asp-route-id="@Model.Value.Id" class="btn btn-danger btn-sm" data-url-af="RemoveUrl UnsafeUrl">@T["Delete"]</a>
+```
+
+`Views/Announcement.Modified.SummaryAdmin.cshtml` (a `Meta` badge in List, the `Modified` cell in Grid):
+
+```cshtml
+@model OrchardCore.DisplayManagement.Views.ShapeViewModel<Announcement>
+
+<span class="badge ta-badge fw-normal" title="@T["Last modified"]">
+    <i class="fa-regular fa-clock" aria-hidden="true"></i>
+    @Model.Value.ModifiedUtc.ToString("g")
+</span>
+```
+
+A shape placed in `ActionsMenu` renders bare dropdown items, never `<li>` elements:
+
+```cshtml
+@model OrchardCore.DisplayManagement.Views.ShapeViewModel<Announcement>
+
+<a asp-action="Duplicate" asp-controller="Announcement" asp-route-id="@Model.Value.Id" class="dropdown-item" data-url-af="UnsafeUrl">@T["Duplicate"]</a>
 ```
 
 ## Adding a Column to the Content Items List

@@ -252,7 +252,7 @@ public sealed class SportsContentService
 
 ### Exposing an Index to Data Pipelines and Reports
 
-A `MapIndex` makes a good backing store for a custom data source: derive a `RecordDataSet<TIndex>` that pages through `ISession.QueryIndex<TIndex>()` in a stable order (for example by `Id`), and apply `DataConditions.Keys(...)`/`DataConditions.DateRange(...)` to the index query. Implement `IAggregateRecordDataSet` to answer counts and sums with a `GROUP BY` on the index table. See `orchardcore-data-sources`.
+A `MapIndex` makes a good backing store for a custom data source: derive a `RecordDataSet<TIndex>` that pages through `ISession.QueryIndex<TIndex>()` in a stable order (for example by `Id`), and apply `DataConditions.Keys(...)`/`DataConditions.DateRange(...)` to the index query. Implement `IAggregateRecordDataSet` to answer counts and sums with a `GROUP BY` on the index table. See `orchardcore-data-sources`, and `orchardcore-data-formulas` for how pipeline filters arrive as `DataConditions`.
 
 ### YesSql Configuration
 

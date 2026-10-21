@@ -1,32 +1,45 @@
 ---
 name: orchardcore-ai
-description: Skill for configuring AI integrations in Orchard Core. Covers AI service registration, MCP enablement, prompt configuration, and agent framework integration. Use this skill when requests mention Orchard Core AI, Configure AI Integration, Enabling AI Features, AI Configuration in appsettings.json, Non-Connection Deployments via appsettings.json, Typed AI Deployment Settings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI, ISpeechToTextClient, IAIClientFactory, AIProfile, DataMigration, IAIProfileManager, WithSettings, AIProfileSettings, AIChatProfileSettings, MySpeechService, ITextToSpeechClient, MyTtsService. It also helps with Non-Connection Deployments via appsettings.json, Typed AI Deployment Settings, Adding AI Provider Connection via Recipe, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for the CrestApps.OrchardCore.AI foundation module (AI Services) in CrestApps.OrchardCore 3.0. Covers the CrestApps.OrchardCore.AI, AI.Chat.Core, AI.Chat.Api, AI.ConnectionManagement, AI.ToolInstances and AI.Personas features, the Artificial Intelligence admin screens and permissions, appsettings.json Connections, Deployments and DefaultParameters, GeneralAISettings and DefaultAIDeploymentSettings site settings read through IOptionsMonitor, the AIDeployment, DeleteAIDeployments and AIProfile recipe steps, AI profile types (Chat, Utility, TemplatePrompt, Agent), profiles created in migrations with IAIProfileManager, resolving deployments by slot with IAIDeploymentManager.ResolveSlotAsync, IAIClientFactory speech-to-text and text-to-speech clients, deployment plan steps, and upgrading from 2.x. Use this skill when requests mention Orchard Core AI, AI Services, AI profiles, AI deployments, AI settings, AIProfile recipe, ChatModeProfileSettings, AIProfileMetadata, AgentMetadata, or AI profiles in code.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI - Prompt Templates
+# Orchard Core AI Services
 
-## Configure AI Integration
+`CrestApps.OrchardCore.AI` is the Orchard foundation of the CrestApps AI suite. It wires the shared
+CrestApps.Core AI services into Orchard Core and adds connection, deployment, profile, template, tool
+instance and persona management, AI site settings, recipes, deployment steps and workflow activities.
 
-You are an Orchard Core expert. Generate code and configuration for AI integrations in Orchard Core.
+## Guidelines
 
-### Guidelines
-- Orchard Core supports AI integrations through the CrestApps AI module ecosystem.
-- Supported AI providers: OpenAI, Azure, AzureAIInference, and Ollama.
-- Configure AI services through `appsettings.json` or the admin UI.
-- Use dependency injection to access AI services in modules.
-- Always secure API keys using user secrets or environment variables, never hardcode them.
-- Provider configuration no longer uses a provider-wide default connection property. When multiple shared connections exist, assign the intended `ConnectionName` on each deployment and select deployments by name in profiles, workflows, and interactions.
-- AI profiles define how the AI system interacts with users, including system messages and response behavior.
-- Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
-- Agent profiles are reusable agents exposed as AI tools — each agent requires a `Description` field.
-- Agent availability: `OnDemand` (default, included via selection) or `AlwaysAvailable` (auto-included in every request).
-- Resolve a speech-to-text deployment before creating an `ISpeechToTextClient`; `IAIClientFactory.CreateSpeechToTextClientAsync()` accepts an `AIDeployment`, not provider and connection names.
+- Install `CrestApps.OrchardCore.AI` and at least one provider package (`CrestApps.OrchardCore.OpenAI`,
+  `CrestApps.OrchardCore.OpenAI.Azure`, `CrestApps.OrchardCore.AzureAIInference`, `CrestApps.OrchardCore.Ollama`)
+  in the web/startup project.
+- `CrestApps.OrchardCore.AI` is dependency-only: a provider or a feature such as AI Chat enables it.
+- A **connection** holds credentials, a **deployment** is one model used through a connection and declares
+  **model capabilities**, and an **AI profile** names deployments by technical name. Where a deployment is
+  used is a **slot** (chat, utility, embedding, ...) resolved from site defaults. See
+  `orchardcore-ai-model-capabilities`.
+- Never hardcode API keys. Use user secrets in development and environment variables or Azure Key Vault in
+  production.
+- Read settings-backed AI options through `IOptionsMonitor<T>.CurrentValue`, never `IOptions<T>`.
+- The service APIs (`IAIClientFactory`, `IAICompletionService`, `IAIProfileManager`, orchestration) live in
+  CrestApps.Core. Use `crestapps-core-ai-profiles` and `crestapps-core-ai-runtime` for framework detail.
+- All recipe JSON uses the root `{ "steps": [ ... ] }` format, and C# classes are `sealed` (except view models).
 
-### Enabling AI Features
+## Features
+
+| Feature ID | Name | Notes |
+| --- | --- | --- |
+| `CrestApps.OrchardCore.AI` | AI Services | Dependency only. Deployments, profiles, profile templates, AI settings, the **Cascaded Realtime** deployment provider |
+| `CrestApps.OrchardCore.AI.Chat.Core` | AI Chat Services | Dependency only. Chat sessions, session processing, response-handler selection. Depends on `CrestApps.OrchardCore.AI.Prompting` |
+| `CrestApps.OrchardCore.AI.Chat.Api` | AI Chat WebAPI | REST endpoints for chat and completion |
+| `CrestApps.OrchardCore.AI.ConnectionManagement` | AI Connection Management | Provider connection editor and the `AIProviderConnections` recipe step. See `orchardcore-ai-connections` |
+| `CrestApps.OrchardCore.AI.ToolInstances` | AI Tool Instances | See `orchardcore-ai-tool-instances` |
+| `CrestApps.OrchardCore.AI.Personas` | AI Personas | See `orchardcore-ai-personas` |
 
 ```json
 {
@@ -34,7 +47,9 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI"
+        "CrestApps.OrchardCore.AI.ConnectionManagement",
+        "CrestApps.OrchardCore.OpenAI",
+        "CrestApps.OrchardCore.AI.Chat"
       ],
       "disable": []
     }
@@ -42,7 +57,29 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
 }
 ```
 
-### AI Configuration in appsettings.json
+## Admin screens and permissions
+
+| Screen | Permission |
+| --- | --- |
+| **Artificial Intelligence > Provider Connections** | `ManageProviderConnections` |
+| **Artificial Intelligence > Deployments** | `ManageAIDeployments` |
+| **Artificial Intelligence > Profiles** | `ManageAIProfiles` |
+| **Artificial Intelligence > Templates** | `ManageAIProfileTemplates` |
+| **Artificial Intelligence > Tool Instances** | `ManageAIToolInstances` |
+| **Artificial Intelligence > Personas** | `ManageAIPersonas` |
+| **Settings > Artificial Intelligence** (group `ai-settings`) | `ManageAIProfiles`, plus the permission each feature's card registers |
+
+Permissions are declared in `AIPermissions` with `LocalizationSource.Create(...)` descriptions. Every list
+(profiles `AIProfiles`, deployments `AIDeployments`, connections `AIProviderConnections`, templates
+`AITemplates`, tool instances `AIToolInstances`, personas `AIPersonas`) renders through Orchard Core's
+`AdminList` shape; configuration-backed deployments and connections render in a separate read-only list
+(`AIDeploymentsReadOnly`, `AIProviderConnectionsReadOnly`). Rows are `{Model}_SummaryAdmin` (List layout)
+and `SummaryAdminGrid` zones (Grid layout). See `orchardcore-admin-lists` to add columns or row actions.
+
+## Configuration (appsettings.json)
+
+Connections and deployments are two sibling arrays under `OrchardCore:CrestApps:AI`. Configuration
+entries appear beside stored ones and are read-only in the admin.
 
 ```json
 {
@@ -52,48 +89,38 @@ You are an Orchard Core expert. Generate code and configuration for AI integrati
         "DefaultParameters": {
           "Temperature": 0,
           "MaxOutputTokens": 800,
-          "TopP": 1,
-          "FrequencyPenalty": 0,
-          "PresencePenalty": 0,
-          "PastMessagesCount": 10
+          "PastMessagesCount": 10,
+          "MaximumIterationsPerRequest": 10
         },
         "Connections": [
           {
-            "Name": "default",
+            "Name": "openai-cloud",
             "ClientName": "OpenAI",
-            "Endpoint": "https://api.openai.com/v1",
-            "ApiKey": "Use a secret provider"
+            "ApiKey": "<from a secret store>"
           }
         ],
         "Deployments": [
-          { "Name": "gpt-4o", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Chat" },
-          { "Name": "gpt-4o-mini", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Utility" },
-          { "Name": "text-embedding-3-large", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Embedding" },
-          { "Name": "dall-e-3", "ClientName": "OpenAI", "ConnectionName": "default", "Purpose": "Image" }
-        ]
-      }
-    }
-  }
-}
-```
-
-### Non-Connection Deployments via appsettings.json
-
-Contained-connection providers (for example, Azure Speech) can be defined in the `OrchardCore:CrestApps:AI:Deployments` section. These deployments embed their own connection parameters and do not reference a shared provider connection.
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "Deployments": [
           {
-            "ClientName": "AzureSpeech",
-            "Name": "my-speech-to-text",
-            "Purpose": "SpeechToText",
-            "Endpoint": "https://eastus.api.cognitive.microsoft.com/",
-            "AuthenticationType": "ApiKey",
-            "ApiKey": "Use a secret provider"
+            "Name": "chat-default",
+            "ClientName": "OpenAI",
+            "ConnectionName": "openai-cloud",
+            "ModelName": "gpt-4o",
+            "Properties": {
+              "AIDeploymentMetadata": {
+                "Features": [ "textGeneration", "toolCalling", "streaming" ]
+              }
+            }
+          },
+          {
+            "Name": "embedding-default",
+            "ClientName": "OpenAI",
+            "ConnectionName": "openai-cloud",
+            "ModelName": "text-embedding-3-large",
+            "Properties": {
+              "AIDeploymentMetadata": {
+                "Features": [ "textEmbedding" ]
+              }
+            }
           }
         ]
       }
@@ -102,195 +129,62 @@ Contained-connection providers (for example, Azure Speech) can be defined in the
 }
 ```
 
-Deployments defined in configuration are read-only, ephemeral (exist only while in config), and appear alongside database-managed deployments in dropdown menus and API queries.
+`DefaultParameters` keys are `Temperature`, `MaxOutputTokens`, `TopP`, `FrequencyPenalty`, `PresencePenalty`,
+`PastMessagesCount`, `MaximumIterationsPerRequest` (default `10`), `AbsoluteMaximumIterationsPerRequest`
+(`100`), `EnableOpenTelemetry` and `EnableDistributedCaching`. Environment variables use `__`, for example
+`OrchardCore__CrestApps__AI__Connections__0__ApiKey`. The old `CrestApps_AI:DefaultParameters` and
+`CrestApps_AI:Providers` sections are still read; use the names above for new configuration.
 
-### Typed AI Deployment Settings
+Per-provider connection keys are in `orchardcore-ai-providers`.
 
-Each deployment in the `Deployments` array has these properties:
+## AI site settings
 
-| Setting | Description | Required |
-|---------|-------------|----------|
-| `ClientName` | The deployment client/provider identifier (for example `OpenAI`, `AzureOpenAI`, `AzureSpeech`) | Yes for recipe-created deployments and non-connection deployments |
-| `ConnectionName` | Optional shared provider connection name. Omit for contained/non-connection deployments. | No |
-| `Name` | The model/deployment name (e.g., `gpt-4o`, `text-embedding-3-large`) | Yes |
-| `Purpose` | One or more deployment purposes: `Chat`, `Utility`, `Embedding`, `Image`, `Vision`, `SpeechToText`, or `TextToSpeech` | Yes |
+**Settings > Artificial Intelligence** is built from cards contributed by enabled features.
 
-Use `ClientName` for deployments in recipes and configuration.
-
-### Adding AI Provider Connection via Recipe
+| Settings class (recipe key) | Holds | Read through |
+| --- | --- | --- |
+| `GeneralAISettings` | `EnableAIUsageTracking`, `EnablePreemptiveMemoryRetrieval`, `OverrideMaximumIterationsPerRequest`/`MaximumIterationsPerRequest`, `OverrideEnableDistributedCaching`/`EnableDistributedCaching`, `OverrideEnableOpenTelemetry`/`EnableOpenTelemetry` | `IOptionsMonitor<GeneralAIOptions>` |
+| `DefaultAIDeploymentSettings` | `DefaultChatDeploymentName`, `DefaultUtilityDeploymentName`, `DefaultEmbeddingDeploymentName`, `DefaultImageDeploymentName`, `DefaultVisionDeploymentName`, `DefaultSpeechToTextDeploymentName`, `DefaultTextToSpeechDeploymentName`, `DefaultTextToSpeechVoiceId`, `DefaultRealtimeDeploymentName` | the slot resolver |
 
 ```json
 {
   "steps": [
     {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "OpenAI",
-          "Name": "default",
-          "DisplayText": "OpenAI",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "https://api.openai.com/v1",
-              "ApiKey": "{{YourApiKey}}"
-            }
-          }
-        }
-      ]
+      "name": "Settings",
+      "GeneralAISettings": {
+        "EnableAIUsageTracking": true,
+        "EnablePreemptiveMemoryRetrieval": false
+      },
+      "DefaultAIDeploymentSettings": {
+        "DefaultChatDeploymentName": "chat-default",
+        "DefaultUtilityDeploymentName": "chat-default",
+        "DefaultEmbeddingDeploymentName": "embedding-default"
+      }
     }
   ]
 }
 ```
 
-### Managing AI Deployments via Recipe
+Saving **General** no longer reloads the tenant: `GeneralAIOptions` is refreshed live through
+`AddSignalOptionsChangeTokenSource<GeneralAIOptions>()`. Code that reads it must use
+`IOptionsMonitor<GeneralAIOptions>` (see `orchardcore-site-settings`).
+
+## Deployments by recipe
 
 ```json
 {
   "steps": [
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "openai-chat",
-          "Name": "gpt-4o",
+          "Name": "chat-default",
+          "ModelName": "gpt-4o",
           "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
-        },
-        {
-          "ItemId": "openai-utility",
-          "Name": "gpt-4o-mini",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Utility",
-          "IsDefault": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-For new recipes, prefer a dedicated `AIDeployment` step over embedding deployment definitions inside `AIProviderConnections`.
-
-### AI Completion using Direct Config Workflow Task
-
-The `AICompletionWithConfigTask` workflow activity is now deployment-driven. Its editor (`AICompletionWithConfigTaskDisplayDriver`) should only ask the user to select a chat deployment plus the prompt and output settings.
-
-- Do **not** ask for `ProviderName` or `ConnectionName`.
-- Populate the deployment dropdown from `IAIDeploymentManager.GetByPurposeAsync(AIDeploymentPurpose.Chat)`.
-- Persist the selected deployment using `DeploymentName`.
-- At execution time, resolve the deployment with `ResolveOrDefaultAsync(AIDeploymentPurpose.Chat, deploymentName: DeploymentName)`.
-
-```csharp
-public sealed class AICompletionWithConfigTaskDisplayDriver
-    : ActivityDisplayDriver<AICompletionWithConfigTask, AICompletionWithConfigTaskViewModel>
-{
-    private readonly IAIDeploymentManager _deploymentManager;
-
-    public override IDisplayResult Edit(AICompletionWithConfigTask activity, BuildEditorContext context)
-    {
-        return Initialize<AICompletionWithConfigTaskViewModel>("AICompletionWithConfigTask_Fields_Edit", async model =>
-        {
-            model.DeploymentName = activity.DeploymentName;
-            model.DeploymentNames = (await _deploymentManager.GetByPurposeAsync(AIDeploymentPurpose.Chat))
-                .OrderBy(x => x.ConnectionNameAlias ?? x.ConnectionName)
-                .ThenBy(x => x.Name)
-                .Select(x => new SelectListItem(x.Name, x.Name));
-        }).Location("Content");
-    }
-}
-```
-
-```cshtml
-<div class="ocat-wrapper" asp-validation-class-for="DeploymentName">
-    <label asp-for="DeploymentName" class="ocat-label">@T["Deployment"]</label>
-    <div class="ocat-end">
-        <select asp-for="DeploymentName" class="form-select" asp-items="Model.DeploymentNames">
-            <option value="">@T["Select a deployment"]</option>
-        </select>
-    </div>
-</div>
-```
-
-Use this workflow activity when a workflow should target a specific deployment directly instead of going through an AI profile.
-
-### AI Profile Types
-
-| Type | Description | Key Properties |
-|------|-------------|----------------|
-| `Chat` | Interactive conversational profile | WelcomeMessage, SystemMessage, tools, agents |
-| `Utility` | Background processing profile | SystemMessage, tools |
-| `TemplatePrompt` | Template-driven prompt profile | PromptTemplate, PromptSubject |
-| `Agent` | Reusable agent exposed as an AI tool | Description (required), SystemMessage, tools, agents |
-
-### Creating AI Profiles via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProfile",
-      "profiles": [
-        {
-          "Name": "{{ProfileName}}",
-          "DisplayText": "{{DisplayName}}",
-          "WelcomeMessage": "{{WelcomeMessage}}",
-          "Description": "",
-          "Type": "Chat",
-          "TitleType": "InitialPrompt",
-          "PromptTemplate": null,
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
+          "ConnectionName": "openai-cloud",
           "Properties": {
-            "AIProfileMetadata": {
-              "SystemMessage": "{{SystemMessage}}",
-              "Temperature": null,
-              "TopP": null,
-              "FrequencyPenalty": null,
-              "PresencePenalty": null,
-              "MaxTokens": null,
-              "PastMessagesCount": null
-            },
-            "FunctionInvocationMetadata": { "Names": [] },
-            "AgentInvocationMetadata": { "Names": [] }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-The `AIProfile` recipe step is source-agnostic. Omit `Source` and use `ChatDeploymentName` and `UtilityDeploymentName` to select the deployments by their technical names.
-
-### Creating an Agent Profile via Recipe
-
-Agent profiles are exposed as AI tools that other profiles/interactions can invoke. The `Description` field is required — it's used by the LLM to decide when to invoke the agent.
-
-```json
-{
-  "steps": [
-    {
-      "name": "AIProfile",
-      "profiles": [
-        {
-          "Name": "research-agent",
-          "DisplayText": "Research Agent",
-          "Description": "An agent that can research topics on the internet and provide comprehensive summaries with citations.",
-          "Type": "Agent",
-          "TitleType": "InitialPrompt",
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
-          "Properties": {
-            "AIProfileMetadata": {
-              "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
-              "Temperature": 0.3,
-              "MaxTokens": 4096
-            },
-            "AgentMetadata": {
-              "Availability": "OnDemand"
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming", "structuredOutputs" ]
             }
           }
         }
@@ -300,21 +194,90 @@ Agent profiles are exposed as AI tools that other profiles/interactions can invo
 }
 ```
 
-### Agent Availability
+- An existing deployment is matched by `ItemId`, or by `Name` plus `ClientName`.
+- A deployment that declares no capabilities and carries no legacy `Purpose` is imported as
+  `textGeneration` only. Declare `toolCalling` and `streaming` explicitly for a chat model.
+- Remove deployments with `{ "name": "DeleteAIDeployments", "DeploymentNames": [ "old-chat" ] }` or
+  `"IncludeAll": true`.
+- There is no `IsDefault` on a deployment any more. Defaults are the `DefaultAIDeploymentSettings` above.
 
-| Value | Description |
-|-------|-------------|
-| `OnDemand` | Default. Agent is only included when explicitly selected by the user in the Capabilities tab. |
-| `AlwaysAvailable` | Agent is automatically included in every AI request. Warning: increases token usage. Not shown in the agent selection UI. |
+## AI profiles
 
-### Defining Chat Profiles Using Code
+| Type | Purpose |
+| --- | --- |
+| `Chat` | An assistant people talk to (chat page, widget, automated SMS and voice) |
+| `Utility` | Background work invoked from code or workflows |
+| `TemplatePrompt` | A prompt run against an existing chat session (`PromptTemplate`, `PromptSubject`) |
+| `Agent` | A specialist other profiles call as a tool. `Description` is required |
+
+### Profile by recipe
+
+```json
+{
+  "steps": [
+    {
+      "name": "AIProfile",
+      "Profiles": [
+        {
+          "Name": "support-assistant",
+          "DisplayText": "Support Assistant",
+          "Type": "Chat",
+          "TitleType": "Generated",
+          "WelcomeMessage": "How can I help?",
+          "ChatDeploymentName": "chat-default",
+          "UtilityDeploymentName": "chat-default",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You are a helpful support assistant.",
+              "Temperature": 0.3,
+              "MaxTokens": 2048,
+              "PastMessagesCount": 10
+            },
+            "FunctionInvocationMetadata": { "Names": [] },
+            "AgentInvocationMetadata": { "Names": [ "research-agent" ] },
+            "PromptTemplateMetadata": {
+              "Templates": [ { "TemplateId": "customer-support-tone" } ]
+            },
+            "AIDeploymentParametersMetadata": {
+              "Values": { "reasoningEffort": "Medium" }
+            }
+          },
+          "Settings": {
+            "AIChatProfileSettings": { "IsOnAdminMenu": true },
+            "ChatModeProfileSettings": { "ChatMode": "TextInput" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- The step is source-agnostic: omit `Source` and name deployments with `ChatDeploymentName` and
+  `UtilityDeploymentName`. Leave them empty to use the site defaults.
+- `TitleType` is `InitialPrompt` or `Generated`.
+- `AIDeploymentParametersMetadata.Values` (chat deployment) and `.UtilityValues` (utility deployment) hold
+  model parameter choices; a parameter the deployment does not declare is never sent.
+- `AIProfileMetadata.InitialPrompt` is the **Opening message** (UI label "Start the conversation
+  automatically"); the property name did not change.
+- `ChatModeProfileSettings` holds `ChatMode` (`TextInput`, `AudioInput`, `Conversation`),
+  `ConversationDeploymentName`, `VoiceName` and `EnableTextToSpeechPlayback`. See
+  `orchardcore-ai-realtime-voice`.
+- For an `Agent`, add `"AgentMetadata": { "Availability": "OnDemand" }` (or `AlwaysAvailable`) to `Properties`.
+- To start from a profile template use `CreateAIProfileFromTemplate` (`orchardcore-ai-profile-templates`).
+
+### Profile in a migration
 
 ```csharp
-public sealed class SystemDefinedAIProfileMigrations : DataMigration
+using CrestApps.Core.AI.Models;
+using CrestApps.Core.AI.Profiles;
+using OrchardCore.Data.Migration;
+
+public sealed class SupportProfileMigrations : DataMigration
 {
     private readonly IAIProfileManager _profileManager;
 
-    public SystemDefinedAIProfileMigrations(IAIProfileManager profileManager)
+    public SupportProfileMigrations(IAIProfileManager profileManager)
     {
         _profileManager = profileManager;
     }
@@ -323,255 +286,128 @@ public sealed class SystemDefinedAIProfileMigrations : DataMigration
     {
         var profile = await _profileManager.NewAsync();
 
-        profile.Name = "UniqueTechnicalName";
-        profile.DisplayText = "A Display name for the profile";
+        profile.Name = "support-assistant";
+        profile.DisplayText = "Support Assistant";
         profile.Type = AIProfileType.Chat;
 
         profile.WithSettings(new AIProfileSettings
         {
             LockSystemMessage = true,
             IsRemovable = false,
-            IsListable = false,
         });
 
-        profile.WithSettings(new AIChatProfileSettings
+        profile.AlterSettings<ChatModeProfileSettings>(settings =>
         {
-            IsOnAdminMenu = true,
+            settings.ChatMode = ChatMode.TextInput;
         });
 
         profile.Put(new AIProfileMetadata
         {
-            SystemMessage = "some system message",
+            SystemMessage = "You are a helpful support assistant.",
             Temperature = 0.3f,
-            MaxTokens = 4096,
+            MaxTokens = 2048,
         });
 
-        await _profileManager.SaveAsync(profile);
+        await _profileManager.CreateAsync(profile);
 
         return 1;
     }
 }
 ```
 
-### Creating an Agent Profile in Code
+Settings classes (`AIProfileSettings`, `ChatModeProfileSettings`, `ResponseHandlerProfileSettings`,
+`AIChatProfileSettings`) live on `profile.Settings`: read them with `GetSettings<T>()`/`TryGetSettings<T>()`
+and write them with `WithSettings`/`AlterSettings<T>()`. Metadata (`AIProfileMetadata`, `AgentMetadata`,
+`PromptTemplateMetadata`) lives on `Properties`: use `Put`, `TryGet` and `GetOrCreate`.
+`IAIProfileManager` is an `INamedCatalogManager<AIProfile>`: `NewAsync`, `ValidateAsync`, `CreateAsync`,
+`UpdateAsync`, `FindByNameAsync`, `DeleteAsync`, plus `GetAsync(AIProfileType)`. There is no `SaveAsync`.
+Register the migration with `services.AddDataMigration<SupportProfileMigrations>()`. Framework-level profile
+construction is covered by `crestapps-core-ai-profiles`.
+
+## Resolving deployments and clients in code
+
+Pick a deployment for a slot, then create the client from it. The purpose-based APIs are gone.
 
 ```csharp
-public async Task<int> CreateAsync()
+using CrestApps.Core.AI.Clients;
+using CrestApps.Core.AI.Deployments;
+using CrestApps.Core.AI.Models;
+
+public sealed class TranscriptionService
 {
-    var profile = await _profileManager.NewAsync();
-
-    profile.Name = "research-agent";
-    profile.DisplayText = "Research Agent";
-    profile.Description = "Researches topics and provides comprehensive summaries with citations.";
-    profile.Type = AIProfileType.Agent;
-
-    profile.Put(new AIProfileMetadata
-    {
-        SystemMessage = "You are a research assistant...",
-        Temperature = 0.3f,
-        MaxTokens = 4096,
-    });
-
-    profile.Put(new AgentMetadata
-    {
-        Availability = AgentAvailability.OnDemand,
-    });
-
-    await _profileManager.SaveAsync(profile);
-    return 1;
-}
-```
-
-### Using ISpeechToTextClient
-
-```csharp
-public sealed class MySpeechService
-{
-    private readonly IAIClientFactory _clientFactory;
     private readonly IAIDeploymentManager _deploymentManager;
+    private readonly IAIClientFactory _clientFactory;
 
-    public MySpeechService(
-        IAIClientFactory clientFactory,
-        IAIDeploymentManager deploymentManager)
+    public TranscriptionService(IAIDeploymentManager deploymentManager, IAIClientFactory clientFactory)
     {
-        _clientFactory = clientFactory;
         _deploymentManager = deploymentManager;
+        _clientFactory = clientFactory;
     }
 
-    public async Task<string> TranscribeAsync(Stream audioStream, string deploymentName)
+    public async Task<string> TranscribeAsync(Stream audio, string deploymentName = null)
     {
-        var deployment = await _deploymentManager.ResolveOrDefaultAsync(
-            AIDeploymentPurpose.SpeechToText,
+        var deployment = await _deploymentManager.ResolveSlotAsync(
+            AIDeploymentSlotNames.SpeechToText,
             deploymentName: deploymentName);
-        var client = await _clientFactory.CreateSpeechToTextClientAsync(deployment);
 
-        var response = await client.GetTextAsync(audioStream);
+        if (deployment is null)
+        {
+            return null;
+        }
+
+        using var client = await _clientFactory.CreateSpeechToTextClientAsync(deployment);
+        var response = await client.GetTextAsync(audio);
 
         return response.Text;
     }
 }
 ```
 
-> **Note:** `ISpeechToTextClient` is supported by OpenAI and Azure OpenAI providers. Ollama and Azure AI Inference throw `NotSupportedException`.
+- `ResolveSlotAsync(slot, deploymentName, clientName, fallbackDeploymentNames, cancellationToken)` walks
+  the requested name, the site default for the slot, the fallback slot (utility falls back to chat), then
+  the first capable deployment.
+- `IAIClientFactory` creates chat clients, embedding generators, image generators, speech-to-text,
+  text-to-speech and realtime clients from an `AIDeployment`. Each overload accepts a builder callback,
+  for example `builder => builder.UseDefaultResilience().UseUsageLabels(purpose: "MyPurpose")`.
+- Voices for a text-to-speech deployment come from `ISpeechVoiceResolver.GetSpeechVoicesAsync(deployment)`.
+- Slots, capabilities and the deployment pickers are covered by `orchardcore-ai-model-capabilities`;
+  usage labels by `orchardcore-ai-usage-analytics`.
 
-### Using ITextToSpeechClient
+## Recipes and deployment steps
 
-`IAIClientFactory` also provides `CreateTextToSpeechClientAsync()` for text-to-speech synthesis:
+| Recipe step | Deployment step (title) | Export selector |
+| --- | --- | --- |
+| `AIProviderConnections` | AI Provider Connections | `ConnectionIds` |
+| `AIDeployment` | AI Deployments | `DeploymentNames` |
+| `DeleteAIDeployments` | Delete AI Deployments | `DeploymentNames` |
+| `AIProfile` | AI Profiles | `ProfileNames` |
+| `AIProfileTemplate`, `CreateAIProfileFromTemplate` | AI Profile Templates | `TemplateNames` |
+| `AIToolInstances` | AI Tool Instances | `InstanceIds` |
+| `AIPersonas` | AI Personas | `PersonaIds` |
 
-```csharp
-public sealed class MyTtsService
-{
-    private readonly IAIClientFactory _clientFactory;
+Every deployment step supports `IncludeAll`. Exported connections have their API keys blanked. The
+CrestApps Recipes feature publishes the JSON schemas of these steps (see `orchardcore-crestapps-recipes`).
 
-    public MyTtsService(IAIClientFactory clientFactory)
-    {
-        _clientFactory = clientFactory;
-    }
+## Upgrading from 2.x
 
-    public async IAsyncEnumerable<TextToSpeechUpdate> SynthesizeAsync(string text, string voiceName = null)
-    {
-        // Use an AIDeployment for the TTS model
-        var deployment = ...; // Resolve from IAIDeploymentManager
-        var client = await _clientFactory.CreateTextToSpeechClientAsync(deployment);
+- `AIDeploymentPurpose`, `AIDeploymentType`, `AIDeployment.Purpose`/`Type`, `IsDefault`,
+  `GetByPurposeAsync`, `GetAllByPurposeAsync` and `ResolveOrDefaultAsync(purpose, ...)` are removed. Use
+  `GetAllBySlotAsync(AIDeploymentSlotNames.X)` and `ResolveSlotAsync(AIDeploymentSlotNames.X, ...)`.
+- Replace `"Purpose"` in recipes and `appsettings.json` with `Properties.AIDeploymentMetadata.Features`.
+  Stored records with a legacy purpose keep working because they are projected onto capabilities on read.
+- `ChatMode.Realtime` and `RealtimeDeploymentName` are removed; a spoken conversation uses
+  `ChatModeProfileSettings.ConversationDeploymentName` with `ChatMode.Conversation`.
+- Read `GeneralAIOptions` through `IOptionsMonitor<GeneralAIOptions>`; `IOptions<T>` never sees a settings change.
+- The profile editor's **Apply Templates** card is gone; **Add Profile** opens the **New AI Profile** picker.
+- Admin list overrides must target the `AdminList` shapes; a driver that adds a row shape must also give it a
+  `SummaryAdminGrid` location.
 
-        using (client)
-        {
-            var options = new TextToSpeechOptions();
-            if (!string.IsNullOrWhiteSpace(voiceName))
-            {
-                options.VoiceName = voiceName;
-            }
+## Related skills
 
-            await foreach (var update in client.GetStreamingAudioAsync(text, options))
-            {
-                yield return update;
-            }
-        }
-    }
-}
-```
-
-### Getting Available Speech Voices
-
-Providers that support TTS also expose available voices:
-
-```csharp
-var provider = ...; // Resolve IAIClientProvider
-var voices = await provider.GetSpeechVoicesAsync(connection, deploymentName);
-// Each SpeechVoice has Id, Name, Language, Gender, and VoiceSampleUrl
-```
-
-### DefaultAIDeploymentSettings
-
-The site-level `DefaultAIDeploymentSettings` configures default deployments for various AI capabilities:
-
-| Setting | Description |
-|---------|-------------|
-| `DefaultChatDeploymentName` | Primary chat model used when a profile or interaction does not specify a chat deployment |
-| `DefaultUtilityDeploymentName` | Lightweight model for intent detection and planning |
-| `DefaultEmbeddingDeploymentName` | Model for embedding generation in document indexing |
-| `DefaultImageDeploymentName` | Model for image generation (e.g., DALL-E 3) |
-| `DefaultVisionDeploymentName` | Model for image understanding in chat-style interactions |
-| `DefaultSpeechToTextDeploymentName` | Model for speech-to-text (e.g., Whisper) |
-| `DefaultTextToSpeechDeploymentName` | Model for text-to-speech synthesis |
-| `DefaultTextToSpeechVoiceId` | Default voice ID for TTS synthesis |
-
-### Chat Mode
-
-AI profiles of type `Chat` support a `ChatMode` setting that controls voice features:
-
-| Mode | Description |
-|------|-------------|
-| `TextInput` | Default. Standard text-only chat. No voice features. |
-| `AudioInput` | Adds a microphone button for speech-to-text dictation. User must still send the transcribed message manually. Requires `DefaultSpeechToTextDeploymentName`. |
-| `Conversation` | Full two-way voice conversation. User speaks, transcript is sent automatically, AI responds with text and audio simultaneously. Requires both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName`. |
-
-ChatMode is configured per profile via `ChatModeProfileSettings`:
-
-```csharp
-profile.AlterSettings<ChatModeProfileSettings>(s =>
-{
-    s.ChatMode = ChatMode.Conversation;
-    s.VoiceName = "en-US-JennyNeural"; // Optional, uses default voice if empty
-});
-```
-
-> **Important:** `ChatModeProfileSettings` is stored on `AIProfile.Settings` (not `Entity.Properties`). Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do not read this data from `Entity.Properties` because that is a different storage location.
-
-### Contained Connections
-
-AI deployments can use **contained connections** — embedded connection details stored directly within the deployment rather than referencing a shared provider connection. This is useful for deployments that use a different endpoint or credentials than the shared connection (e.g., a dedicated Azure Speech Service endpoint for STT/TTS).
-
-Contained connections appear in the admin UI with a "Contained Connection" badge instead of a connection name.
-
-### Extending AI Chat with Custom Functions
-
-```csharp
-public sealed class GetWeatherFunction : AIFunction
-{
-    public const string TheName = "get_weather";
-
-    private static readonly JsonElement _jsonSchema = JsonSerializer.Deserialize<JsonElement>(
-    """
-     {
-       "type": "object",
-       "properties": {
-         "Location": {
-           "type": "string",
-           "description": "The geographic location for which the weather information is requested."
-         }
-       },
-       "additionalProperties": false,
-       "required": ["Location"]
-     }
-    """);
-
-    public override string Name => TheName;
-
-    public override string Description => "Retrieves weather information for a specified location.";
-
-    public override JsonElement JsonSchema => _jsonSchema;
-
-    protected override ValueTask<object> InvokeCoreAsync(AIFunctionArguments arguments, CancellationToken cancellationToken)
-    {
-        if (!arguments.TryGetValue("Location", out var prompt) || prompt is null)
-        {
-            return ValueTask.FromResult<object>("Location is required.");
-        }
-
-        var location = prompt is JsonElement jsonElement
-            ? jsonElement.GetString()
-            : prompt?.ToString();
-
-        var weather = Random.Shared.NextDouble() > 0.5
-            ? $"It's sunny in {location}."
-            : $"It's raining in {location}.";
-
-        return ValueTask.FromResult<object>(weather);
-    }
-}
-```
-
-### Registering Custom AI Tools
-
-```csharp
-services.AddCoreAITool<GetWeatherFunction>(GetWeatherFunction.TheName)
-    .Selectable();
-```
-
-Or with configuration options:
-
-```csharp
-services.AddCoreAITool<GetWeatherFunction>(GetWeatherFunction.TheName)
-    .WithTitle("Weather Getter")
-    .WithDescription("Retrieves weather information for a specified location.")
-    .WithCategory("Service")
-    .Selectable();
-```
-
-### Security Best Practices
-
-- Store API keys in user secrets during development: `dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "your-key"`
-- Use environment variables in production.
-- Apply appropriate permissions to restrict AI feature access.
-- Monitor token usage and set rate limits for production deployments.
+- `orchardcore-ai-connections` and `orchardcore-ai-providers` for connections and provider setup.
+- `orchardcore-ai-model-capabilities` for capabilities, parameters and slots.
+- `orchardcore-ai-usage-analytics` for metered usage and the AI Usage Analytics report.
+- `orchardcore-ai-profile-templates` and `orchardcore-ai-prompting` for templates.
+- `orchardcore-ai-chat`, `orchardcore-ai-chat-interactions`, `orchardcore-ai-realtime-voice` for chat surfaces.
+- `orchardcore-ai-tools`, `orchardcore-ai-agent` and `orchardcore-ai-workflows` for tools, agents and workflows.
+- `crestapps-core-ai-profiles` and `crestapps-core-ai-runtime` for the CrestApps.Core APIs.

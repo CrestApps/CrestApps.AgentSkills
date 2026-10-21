@@ -1,6 +1,6 @@
 ---
 name: orchardcore-workflows
-description: Skill for authoring Orchard Core workflows and custom workflow activities. Covers workflow definitions, WorkflowType recipes, startup tasks, event and task activities, activity display drivers and editor scripts, Liquid and JavaScript expressions, expression encoding, script limits and cancellation that fault a workflow, correlation, blocking or resuming instances, workflow permissions, trimming, and running data pipelines from workflows. Use this skill when requests mention Orchard Core Workflows, WorkflowType Recipe Step, Built-in Event Activities, Built-in Task Activities, Custom Workflow Activities, TriggerEventAsync, Workflow Correlation, User Loggedout Event, CreateTenantTask, SmsTask, HttpRequestTask, or Run Data Pipeline Task. Strong matches include work with OrchardCore.Workflows, IWorkflowManager, WorkflowExecutionContext, IWorkflowScriptEvaluator, IWorkflowExpressionEvaluator, TaskActivity, EventActivity, ActivityDisplayDriver, AddActivity, WorkflowsPermissions, and WorkflowTrimmingSettings.
+description: Skill for authoring Orchard Core workflows and custom workflow activities. Covers workflow definitions, WorkflowType recipes, startup tasks, event and task activities, the activity lifecycle (outcomes, Halt, Resume, hooks), activity properties and workflow Input, Output and Properties, activity display drivers and editors, Liquid and JavaScript expressions, expression encoding, script limits and cancellation that fault a workflow, correlation, blocking or resuming instances, workflow permissions, trimming, and running data pipelines from workflows. Use this skill when requests mention Orchard Core Workflows, WorkflowType, built-in or custom workflow activities, TriggerEventAsync, correlation, CreateTenantTask, HttpRequestTask, or Run Data Pipeline Task. Strong matches include OrchardCore.Workflows, IWorkflowManager, WorkflowExecutionContext, IWorkflowScriptEvaluator, TaskActivity, EventActivity, ActivityDisplayDriver, AddActivity, WorkflowsPermissions, and WorkflowTrimmingSettings.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -147,6 +147,46 @@ await workflowManager.TriggerEventAsync(
 ```
 
 `IWorkflowManager.TriggerEventAsync` also has `isExclusive` to avoid starting a duplicate instance already halted on the matching start event, and `isAlwaysCorrelated` to resume based on event type regardless of correlation ID. Prefer normal correlation unless the event semantics require one of those exceptions. Pass a custom DTO in the input and register it with `TemplateOptions.MemberAccessStrategy.Register<T>()` if Liquid must read its members.
+
+## Activity model
+
+| Need | Base class |
+|------|------------|
+| Do work and continue (log, notify, call an API, set a value) | `TaskActivity<TActivity>` (`Name` defaults to the type name) |
+| Wait for or react to an external trigger, or start a workflow | `EventActivity` (only events can start a workflow) |
+
+Lifecycle of an activity when the workflow reaches it:
+
+1. `GetPossibleOutcomes` (or `GetPossibleOutcomesAsync`) declares the outcome ports for the designer and the runtime.
+2. `CanExecuteAsync` gates execution; for an event it decides whether this trigger is meant for the instance.
+3. `ExecuteAsync` returns `Outcome("...")`, `Halt()` (persist the instance and wait; the `EventActivity` default) or `Noop()` (no outcome).
+4. After a halt, `TriggerEventAsync` resumes the instance and `Resume`/`ResumeAsync` returns the outcome to continue with.
+
+`Activity` also exposes workflow and activity hooks (`OnInputReceivedAsync`, `OnWorkflowStartingAsync`, `OnWorkflowResumingAsync`, `OnActivityExecutingAsync`, `OnActivityExecutedAsync`, and their `...ed` counterparts) for cross-cutting behavior.
+
+### Activity properties and workflow data
+
+Activity settings are stored in the activity's JSON `Properties` through `GetProperty`/`SetProperty`, keyed by the member name. Always pass a default factory, and keep only serializable values, since a halted instance is persisted and resumed later, possibly on another node.
+
+```csharp
+public LogLevel Level
+{
+    get => GetProperty(() => LogLevel.Information);
+    set => SetProperty(value);
+}
+```
+
+`WorkflowExecutionContext` carries the instance data: `Input` (from the caller of `TriggerEventAsync`), `Output` (returned to the caller), `Properties` (shared between activities), `LastResult`, `CorrelationId`, plus `Workflow` and `WorkflowType`.
+
+```csharp
+using OrchardCore.Workflows.Helpers;
+
+var requestId = workflowContext.Input.GetValue<string>("RequestId");
+workflowContext.Properties["Attempts"] = 1;
+workflowContext.Output["Result"] = requestId;
+```
+
+Built-in activities worth copying: `LogTask` (minimal task with a Liquid expression), `NotifyTask` with its driver, `SetOutputTask` and `SetPropertyTask` (writing `Output`/`Properties` with a syntax selector), `SignalEvent` (event gate and resume), and `TimerEvent` (event with persisted state).
 
 ## Write a custom task activity
 
@@ -314,6 +354,10 @@ public sealed class Startup : StartupBase
     }
 }
 ```
+
+Register activities that depend on another feature in a `[RequireFeatures("...")]` startup (as Orchard Core does for `OrchardCore.Workflows.Http`), so they only appear when that feature is enabled. The driver's `UpdateAsync` already calls `TryUpdateModelAsync(viewModel, Prefix)` before `UpdateActivity`, so only map values; use `EditActivityAsync`/`UpdateActivityAsync` when the mapping needs services.
+
+To test, open **Workflows**, add the activity, connect its outcomes, enable the workflow and trigger it; for an event, raise the trigger and confirm the halted instance resumes (the **Instances** list shows its status).
 
 The exact registration API is `AddActivity<TActivity, TDriver>()`. It registers the activity and display driver in `WorkflowOptions`; it does not automatically trigger an event. Trigger the registered event through `IWorkflowManager.TriggerEventAsync`.
 

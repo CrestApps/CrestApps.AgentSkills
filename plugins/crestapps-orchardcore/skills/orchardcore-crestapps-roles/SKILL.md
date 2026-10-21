@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-roles
-description: Skill for CrestApps role extensions in Orchard Core using RolePickerPart. Covers role selection on content types, part settings, required and single or multiple role validation, excluded roles, migrations, recipe schema support, and content item payloads. Use this skill when requests mention CrestApps RolePickerPart, content role picker, role selection content part, role-based content metadata, RolePickerPartSettings, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.Roles, RolePickerPart, RolePickerPartDisplayDriver, RolePickerPartSettingsDisplayDriver, RolePickerPartSchemaDefinition, RoleManager<IRole>, and OrchardCore.Roles.
+description: Skill for the CrestApps Enhanced Roles module in Orchard Core and its RolePickerPart. Covers role selection on content types with the bootstrap-select editor, RolePickerPartSettings for required, single or multiple and excluded roles, migrations, recipe schema support, content item payloads, and the 3.0 dependency on OrchardCore.Resources. Use this skill when requests mention CrestApps RolePickerPart, Enhanced Roles, a content role picker, role selection content part, role-based content metadata, RolePickerPartSettings, or closely related Orchard Core implementation, setup, upgrade or troubleshooting work. Strong matches include CrestApps.OrchardCore.Roles, RolePickerPart, RolePickerPartDisplayDriver, RolePickerPartSettingsDisplayDriver, RolePickerPartSchemaDefinition, RoleManager<IRole>, OrchardCore.Roles and OrchardCore.Resources.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,15 +16,18 @@ You are an Orchard Core expert. Use the CrestApps Roles module when a content it
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Roles` in the web or startup project.
-- Enable the exact `CrestApps.OrchardCore.Roles` feature. Its manifest depends on `OrchardCore.Roles`.
+- Enable the exact `CrestApps.OrchardCore.Roles` feature (**Enhanced Roles**). Its manifest depends on `OrchardCore.Roles` and `OrchardCore.Resources`.
 - The reusable part name is `RolePickerPart`; its stored value property is `RoleNames`.
+- The module's migration defines `RolePickerPart` as attachable and reusable (display name **Role Picker**, default position `999`), so a type can attach it more than once under different names.
+- `RolePickerPart`, `RolePickerPartSettings` and `RolePickerPartContentAccessControlSettings` live in `CrestApps.OrchardCore.Roles.Core.Models`.
+- The editor is Orchard Core's `bootstrap-select` dropdown with live search, plus select-all and deselect-all when multiple selection is allowed.
 - Use `RolePickerPartSettings` only on a `RolePickerPart` content-type attachment, not on the reusable part definition or an unrelated field definition.
 - Set `AllowSelectMultiple` to `false` for a single role. The display driver validates that at most one role was submitted.
 - Set `Required` to `true` only when the item cannot be meaningful without a selected role.
 - Populate `ExcludedRoles` for built-in or sensitive roles that should never be selectable in this context.
 - Excluded roles are removed from submitted selections by the driver. They are not a security authorization mechanism.
-- Use Orchard Core permissions and authorization policies to enforce access. A role-picker value is content metadata, not an access-control grant.
-- The single-select editor retrieves role names through `RoleManager<IRole>`, excludes configured names, and orders the choices.
+- On its own, a role-picker value is content metadata, not an access-control grant. To restrict who can view an item by these roles, enable Content Access Control (see the `orchardcore-content-access-control` skill), which builds on this part.
+- The editor lists role names from `RoleManager<IRole>`, removes excluded names, and orders the choices.
 - Enable `CrestApps.OrchardCore.Recipes` when recipe JSON Schema support for settings and the `RoleNames` payload is needed.
 - Use sealed classes and file-scoped namespaces in generated C# examples.
 
@@ -34,6 +37,7 @@ You are an Orchard Core expert. Use the CrestApps Roles module when a content it
 |---|---|
 | `CrestApps.OrchardCore.Roles` | Registers `RolePickerPart`, drivers, and its data migration |
 | `OrchardCore.Roles` | Provides Orchard Core role management and identity role services |
+| `OrchardCore.Resources` | Registers the `bootstrap-select` script and style the editors use |
 | `CrestApps.OrchardCore.Recipes` | Activates `RolePickerPartSchemaDefinition` when combined with the Roles feature |
 
 ### Enable RolePickerPart
@@ -55,12 +59,12 @@ You are an Orchard Core expert. Use the CrestApps Roles module when a content it
 
 ## Configure the part
 
-| Setting | Meaning |
-|---|---|
-| `Required` | Requires at least one allowed selected role |
-| `AllowSelectMultiple` | Allows multiple selections when `true` |
-| `ExcludedRoles` | Role names that are removed from the available and submitted values |
-| `Hint` | Help text for the editor |
+| `RolePickerPartSettings` property | Admin label | Meaning |
+|---|---|---|
+| `ExcludedRoles` | **Exclude roles** | Role names removed from the choices and stripped from the saved value |
+| `Required` | **Required?** | Requires at least one allowed selected role |
+| `AllowSelectMultiple` | **Allow multiple?** | Allows more than one role; when off, saving more than one fails validation |
+| `Hint` | **Hint** | Help text under the picker |
 
 `RolePickerPart.RoleNames` is an array of role-name strings. Keep names aligned with role records managed through Orchard Core Roles.
 
@@ -122,7 +126,7 @@ public sealed class Startup : StartupBase
 
 1. Enable **Enhanced Roles**.
 2. Navigate to **Content Definition → Content Types** and edit the target type.
-3. Add **RolePickerPart**.
+3. Add the **Role Picker** part.
 4. Set its display name, hint, required setting, selection mode, and excluded role names.
 5. Save the content definition.
 6. Edit a content item and select its role values.
@@ -211,9 +215,14 @@ public sealed class ProductRoleReader
 }
 ```
 
+## Upgrading from 2.x
+
+- The editors no longer use the removed `crestapps-bootstrap-select` resource. They request Orchard Core's `bootstrap-select`, and the module now depends on `OrchardCore.Resources`. Theme overrides of `RolePickerPart.Edit.cshtml` or `RolePickerPartSettings.Edit.cshtml` must switch to `<style asp-name="bootstrap-select">` and `<script asp-name="bootstrap-select" at="Foot">`.
+
 ## Troubleshooting
 
 - If the part does not appear in Content Definition, enable `CrestApps.OrchardCore.Roles` and confirm `OrchardCore.Roles` is available.
+- If the picker renders as a plain list box, confirm `OrchardCore.Resources` is enabled so `bootstrap-select` resolves.
 - If single-select has no options, create roles first in the Orchard Core role administration UI and ensure they are not in `ExcludedRoles`.
 - If excluded values appear in imported content JSON, review settings and application logic. The normal editor strips them, but imports should only use allowed roles.
 - A missing `RolePickerPartSettings` recipe schema means the Roles and Recipes features were not enabled together.
