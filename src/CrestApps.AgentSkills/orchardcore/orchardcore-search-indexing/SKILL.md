@@ -233,6 +233,11 @@ record. `BuildDocumentIndexContext.Record` is an `object`, so check its type
 before adding entries. The `Complex` and `Vector` overloads preserve structured
 values and vector dimensions for providers that support them.
 
+A handler only shapes records that already reach the indexing pipeline. To
+index records that are not content items (task log entries, a
+`NamedIndexingService` subclass, a background task, and a profile handler for
+sync and reset), follow `orchardcore-indexing-sources`.
+
 ```csharp
 using System.Collections.Generic;
 using OrchardCore.Indexing;

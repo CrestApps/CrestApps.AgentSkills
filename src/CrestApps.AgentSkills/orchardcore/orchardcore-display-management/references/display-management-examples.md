@@ -161,3 +161,45 @@ return Initialize<BannerViewModel, Banner>("Banner", static (viewModel, model) =
 }, model)
 .Location("Content:1");
 ```
+
+## Example 4: Custom Editor for an Existing Field
+
+A new editor choice for `TextField` needs only two templates in your module or theme, because `GetEditorShapeType(context)` turns the selected editor into the shape type `TextField_Edit__PostalCode`.
+
+`Views/TextField-PostalCode.Option.cshtml` adds the choice to the field's **Editor** setting:
+
+```cshtml
+@{
+    string currentEditor = Model.Editor;
+}
+<option value="PostalCode" selected="@(currentEditor == "PostalCode")">@T["Postal code"]</option>
+```
+
+`Views/TextField-PostalCode.Edit.cshtml` renders the editor:
+
+```cshtml
+@model OrchardCore.ContentFields.ViewModels.EditTextFieldViewModel
+
+<div class="ocat-wrapper">
+    <label asp-for="Text" class="ocat-label">@Model.PartFieldDefinition.DisplayName()</label>
+    <div class="ocat-end">
+        <input asp-for="Text" class="form-control" pattern="[0-9]{5}" inputmode="numeric" />
+    </div>
+</div>
+```
+
+When the editor needs a different view model or validation, add a driver for that editor only and narrow the default one. Depend on `OrchardCore.ContentFields` in the manifest so this `Startup` runs after the original registration:
+
+```csharp
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddContentField<TextField>()
+            .ForEditor<TextFieldDisplayDriver>(editor => editor != "PostalCode")
+            .ForEditor<PostalCodeTextFieldDisplayDriver>(editor => editor == "PostalCode");
+    }
+}
+```
+
+Display modes work the same way: `{FieldType}-{Mode}.DisplayOption.cshtml` and `{FieldType}-{Mode}.Display.cshtml` templates, with `ForDisplayMode<TDriver>(mode => ...)` for a dedicated driver.

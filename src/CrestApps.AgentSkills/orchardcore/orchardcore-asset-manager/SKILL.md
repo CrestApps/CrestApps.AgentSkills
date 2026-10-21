@@ -1,6 +1,6 @@
 ---
 name: orchardcore-asset-manager
-description: Skill for building, watching, hosting, and copying frontend assets in Orchard Core 3.0 and 4.0 with the Assets Manager. Covers Assets.json actions, Concurrently, Parcel, Vite, Webpack, Sass, min, concat and copy actions, Yarn workspace setup, Vue 3 admin apps built as ES modules, the shared Bloom library and the bloom alias, build.config.mjs, migration from Gulp, common commands, package dependencies, and troubleshooting. Use this skill for framework-only Orchard Core modules and themes that manage SCSS, JavaScript, TypeScript, Vue, or other frontend assets.
+description: Skill for building, watching, hosting, and copying frontend assets of Orchard Core modules and themes with the Orchard Core Assets Manager. Covers which parts of the asset pipeline work outside the Orchard Core repository, vendoring the assets-manager tool into your own solution, the three-tier package structure, Assets.json actions (vite, sass with RTL output, min, copy, concat, parcel, webpack, run), the orchard-minify output convention, build.config.mjs and assetsLookupGlob, Yarn workspaces and NPM aliasing, Vue 3 admin apps built as ES modules, the Bloom library, migration from Gulp, yarn build, watch, host, dry-run and clean commands, and troubleshooting. Use this skill when modifying SCSS, JS, TS, or Vue files of a module or theme, adding an Assets.json entry, or fixing asset build failures.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,131 +9,174 @@ metadata:
 
 # Orchard Core Asset Manager
 
-Use the Orchard Core Asset Manager for frontend assets in Orchard Core 3.0 and later modules and themes. It is based on [Concurrently](https://github.com/open-cli-tools/concurrently), so it can run shell commands as well as Parcel, Vite, Webpack, Sass, minification, concatenation, and copy actions. Definitions live in `Assets.json` files and the tool uses ES modules (`.mjs`) for its own configuration.
+The Orchard Core Assets Manager compiles the frontend sources of modules and themes into their `wwwroot` folders. It is a Node.js CLI based on [Concurrently](https://github.com/open-cli-tools/concurrently) that reads `Assets.json` files and runs Parcel, Vite, Webpack, Sass, minification, concatenation, copy, or arbitrary shell actions. Its own code is ES modules (`.mjs`).
 
-## Scope and transition from Gulp
+The Asset Manager only **produces files**. Orchard Core serves and declares them through Resource Management (resource manifests and the `<script>`/`<style>` tag helpers), which works the same whatever tool built the files; see `orchardcore-resources`.
 
-- This skill covers the framework's development asset pipeline for Orchard Core modules and themes. It does not cover the Media module's runtime media storage or image processing.
-- The Asset Manager replaced the Gulp pipeline. The Orchard Core repository no longer ships a `gulpfile.js`, and the Gulp pipeline guide is kept for historical reference only. Use the Asset Manager for all new work and migrate custom Gulp pipelines once their output and resource references are verified.
-- The Asset Manager builds files into `wwwroot`; it does not register those files with Orchard Core's Resource Management system. Keep the existing resource manifest or tag helper registration and point it to the generated files.
+## What works from your own solution
 
-## Prerequisites and project setup
+Orchard Core packages already contain their compiled `wwwroot` files, so you never build Orchard Core's own assets. For your modules and themes:
 
-1. Install the Node.js LTS version required by the repository, pinned in the root `.node-version` file (Node.js 24.x LTS for Orchard Core 3.0 and 4.0).
-2. From the repository root, enable Corepack and install workspace dependencies:
+| Piece | Outside the Orchard Core repository |
+| --- | --- |
+| Resource manifests, `asp-src`/`debug-src`, `.min.*` convention | Always works; independent of how the files are built. |
+| `@orchardcore/assets-manager` CLI (`yarn build`, `watch`, `host`, `dry-run`, `clean`) | **Not published to npm.** It is a Yarn workspace inside the Orchard Core repository. Use it by copying `.scripts/assets-manager` into your repository (see below); every action then works. |
+| `Assets.json` actions and the `orchard-minify` Vite plugin | Part of the CLI, so available once the tool is vendored. |
+| Bloom (`@bloom` alias, `.scripts/bloom`) | **Repository-only** workspace, not published. Do not import it from an external module; use your own packages or the registered resources (`vuejs`, `signalr`, ...). |
+| Parcel `bundleEntrypoint` | Works, but `parcelBundleOutput` must point to a folder of **your** solution. |
+| Node version prompt (fnm/Volta) | Only when a `.node-version` file exists two levels above the tool (the repository root). |
 
-   ```bash
-   corepack enable
-   yarn
+When you do not want to vendor the tool, run any bundler directly (for example `vite build`, `sass`, or npm scripts) and write its output to the module's `wwwroot`. The rest of this skill applies to the vendored tool, and to the Orchard Core repository itself.
+
+## Set up the tool in your solution
+
+1. Copy `.scripts/assets-manager/` from the Orchard Core repository (same Orchard Core version as your packages) to `.scripts/assets-manager/` at your repository root. Orchard Core is BSD-3-Clause licensed; keep its license notice.
+2. Add a root `package.json` that makes the tool and your `Assets` folders Yarn workspaces:
+
+   ```json
+   {
+     "name": "@contoso/root",
+     "private": true,
+     "packageManager": "yarn@4.17.0",
+     "scripts": {
+       "build": "assets-manager build",
+       "watch": "assets-manager watch",
+       "host": "assets-manager host",
+       "copy": "assets-manager copy",
+       "dry-run": "assets-manager dry-run",
+       "clean": "assets-manager clean"
+     },
+     "workspaces": [
+       ".scripts/assets-manager",
+       "src/Modules/*/Assets/**",
+       "src/Themes/*/Assets/**"
+     ],
+     "devDependencies": {
+       "@orchardcore/assets-manager": "workspace:^"
+     }
+   }
    ```
 
-   Verify that the Yarn version matches the `packageManager` value in the root `package.json`. If Node.js came from a distributor without Corepack, install Corepack first with `npm install -g corepack`.
-3. Keep the three package responsibilities separate:
+3. Add `.yarnrc.yml` with `nodeLinker: node-modules`. The tool resolves `node_modules/...` paths from the workspace root, so Plug'n'Play does not work.
+4. Add `build.config.mjs` next to the root `package.json`. Without `assetsLookupGlob` the tool searches `src/{Modules,Themes}/*/Assets.json`:
 
-   | Location | Responsibility |
-   | --- | --- |
-   | Root `package.json` | Yarn workspaces, top-level scripts, general development dependencies, and optional `resolutions` |
-   | `.scripts/assets-manager/package.json` | Asset Manager CLI and build tools such as Parcel, Vite, Webpack, Sass, and PostCSS |
-   | Module or theme `Assets/package.json` | Runtime frontend dependencies shipped by that module or theme |
-
-   Add a module or theme dependency from its `Assets` directory, then run `yarn` from the repository root:
-
-   ```bash
-   cd src/OrchardCore.Modules/YourModule/Assets
-   yarn add your-library
-   cd ../../../../
-   yarn
+   ```js
+   export const assetsLookupGlob = "src/{Modules,Themes}/**/Assets.json";
    ```
 
-   Update the build toolchain only in `.scripts/assets-manager/package.json`. Use root `resolutions` when the workspace must force one version.
+5. Optionally pin Node.js with a root `.node-version` file (Orchard Core uses Node.js 24.x LTS).
+6. Run `corepack enable`, then `yarn` from the repository root. If Corepack is missing (some Node.js distributions), run `npm install -g corepack` first.
+7. Commit the generated `wwwroot` files with their sources, or run `yarn build` in CI before `dotnet publish`; Orchard Core serves only what is in `wwwroot`.
 
-4. Add `Assets.json` at the module or theme root. Its paths are relative to that project. The `source` entry points to an input file or folder, and `dest` is a folder when the action writes files.
+## Package structure (three tiers)
+
+| Location | Responsibility |
+| --- | --- |
+| Root `package.json` | Yarn workspaces, top-level scripts, shared dev dependencies, optional `resolutions` |
+| `.scripts/assets-manager/package.json` | The build toolchain (Parcel, Vite, Webpack, Sass, PostCSS, esbuild, Lightning CSS) |
+| Module or theme `Assets/package.json` | Runtime libraries bundled into that module or theme |
+
+Add a runtime dependency from the module's `Assets` folder, then reinstall from the root:
+
+```bash
+cd src/Modules/Contoso.Rating/Assets
+yarn add some-library@1.2.3
+cd ../../../..
+yarn
+yarn build -n rating
+```
+
+Change build tools only in `.scripts/assets-manager/package.json` and rerun `yarn`. Do not add a separate workspace `package.json` inside a Vite app folder; use the module's `Assets/package.json`.
 
 ## Assets.json
 
-`Assets.json` is a JSON array of named actions. Names are used by `-n` filters and tags are used by `-t` filters.
+`Assets.json` sits at the module or theme root and is a JSON array of actions (JSON5, so comments are allowed). Paths are relative to that project, except `node_modules/...` sources, which resolve from the workspace root. `name` is used by `-n` and `tags` (string or array) by `-t`. `dest` is always a folder; files are never renamed.
 
 ### Parcel
 
-Parcel is the recommended simple starting point because it needs little configuration:
+The simplest bundler, with no configuration:
 
 ```json
 [
   {
     "action": "parcel",
-    "name": "your-module",
-    "source": "Assets/Scripts/app.js",
-    "dest": "wwwroot/Scripts/your-module",
+    "name": "rating",
+    "source": "Assets/Scripts/rating.js",
+    "dest": "wwwroot/Scripts/rating",
     "tags": ["js", "admin"]
   }
 ]
 ```
 
-The `source` is the Parcel entry point. Set a different `dest` folder for each Parcel action because the folder is cleaned before a build or watch operation. Parcel can also use `bundleEntrypoint` to place several applications in the shared output configured by `build.config.mjs`; when it is used, omit `dest`.
-
-Parcel creates JavaScript source-map output. Register the minified and non-minified files in the resource manifest, for example `SetUrl("~/YourModule/Scripts/app.min.js", "~/YourModule/Scripts/app.js")`.
+- `source` is the entry point and `dest` is required. Give every Parcel action its own `dest`, because the folder is cleaned before build and watch.
+- Parcel writes a `.js`, a `.min.js` without a source-map reference, and a `.map`. An `options` object overrides Parcel options.
+- `bundleEntrypoint` combines several entries into one bundle written to `parcelBundleOutput` from `build.config.mjs`; omit `dest` then, and build bundles only with `yarn build -b`.
 
 ### Vite
 
-Use Vite when the application needs a Vite configuration, such as a Vue app:
+Use Vite for Vue and TypeScript apps. `source` is the folder that contains `vite.config.ts` or `vite.config.js`:
 
 ```json
 [
   {
     "action": "vite",
-    "name": "your-vue-app",
-    "source": "Assets/vite-project",
-    "tags": ["admin", "dashboard", "js"]
+    "name": "rating-app",
+    "source": "Assets/rating-app/",
+    "tags": ["admin", "js"]
   }
 ]
 ```
 
-`source` must be the folder containing `vite.config.ts` or `vite.config.js`. Configure an absolute output directory in Vite:
+Set an absolute `build.outDir`:
 
 ```ts
 import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  plugins: [vue()],
   build: {
-    outDir: path.resolve(directory, "../../wwwroot/Scripts/your-app"),
+    outDir: path.resolve(directory, "../../wwwroot/Scripts/rating-app"),
   },
 });
 ```
 
-Keep Vite's own minification off (`build.minify: false`) for Asset Manager Vite builds. The Asset Manager injects its `orchard-minify` plugin for `build` and `watch`. It produces a source-map-aware file, a `.min.js` or `.min.css` file without a source-map reference, and a map file.
+During `build` and `watch` the tool injects its `orchard-minify` plugin, which minifies JavaScript with esbuild and CSS with Lightning CSS after Vite writes the bundle:
 
-### Vue 3 admin apps and Bloom
+| Output | Content |
+| --- | --- |
+| `file.js` / `file.css` | Minified, with a `sourceMappingURL` reference (debug) |
+| `file.min.js` / `file.min.css` | Minified, without a source-map reference (production) |
+| `file.map` / `file.css.map` | Source map |
 
-In Orchard Core 4.0 the admin Vue apps (for example the Media Gallery) use Vue 3,
-admin scripts no longer depend on jQuery or jQuery UI, and AJAX-injected field
-and part editors are ES modules. Shared components and services (SignalR
-client, event bus, notifications, media API client, OIDC helpers) live in the
-**Bloom** workspace package under `.scripts/bloom` and are imported through a
-Vite alias:
+Do not set `build.minify` in `vite.config.ts`; the plugin owns minification. Register both files: `SetUrl("~/Contoso.Rating/Scripts/rating-app/main.min.js", "~/Contoso.Rating/Scripts/rating-app/main.js")`.
+
+### Vue 3 admin apps and ES modules
+
+Orchard Core 4.0 admin Vue apps use Vue 3, admin scripts no longer use jQuery or jQuery UI, and AJAX-injected part and field editors are ES modules. Build admin apps as ES module libraries:
 
 ```ts
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const directory = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      vue: "vue/dist/vue.esm-bundler.js",
-      "@bloom": path.resolve(__dirname, "../../../../../.scripts/bloom"),
-    },
+    alias: { vue: "vue/dist/vue.esm-bundler.js" },
   },
   plugins: [vue()],
   build: {
-    outDir: path.resolve(__dirname, "../../wwwroot"),
+    outDir: path.resolve(directory, "../../wwwroot"),
     emptyOutDir: false,
-    minify: false,
     lib: {
-      entry: path.resolve(__dirname, "src/main.ts"),
+      entry: path.resolve(directory, "src/main.ts"),
       formats: ["es"],
       fileName: () => "Scripts/my-app.js",
     },
@@ -141,13 +184,12 @@ export default defineConfig({
 });
 ```
 
-Register ES module output as a module script in the resource manifest and
-require it by name:
+Declare the output as a module script and require it by name:
 
 ```csharp
 manifest
     .DefineScript("my-app")
-    .SetUrl("~/MyModule/Scripts/my-app.min.js", "~/MyModule/Scripts/my-app.js")
+    .SetUrl("~/Contoso.Rating/Scripts/my-app.min.js", "~/Contoso.Rating/Scripts/my-app.js")
     .SetAttribute("type", "module");
 ```
 
@@ -155,49 +197,42 @@ manifest
 <script type="module" asp-name="my-app" at="Foot"></script>
 ```
 
-Bundled apps get `@microsoft/signalr` through Bloom instead of the `signalr`
-resource.
+Inside the Orchard Core repository, apps also import the shared **Bloom** library (SignalR client, event bus, notifications, media API client, OIDC helpers) through an `@bloom` alias to `.scripts/bloom`, and get `@microsoft/signalr` from it. External modules cannot rely on Bloom (see the table above).
 
-### Webpack
-
-Use the Webpack action when the project already has a Webpack configuration:
+### Sass
 
 ```json
 [
   {
-    "action": "webpack",
-    "name": "your-webpack-app",
-    "config": "Assets/webpack.config.js",
-    "tags": ["js"]
+    "action": "sass",
+    "name": "rating-styles",
+    "source": "Assets/scss/rating.scss",
+    "dest": "wwwroot/Styles/",
+    "generateRTL": true,
+    "tags": ["admin", "css"]
   }
 ]
 ```
 
-`config` points to the `webpack.config.js` file.
+`source` is a file or glob; `dest` defaults to `wwwroot/Styles/`. The action writes `.css`, `.min.css`, and a map; `generateRTL` also produces RTL output with `postcss-rtlcss`.
 
-### Concurrently run actions
-
-Use `run` to execute any project command through Concurrently:
+### Min
 
 ```json
 [
   {
-    "action": "run",
-    "name": "your-app",
-    "source": "Assets/your-app",
-    "scripts": {
-      "build": "yarn build",
-      "watch": "yarn start"
-    }
+    "action": "min",
+    "name": "rating-field",
+    "source": "Assets/js/rating-field.js",
+    "dest": "wwwroot/Scripts/",
+    "tags": ["admin", "js"]
   }
 ]
 ```
 
-`source` is the command working directory. The `scripts` keys must match the pipeline command. For example, `yarn build` runs each `build` script. Concurrently retries builds up to three times, which helps reduce transient CI failures.
+Minifies a file or glob into `.min.js` / `.min.css` plus a map. Use it for plain scripts that need no bundling.
 
-### Copy, min, Sass, and concat
-
-Use `copy` for files that do not need bundling:
+### Copy
 
 ```json
 [
@@ -206,23 +241,35 @@ Use `copy` for files that do not need bundling:
     "name": "vendor-bootstrap",
     "source": [
       "node_modules/bootstrap/dist/css/bootstrap.css",
-      "node_modules/bootstrap/dist/js/bootstrap.js"
+      "node_modules/bootstrap/dist/js/bootstrap.bundle.js"
     ],
-    "dest": "wwwroot/Vendor/bootstrap",
+    "dest": "wwwroot/Vendor/bootstrap/",
     "tags": ["resources"]
   }
 ]
 ```
 
-- `source` can be one path, a glob, or an array of paths and globs. `dest` is always a folder and files are not renamed.
-- `copy` does not watch. A `build` copies files; `watch` does not.
-- `min` minifies a file or glob into a destination folder.
-- `sass` transpiles SCSS into a destination folder.
-- `concat` takes an array of files and physically joins them in the listed order. It is not a module resolver or bundler.
+- `source` is a path, a glob, or an array mixing both. With `**` the base folder is detected and the relative structure is kept below `dest`.
+- When `dest` is omitted it is inferred from `tags` and the extension of the first source (for example `wwwroot/Scripts/` for `js`).
+- `copy` runs on `build` and `copy`, never on `watch`. Add `"dryRun": true` to a copy or min action, or run `yarn dry-run`, to log what would be written.
 
-When `copy` uses `**`, the base folder is detected and preserved below `dest`. Use `dryRun` on copy or min actions to inspect matched files and destinations before writing output.
+### Concat
 
-For `concat` sources beginning with `node_modules/`, resolution uses the workspace root `node_modules` directory. Keep shared package versions equal, enforce them with root `resolutions`, use an NPM alias for genuinely different versions, or use a bundler instead:
+```json
+[
+  {
+    "action": "concat",
+    "name": "rating-bundle",
+    "source": [
+      "node_modules/some-library/dist/some-library.js",
+      "Assets/js/rating.js"
+    ],
+    "dest": "wwwroot/Scripts"
+  }
+]
+```
+
+`concat` physically joins an array of files (no globs) in order; it is not a bundler. Because `node_modules/...` always resolves from the root, a different version installed locally in one workspace is ignored. Keep versions equal, force them with root `resolutions`, use an NPM alias for a genuinely different version, or switch to a bundler:
 
 ```json
 {
@@ -233,31 +280,74 @@ For `concat` sources beginning with `node_modules/`, resolution uses the workspa
 }
 ```
 
+Then reference `node_modules/bootstrap-4.6.1/dist/js/bootstrap.js`.
+
+### Webpack
+
+```json
+[
+  {
+    "action": "webpack",
+    "name": "rating-webpack",
+    "config": "Assets/webpack.config.js",
+    "tags": ["js"]
+  }
+]
+```
+
+`config` is the `webpack.config.js` path relative to the module root.
+
+### Run
+
+Run any command through Concurrently (for a project with its own build tool):
+
+```json
+[
+  {
+    "action": "run",
+    "name": "rating-viewer",
+    "source": "Assets/rating-viewer",
+    "scripts": {
+      "build": "yarn build",
+      "watch": "yarn start"
+    }
+  }
+]
+```
+
+`source` is the working directory. The `scripts` keys match the pipeline command, so `yarn build` runs every `build` script. Concurrently retries builds up to three times.
+
 ## Commands
 
-Run commands from the repository root:
+Run from the repository root:
 
 | Command | Use |
 | --- | --- |
 | `yarn build` | Build all discovered assets |
-| `yarn build -n your-name` | Build one named action |
-| `yarn build -n first,second` | Build multiple named actions |
-| `yarn build -t admin` | Build actions with a tag |
-| `yarn watch -n your-name` | Rebuild a named action when source files change |
-| `yarn host -n your-name` | Start a bundler development server |
-| `yarn copy -n your-name` | Run copy actions |
-| `yarn dry-run -n your-name` | Preview copy, min, and concat actions without writing files |
-| `yarn clean` | Clean generated folders and the Parcel cache |
+| `yarn build -n rating` | Build one named action (`-n`, `--name`, `--names`) |
+| `yarn build -n rating,rating-app` | Build several named actions |
+| `yarn build -t admin` | Build actions with a tag (`-t`, `--tag`, `--tags`) |
+| `yarn build -b` | Build only Parcel `bundleEntrypoint` bundles |
+| `yarn watch -n rating` | Rebuild on save (does not copy) |
+| `yarn host -n rating-app` | Start the bundler dev server with HMR |
+| `yarn copy -n vendor-bootstrap` | Run copy actions |
+| `yarn dry-run -n rating` | Log what copy, min, and concat would write |
+| `yarn clean` | Delete generated output and `.parcel-cache` |
 
-Use `-n`, `--name`, or `--names` for names and `-t`, `--tag`, or `--tags` for tags. `watch` does not copy files, so run `yarn build` after changing a copy action. The Asset Manager can also run from Visual Studio Task Runner Explorer, and the `Asset Bundler Tool Debug` VS Code launcher is available in the Orchard Core repository.
+`-n` matches the `name` in `Assets.json`, not the `package.json` name; a wrong value silently matches nothing or, without `-n`, builds everything. The tasks also run from Visual Studio's Task Runner Explorer.
 
-## Configuration
+## build.config.mjs
 
-Create `build.config.mjs` next to the root `package.json` to customize tool options:
+| Export | Purpose |
+| --- | --- |
+| `assetsLookupGlob` | Glob for `Assets.json` files (default `src/{Modules,Themes}/*/Assets.json`) |
+| `parcelBundleOutput` | Output folder for `bundleEntrypoint` bundles (required when any action uses it) |
+| `parcel(type, group)` | Returns Parcel option overrides |
+| `vite(type, group)` | Returns shared Vite configuration |
 
 ```js
-export const assetsLookupGlob = "src/{OrchardCore.Themes,OrchardCore.Modules}/**/Assets.json";
-export const parcelBundleOutput = "src/OrchardCore.Modules/OrchardCore.Resources/wwwroot/Scripts/bundle";
+export const assetsLookupGlob = "src/{Modules,Themes}/**/Assets.json";
+export const parcelBundleOutput = "src/Modules/Contoso.Core/wwwroot/Scripts/bundle";
 
 export function parcel() {
   return {
@@ -270,35 +360,37 @@ export function parcel() {
 }
 ```
 
-`parcelBundleOutput` is the shared folder used by Parcel actions that set `bundleEntrypoint`.
-
-Use `viteConfig` for shared Vite configuration. Keep JavaScript modules consistent: add `"type": "module"` to a package when it must run as ESM, use the ESM Vue alias when required, and emit Vite scripts with `type="module"` in HTML.
+Keep JavaScript modules consistent: set `"type": "module"` in a package that must run as ESM, alias Vue to its ESM bundler build when needed, and load Vite output with `type="module"`.
 
 ## Moving from Gulp
 
-1. Record each Gulp task's input files, output folder, minification, Sass processing, concatenation order, and watch behavior.
-2. Create a named `Assets.json` action. Map simple tasks to `copy`, `min`, `sass`, or `concat`; use Parcel, Vite, or Webpack for module bundling; use `run` for a command that has its own build tool.
-3. Put runtime libraries in the module or theme `Assets/package.json`, and put shared build tools in `.scripts/assets-manager/package.json`.
-4. Compare the generated files, source maps, and resource manifest URLs with the old Gulp output before removing the Gulp task.
-5. Switch development and CI commands to `yarn build`, `yarn watch`, or `yarn host`.
+1. Record each Gulp task's inputs, output folder, minification, Sass processing, concatenation order, and watch behavior.
+2. Map simple tasks to `copy`, `min`, `sass`, or `concat`; use Parcel, Vite, or Webpack for module bundling; use `run` for a project with its own tool.
+3. Put runtime libraries in the module `Assets/package.json` and build tools in `.scripts/assets-manager/package.json`.
+4. Compare the generated files, source maps, and resource manifest URLs with the Gulp output before deleting the Gulp task.
+5. Switch development and CI to `yarn build`, `yarn watch`, or `yarn host`.
 
-Do not treat Asset Manager migration as a replacement for Resource Management. The migration changes how files are generated; it does not change how Orchard Core serves or declares them.
+Orchard Core no longer ships a `gulpfile.js`; the Gulp guide is historical.
 
 ## Troubleshooting
 
-- **Node version warning:** Use the version in `.node-version`. The tool can offer to install it through `fnm` or Volta. On Windows, restart the terminal after installing a version manager so its shims are on `PATH`.
-- **Yarn or Corepack is missing:** Run `npm install -g corepack`, then `corepack enable` and `yarn` from the repository root. Confirm the Yarn version matches `package.json`.
-- **No action is found:** Run from the repository root, confirm `Assets.json` is in a module or theme folder matched by `assetsLookupGlob` in `build.config.mjs`.
-- **`@bloom/...` imports fail:** Add the `@bloom` alias to the Vite config and run `yarn` at the root so the `.scripts/bloom` workspace is installed.
-- **Copy output is missing during watch:** This is expected. `watch` does not run copy actions; use `yarn build`.
-- **Parcel does not rebuild after deleting output:** Run `yarn clean` to remove `.parcel-cache`, then build again. Give each Parcel action its own `dest`.
-- **Concat uses the wrong package version:** Align workspace versions, add a root `resolutions` entry, use an NPM alias, or replace concat with a bundler. Concat reads the hoisted root package.
-- **Vite output is in the wrong folder:** Set `build.outDir` with `path.resolve()` and ensure the `Assets.json` `source` folder contains the Vite config.
-- **Vite files are unexpectedly minified or lack maps:** Keep `build.minify: false`; the Asset Manager's minification plugin owns this step. Use the non-min file for debugging and `.min.*` for production.
-- **A library fails to transpile with Parcel:** Check the package's module format and its `package.json` `type` value. Use Vite or Webpack when the library needs explicit bundler configuration.
+| Problem | Fix |
+| --- | --- |
+| Node version warning | Use the version in `.node-version`; the tool offers to install it with fnm or Volta. On Windows restart the terminal after a first install so the shims are on `PATH`. |
+| `Cannot find package ...` (for example `@tailwindcss/vite`) | Run `yarn` from the root after any `package.json` change. |
+| No action found | Run from the root and check that `assetsLookupGlob` matches the `Assets.json` location. |
+| Parcel does not rebuild after deleting output | `yarn clean`, then build again. |
+| Copy output missing during watch | Expected; run `yarn build`. |
+| `concat` picks the wrong package version | Align versions, add `resolutions`, use an NPM alias, or use a bundler. |
+| Vite output in the wrong folder | Set `build.outDir` with `path.resolve()`; `source` must contain the Vite config. |
+| Vite files unexpectedly minified or without maps | Remove `build.minify`; `orchard-minify` handles it. |
+| A full build ran by accident | `git status --short` and revert changed `wwwroot` files outside your target. |
+| Source edited but the running site is unchanged | The bundle is older than the source; rebuild with `yarn build -n <name>` and hard-refresh. |
+| `@bloom/...` imports fail | Only available inside the Orchard Core repository with the `@bloom` alias and the `.scripts/bloom` workspace installed. |
+| A library fails to transpile with Parcel | Check its module format and `type`; use Vite or Webpack with explicit configuration. |
 
 ## Sources
 
-- [Orchard Core Assets Manager guide](https://docs.orchardcore.net/en/latest/guides/assets-manager/) — prerequisites, `Assets.json`, Concurrently, supported actions, commands, package layout, bundlers, and troubleshooting notes.
-- [Orchard Core 3.0.0 release notes](https://docs.orchardcore.net/en/latest/releases/3.0.0/#asset-manager) — Asset Manager introduction and the reason for replacing Gulp.
-- [Orchard Core 4.0.0 release notes](https://docs.orchardcore.net/en/latest/releases/4.0.0/) — Vue 3 admin apps, removal of jQuery from admin scripts, and ES module editors.
+- [Orchard Core Assets Manager guide](https://docs.orchardcore.net/en/latest/guides/assets-manager/)
+- [Orchard Core 3.0.0 release notes](https://docs.orchardcore.net/en/latest/releases/3.0.0/#asset-manager)
+- [Orchard Core 4.0.0 release notes](https://docs.orchardcore.net/en/latest/releases/4.0.0/)

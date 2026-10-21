@@ -1,6 +1,6 @@
 ---
 name: orchardcore-admin
-description: Guidance for the Orchard Core admin panel, including admin controllers and routes, admin menu registration with AdminNavigationProvider, admin views with breadcrumbs, the ocat CSS classes and Hint_Admin shape, TheAdmin theme customization and menu colors, admin branding, the Navbar shape, the Ctrl+K quick navigation palette with QuickNavigationSource and IQuickNavigationIndex, AdminSettings such as MenuBehavior, ShowBreadcrumb, DisplayQuickNavigation and list layouts, the AdminDashboard shape, settings pages, and admin filters and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Menu Registration, Adding an Icon to an Admin Menu Item, AdminSettings recipe step, Quick Navigation, Navigation menu behavior, admin URL prefix, or related implementation, upgrade, or troubleshooting work. Strong matches include OrchardCore.Admin, AdminSettings, AdminPermissions, AdminOptions, AdminAttribute, SiteDisplayDriver, OrchardCore.Contents.QuickNavigation.
+description: Guidance for the Orchard Core admin panel, including admin controllers and routes, admin menu registration with AdminNavigationProvider, admin views with breadcrumbs and ocat editor forms, TheAdmin theme customization and menu colors, admin branding, the Navbar shape, the Ctrl+K quick navigation palette with QuickNavigationSource and IQuickNavigationIndex, AdminSettings such as MenuBehavior, ShowBreadcrumb, DisplayQuickNavigation and list layouts, the AdminDashboard shape, settings pages, and admin filters and zones. Use this skill when requests mention Orchard Core Admin Panel, TheAdmin Theme, Admin Controllers, Admin Menu Registration, Adding an Icon to an Admin Menu Item, AdminSettings recipe step, Quick Navigation, Navigation menu behavior, admin URL prefix, or related implementation, upgrade, or troubleshooting work. Strong matches include OrchardCore.Admin, AdminSettings, AdminPermissions, AdminOptions, AdminAttribute, SiteDisplayDriver, OrchardCore.Contents.QuickNavigation.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,8 @@ metadata:
 
 The Orchard Core admin panel is the back-office interface for content management and site configuration. It is rendered by the **TheAdmin** theme for every request routed through the admin pipeline (`[Admin]` attribute). Related skills cover the details of specific admin areas:
 
-- `orchardcore-admin-lists` for list (index) pages rendered with the `AdminList` shape.
+- `orchardcore-admin-edit-views` for editor views and forms built with the `ocat-*` classes.
+- `orchardcore-admin-lists` for admin index (list) pages rendered with the `AdminList` shape.
 - `orchardcore-breadcrumbs` for the `<breadcrumb>` page title trail.
 - `orchardcore-admin-menu` for the admin-configurable `OrchardCore.AdminMenu` node tree.
 - `orchardcore-admin-dashboard` for `DashboardWidget` content.
@@ -65,20 +66,9 @@ New properties include `--oc-admin-menu-group-font-color`, `--oc-admin-menu-bord
 - TheAdmin no longer includes `bootstrap-select` styles. Pages that use `bootstrap-select` must require them: `<style asp-name="bootstrap-select" at="Head"></style>`.
 - Admin scripts no longer depend on jQuery or jQuery UI, and admin Vue apps use Vue 3. Front-end jQuery resources are still registered; require them explicitly (`<script asp-name="jQuery" at="Foot"></script>`) if your admin view still needs them. AJAX-injected field and part editors are ES modules.
 
-### The `ocat-*` CSS Classes
+### Admin Editor Forms (`ocat-*`)
 
-Admin editor views use static `ocat-` (Orchard Core Admin Theme) classes so admin themes can restyle forms without editing views. **Never apply them to front-end views** (Login, Register, ForgotPassword, or anything rendered by the site theme).
-
-| Class | Element | Purpose |
-|---|---|---|
-| `ocat-wrapper` | `<div>` | Outer container of a field row |
-| `ocat-label` | `<label>` | Field label |
-| `ocat-label-required` | `<label>` | Added to `ocat-label` for required fields |
-| `ocat-start` | `<div>` | Leading element container (alignment) |
-| `ocat-end` | `<div>` | Input, validation, and hint column |
-| `ocat-end-offset` | `<div>` | Content without a label (checkboxes, headings, buttons) |
-| `ocat-limited-wrapper` | `<div>` | Row for limited-width controls |
-| `ocat-limited` | `<div>` | Constrains the control width |
+Admin editor views lay out their rows with the static `ocat-` (Orchard Core Admin Theme) classes (`ocat-wrapper`, `ocat-label`, `ocat-label-required`, `ocat-end`, `ocat-end-offset`, `ocat-start`, `ocat-limited-wrapper`, `ocat-limited`), so an admin theme can restyle every form, for example as a horizontal layout, by overriding those classes in CSS. Use them only in admin views, never in front-end views:
 
 ```cshtml
 <div class="ocat-wrapper" asp-validation-class-for="Title">
@@ -89,48 +79,9 @@ Admin editor views use static `ocat-` (Orchard Core Admin Theme) classes so admi
         <span class="hint">@T["Hint text."]</span>
     </div>
 </div>
-
-<div class="ocat-wrapper" asp-validation-class-for="IsEnabled">
-    <div class="ocat-end-offset">
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" asp-for="IsEnabled" />
-            <label class="form-check-label" asp-for="IsEnabled">@T["Enable feature"]</label>
-        </div>
-        <span class="hint dashed">@T["Check to enable this feature."]</span>
-    </div>
-</div>
-
-<div class="ocat-limited-wrapper" asp-validation-class-for="TimeZone">
-    <label asp-for="TimeZone" class="ocat-label">@T["Default Time Zone"]</label>
-    <div class="ocat-limited">
-        <select asp-for="TimeZone" class="form-select"></select>
-        <span asp-validation-for="TimeZone"></span>
-    </div>
-</div>
 ```
 
-Rules:
-
-1. Use `ocat-*` in all admin editor views, including `*Settings.Edit.cshtml`.
-2. Validation and hint spans go inside `ocat-end` or `ocat-end-offset`.
-3. Section headings and action buttons go in `ocat-wrapper` > `ocat-end-offset`; required labels add `ocat-label-required`.
-4. Content parts and fields render their wrapper classes directly: `ocat-wrapper content-part-wrapper content-part-wrapper-{part-name}` and `ocat-wrapper field-wrapper field-wrapper-{part-name}-{field-name}` (plus the named-part variants).
-5. Admin Menu node editors and widget containers (BagPart, FlowPart, WidgetsListPart) do not use these classes.
-6. To change the layout (e.g. horizontal forms), override the `ocat-*` classes in a custom admin theme's CSS. The removed `@Orchard.GetWrapperClasses()`-style helpers, `TheAdminThemeOptions`, and `TheAdminTheme:StyleSettings` map to `ocat-wrapper`, `ocat-label`, `ocat-end`, `ocat-end-offset`, `ocat-limited-wrapper`, `ocat-limited`, and `ocat-start`.
-
-### Content Field Hints (`Hint_Admin`)
-
-Content field editors render their configured hint through the `Hint_Admin` shape (`Model.Hint`). The default `Hint.Admin.cshtml` renders `<span class="hint dashed">@Model.Hint</span>`. Override it in a custom admin theme to change every field hint, for example as a tooltip:
-
-```cshtml
-<button type="button" class="btn btn-link p-0 align-baseline"
-        data-bs-toggle="tooltip" data-bs-placement="top"
-        title="@Model.Hint" aria-label="@Model.Hint">
-    <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
-</button>
-```
-
-Custom field editors can render it the same way: `@await DisplayAsync(await New.Hint_Admin(Hint: settings.Hint))`.
+Content field hints render through the `Hint_Admin` shape (TheAdmin's `Hint.Admin.cshtml`), which a custom admin theme can override. See `orchardcore-admin-edit-views` for the full class catalog, layout rules, validation, hints, part and field wrapper classes, editor tabs and cards, and complete editor examples, and `orchardcore-admin-lists` for admin index (list) pages.
 
 ## Admin Controllers
 
@@ -239,7 +190,7 @@ Admin views declare their title with the `<breadcrumb>` tag helper (add `@addTag
 </form>
 ```
 
-List pages render their items with `<admin-list>`; see `orchardcore-admin-lists`.
+Edit pages and shape-based editors follow `orchardcore-admin-edit-views`; list pages render their items with `<admin-list>` (see `orchardcore-admin-lists`).
 
 ## Admin Menu Registration
 

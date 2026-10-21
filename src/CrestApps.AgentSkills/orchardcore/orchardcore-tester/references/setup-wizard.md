@@ -2,21 +2,22 @@
 
 ## Overview
 
-When OrchardCore runs without existing data (no `App_Data` folder), it presents a setup wizard at the root URL.
+When the site runs without an initialized tenant (no `App_Data`), it presents a setup wizard at the root URL. Prefer Auto Setup (`autosetup.md`) for unattended provisioning; drive the wizard only when you need to exercise it.
 
 ## Prerequisites
 
-Before setup, ensure:
-1. Application is built: `dotnet build` from repo root
-2. No existing data: Delete `src/OrchardCore.Cms.Web/App_Data` if present
-3. Application is running: `cd src/OrchardCore.Cms.Web && dotnet run -f net10.0`
+1. The web project is built: `dotnet build $webProject`
+2. No existing data: delete `$webProject/App_Data` if present
+3. The site is running without Auto Setup settings (see SKILL.md Step 2)
+4. A browser engine is installed for `playwright-cli` (see `playwright-cli.md`)
 
 ## Setup Wizard Form Fields
 
 | Field | Description | Recommended Value |
 |-------|-------------|-------------------|
 | Site Name | Display name for the site | "Test Site" |
-| Recipe | Pre-configured feature set | **"Blog"** (recommended) |
+| Recipe | Dropdown button backed by a hidden `RecipeName` input | **"Blog"**, or your own setup recipe |
+| Default Time Zone | Pre-filled `<select>` | Leave the default |
 | Database | Database provider | "Sqlite" (default, easiest) |
 | Table Prefix | Database table prefix | Leave empty |
 | Connection String | DB connection (if not Sqlite) | N/A for Sqlite |
@@ -24,6 +25,8 @@ Before setup, ensure:
 | Email | Admin email | "admin@test.com" |
 | Password | Admin password | "Password1!" |
 | Password Confirmation | Confirm password | "Password1!" |
+
+When `OrchardCore:DatabaseProvider` (and optionally `ConnectionString`) is configured, those fields are fixed and not shown.
 
 ## Recipe Options
 
@@ -36,53 +39,50 @@ Before setup, ensure:
 | SaaS | Multi-tenant SaaS setup | Tenant testing |
 | Blank | No features enabled | Custom setup |
 
-**Why "Blog"?** It pre-enables: Media, Content Management, Admin UI, Markdown, Autoroute, and other commonly tested features.
+**Why "Blog"?** It pre-enables Media, content management, the admin UI, Markdown, Autoroute and other commonly tested features. Recipes from your own modules and themes with `"issetuprecipe": true` are listed too.
 
 ## Setup Workflow with playwright-cli
 
-First, get the port from the session file:
-```powershell
-$port = Get-Content ".orchardcore-port"
-```
-
-Then proceed with setup:
 ```bash
-# 1. Navigate to root (shows setup wizard)
-playwright-cli open http://localhost:$port
+PORT=$(cat .orchardcore-port)
+
+# 1. Open the wizard and capture refs.
+playwright-cli --browser webkit open "http://localhost:$PORT/"
 playwright-cli snapshot
 
-# 2. Fill site name
-playwright-cli fill [sitename-ref] "Test Site"
+# 2. Plain inputs fill normally.
+playwright-cli fill <sitename-ref> "Test Site"
+playwright-cli fill <username-ref> "admin"
+playwright-cli fill <email-ref> "admin@test.com"
 
-# 3. Select recipe - find and click "Blog" option
-# Look for select/dropdown with recipes, select "Blog"
-playwright-cli select [recipe-ref] "Blog"
-
-# 4. Keep Sqlite default (usually pre-selected)
-
-# 5. Fill admin credentials
-playwright-cli fill [username-ref] "admin"
-playwright-cli fill [email-ref] "admin@test.com"
-playwright-cli fill [password-ref] "Password1!"
-playwright-cli fill [password-confirm-ref] "Password1!"
-
-# 6. Submit setup
-playwright-cli click [finish-setup-ref]
-
-# 7. Wait for setup to complete and verify
+# 3. Recipe: open the dropdown, then click the item.
+playwright-cli click <recipe-button-ref>
 playwright-cli snapshot
+playwright-cli click <blog-item-ref>
+playwright-cli eval 'document.getElementById("RecipeName").value'   # "Blog"
+
+# 4. Database (Sqlite) and time zone defaults are valid; leave them.
+
+# 5. Passwords: fill does not work here; use the native setter for both.
+playwright-cli eval '((p)=>{var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"value").set; s.call(p,"Password1!"); p.dispatchEvent(new Event("input",{bubbles:true})); p.dispatchEvent(new Event("change",{bubbles:true})); return p.value.length})(document.getElementById("Password"))'
+playwright-cli eval '((p)=>{var s=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"value").set; s.call(p,"Password1!"); p.dispatchEvent(new Event("input",{bubbles:true})); p.dispatchEvent(new Event("change",{bubbles:true})); return p.value.length})(document.getElementById("PasswordConfirmation"))'
+playwright-cli eval 'document.getElementById("Password").value+"|"+document.getElementById("PasswordConfirmation").value'
+
+# 6. Submit and verify.
+playwright-cli click <finish-setup-ref>
+playwright-cli eval 'window.location.pathname+" | "+document.title'
 ```
+
+The password `eval` calls may print a benign `result is not a function` message; the follow-up read confirms the values.
 
 ## Post-Setup Verification
 
-After setup completes:
-1. You should be redirected to the site homepage or admin
-2. Navigate to `/Admin` to verify admin access
-3. Check `/Admin/Features` to see enabled features
+1. You are redirected to the home page; the title reflects the recipe and site name.
+2. `$webProject/App_Data/Sites/Default/` exists.
+3. Log in at `/Login` (same password workaround) and confirm `/Admin` loads without redirecting to `/Login`.
+4. Check `/Admin/Features` to see enabled features.
 
 ## Resetting for Fresh Setup
-
-To start over with a clean installation:
 
 ```powershell
 # Stop the running application
@@ -92,7 +92,7 @@ if (Test-Path ".orchardcore-pid") {
 }
 
 # Delete App_Data
-Remove-Item -Recurse -Force src/OrchardCore.Cms.Web/App_Data
+Remove-Item -Recurse -Force "$webProject/App_Data"
 
 # Restart application (see SKILL.md Step 2)
 ```
@@ -101,7 +101,9 @@ Remove-Item -Recurse -Force src/OrchardCore.Cms.Web/App_Data
 
 | Issue | Solution |
 |-------|----------|
-| Setup page doesn't appear | Check if App_Data exists; delete it |
-| "Port already in use" | Stop other instances or use different port |
-| Recipe dropdown empty | Check browser console for JS errors |
-| Setup fails silently | Check terminal/console for .NET errors |
+| Setup page doesn't appear | `App_Data` already holds an initialized tenant; delete it |
+| Wizard appears but you wanted unattended | Auto Setup is not registered or not configured; see `autosetup.md` |
+| Password field stays empty | Use the native-setter `eval`, not `fill`/`type` |
+| Recipe dropdown does nothing | Click the dropdown button first, then the item; check the hidden `RecipeName` |
+| Submit appears to do nothing | Both password fields must be set and meet the policy; check `playwright-cli console error` |
+| "Port already in use" | Stop other instances or use a different port |

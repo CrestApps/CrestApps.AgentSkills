@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data-migrations
-description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, adding SQL indexes to existing tables, schema alterations, recipe migrations with IRecipeMigrator, data seeding, AddDataMigration registration, and migration versioning patterns. Use this skill when requests mention Orchard Core Data Migrations, Create Data Migrations, Basic Migration with Content Type, Folder and Class Conventions, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, Incremental Migration (UpdateFrom), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, DataMigration, IDataMigration, AddDataMigration, IRecipeMigrator, IContentDefinitionManager, SchemaBuilder, CreateIndex, WithPart.
+description: Skill for creating data migrations in Orchard Core. Covers content type migrations, YesSql index table creation, adding SQL indexes to existing tables, schema alterations, column rules and SQLite or MySQL provider quirks, patching existing content item JSON in batches, replacing a part on every content type, recipe migrations with IRecipeMigrator, data seeding, uninstall, AddDataMigration registration, and the migration version chain with skipped versions. Use this skill when requests mention Orchard Core Data Migrations, Migration with Custom Content Part and Fields, Migration with YesSql Index Table, Incremental Migration (UpdateFrom), or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.ContentManagement.Metadata, OrchardCore.Data.Migration, DataMigration, IDataMigration, AddDataMigration, IRecipeMigrator, IContentDefinitionManager, SchemaBuilder, CreateIndex, WithPart.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -36,6 +36,24 @@ Use the current async migration and clock APIs. `IDataMigrationManager.UpdateAsy
 accepts the feature names to update, and `ILocalClock.GetLocalNowAsync` replaces the
 removed local-clock async member. Do not add `IAsyncOptions` or
 `IAsyncConfigureOptions<TOptions>`; configure options with the synchronous options APIs.
+
+### How Migrations Run
+
+`AutomaticDataMigrations` runs `IDataMigrationManager.UpdateAllFeaturesAsync()` while each initialized tenant activates, which also happens after a feature is enabled because that reloads the shell. For each migration class it stores the last returned number in the tenant's `DataMigrationRecord`, keyed by the class full name.
+
+| Rule | Why it matters |
+|------|----------------|
+| `Create`/`CreateAsync` runs only when no version is stored for the class. | Existing tenants already passed it. |
+| After `Create` (or any step) the manager keeps calling `UpdateFrom{returned}` while a matching method exists. | Returning `1` from `CreateAsync` runs every `UpdateFromX` on a fresh install; returning the latest number skips them. |
+| `UpdateFromXAsync` runs only when the stored version is `X`. | Sequential upgrade path. |
+| Never renumber a shipped method, and never rename or move the namespace of a shipped migration class. | Tenants store the old number under the old class name; a rename re-runs `CreateAsync`. |
+| Migrations of the features a feature depends on run first. | You can rely on dependency tables and parts existing. |
+| An exception logs an error, cancels the session and keeps the previous version. | The step is retried on the next tenant start; make steps safe to re-run. |
+| Supported signatures are `int Create()`, `Task<int> CreateAsync()`, `int UpdateFromX()`, `Task<int> UpdateFromXAsync()`, `void Uninstall()`, `Task UninstallAsync()`. | Static or instance, sync or async all work; prefer async in new code. |
+
+`SchemaBuilder` is assigned by the manager on the `DataMigration` base class before each run. Never inject `ISchemaBuilder` through the constructor.
+
+When a step changes the schema in a release, append a new `UpdateFromXAsync`, never edit a shipped one, and bump the number `CreateAsync` returns so new tenants get the final schema directly. A comment such as `// This code can be removed in a later version.` marks old upgrade steps, but keep them until you drop that upgrade path.
 
 ### Basic Migration with Content Type
 
@@ -321,7 +339,7 @@ public sealed class Startup : StartupBase
 
 ### Uninstall Migration
 
-Handle cleanup when a feature is disabled:
+`Uninstall`/`UninstallAsync` runs only when code calls `IDataMigrationManager.Uninstall(featureId)`. Disabling a feature does not call it, so never rely on it for cleanup that must happen on disable.
 
 ```csharp
 public sealed class Migrations : DataMigration
@@ -329,6 +347,171 @@ public sealed class Migrations : DataMigration
     public async Task UninstallAsync()
     {
         await SchemaBuilder.DropMapIndexTableAsync<{{IndexName}}>();
+        // Or drop a table that has no index type.
+        await SchemaBuilder.DropTableAsync("{{TableName}}");
     }
 }
 ```
+
+### Running a Recipe from a Migration
+
+`IRecipeMigrator.ExecuteAsync(fileName, this)` resolves the file from the `Migrations` folder of the module that declares the migration class, runs it in the current scope, and returns the execution id (or `null` when the file is not found). Use it to seed templates, queries, layers, roles or sample content with ordinary recipe steps (see `orchardcore-recipes`).
+
+```csharp
+using OrchardCore.Data.Migration;
+using OrchardCore.Recipes.Services;
+
+public sealed class Migrations : DataMigration
+{
+    private readonly IRecipeMigrator _recipeMigrator;
+
+    public Migrations(IRecipeMigrator recipeMigrator)
+    {
+        _recipeMigrator = recipeMigrator;
+    }
+
+    public async Task<int> CreateAsync()
+    {
+        // Loads {{ModuleName}}/Migrations/init.recipe.json.
+        await _recipeMigrator.ExecuteAsync("init.recipe.json", this);
+
+        return 1;
+    }
+}
+```
+
+### Replacing a Part on Every Content Type
+
+Use `LoadTypeDefinitionsAsync()` (a fresh, writable copy) inside migrations, not `ListTypeDefinitionsAsync()` (the cached, read-only copy).
+
+```csharp
+public async Task<int> UpdateFrom3Async()
+{
+    foreach (var contentType in await _contentDefinitionManager.LoadTypeDefinitionsAsync())
+    {
+        if (contentType.Parts.Any(x => x.PartDefinition.Name == "{{OldPart}}"))
+        {
+            await _contentDefinitionManager.AlterTypeDefinitionAsync(contentType.Name, type => type
+                .RemovePart("{{OldPart}}")
+                .WithPart("{{NewPart}}"));
+        }
+    }
+
+    await _contentDefinitionManager.DeletePartDefinitionAsync("{{OldPart}}");
+
+    return 4;
+}
+```
+
+To change part settings on every type, call `.WithPart("{{PartName}}", part => part.MergeSettings<{{PartName}}Settings>(settings => { ... }))` inside the same loop.
+
+### Patching Existing Content Items
+
+Data patches belong in an `UpdateFromXAsync`, never in `CreateAsync` (a new tenant has no items yet). Page through every version by `DocumentId`, mutate the `System.Text.Json` content, save only what changed, and flush each page.
+
+```csharp
+using System.Text.Json.Nodes;
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
+using OrchardCore.Data.Migration;
+using YesSql;
+
+public sealed class Migrations : DataMigration
+{
+    private readonly ISession _session;
+
+    public Migrations(ISession session)
+    {
+        _session = session;
+    }
+
+    public async Task<int> UpdateFrom1Async()
+    {
+        var lastDocumentId = 0L;
+
+        while (true)
+        {
+            var versions = await _session
+                .Query<ContentItem, ContentItemIndex>(x => x.ContentType == "{{ContentType}}" && x.DocumentId > lastDocumentId)
+                .OrderBy(x => x.DocumentId)
+                .Take(50)
+                .ListAsync();
+
+            if (!versions.Any())
+            {
+                break;
+            }
+
+            foreach (var version in versions)
+            {
+                var content = (JsonObject)version.Content;
+
+                if (content["{{PartName}}"] is JsonObject part && part["OldName"] is JsonNode value)
+                {
+                    part.Remove("OldName");
+                    part["NewName"] = value;
+
+                    await _session.SaveAsync(version);
+                }
+
+                lastDocumentId = version.Id;
+            }
+
+            await _session.FlushAsync();
+        }
+
+        return 2;
+    }
+}
+```
+
+- Query `ContentItemIndex`, iterate `ContentItem`, and cast `Content` to `JsonObject`; `ContentItem.Id` is the YesSql document id used as the cursor.
+- Without a `Latest`/`Published` filter the loop patches drafts and history too, which is usually what you want.
+- Content can be nested (Flow, Bag and widget parts), so recurse when the data can live in child items.
+
+### Skipping Versions
+
+Return a number higher than `X + 1` when a later step makes an intermediate one obsolete. The manager then looks for the returned number and never calls the skipped method.
+
+```csharp
+public async Task<int> UpdateFrom3Async()
+{
+    // ...
+    return 5; // UpdateFrom4Async is no longer needed.
+}
+```
+
+### Column Rules and Provider Quirks
+
+| Need | Code |
+|------|------|
+| Bounded string | `.Column<string>("Name", c => c.WithLength(255))` |
+| Unbounded text | `.Column<string>("Body", c => c.Nullable().Unlimited())` |
+| Nullable value | `.Column<bool>("Latest", c => c.Nullable())` |
+| Other types | `int`, `long`, `decimal`, `DateTime`, `TimeSpan`, `bool`, enums |
+
+- Always give string columns `.WithLength(n)` or `.Unlimited()`; an unlengthed string column behaves differently per provider and can break the migration. Use 26 for `ContentItemId`/`ContentItemVersionId` and the `ContentItemIndex.Max*Size` constants (255) for content type, owner, author and display text.
+- Test on every provider you target (SQLite, SQL Server, MySQL, PostgreSQL).
+- SQLite cannot drop columns through `SchemaBuilder`. Wrap a drop (and the re-add that follows) in `try`/`catch` and log a warning; do the same when dropping an index that may not exist.
+- MySQL caps an index key at 768 characters (3072 bytes). Prefix long string columns in `CreateIndex`, for example `"Text(764)"`, and keep the total under the limit (`DocumentId (2) + Text (764) + Published and Latest (1) = 767`).
+
+```csharp
+try
+{
+    await SchemaBuilder.AlterIndexTableAsync<{{IndexName}}>(table => table
+        .DropColumn("Time"));
+
+    await SchemaBuilder.AlterIndexTableAsync<{{IndexName}}>(table => table
+        .AddColumn<TimeSpan>("Time", column => column.Nullable()));
+}
+catch (Exception ex)
+{
+    _logger.LogWarning(ex, "Failed to alter the 'Time' column. This is expected on SQLite.");
+}
+```
+
+### Testing a Migration
+
+1. Fresh install. Set up a clean tenant; only `CreateAsync` runs and the schema lands at the latest version.
+2. Upgrade. Start from a database at the previous version and confirm each `UpdateFromXAsync` runs in order (the log shows `Applying migration for ... from version X`).
+3. Re-run. Restart the tenant and confirm nothing runs twice.
