@@ -1,28 +1,40 @@
 ---
 name: crestapps-core-azure-ai-search
-description: Skill for integrating Azure AI Search indexing data sources documents vector retrieval and memory in CrestApps.Core.
+description: Skill for using Azure AI Search as the CrestApps.Core indexing and vector backend. Covers CrestApps.Core.Azure.AISearch and CrestApps.Core.AI.Azure.AISearch, AddAzureAISearch on the indexing builder with AddAIDocuments, AddAIDataSources and AddAIMemory, AddCoreAzureAISearchServices, AzureAISearchConnectionOptions with Default, ApiKey and ManagedIdentity authentication, AddAzureAISearchODataFilterTranslator, the filters complex field and typed knowledge columns, in-place schema upgrades through TryAddFieldsAsync, external Azure AI Search source mappings with IAIDataSourceChangeNotifier, and troubleshooting tier, authentication and filter errors.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# CrestApps.Core Azure AI Search - Prompt Templates
+# CrestApps.Core Azure AI Search
 
-## Add Azure AI Search
+Use Azure AI Search as the knowledge-base backend for AI documents, AI data sources and AI memory. For the data source model see `crestapps-core-data-sources`.
 
-You are a CrestApps.Core expert. Configure the `CrestApps.Core.Azure.AISearch` and `CrestApps.Core.AI.Azure.AISearch` packages through the indexing builder.
+## Registration
 
 ```csharp
 builder.Services.AddCrestAppsCore(crestApps => crestApps
+    .AddAISuite(ai => ai.AddAzureOpenAI())
     .AddIndexingServices(indexing => indexing
+        .AddYesSqlStores()
         .AddAzureAISearch(
             builder.Configuration.GetSection("CrestApps:AzureAISearch"),
-            search => search
+            azureAISearch => azureAISearch
                 .AddAIDocuments()
                 .AddAIDataSources()
-                .AddAIMemory())
-    )
-);
+                .AddAIMemory())));
 ```
 
-`AddCoreAzureAISearchServices(...)` is the lower-level equivalent. It configures `AzureAISearchConnectionOptions`, `IAzureAISearchClientFactory`, a `SearchIndexClient`, and keyed services with provider key `AISearchConstants.ProviderName`.
+| Call | Package | Adds |
+|---|---|---|
+| `AddCoreAzureAISearchServices(section)` | `CrestApps.Core.Azure.AISearch` | `AzureAISearchConnectionOptions`, `IAzureAISearchClientFactory`, a singleton `SearchIndexClient`, keyed `IDataSourceContentManager`, `IDataSourceDocumentReader`, `IODataFilterTranslator`, `ISearchIndexManager`, `ISearchDocumentManager` |
+| `AddAzureAISearchODataFilterTranslator()` | `CrestApps.Core.Azure.AISearch` | only the keyed translator, for hosts that bring their own clients |
+| `AddAIDocuments()` / `AddCoreAzureAISearchAIDocumentSource()` | `CrestApps.Core.AI.Azure.AISearch` | `AIDocuments` index-profile source, profile handler, keyed `IVectorSearchService` |
+| `AddAIDataSources()` / `AddCoreAzureAISearchAIDataSource()` | `CrestApps.Core.AI.Azure.AISearch` | `DataSource` index-profile source, keyed `AzureAISearchAIDataSourceSourceHandler`, and `AddCoreAIDataSourceRag()` |
+| `AddAIMemory()` / `AddCoreAzureAISearchAIMemorySource()` | `CrestApps.Core.AI.Azure.AISearch` | `AIMemory` index-profile source, profile handler, keyed `IMemoryVectorSearchService` |
+
+Every keyed service uses `AISearchConstants.ProviderName` (`"AzureAISearch"`).
 
 ## Configuration
 
@@ -39,18 +51,29 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 }
 ```
 
-`AzureAISearchConnectionOptions` supports `Endpoint`, `AuthenticationType`, `ApiKey`, `IdentityClientId`, and `IndexPrefix`. Use `Default` or `ManagedIdentity` in hosted environments; protect an `ApiKey` outside source control.
+`AzureAISearchConnectionOptions`: `Endpoint`, `AuthenticationType` (`Default` uses `DefaultAzureCredential` and is the fallback for empty or unknown values, `ApiKey`, `ManagedIdentity`), `ApiKey`, `IdentityClientId` (user-assigned identity) and `IndexPrefix`. The older `IndexesPrefix` is still honored when `IndexPrefix` is empty. Prefer managed identity in Azure, and keep any admin key out of source control. Vector search needs the **Basic** tier or higher.
 
-## What Each AI Option Adds
+## Filters and Typed Columns
 
-- `AddAIDocuments()` registers the `AIDocuments` profile source, its index-profile handler, and keyed `IVectorSearchService`.
-- `AddAIDataSources()` registers the `DataSource` profile source, data-source RAG services, the `AzureAISearch` `IAIDataSourceSourceHandler`, and its index-profile handler.
-- `AddAIMemory()` registers the `AIMemory` profile source, its index-profile handler, and keyed `IMemoryVectorSearchService`.
+- The translator prefixes source fields with `filters/` (`category eq 'support'` becomes `filters/category eq 'support'`). Azure AI Search only filters on fields the schema declares filterable, so the knowledge base index must declare the `filters` complex field and each sub-field you filter on.
+- `contentType`, `rootId`, `parentId` and `page` map to top-level columns, and `contentType eq null` is a null test.
+- `AzureAISearchIndexManager.TryAddFieldsAsync` adds the typed columns to an existing index on the next sync.
 
-The provider primitives register keyed `IDataSourceContentManager`, `IDataSourceDocumentReader`, `IODataFilterTranslator`, `ISearchIndexManager`, and `ISearchDocumentManager`. Resolve them with the Azure AI Search provider key rather than as unkeyed services.
+## External Azure AI Search Sources
 
-## External Sources and Indexing
+An `AIDataSource` with `Source = AIDataSourceSourceTypes.AzureAISearch` reads a remote index configured on the data source itself: `Endpoint`, `AuthenticationType`, `IndexName`, `IdentityClientId`, and an `ApiKey` protected with `AIDataSourceProtectionConstants.SourceSecretPurpose`. This is separate from the backend options above. Notify the sync pipeline with `IAIDataSourceChangeNotifier` when the remote index changes.
 
-An `AIDataSource` whose source type is `AzureAISearch` reads an externally managed Azure AI Search index. Keep that source configuration separate from the shared backend configuration used to write CrestApps knowledge-base chunks. Notify the synchronization pipeline through `IAIDataSourceChangeNotifier` when an external source changes.
+## Troubleshooting
 
-`AddAIDataSources()` also composes the shared asynchronous RAG synchronization components, including `IAIDataSourceIndexingQueue`, `IAIDataSourceIndexingService`, `AIDataSourceCatalogIndexingHandler`, `AIDataSourceSearchDocumentHandler`, `AIDataSourceIndexingBackgroundService`, `AIDataSourceAlignmentBackgroundService`, and `DataSourceSearchIndexProfileHandler`.
+| Symptom | Check |
+|---|---|
+| Index profile creation reports the provider is not configured | `Endpoint` missing from the bound section |
+| `403` or credential errors | `AuthenticationType`, role assignments for the managed identity, or the admin key |
+| Filter request fails | declare `filters` and the filtered sub-fields as filterable |
+| Filter ignored with a warning | no keyed translator; call `AddAzureAISearchODataFilterTranslator()` |
+
+## Upgrading from 1.x
+
+- Existing indexes keep working; the typed columns are added in place and missing `contentType` reads as `text`.
+- Hosts that create their own `SearchIndexClient` can register only `AddAzureAISearchODataFilterTranslator()`.
+- Embeddings resolve through the `embedding` deployment slot or the index profile's `EmbeddingDeploymentName`; deployment `Purpose` is gone.

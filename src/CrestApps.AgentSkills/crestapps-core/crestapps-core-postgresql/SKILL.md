@@ -1,28 +1,39 @@
 ---
 name: crestapps-core-postgresql
-description: Skill for integrating PostgreSQL pgvector indexing data sources documents vector retrieval and memory in CrestApps.Core.
+description: Skill for using PostgreSQL with pgvector as the CrestApps.Core indexing and vector backend. Covers CrestApps.Core.PostgreSQL and CrestApps.Core.AI.PostgreSQL, AddPostgreSQL on the indexing builder with AddAIDocuments, AddAIDataSources and AddAIMemory, AddCorePostgreSQLServices and the lower-level source registrations, PostgreSQLConnectionOptions and IndexPrefix, the vector extension, typed knowledge columns and in-place schema upgrades through TryAddFieldsAsync, external PostgreSQL table sources with IAIDataSourceChangeNotifier, the Aspire AppHost and Docker setup, and troubleshooting.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# CrestApps.Core PostgreSQL - Prompt Templates
+# CrestApps.Core PostgreSQL
 
-## Add PostgreSQL with pgvector
+Use PostgreSQL with pgvector as a lightweight, self-hosted knowledge-base backend for AI documents, AI data sources and AI memory. For the data source model see `crestapps-core-data-sources`.
 
-You are a CrestApps.Core expert. Configure `CrestApps.Core.PostgreSQL` with `CrestApps.Core.AI.PostgreSQL` through the indexing builder.
+## Registration
 
 ```csharp
 builder.Services.AddCrestAppsCore(crestApps => crestApps
+    .AddAISuite(ai => ai.AddOpenAI())
     .AddIndexingServices(indexing => indexing
+        .AddYesSqlStores()
         .AddPostgreSQL(
             builder.Configuration.GetSection("CrestApps:PostgreSQL"),
             postgreSQL => postgreSQL
                 .AddAIDocuments()
                 .AddAIDataSources()
-                .AddAIMemory())
-    )
-);
+                .AddAIMemory())));
 ```
 
-`AddCorePostgreSQLServices(...)` only registers `PostgreSQLConnectionOptions`, `IPostgreSQLClientFactory`, and provider-keyed indexing primitives. It does not add AI document, data-source, or memory support. For lower-level composition, call the matching `AddCorePostgreSQLAIDocumentSource()`, `AddCorePostgreSQLAIDataSource()`, and/or `AddCorePostgreSQLAIMemorySource()` methods after registering the primitive services.
+| Call | Package | Adds |
+|---|---|---|
+| `AddCorePostgreSQLServices(section)` | `CrestApps.Core.PostgreSQL` | `PostgreSQLConnectionOptions`, `IPostgreSQLClientFactory` (manages `NpgsqlDataSource` instances), keyed `IDataSourceContentManager`, `IDataSourceDocumentReader`, `IODataFilterTranslator`, `ISearchIndexManager`, `ISearchDocumentManager` |
+| `AddAIDocuments()` / `AddCorePostgreSQLAIDocumentSource()` | `CrestApps.Core.AI.PostgreSQL` | `AIDocuments` index-profile source, profile handler, keyed `IVectorSearchService` |
+| `AddAIDataSources()` / `AddCorePostgreSQLAIDataSource()` | `CrestApps.Core.AI.PostgreSQL` | `DataSource` index-profile source, keyed `PostgreSQLAIDataSourceSourceHandler`, and `AddCoreAIDataSourceRag()` |
+| `AddAIMemory()` / `AddCorePostgreSQLAIMemorySource()` | `CrestApps.Core.AI.PostgreSQL` | `AIMemory` index-profile source, profile handler, keyed `IMemoryVectorSearchService` |
+
+Every keyed service uses `PostgreSQLConstants.ProviderName` (`"PostgreSQL"`). Unlike Elasticsearch and Azure AI Search there is no translator-only registration; the translator comes with `AddCorePostgreSQLServices()`.
 
 ## Configuration
 
@@ -37,18 +48,27 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 }
 ```
 
-Use PostgreSQL with the `vector` extension available. `PostgreSQLConnectionOptions` contains `ConnectionString` and `IndexPrefix`. The prefix is applied to framework-managed index table names. Protect the connection string through secrets or managed configuration.
+`PostgreSQLConnectionOptions` has `ConnectionString` (any Npgsql parameters) and `IndexPrefix` (prepended to framework-managed table names, useful when tenants share a database). Each index profile is its own table. The index manager runs `CREATE EXTENSION IF NOT EXISTS vector`, so the database user needs permission to create it, or a DBA must create it first. Requires PostgreSQL 12+ and pgvector 0.5.0+.
 
-## What Each AI Option Adds
+For local development, `dotnet run --project src/Startup/CrestApps.Core.Aspire.AppHost` starts a `pgvector/pgvector:pg16` container and injects `CrestApps__PostgreSQL__ConnectionString` into both sample hosts. Without Aspire, run the same image with Docker Compose.
 
-- `AddAIDocuments()` registers an `AIDocuments` index-profile source, its profile handler, and keyed `IVectorSearchService`.
-- `AddAIDataSources()` registers a `DataSource` index-profile source, shared RAG synchronization, and a keyed `PostgreSQLAIDataSourceSourceHandler`.
-- `AddAIMemory()` registers an `AIMemory` index-profile source, its profile handler, and keyed `IMemoryVectorSearchService`.
+## Typed Columns
 
-Provider primitives register keyed `IDataSourceContentManager`, `IDataSourceDocumentReader`, `IODataFilterTranslator`, `ISearchIndexManager`, and `ISearchDocumentManager`. Retrieve them with the PostgreSQL provider key.
+`contentType`, `rootId`, `parentId` and `page` are real columns. `PostgreSQLSearchIndexManager.TryAddFieldsAsync` adds them to an existing table on the next data source sync, and the OData translator filters on them directly. Other filter fields target the row's filter bag.
 
-## External Sources and Indexing
+## External PostgreSQL Sources
 
-An `AIDataSource` using source type `PostgreSQL` reads an external table using source-specific connection settings and table name. This is distinct from the configured pgvector backend that contains CrestApps search documents. Call `IAIDataSourceChangeNotifier` when the external table changes.
+An `AIDataSource` with `Source = AIDataSourceSourceTypes.PostgreSQL` reads an external table configured on the data source (`ConnectionString` protected with `AIDataSourceProtectionConstants.SourceSecretPurpose`, and `TableName`). It is separate from the pgvector backend that stores CrestApps rows. Call `IAIDataSourceChangeNotifier` when the external table changes.
 
-`AddAIDataSources()` includes `IAIDataSourceIndexingQueue`, `IAIDataSourceIndexingService`, `AIDataSourceCatalogIndexingHandler`, `AIDataSourceSearchDocumentHandler`, `AIDataSourceIndexingBackgroundService`, `AIDataSourceAlignmentBackgroundService`, and `DataSourceSearchIndexProfileHandler`.
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Index profile creation reports the provider is not configured | `ConnectionString` missing from the bound section |
+| `type "vector" does not exist` | pgvector not installed, or the user cannot create extensions |
+| Old rows not filtered by type | expected; rows written before the typed columns have `contentType` null and read as `text` |
+
+## Upgrading from 1.x
+
+- Existing tables keep working; the typed columns are added in place on the next sync.
+- Embeddings resolve through the `embedding` deployment slot or the index profile's `EmbeddingDeploymentName`; deployment `Purpose` is gone.

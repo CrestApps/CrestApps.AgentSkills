@@ -1,23 +1,34 @@
 ---
 name: crestapps-core-entitycore-stores
-description: Skill for configuring the Entity Framework Core persistence backend and per-feature stores in CrestApps.Core.
+description: Skill for the CrestApps.Core.Data.EntityCore persistence backend in CrestApps.Core 2.0. Covers AddEntityCoreSqliteDataStore and AddEntityCoreDataStore with any EF Core provider, EntityCoreDataStoreOptions (TablePrefix, EnforceNamedSourceUniqueness), CrestAppsEntityDbContext and its tables, EntityCoreStoreCommitter, per-feature AddEntityCoreStores on every feature builder including personas and tool instances, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, generic document catalogs for custom models, binding sources, InitializeEntityCoreSchemaAsync, and extending the model with ICrestAppsModelConfigurer. Use it when a host persists CrestApps.Core data with Entity Framework Core or troubleshoots EF Core stores.
+license: Apache-2.0
+metadata:
+  author: CrestApps Team
+  version: "1.0"
 ---
 
-# CrestApps.Core EntityCore Stores - Prompt Templates
+# CrestApps.Core EntityCore Stores
 
-## Configure Entity Framework Core Persistence
+You are a CrestApps.Core expert. Generate accurate Entity Framework Core persistence code with `CrestApps.Core.Data.EntityCore`.
 
-You are a CrestApps.Core expert. Generate accurate Entity Framework Core persistence guidance using `CrestApps.Core.Data.EntityCore`.
+## Rules
 
-### Rules
+- Register the data store on the root builder with `.AddEntityCoreSqliteDataStore(connectionString, tablePrefix: "CA_")` or `.AddEntityCoreDataStore(options => options.UseNpgsql(...), store => store.TablePrefix = "App_")`. They map to `AddCoreEntityCoreSqliteDataStore(...)` and `AddCoreEntityCoreDataStore(...)` on `IServiceCollection` and register `CrestAppsEntityDbContext` plus scoped `EntityCoreStoreCommitter`.
+- `AddEntityCoreStores()` on a feature builder selects that feature's stores. It never registers the `DbContext`.
+- `EntityCoreStoreCommitter.CommitAsync()` calls `SaveChangesAsync()` only when `ChangeTracker.HasChanges()` is true. Writes that never reach a commit boundary are lost when the scope ends.
+- `EntityCoreDataStoreOptions.TablePrefix` defaults to `"CA_"`. `EnforceNamedSourceUniqueness` (default `false`) adds a unique index on entity type, source and name; enable it only after removing duplicates.
+- `CrestAppsEntityDbContext` is sealed. Extend the model through `ICrestAppsModelConfigurer`.
+- Call `await app.Services.InitializeEntityCoreSchemaAsync()` after `Build()` when the host lets the package manage the schema. It runs `EnsureCreatedAsync()`, upgrades the pre-1.0 layout, and adds optional tables and catalog columns introduced later. Use EF Core migrations instead when the host owns its schema.
 
-- Register `AddEntityCoreDataStore(...)` or `AddEntityCoreSqliteDataStore(...)` on the root `CrestAppsCoreBuilder`. They register `CrestAppsEntityDbContext` and `EntityCoreStoreCommitter`.
-- `AddEntityCoreStores()` selects feature stores. It is separate from registering the `DbContext`.
-- `EntityCoreStoreCommitter` calls `SaveChangesAsync()` only when `ChangeTracker.HasChanges()` is true. Use the MVC, Minimal API, SignalR, or explicit background-scope commit boundary.
-- `EntityCoreDataStoreOptions.TablePrefix` defaults to `"CA_"`. `EnforceNamedSourceUniqueness` defaults to `false`; turn it on only after removing duplicates and applying an EF Core migration.
-- Extend the model by implementing `ICrestAppsModelConfigurer`; do not subclass the sealed `CrestAppsEntityDbContext`.
+## Registration
 
 ```csharp
+using CrestApps.Core;
+using CrestApps.Core.AI;
+using CrestApps.Core.AI.Chat;
+using CrestApps.Core.AI.Documents;
+using CrestApps.Core.Data.EntityCore;
+
 builder.Services.AddControllersWithViews()
     .AddCrestAppsStoreCommitterFilter();
 
@@ -27,33 +38,110 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
         .AddChatInteractions(chat => chat.AddEntityCoreStores())
         .AddDocumentProcessing(documents => documents.AddEntityCoreStores())
         .AddAIMemory(memory => memory.AddEntityCoreStores())
-    )
+        .AddPersonas(personas => personas.AddEntityCoreStores())
+        .AddToolInstances(tools => tools.AddEntityCoreStores()))
     .AddIndexingServices(indexing => indexing.AddEntityCoreStores())
-    .AddEntityCoreSqliteDataStore(
-        $"Data Source={Path.Combine(builder.Environment.ContentRootPath, "App_Data", "crestapps.db")}")
-);
+    .AddEntityCoreDataStore(
+        options => options.UseNpgsql(builder.Configuration.GetConnectionString("CrestApps")),
+        store => store.TablePrefix = "App_"));
+
+builder.Services.AddCoreWebCrawlerStoresEntityCore();
+builder.Services.AddCoreFileSourceStoresEntityCore();
 ```
 
-For another EF provider, configure it directly:
+`AddEntityCoreStores()` also exists on `CrestAppsA2AClientBuilder`, `CrestAppsMcpClientBuilder` and `CrestAppsMcpServerBuilder`.
+
+## Service-Collection Methods
+
+| Method | Registers |
+|---|---|
+| `AddCoreAIServicesStoresEntityCore()` | `EntityCoreAIProfileStore` as `IAIProfileStore` and every `AIProfile` catalog interface; writable binding sources for `AIProviderConnection` and `AIDeployment` |
+| `AddCoreAIProfileTemplateStoresEntityCore()` | `AIProfileTemplate` named-source catalog |
+| `AddCoreAIPersonaStoresEntityCore()` | `AIPersona` named catalog |
+| `AddCoreAIToolInstanceStoresEntityCore()` | `AIToolInstance` named-source catalog |
+| `AddCoreAIA2AClientStoresEntityCore()` | `A2AConnection` catalog |
+| `AddCoreAIMcpClientStoresEntityCore()` | `McpConnection` source catalog |
+| `AddCoreAIMcpServerStoresEntityCore()` | `McpPrompt` named catalog, `McpResource` source catalog |
+| `AddCoreAIChatSessionStoresEntityCore()` | `EntityCoreAIChatSessionManager`, `EntityCoreAIChatSessionStore`, `EntityCoreAIChatSessionPromptStore`, `EntityCoreAIChatSessionEventStore`, `EntityCoreAICompletionUsageStore`, and the extracted-data store |
+| `AddCoreAIChatSessionExtractedDataStoresEntityCore()` | `EntityCoreAIChatSessionExtractedDataStore` and the extracted-data recorder |
+| `AddCoreAIChatInteractionStoresEntityCore()` | `ChatInteraction` catalog, `EntityCoreChatInteractionPromptStore` |
+| `AddCoreAIDocumentProcessingStoresEntityCore()` | `EntityCoreAIDocumentStore`, `EntityCoreAIDocumentChunkStore` |
+| `AddCoreAIDataSourceStoresEntityCore()` | `EntityCoreAIDataSourceStore` |
+| `AddCoreAIMemoryStoresEntityCore()` | `EntityCoreAIMemoryStore` |
+| `AddCoreIndexingStoresEntityCore()` | `EntityCoreSearchIndexProfileStore` |
+| `AddCoreKnowledgeStoresEntityCore()` | `EntityCoreKnowledgeObjectStore` as `IKnowledgeObjectStore` |
+| `AddCoreIngestionItemStateStoreEntityCore()` | `EntityCoreIngestionItemStateStore` as `IIngestionItemStateStore` |
+| `AddCoreWebCrawlerStoresEntityCore()` | `EntityCoreWebCrawlerStore`, `EntityCoreWebCrawlStateStore`, plus knowledge and ingestion item state |
+| `AddCoreFileSourceStoresEntityCore()` | `EntityCoreFileSourceStore`, plus knowledge and ingestion item state |
+
+`services.AddEntityCoreStores()` is a one-call shortcut that runs `AddCatalogManagers()` and the services, tool instance, profile template, A2A, MCP client, MCP server, chat session, document processing, data source, memory, chat interaction and indexing methods. It does **not** include personas, knowledge objects, ingestion item state, web crawlers or file sources; add those explicitly.
+
+## Tables
+
+`CrestAppsEntityDbContext` maps `Documents`, `CatalogRecords`, `AIChatSessions`, `AIChatSessionEvents`, `AICompletionUsage` and `AIChatSessionExtractedData`, each prefixed with `TablePrefix`. Catalog models are stored as JSON in `Documents` and indexed through `CatalogRecords` (entity type, item id, name, display text, source, and lookup columns). The context exposes them as `Documents`, `CatalogRecords`, `AIChatSessionRecords`, `AIChatSessionEventRecords`, `AICompletionUsageRecords` and `AIChatSessionExtractedDataRecords`.
+
+## Custom Models
+
+Generic catalogs in `CrestApps.Core.Data.EntityCore.Services` store any `CatalogItem` in the shared tables with no schema change:
 
 ```csharp
-builder.Services.AddCrestAppsCore(crestApps => crestApps
-    .AddEntityCoreDataStore(
-        options => options.UseNpgsql(connectionString),
-        store => store.TablePrefix = "App_")
-);
+using CrestApps.Core;
+using CrestApps.Core.Data.EntityCore.Services;
+
+builder.Services.AddDocumentCatalog<Article, DocumentCatalog<Article>>();
+builder.Services.AddNamedDocumentCatalog<TicketCategory, NamedDocumentCatalog<TicketCategory>>();
+builder.Services.AddSourceDocumentCatalog<Connector, SourceDocumentCatalog<Connector>>();
+builder.Services.AddNamedSourceDocumentCatalog<Widget, NamedSourceDocumentCatalog<Widget>>();
 ```
 
-## Per-Feature Registration
+For a model that merges configuration and database entries, register the database side with `AddEntityCoreNamedSourceBindingSource<TModel>()` (named and source-aware) or `AddEntityCoreNamedBindingSource<TModel>()` (named only).
 
-The builder extensions are available on `CrestAppsAISuiteBuilder`, `CrestAppsChatInteractionsBuilder`, `CrestAppsDocumentProcessingBuilder`, `CrestAppsAIMemoryBuilder`, `CrestAppsIndexingBuilder`, `CrestAppsA2AClientBuilder`, `CrestAppsMcpClientBuilder`, `CrestAppsMcpServerBuilder`, and `CrestAppsAIToolInstancesBuilder`.
+## Extend the Model
 
-For one-call registration of all built-in EntityCore stores, call `services.AddEntityCoreStores()`. Its lower-level selection methods are `AddCoreAIServicesStoresEntityCore`, `AddCoreAIToolInstanceStoresEntityCore`, `AddCoreAIProfileTemplateStoresEntityCore`, `AddCoreAIA2AClientStoresEntityCore`, `AddCoreAIMcpClientStoresEntityCore`, `AddCoreAIMcpServerStoresEntityCore`, `AddCoreAIChatSessionStoresEntityCore`, `AddCoreAIChatSessionExtractedDataStoresEntityCore`, `AddCoreAIDocumentProcessingStoresEntityCore`, `AddCoreAIDataSourceStoresEntityCore`, `AddCoreAIMemoryStoresEntityCore`, `AddCoreAIChatInteractionStoresEntityCore`, and `AddCoreIndexingStoresEntityCore`.
+```csharp
+using CrestApps.Core.Data.EntityCore;
+using Microsoft.EntityFrameworkCore;
 
-## Store Inventory
+namespace MyApp.Data;
 
-`AddCoreAIServicesStoresEntityCore()` registers `EntityCoreAIProfileStore` and EntityCore named-source bindings for provider connections and deployments. The feature-specific methods register `EntityCoreAIChatSessionManager`, `EntityCoreAIChatSessionStore`, `EntityCoreAIChatSessionPromptStore`, `EntityCoreAIChatSessionEventStore`, `EntityCoreAIChatSessionExtractedDataStore`, `EntityCoreAICompletionUsageStore`, `EntityCoreChatInteractionPromptStore`, `EntityCoreAIDocumentStore`, `EntityCoreAIDocumentChunkStore`, `EntityCoreAIDataSourceStore`, `EntityCoreAIMemoryStore`, and `EntityCoreSearchIndexProfileStore` as appropriate.
+public sealed class AuditEntry
+{
+    public int Id { get; set; }
 
-The implementation also uses `DocumentCatalog<T>`, `NamedDocumentCatalog<T>`, `SourceDocumentCatalog<T>`, and `NamedSourceDocumentCatalog<T>` for tool instances, profile templates, A2A connections, MCP connections, MCP prompts, MCP resources, and chat interactions. Use the matching catalog helper or `AddEntityCoreNamedSourceBindingSource` / `AddEntityCoreNamedBindingSource` only when composing a custom binding.
+    public string ItemId { get; set; }
 
-`CrestAppsEntityDbContext` exposes `Documents`, `CatalogRecords`, `AIChatSessionRecords`, `AIChatSessionEventRecords`, `AICompletionUsageRecords`, and `AIChatSessionExtractedDataRecords`. `InitializeEntityCoreSchemaAsync()` is a public `CrestApps.Core.Data.EntityCore` service-provider extension. It calls `EnsureCreatedAsync()` and performs the package's schema initialization work; use EF Core migrations instead when that is the host's schema-management strategy.
+    public DateTime CreatedUtc { get; set; }
+}
+
+public sealed class AuditModelConfigurer : ICrestAppsModelConfigurer
+{
+    public void Configure(ModelBuilder modelBuilder, EntityCoreDataStoreOptions options)
+    {
+        modelBuilder.Entity<AuditEntry>(entity =>
+        {
+            entity.ToTable($"{options.TablePrefix}AuditEntries");
+            entity.HasKey(entry => entry.Id);
+            entity.HasIndex(entry => entry.ItemId);
+        });
+    }
+}
+```
+
+```csharp
+builder.Services.AddSingleton<ICrestAppsModelConfigurer, AuditModelConfigurer>();
+```
+
+Configurers run inside `OnModelCreating` in registration order. Access the table through `dbContext.Set<AuditEntry>()`. `EnsureCreatedAsync()` creates tables only for a new database, so add tables to an existing database with a migration or your own script.
+
+## Troubleshooting
+
+- **Writes disappear**: no commit boundary ran. Add the MVC, hub or endpoint filter, or call `IStoreCommitter.CommitAsync()` in background scopes.
+- **`IKnowledgeObjectStore` cannot be resolved**: call `AddCoreKnowledgeStoresEntityCore()` (or a web crawler or file source store method).
+- **Duplicate names across sources**: clean them up before turning on `EnforceNamedSourceUniqueness`.
+
+## Upgrading from 1.x
+
+- New store methods: `AddCoreAIPersonaStoresEntityCore()`, `AddCoreKnowledgeStoresEntityCore()`, `AddCoreIngestionItemStateStoreEntityCore()`, `AddCoreWebCrawlerStoresEntityCore()`, `AddCoreFileSourceStoresEntityCore()`, and the persona builder overload.
+- File sources are stored as their own entity type rather than as web crawlers; records written by a preview build that predates the split are not moved automatically.
+- The knowledge store now filters by canonical identifier, root and type in the database.
+- No deployment data migration is needed for the removed purpose; legacy values are projected onto capabilities when read.
