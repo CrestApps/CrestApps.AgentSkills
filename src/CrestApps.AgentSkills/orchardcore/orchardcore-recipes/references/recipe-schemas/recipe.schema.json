@@ -31129,6 +31129,7 @@
                             "ManageFacebookApp",
                             "ManageFeatures",
                             "ManageFileSources",
+                            "ManageFundraising",
                             "ManageGeneralSettings",
                             "ManageGiftCards",
                             "ManageGitHubAuthentication",
@@ -31145,6 +31146,7 @@
                             "ManageLocalization",
                             "ManageLuceneIndexes",
                             "ManageMarketing",
+                            "ManageMarketplace",
                             "ManageMarkets",
                             "ManageMcpConnections",
                             "ManageMcpPrompts",
@@ -31154,6 +31156,7 @@
                             "ManageMediaContent",
                             "ManageMediaFolder",
                             "ManageMediaProfiles",
+                            "ManageMemberships",
                             "ManageMenu",
                             "ManageMessaging",
                             "ManageMicrosoftAuthentication",
@@ -31169,6 +31172,7 @@
                             "ManageOwnUserProfile",
                             "ManagePhoneNumberVerificationSettings",
                             "ManagePlacements",
+                            "ManageProductFeeds",
                             "ManageProductReviews",
                             "ManageProviderConnections",
                             "ManageQueries",
@@ -31216,7 +31220,9 @@
                             "ManageWebCrawlers",
                             "ManageWorkflowSettings",
                             "ManageWorkflows",
+                            "ModerateClassifieds",
                             "MonitorContactCenter",
+                            "PostClassifieds",
                             "PreviewContent",
                             "PreviewOwnContent",
                             "PublishContent",
@@ -31232,6 +31238,7 @@
                             "SendGroupMessages",
                             "SendMessagesDuringQuietHours",
                             "SetHomepage",
+                            "SetUpStore",
                             "ShareReportsPublicly",
                             "StartWizard",
                             "SubmitProductReviews",
@@ -34439,14 +34446,6 @@
                     "IsLive": {
                       "type": "boolean",
                       "description": "Whether the live Stripe keys are used. When false, the test keys are used."
-                    },
-                    "CheckoutMode": {
-                      "type": "string",
-                      "enum": [
-                        "PaymentElements",
-                        "HostedCheckout"
-                      ],
-                      "description": "The Stripe checkout integration mode. Kept for compatibility; the checkout always collects card details on the site with Payment Elements."
                     },
                     "LivePublishableKey": {
                       "type": [

@@ -1,60 +1,39 @@
 ---
 name: orchardcore-ai-memory
-description: Skill for configuring persistent, user-scoped AI Memory in Orchard Core using the CrestApps AI Memory module. Covers memory indexing backends (Azure AI Search and Elasticsearch), memory tools, preemptive memory retrieval, and per-profile memory settings. Use this skill when requests mention Orchard Core AI Memory, Persistent User Memory, Memory Indexing, AI Memory Settings, Enable User Memory on a Profile, Memory Index Profiles, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, CrestApps.OrchardCore.AI.Memory.Elasticsearch, YesSqlAIMemoryStore, AIMemoryIndexingService, IAIMemoryStore, IMemoryVectorSearchService.
+description: Skill for persistent, user-scoped AI Memory in Orchard Core 4.0 with CrestApps.OrchardCore 3.0. Covers the memory index with its embedding deployment from the embedding slot, the Memory settings (AIMemorySettings, AIMemoryOptions and ChatInteractionMemoryOptions read through IOptionsMonitor), enabling memory on AI profiles, profile templates and chat interactions through MemoryMetadata, the save, search, list and remove memory tools, preemptive memory retrieval, clearing memory with ClearAIMemory and ClearAIMemoryForOthers, and the deferred indexing pipeline. Use it for CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, CrestApps.OrchardCore.AI.Memory.Elasticsearch, AIMemoryEntry, IAIMemoryStore, AIMemoryIndexingService, IMemoryVectorSearchService, MemoryConstants, AlterMemoryMetadata, and EnablePreemptiveMemoryRetrieval.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Memory - Prompt Templates
+# Orchard Core AI Memory
 
-## Configure AI Memory
+## Configure persistent user memory
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding persistent, user-scoped AI memory to an Orchard Core application using CrestApps modules.
+You are an Orchard Core expert. Generate configuration, recipes, and code that let the AI remember durable, non-sensitive facts about the signed-in user across conversations.
 
 ### Guidelines
-- AI Memory provides persistent, user-scoped memory so the AI can remember durable, non-sensitive preferences and background details for authenticated users across multiple conversations.
-- Memory is only available to authenticated users. Anonymous users do not receive memory tools and cannot search, list, or save memories.
-- All memory reads and writes are filtered by the current authenticated user's `ClaimTypes.NameIdentifier`, ensuring user isolation.
-- The core feature (`CrestApps.OrchardCore.AI.Memory`) is enabled by dependency when a provider module is enabled.
-- You must enable at least one indexing provider (Azure AI Search or Elasticsearch) alongside the memory feature.
-- Each memory entry has a stable `name`, a semantic `description`, and `content`. Use short stable names so the system can update and locate the same memory later (e.g., `preferred_name`).
-- Memory should store durable, non-sensitive information such as response style preferences, active projects, recurring topics, or long-lived workflow preferences.
-- Never store secrets, API keys, tokens, credit card numbers, Social Security numbers, private keys, or connection strings in memory.
-- Memory indexing is triggered from deferred catalog entry handlers, keeping the tenant store and external index in sync automatically.
-- Install CrestApps packages in the web/startup project.
 
-### Feature Overview
+- Memory works only for authenticated users. Every read and write is filtered by the user's `ClaimTypes.NameIdentifier`; anonymous users get no memory tools.
+- `CrestApps.OrchardCore.AI.Memory` is `EnabledByDependencyOnly`; it depends on `CrestApps.OrchardCore.AI.Chat.Core` and `OrchardCore.Indexing`. Enable a provider feature and it comes along.
+- Each memory is a record in the tenant store (`AIMemoryEntry`) plus one document in the configured **master memory index** (an index profile of type `AIMemory`).
+- The memory index names an embedding deployment from the `embedding` slot, so the deployment must declare `textEmbedding`. It is locked once the index exists.
+- Memory is for preferences, projects, recurring topics, and stable background. Never store passwords, keys, tokens, card or Social Security numbers, private keys, or connection strings; the save tool rejects obvious sensitive patterns.
+- Read the options through `IOptionsMonitor<AIMemoryOptions>` and `IOptionsMonitor<ChatInteractionMemoryOptions>`; saving the Memory settings no longer releases the tenant.
+- Install packages in the web/startup project.
 
-| Feature | Feature ID | Description |
-|---------|-----------|-------------|
-| AI Memory (Core) | `CrestApps.OrchardCore.AI.Memory` | Core memory storage, tools, and user-scoped persistence |
-| AI Memory (Azure AI Search) | `CrestApps.OrchardCore.AI.Memory.AzureAI` | Azure AI Search indexing and vector search for memory |
-| AI Memory (Elasticsearch) | `CrestApps.OrchardCore.AI.Memory.Elasticsearch` | Elasticsearch indexing and vector search for memory |
+### Features
 
-### Built-In Memory Tools
+| Feature | Feature ID | Depends on |
+|---|---|---|
+| AI Memory | `CrestApps.OrchardCore.AI.Memory` | `CrestApps.OrchardCore.AI.Chat.Core`, `OrchardCore.Indexing` (dependency only) |
+| AI Memory indexing using Azure AI Search | `CrestApps.OrchardCore.AI.Memory.AzureAI` | AI Memory, `OrchardCore.Indexing`, `OrchardCore.AzureAI` |
+| AI Memory indexing using Elasticsearch | `CrestApps.OrchardCore.AI.Memory.Elasticsearch` | AI Memory, `OrchardCore.Elasticsearch` |
 
-When user memory is enabled for a profile and the user is authenticated, four system tools are automatically available:
+Provider details are in `orchardcore-ai-memory-azureai` and `orchardcore-ai-memory-elasticsearch`.
 
-| Tool | Description |
-|------|-------------|
-| `save_user_memory` | Create or update a named memory entry for the current user |
-| `search_user_memories` | Semantic vector search across the current user's saved memories |
-| `list_user_memories` | Enumerate the current user's existing memories |
-| `remove_user_memory` | Remove a saved memory entry when it should be forgotten |
-
-The orchestration prompt instructs the model to call `save_user_memory` in the same turn before claiming it will remember durable facts. Memory tools are only force-included for requests where user memory is enabled for the current authenticated user.
-
-### How Memory Works
-
-1. The user shares a durable preference or fact during a conversation.
-2. The AI calls `save_user_memory` with a stable `name`, a semantic `description`, and the `content`.
-3. The entry is persisted in the tenant store and indexed into the configured master memory index with an embedding vector.
-4. On subsequent conversations, if preemptive retrieval is enabled, matching memories are injected into the system prompt as private background context before the model answers.
-5. `search_user_memories` remains available for follow-up lookups when the initial memory context is not enough.
-
-### Enabling AI Memory with Azure AI Search
+### Enable memory with Elasticsearch
 
 ```json
 {
@@ -62,24 +41,7 @@ The orchestration prompt instructs the model to call `save_user_memory` in the s
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Memory.AzureAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Enabling AI Memory with Elasticsearch
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
+        "OrchardCore.Elasticsearch",
         "CrestApps.OrchardCore.AI.Memory.Elasticsearch"
       ],
       "disable": []
@@ -88,28 +50,46 @@ The orchestration prompt instructs the model to call `save_user_memory` in the s
 }
 ```
 
-### Creating a Memory Index
+Use `OrchardCore.AzureAI` and `CrestApps.OrchardCore.AI.Memory.AzureAI` for Azure AI Search.
 
-1. Enable the corresponding Orchard Core search feature for your provider.
-2. Navigate to **Search → Indexing**.
-3. Create a new index using either **AI Memory (Azure AI Search)** or **AI Memory (Elasticsearch)**.
-4. Choose the embedding connection that should be used for memory indexing and search.
+### Setup
 
-### Configuring Global Memory Settings
+1. Create an embedding deployment that declares `textEmbedding` (see `orchardcore-ai-model-capabilities`).
+2. Go to **Search > Indexing** and add **AI Memory (Elasticsearch)** or **AI Memory (Azure AI Search)**, then pick the embedding deployment.
+3. In the **Memory** section of **Settings > Artificial Intelligence**, select the **Index profile** and the **Default top N** (1 to 20, default 5).
+4. Turn on **Enable user memory** on the profiles that should remember (off by default).
+5. Optionally turn off **Enable preemptive memory retrieval** in the **General** section to keep the tools but skip the upfront memory search.
 
-Navigate to **Settings → Artificial Intelligence → Memory** and configure:
+### Settings and options
 
-- **Index profile** — the master memory index used for storing memories.
-- **Default top N** — the default number of matching memories returned by searches.
+| Setting | Stored as | Read through | Guarded by |
+|---|---|---|---|
+| Memory index profile and top N | `AIMemorySettings` (`IndexProfileName`, `TopN`) | `IOptionsMonitor<AIMemoryOptions>` | `ManageAIProfiles` |
+| Chat interaction memory | site `MemoryMetadata` (`EnableUserMemory`) | `IOptionsMonitor<ChatInteractionMemoryOptions>` | `ManageChatInteractionSettings` |
+| Preemptive memory retrieval | `GeneralAISettings.EnablePreemptiveMemoryRetrieval` (default `true`) | `IOptionsMonitor<GeneralAIOptions>` | AI settings |
 
-Preemptive memory retrieval is controlled separately under **Settings → Artificial Intelligence → General** through **Enable Preemptive Memory Retrieval**. This lets you keep user memory tools enabled while turning off the upfront memory injection step for the tenant.
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "AIMemorySettings": {
+        "IndexProfileName": "AIMemory",
+        "TopN": 5
+      },
+      "MemoryMetadata": {
+        "EnableUserMemory": true
+      }
+    }
+  ]
+}
+```
 
-### Enabling User Memory on an AI Profile
+The chat interaction setting is added only when `CrestApps.OrchardCore.AI.Chat.Interactions` is enabled; the feature migration turns it on for a new tenant. Memory stays inactive until a valid memory index profile is selected.
 
-AI Profiles expose **Enable User Memory** in the **Knowledge** card of the profile editor.
+### Enable memory on a profile
 
-- Default is **disabled**
-- Scope is per profile
+Profiles and profile-source templates store the switch in `MemoryMetadata` (**Enable user memory** on the **Knowledge** tab):
 
 ```json
 {
@@ -118,19 +98,12 @@ AI Profiles expose **Enable User Memory** in the **Knowledge** card of the profi
       "name": "AIProfile",
       "profiles": [
         {
-          "Name": "assistant-with-memory",
+          "Name": "personal-assistant",
           "DisplayText": "Personal Assistant",
-          "WelcomeMessage": "Hello! I remember your preferences.",
           "Type": "Chat",
-          "TitleType": "InitialPrompt",
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
-              "SystemMessage": "You are a helpful assistant with persistent memory. Remember user preferences and apply them across sessions.",
-              "Temperature": 0.3,
-              "MaxTokens": 4096,
-              "PastMessagesCount": 10
+              "SystemMessage": "You are a helpful assistant. Remember durable user preferences."
             },
             "MemoryMetadata": {
               "EnableUserMemory": true
@@ -143,14 +116,14 @@ AI Profiles expose **Enable User Memory** in the **Knowledge** card of the profi
 }
 ```
 
-### Enabling User Memory on an AI Profile in Code
+In code, use the extensions in `CrestApps.Core.AI.Memory`:
 
 ```csharp
-public sealed class MemoryProfileMigrations : DataMigration
+public sealed class PersonalAssistantMigrations : DataMigration
 {
     private readonly IAIProfileManager _profileManager;
 
-    public MemoryProfileMigrations(IAIProfileManager profileManager)
+    public PersonalAssistantMigrations(IAIProfileManager profileManager)
     {
         _profileManager = profileManager;
     }
@@ -159,86 +132,78 @@ public sealed class MemoryProfileMigrations : DataMigration
     {
         var profile = await _profileManager.NewAsync();
 
-        profile.Name = "assistant-with-memory";
+        profile.Name = "personal-assistant";
         profile.DisplayText = "Personal Assistant";
         profile.Type = AIProfileType.Chat;
-
         profile.Put(new AIProfileMetadata
         {
-            SystemMessage = "You are a helpful assistant with persistent memory.",
-            Temperature = 0.3f,
-            MaxTokens = 4096,
-            PastMessagesCount = 10,
+            SystemMessage = "You are a helpful assistant. Remember durable user preferences.",
         });
+        profile.AlterMemoryMetadata(memory => memory.EnableUserMemory = true);
 
-        profile.WithMemoryMetadata(new MemoryMetadata
+        var result = await _profileManager.ValidateAsync(profile);
+
+        if (result.Succeeded)
         {
-            EnableUserMemory = true,
-        });
-
-        await _profileManager.SaveAsync(profile);
+            await _profileManager.CreateAsync(profile);
+        }
 
         return 1;
     }
 }
 ```
 
-### Enabling User Memory for Chat Interactions
+`profile.GetMemoryMetadata()` reads the switch, and `template.WithMemoryMetadata(...)` sets it on an `AIProfileTemplate`. Legacy `AIProfileMemorySettings` and `ChatInteractionMemorySettings` keys are migrated to `MemoryMetadata` automatically.
 
-Chat Interactions add a site setting under **Settings → Artificial Intelligence → Chat Interactions**:
+### Memory tools
 
-- **Enable User Memory** — default is **enabled**
-- Memory retrieval and indexing only become active after a valid memory index profile is configured
+| Tool | Purpose |
+|---|---|
+| `save_user_memory` | Create or update a named memory |
+| `search_user_memories` | Semantic search over the user's memories |
+| `list_user_memories` | List the user's memories |
+| `remove_user_memory` | Forget a memory |
 
-### Key Services
+They are system tools, added to a request only when memory is enabled for that profile or interaction and the user is signed in. The orchestration prompt tells the model to save durable facts in the same turn before promising to remember them, and to search or list memory before saying it does not know.
 
-| Service | Description |
-|---------|-------------|
-| `IAIMemoryStore` | Memory record persistence abstraction implemented by `YesSqlAIMemoryStore` |
-| `AIMemoryIndexingService` | Generates embeddings and indexes memory entries via `IDocumentIndexManager` |
-| `IMemoryVectorSearchService` | Provider-specific vector search (keyed by provider name) |
-| `AIMemoryOptionsConfiguration` | Reads `AIMemorySettings` from site settings into `AIMemoryOptions` |
+Each memory has a stable `name` (for example `preferred_name`), a `description` (`The user's preferred name.`), and the `content`. The embedding is built from the name and description, because the raw content alone is often not meaningful for retrieval.
 
-### Memory Index Document Fields
+### Indexing pipeline
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `memoryId` | Keyword / Filterable | Unique memory entry identifier |
-| `userId` | Keyword / Filterable | Owning user identifier |
-| `name` | Text / Searchable | Stable memory name for lookup and update |
-| `description` | Text / Searchable | Semantic description used for search embeddings |
-| `content` | Text / Searchable | The memory content value |
-| `updatedUtc` | Date / Sortable | Last update timestamp |
-| `embedding` | Vector | Embedding vector for semantic search |
+1. `AIMemoryEntryHandler` collects created, updated, and deleted entries and adds one `ShellScope` deferred task per request.
+2. `AIMemoryIndexingService` loads the index named by `AIMemoryOptions.IndexProfileName`, embeds the memory with the index's deployment (`UseUsageLabels(purpose: AIUsagePurposes.Indexing)`), and builds an `AIMemoryEntryIndexDocument`.
+3. The provider `IDocumentIndexHandler` maps it to `memoryId`, `userId`, `name`, `description`, `content`, `updatedUtc`, and `embedding`, and the keyed `IDocumentIndexManager` writes it.
+4. Synchronizing the memory index from **Search > Indexing** rebuilds every memory into it (`SyncByIndexProfileIdsAsync`).
+5. Retrieval uses the keyed `IMemoryVectorSearchService`, always filtered to the current user.
 
-### Clearing User Memory
+Because indexing hangs off the store lifecycle, memories written by admin actions, tools, or custom code stay in sync. This pattern is the template for `orchardcore-custom-indexing-elasticsearch` and `orchardcore-custom-indexing-azureai`.
 
-Users can clear their own saved AI memory from their user profile editor. The clear option is only shown when a user is editing their own profile. A confirmation checkbox is required before memory is removed. Clearing memory removes stored records and deletes indexed documents from the configured master memory index.
+### Clearing memory
 
-### NuGet Packages
+With `OrchardCore.Users` enabled, the user editor gets an **AI Memory** section with a **Danger zone** and **Clear saved AI memory** button, shown only when the viewer is authorized and the user has memories. It uses the standard admin confirmation dialog, then removes the records and their index documents.
 
-| Package | Description |
-|---------|-------------|
-| `CrestApps.OrchardCore.AI.Memory` | Core AI memory module |
-| `CrestApps.OrchardCore.AI.Memory.AzureAI` | Azure AI Search indexing provider for AI memory |
-| `CrestApps.OrchardCore.AI.Memory.Elasticsearch` | Elasticsearch indexing provider for AI memory |
+| Permission | Meaning |
+|---|---|
+| `ClearAIMemory` | Clear your own memory. Grant it to the roles whose users may clear their memory. |
+| `ClearAIMemoryForOthers` | Clear another user's memory; implies `ClearAIMemory`. |
 
-Install in the web/startup project:
+Both are given to Administrator by default. The UI and the clear endpoint check `ClearAIMemory` with the target user id as the resource; `AIMemoryAuthorizationHandler` then requires `ClearAIMemory` for your own id and `ClearAIMemoryForOthers` for anyone else. Use the same check in custom code:
 
-```shell
-dotnet add package CrestApps.OrchardCore.AI.Memory.AzureAI
+```csharp
+var canClear = await _authorizationService.AuthorizeAsync(User, AIPermissions.ClearAIMemory, (object)targetUserId);
 ```
 
-or
+### Upgrading from 2.x
 
-```shell
-dotnet add package CrestApps.OrchardCore.AI.Memory.Elasticsearch
-```
+- Replace `IOptions<AIMemoryOptions>` and `IOptions<ChatInteractionMemoryOptions>` with `IOptionsMonitor<T>.CurrentValue`; settings changes are now pushed without a tenant release.
+- The memory index embedding picker lists deployments by the `embedding` slot. Declare `textEmbedding` on new embedding deployments; legacy `Purpose: "Embedding"` records are projected automatically.
 
-### Security Best Practices
+### Troubleshooting
 
-- AI Memory is only available to authenticated users; anonymous users never receive memory tools.
-- All memory queries are scoped by `userId`, ensuring strict user isolation.
-- The built-in save tool rejects obvious sensitive patterns such as passwords and API keys.
-- Store embedding service credentials using `dotnet user-secrets` during development and environment variables or Azure Key Vault in production.
-- After starting to store production memory data, avoid changing the configured master index unless you plan a full re-index.
+| Symptom | Check |
+|---|---|
+| No memory tools | The user is anonymous, the profile has **Enable user memory** off, or no memory index is selected. |
+| Nothing is remembered between sessions | The memory index has no embedding deployment, or the provider feature is disabled. |
+| Memory not injected up front | **Enable preemptive memory retrieval** is off; the tools still work. |
+| Clear button missing | The viewer lacks `ClearAIMemory` (own memory) or `ClearAIMemoryForOthers` (another user), or the user has no memories. |
+| Wrong vector size after a model change | Create a new memory index with the new deployment, select it, and synchronize it. |

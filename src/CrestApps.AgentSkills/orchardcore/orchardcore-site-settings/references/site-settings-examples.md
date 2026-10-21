@@ -187,36 +187,44 @@ public sealed class DeploymentStartup : StartupBase
 ```html
 @model SocialMediaSettingsViewModel
 
-<div class="mb-3" asp-validation-class-for="FacebookUrl">
-    <label asp-for="FacebookUrl" class="form-label">@T["Facebook URL"]</label>
-    <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
-    <span asp-validation-for="FacebookUrl"></span>
-</div>
-
-<div class="mb-3" asp-validation-class-for="XHandle">
-    <label asp-for="XHandle" class="form-label">@T["X handle"]</label>
-    <div class="input-group">
-        <span class="input-group-text">@@</span>
-        <input asp-for="XHandle" class="form-control" />
+<div class="ocat-wrapper" asp-validation-class-for="FacebookUrl">
+    <label asp-for="FacebookUrl" class="ocat-label">@T["Facebook URL"]</label>
+    <div class="ocat-end">
+        <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
+        <span asp-validation-for="FacebookUrl"></span>
     </div>
-    <span asp-validation-for="XHandle"></span>
 </div>
 
-<div class="mb-3" asp-validation-class-for="LinkedInUrl">
-    <label asp-for="LinkedInUrl" class="form-label">@T["LinkedIn URL"]</label>
-    <input asp-for="LinkedInUrl" class="form-control" />
-    <span asp-validation-for="LinkedInUrl"></span>
+<div class="ocat-limited-wrapper" asp-validation-class-for="XHandle">
+    <label asp-for="XHandle" class="ocat-label">@T["X handle"]</label>
+    <div class="ocat-limited">
+        <div class="input-group">
+            <span class="input-group-text">@@</span>
+            <input asp-for="XHandle" class="form-control" />
+        </div>
+        <span asp-validation-for="XHandle"></span>
+    </div>
 </div>
 
-<div class="mb-3">
-    <div class="form-check">
-        <input asp-for="ShowSocialLinks" class="form-check-input" />
-        <label asp-for="ShowSocialLinks" class="form-check-label">@T["Display social media links on the site"]</label>
+<div class="ocat-wrapper" asp-validation-class-for="LinkedInUrl">
+    <label asp-for="LinkedInUrl" class="ocat-label">@T["LinkedIn URL"]</label>
+    <div class="ocat-end">
+        <input asp-for="LinkedInUrl" class="form-control" />
+        <span asp-validation-for="LinkedInUrl"></span>
+    </div>
+</div>
+
+<div class="ocat-wrapper">
+    <div class="ocat-end-offset">
+        <div class="form-check">
+            <input asp-for="ShowSocialLinks" class="form-check-input" />
+            <label asp-for="ShowSocialLinks" class="form-check-label">@T["Display social media links on the site"]</label>
+        </div>
     </div>
 </div>
 ```
 
-The view has no inline script. If an editor needs one, use `<script at="Foot" type="module">` with native DOM APIs; the admin no longer loads jQuery.
+Rows use the admin `ocat-*` classes (a narrow `ocat-limited-wrapper` for the handle, `ocat-end-offset` for the checkbox), and the settings page supplies the form and the Save button; see `orchardcore-admin-edit-views` for the row patterns. The view has no inline script. If an editor needs one, use `<script at="Foot" type="module">` with native DOM APIs; the admin no longer loads jQuery.
 
 ### Reading in a View Component
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp-resources
-description: Skill for exposing FTP, FTPS, and SFTP files as CrestApps Orchard Core MCP resources. Covers connection metadata, URI templates, resource registration, secure credential storage, deployment export safety, and file-transfer troubleshooting. Use this skill when requests mention MCP FTP resources, MCP SFTP resources, remote file MCP resources, FtpConnectionMetadata, SftpConnectionMetadata, or file-transfer resource handlers. Strong matches include work with CrestApps.OrchardCore.AI.Mcp.Resources.Ftp, CrestApps.OrchardCore.AI.Mcp.Resources.Sftp, AddCoreAIFtpMcpResources, AddCoreAISftpMcpResources, IMcpResourceHandler, and McpResource.
+description: Skill for exposing FTP, FTPS and SFTP files as MCP resources with the CrestApps Orchard Core modules CrestApps.OrchardCore.AI.Mcp.Resources.Ftp and CrestApps.OrchardCore.AI.Mcp.Resources.Sftp, which extend the MCP Server feature. Covers FtpConnectionMetadata and SftpConnectionMetadata fields, the ftp and sftp resource types with the path URI variable, creating resources under Model Context Protocol, Resources, the McpResource recipe step and its limits for connection metadata, encrypted credentials, IMcpResourceHandler export clearing, AddCoreAIFtpMcpResources and AddCoreAISftpMcpResources, and how these differ from the AI File Sources FTP and SFTP connectors used for document ingestion. Use this skill when requests mention MCP FTP resources, MCP SFTP resources, remote file MCP resources, FluentFTP or SSH.NET resources, or troubleshooting file-transfer MCP resources.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,12 +19,13 @@ connection metadata, deployment-safe credential handling, and URI patterns.
 
 - Enable `CrestApps.OrchardCore.AI.Mcp.Resources.Ftp` for FTP and FTPS resources.
 - Enable `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` for SSH File Transfer Protocol resources.
-- Both exact feature IDs depend on the MCP server feature `McpPermissions.Feature.Server`; enable the MCP server before configuring resources.
+- Both feature IDs depend on the MCP server feature `CrestApps.OrchardCore.AI.Mcp.Server` (`McpPermissions.Feature.Server`), which is enabled automatically as a dependency. See `orchardcore-ai-mcp-server`.
 - The FTP module registers the source through `AddCoreAIFtpMcpResources`; the SFTP module uses `AddCoreAISftpMcpResources`.
 - Both sources support one URI variable named `path`, which is the remote file path.
-- Configure resources through **Artificial Intelligence → MCP Resources** or the `McpResource` recipe step.
+- Configure resources under **Artificial Intelligence → Model Context Protocol → Resources** (permission `ManageMcpResources`). The `McpResource` recipe step can create the resource entry, but connection metadata is entered in the editor (see below).
 - The modules expose remote file content as resources. They do not provide arbitrary command execution on remote hosts.
 - Install the selected package or packages in the web or startup project.
+- These modules expose single remote files to MCP clients. To ingest a whole FTP or SFTP folder into an AI knowledge base, use the AI File Sources connectors instead (`orchardcore-ai-file-sources`).
 - Save credentials only in protected resource metadata, use deployment-safe secrets for imports, and do not commit private keys or passwords.
 
 ### Protocol comparison
@@ -56,8 +57,8 @@ different port; choose the module matching the server protocol.
 ```
 
 `CrestApps.OrchardCore.AI.Mcp.Server` is the server dependency declared by both
-resource feature manifests. The two resource feature IDs above are also their exact
-manifest IDs.
+resource feature manifests. Resources are listed by MCP clients through `ListResources`
+(static paths) or `ListResourceTemplates` (paths containing `{path}`).
 
 ### FTP and FTPS resources
 
@@ -114,23 +115,12 @@ approved resource paths.
       "Resources": [
         {
           "Source": "ftp",
-          "DisplayText": "Remote configuration",
+          "DisplayText": "Remote configuration files",
           "Resource": {
-            "Uri": "ftp://resource-id/config/settings.json",
+            "Uri": "{path}",
             "Name": "remote-configuration",
-            "Description": "Approved remote configuration file",
+            "Description": "Reads an approved file from the configuration FTP server",
             "MimeType": "application/json"
-          },
-          "Properties": {
-            "FtpConnectionMetadata": {
-              "Host": "ftp.example.com",
-              "Port": 21,
-              "Username": "resource-reader",
-              "Password": "",
-              "EncryptionMode": "Explicit",
-              "DataConnectionType": "AutoPassive",
-              "ValidateAnyCertificate": false
-            }
           }
         }
       ]
@@ -139,9 +129,22 @@ approved resource paths.
 }
 ```
 
-Set the password after import through a protected operational configuration path.
-The resource URI item ID identifies the Orchard Core MCP resource; the `path` portion
-identifies the remote file.
+`Resource.Uri` takes the path portion, which the import expands to `ftp://{itemId}/{path}`;
+a full `ftp://` URI is also accepted as-is. The item ID identifies the Orchard Core MCP
+resource. Clients read a file with a concrete URI such as `ftp://{itemId}/config/settings.json`,
+and the remainder after the item ID becomes the `path` variable.
+
+Use the `{path}` template. The FTP and SFTP handlers read only the `path` variable, so a
+static path (no placeholder) reaches the handler with an empty path, and a literal prefix
+such as `config/{path}` is matched but not sent to the server. The handler rejects `.` and
+`..` segments and reads `/{path}` from the server root, so restrict what can be read
+through the remote account's permissions and home directory.
+
+**Connection metadata is not imported.** In the current source, the `McpResource` step
+and `McpResourceHandler` read `ItemId`, `Source`, `DisplayText`, and `Resource` only;
+the `Properties` object (and therefore `FtpConnectionMetadata`) is ignored on import.
+Run the recipe to create the resource, then open it in the admin editor and enter the
+host, credentials, and options there. The editor encrypts the password before storing it.
 
 ### Create an SFTP resource recipe
 
@@ -153,22 +156,12 @@ identifies the remote file.
       "Resources": [
         {
           "Source": "sftp",
-          "DisplayText": "Remote application log",
+          "DisplayText": "Remote application logs",
           "Resource": {
-            "Uri": "sftp://resource-id/var/log/app.log",
+            "Uri": "{path}",
             "Name": "remote-application-log",
-            "Description": "Approved application log file",
+            "Description": "Reads an approved log file from the SFTP server",
             "MimeType": "text/plain"
-          },
-          "Properties": {
-            "SftpConnectionMetadata": {
-              "Host": "sftp.example.com",
-              "Port": 22,
-              "Username": "resource-reader",
-              "Password": "",
-              "PrivateKey": "",
-              "Passphrase": ""
-            }
           }
         }
       ]
@@ -177,8 +170,9 @@ identifies the remote file.
 }
 ```
 
-Populate one supported authentication method securely after deployment. Do not include
-private key material, passphrases, or passwords in recipes.
+As with FTP, `SftpConnectionMetadata` in `Properties` is not applied on import. Enter the
+host and one authentication method in the resource editor after deployment, and never
+include private key material, passphrases, or passwords in recipes.
 
 ### Registration and export behavior
 
@@ -215,6 +209,7 @@ unfiltered logs, or tenant data outside the intended authorization boundary.
 | FTPS certificate error | Use a trusted certificate and correct encryption mode. Do not broadly enable `ValidateAnyCertificate` in production. |
 | SFTP key authentication fails | Verify key format, key authorization on the server, passphrase, username, and permissions on the server-side `.ssh` files. |
 | Recipe import has blank credentials | Expected behavior. Export handlers deliberately clear sensitive values. Set them securely after import. |
+| Imported resource has no host or port | `Properties` is not read by the `McpResource` step. Enter the connection details in the resource editor. |
 | Resource reads the wrong file | Verify the `ftp://` or `sftp://` URI item ID and normalized remote `path` variable. |
 | Connection drops on long reads | Tune timeouts, retry attempts for FTP, or SFTP keep-alive settings after verifying the server policy. |
 

@@ -1,54 +1,44 @@
 ---
 name: orchardcore-ai-documents
-description: Skill for configuring AI Documents in Orchard Core with CrestApps modules. Covers document upload, text extraction, chunking, vector indexing, and Retrieval-Augmented Generation (RAG) for AI chat. Supports PDF, OpenXml (docx, xlsx, pptx), and plain-text formats with file-system or Azure Blob storage and Azure AI Search or Elasticsearch indexing backends. Use it for CrestApps.OrchardCore.AI.Documents, AI document processing, document upload flow, RAG pipelines, vector search, embedding configuration, and related Orchard Core setup, extension, or troubleshooting work.
+description: Skill for CrestApps AI Documents in Orchard Core 4.0 (CrestApps.OrchardCore 3.0). Covers document upload, text and figure extraction, chunking, embedding and RAG for chat interactions, AI profiles, profile templates, chat sessions and widgets, the AI Documents index with its embedding deployment, InteractionDocumentSettings and DocumentsMetadata, Chunk and Hierarchical retrieval, the largest indexable document, figure descriptions with the vision slot, upload scanning through Orchard Core FileCreationService and ClamAV, file storage, document cleanup, the PowerPoint, Word and PDF agents, and IAIChatDocumentEventHandler. Use it for CrestApps.OrchardCore.AI.Documents, CrestApps.OrchardCore.AI.Documents.ChatInteractions, CrestApps.OrchardCore.AI.Documents.Profiles, CrestApps.OrchardCore.AI.Documents.ChatSessions, IAIDocumentStore, IDocumentFileStore, IVectorSearchService, IUploadedFileScanner, OrchardUploadedFileScanner, and AIProfileSessionDocumentsMetadata.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core AI Documents - Prompt Templates
+# Orchard Core AI Documents
 
-## Configure AI Documents
+## Configure document upload and RAG
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding document processing, storage, indexing, and Retrieval-Augmented Generation (RAG) capabilities to an Orchard Core application using CrestApps AI Documents modules.
+You are an Orchard Core expert. Generate configuration, recipes, and code that let users and administrators attach documents to CrestApps AI chat surfaces, and let the model retrieve from them.
 
 ### Guidelines
-- The AI Documents modules provide document upload, text extraction, chunking, vector indexing, and RAG search for AI conversations.
-- The base feature `CrestApps.OrchardCore.AI.Documents` is `EnabledByDependencyOnly` and is activated automatically when you enable one of the higher-level features.
-- Embeddable documents follow the pipeline Upload → Extract Text → Chunk → Embed → Index → Vector Search.
-- Tabular documents (`.csv` and `.xlsx`) use a tabular workspace and tabular tools instead of embedding and vector indexing.
-- An embedding deployment (e.g., `text-embedding-3-small`) is required only for the embeddable document indexing path.
-- Each indexing backend (Azure AI Search or Elasticsearch) registers a keyed `IVectorSearchService` implementation.
-- Install all CrestApps NuGet packages in the web/startup project.
-- Always secure connection strings and API keys using user secrets or environment variables.
 
-### Feature IDs
+- The base feature `CrestApps.OrchardCore.AI.Documents` is `EnabledByDependencyOnly`. It depends on `CrestApps.OrchardCore.AI.Chat.Interactions` and `OrchardCore.Indexing`, and comes along with any of the sub-features below.
+- Embeddable documents follow upload, scan, extract, chunk, embed, index, and vector search. Tabular files (`.csv`, `.tsv`, `.xlsx`, `.xls`) are non-embeddable; they are loaded into the conversation's tabular workspace instead.
+- Indexing needs an **AI Documents** index profile from `CrestApps.OrchardCore.AI.Documents.Elasticsearch` or `CrestApps.OrchardCore.AI.Documents.AzureAI` (see `orchardcore-ai-documents-elasticsearch` and `orchardcore-ai-documents-azureai`).
+- The AI Documents index names its embedding deployment. The picker lists deployments in the `embedding` slot, so the deployment must declare `textEmbedding`. It is locked once the index exists.
+- Pick the active index once. Changing it later loses access to documents of existing sessions.
+- PDF and Office formats need the extractor features (see `orchardcore-ai-documents-extractors`). Azure Blob Storage is optional (see `orchardcore-ai-documents-azure-storage`).
+- Every upload is scanned before it is stored. Enable `OrchardCore.Antivirus` to add ClamAV.
+- Install packages in the web/startup project.
 
-| Feature ID | Module | Description |
-|------------|--------|-------------|
-| `CrestApps.OrchardCore.AI.Documents` | AI Documents | Foundation for document processing, text extraction, and RAG (enabled by dependency only) |
-| `CrestApps.OrchardCore.AI.Documents.ChatInteractions` | AI Documents | Document upload and RAG for AI Chat Interactions |
-| `CrestApps.OrchardCore.AI.Documents.Profiles` | AI Documents | Document upload and RAG for AI Profiles |
-| `CrestApps.OrchardCore.AI.Documents.ChatSessions` | AI Documents | Document upload and RAG for AI Chat Sessions and Widgets |
-| `CrestApps.OrchardCore.AI.Documents.Azure` | AI Documents - Azure Blob Storage | Stores uploaded documents in Azure Blob Storage |
-| `CrestApps.OrchardCore.AI.Documents.AzureAI` | AI Documents - Azure AI Search | Indexes document chunks in Azure AI Search |
-| `CrestApps.OrchardCore.AI.Documents.Elasticsearch` | AI Documents - Elasticsearch | Indexes document chunks in Elasticsearch |
-| `CrestApps.OrchardCore.AI.Documents.Pdf` | AI Documents (PDF) | Adds PDF file support |
-| `CrestApps.OrchardCore.AI.Documents.OpenXml` | AI Documents (OpenXml) | Adds OpenXml file support (docx, xlsx, pptx) |
+### Features
 
-### NuGet Packages
+| Feature | Feature ID | Depends on |
+|---|---|---|
+| AI Documents | `CrestApps.OrchardCore.AI.Documents` | `CrestApps.OrchardCore.AI.Chat.Interactions`, `OrchardCore.Indexing` (dependency only) |
+| AI Documents for Chat Interactions | `CrestApps.OrchardCore.AI.Documents.ChatInteractions` | AI Documents |
+| AI Documents for Profiles | `CrestApps.OrchardCore.AI.Documents.Profiles` | AI Documents, `CrestApps.OrchardCore.AI.Chat.Core` |
+| AI Documents for Chat Sessions | `CrestApps.OrchardCore.AI.Documents.ChatSessions` | AI Documents, `CrestApps.OrchardCore.AI.Chat` |
+| AI Documents - Azure Blob Storage | `CrestApps.OrchardCore.AI.Documents.Azure` | AI Documents |
+| AI Documents indexing using Azure AI Search | `CrestApps.OrchardCore.AI.Documents.AzureAI` | AI Documents, `OrchardCore.AzureAI` |
+| AI Documents indexing using Elasticsearch | `CrestApps.OrchardCore.AI.Documents.Elasticsearch` | AI Documents, `OrchardCore.Elasticsearch` |
+| AI Documents (PDF) | `CrestApps.OrchardCore.AI.Documents.Pdf` | none |
+| AI Documents (OpenXml) | `CrestApps.OrchardCore.AI.Documents.OpenXml` | none |
 
-| Package | Purpose |
-|---------|---------|
-| `CrestApps.OrchardCore.AI.Documents` | Core document processing, stores, and display drivers |
-| `CrestApps.OrchardCore.AI.Documents.Azure` | Azure Blob Storage backend for document files |
-| `CrestApps.OrchardCore.AI.Documents.AzureAI` | Azure AI Search indexing and vector search |
-| `CrestApps.OrchardCore.AI.Documents.Elasticsearch` | Elasticsearch indexing and vector search |
-| `CrestApps.OrchardCore.AI.Documents.Pdf` | PDF text extraction |
-| `CrestApps.OrchardCore.AI.Documents.OpenXml` | OpenXml text extraction (docx, xlsx, pptx) |
-
-### Enabling AI Documents for Chat Interactions with Azure AI Search
+### Enable documents everywhere with Elasticsearch
 
 ```json
 {
@@ -56,56 +46,13 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
-        "CrestApps.OrchardCore.AI.Documents.AzureAI",
-        "CrestApps.OrchardCore.AI.Documents.Pdf",
-        "CrestApps.OrchardCore.AI.Documents.OpenXml",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Enabling AI Documents for Chat Interactions with Elasticsearch
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat.Interactions",
-        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
+        "OrchardCore.Elasticsearch",
         "CrestApps.OrchardCore.AI.Documents.Elasticsearch",
-        "CrestApps.OrchardCore.AI.Documents.Pdf",
-        "CrestApps.OrchardCore.AI.Documents.OpenXml",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Enabling AI Documents for Profiles
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
+        "CrestApps.OrchardCore.AI.Documents.ChatInteractions",
         "CrestApps.OrchardCore.AI.Documents.Profiles",
-        "CrestApps.OrchardCore.AI.Documents.AzureAI",
+        "CrestApps.OrchardCore.AI.Documents.ChatSessions",
         "CrestApps.OrchardCore.AI.Documents.Pdf",
-        "CrestApps.OrchardCore.AI.Documents.OpenXml",
-        "CrestApps.OrchardCore.OpenAI"
+        "CrestApps.OrchardCore.AI.Documents.OpenXml"
       ],
       "disable": []
     }
@@ -113,214 +60,163 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 }
 ```
 
-### Enabling AI Documents for Chat Sessions
+Swap in `OrchardCore.AzureAI` and `CrestApps.OrchardCore.AI.Documents.AzureAI` for Azure AI Search, and keep only the sub-features you need.
+
+### Setup
+
+1. Create an embedding deployment that declares `textEmbedding` (see `orchardcore-ai-model-capabilities`).
+2. Go to **Search > Indexing**, add **AI Documents (Elasticsearch)** or **AI Documents (Azure AI Search)**, and pick the embedding deployment.
+3. In **Settings > Artificial Intelligence**, open the documents section and select that **Index profile**.
+4. Upload on the **Knowledge** tab of a chat interaction or AI profile, or in a chat session when the profile allows it.
+
+### Site settings
+
+The documents section is stored as `InteractionDocumentSettings` and guarded by `ManageChatInteractionSettings`:
+
+| Field | Property | Default |
+|---|---|---|
+| **Index profile** | `IndexProfileName` | none |
+| Top matching chunks | `TopN` | 3 |
+| **Document retrieval mode** | `RetrievalMode` (`Chunk` or `Hierarchical`) | `Chunk` |
+| **Allow document uploads in chat interactions** | `AllowDocumentUploads` | `true` |
+| **Allow image uploads in chat interactions** | `AllowImageUploads` (needs a vision deployment) | `false` |
+| **Largest document that can be indexed** | `MaxIndexableCharacters` (characters of extracted text, `0` means no limit) | 50000 |
+| **Describe figures in uploaded documents** | `DescribeFiguresInUploads` (needs a deployment in the `vision` slot) | `true` |
 
 ```json
 {
   "steps": [
     {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Documents.ChatSessions",
-        "CrestApps.OrchardCore.AI.Documents.AzureAI",
-        "CrestApps.OrchardCore.AI.Documents.Pdf",
-        "CrestApps.OrchardCore.AI.Documents.OpenXml",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
+      "name": "Settings",
+      "InteractionDocumentSettings": {
+        "IndexProfileName": "AIDocuments",
+        "TopN": 3,
+        "RetrievalMode": "Chunk",
+        "AllowDocumentUploads": true,
+        "AllowImageUploads": false,
+        "MaxIndexableCharacters": 50000,
+        "DescribeFiguresInUploads": true
+      }
     }
   ]
 }
 ```
 
-### Document Upload Flow
+`Chunk` keeps chunk-level context. `Hierarchical` matches on chunks, then injects the full text of the matched documents. A document over the indexable limit is refused at upload instead of being stored unsearchable. Saving these settings still releases the tenant, because their readers in CrestApps.Core still use `IOptions<InteractionDocumentOptions>`.
 
-The document processing pipeline follows these steps:
+### Profile documents
 
-1. **Upload** - User uploads a file via the chat interaction, profile, or chat session UI. The file is saved using `IDocumentFileStore` (file system by default, or Azure Blob if configured).
-2. **Extract Text** - The document processor extracts plain text. PDF and OpenXml formats require their respective feature modules.
-3. **Chunk** - Extracted text is split into smaller chunks stored via `IAIDocumentChunkStore`.
-4. **Embed and Index** - For embeddable documents, chunks are sent to the configured embedding deployment and written to the configured search backend.
-5. **Search** - For indexed documents, a vector similarity search retrieves relevant chunks to augment the AI response (RAG).
+AI Documents for Profiles adds an upload area to the **Knowledge** tab of AI profiles and profile-source templates. Profile documents are background knowledge shared by every session of the profile; files are uploaded, extracted, embedded, and removed atomically when the profile is saved. Only embeddable extensions are accepted.
 
-CSV and Excel are tabular, non-embeddable inputs. They are loaded into the per-conversation tabular workspace and handled with tabular tools rather than through RAG indexing.
+The profile stores its settings in `DocumentsMetadata`:
 
-### Supported Document Formats
+| Property | Meaning |
+|---|---|
+| `Documents` | The attached documents (`ChatDocumentInfo`) |
+| `DocumentTopN` | Chunks to include, default 3 |
+| `RetrievalMode` | `Chunk` or `Hierarchical`, blank uses the site default |
+| `MaxIndexableCharacters` | Blank uses the site limit |
+| `DescribeFiguresInUploads` | Blank follows the site setting |
 
-| Format | Extensions | Required Feature |
-|--------|------------|------------------|
-| PDF | .pdf | `CrestApps.OrchardCore.AI.Documents.Pdf` |
-| Word | .docx | `CrestApps.OrchardCore.AI.Documents.OpenXml` |
-| Excel | .xlsx | `CrestApps.OrchardCore.AI.Documents.OpenXml` |
-| PowerPoint | .pptx | `CrestApps.OrchardCore.AI.Documents.OpenXml` |
-| Plain Text | .txt | Built-in |
-| CSV | .csv | Built-in |
-| Markdown | .md | Built-in |
-| JSON | .json | Built-in |
-| XML | .xml | Built-in |
-| HTML | .html, .htm | Built-in |
-| Log | .log | Built-in |
-| YAML | .yml, .yaml | Built-in |
+A profile created from a template gets its own copies of the template's documents through `IAIProfileTemplateApplicationHandler`, and the copies are indexed.
 
-Legacy Office formats (.doc, .xls, .ppt) are not supported. Convert them to their modern equivalents first.
+### Session documents
 
-### Storage Backends
-
-#### File System (Default)
-
-By default, uploaded documents are stored on the local file system under `{WebRootPath}/{TenantName}/AIDocuments`. No additional configuration is required.
-
-#### Azure Blob Storage
-
-Enable the `CrestApps.OrchardCore.AI.Documents.Azure` feature and configure `appsettings.json`:
+AI Documents for Chat Sessions adds attachment to admin and front-end chat sessions and widgets. It is off per profile until you enable it on the **Knowledge** tab (`AIProfileSessionDocumentsMetadata`):
 
 ```json
 {
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "AzureDocuments": {
-          "ConnectionString": "DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net",
-          "ContainerName": "ai-documents",
-          "CreateContainer": true
-        }
-      }
-    }
-  }
-}
-```
-
-The Azure module replaces `IDocumentFileStore` with a `BlobFileStore`-backed implementation. The `AIDocumentBlobContainerTenantEvents` handler manages container lifecycle for multi-tenant setups.
-
-### Indexing Backends
-
-#### Azure AI Search
-
-Enable `CrestApps.OrchardCore.AI.Documents.AzureAI`. This registers:
-
-- `AIDocumentAzureAISearchDocumentIndexHandler` as an `IDocumentIndexHandler`
-- `AzureAISearchVectorSearchService` as a keyed `IVectorSearchService`
-- An indexing source named **AI Documents (Azure AI Search)** under `Search → Indexing`
-
-#### Elasticsearch
-
-Enable `CrestApps.OrchardCore.AI.Documents.Elasticsearch`. This registers:
-
-- `AIDocumentElasticsearchDocumentIndexHandler` as an `IDocumentIndexHandler`
-- `ElasticsearchVectorSearchService` as a keyed `IVectorSearchService`
-- An indexing source named **AI Documents (Elasticsearch)** under `Search → Indexing`
-
-### Setting Up Document Indexing
-
-1. Enable one of the indexing backend features (`CrestApps.OrchardCore.AI.Documents.AzureAI` or `CrestApps.OrchardCore.AI.Documents.Elasticsearch`).
-2. Navigate to **Search → Indexing** in the admin and create a new index selecting the "AI Documents" source.
-3. Configure an embedding deployment (see below).
-4. Enable the desired document context feature (`ChatInteractions`, `Profiles`, or `ChatSessions`).
-
-### Configuring the Embedding Model
-
-Document indexing requires an embedding deployment. Create one via admin UI or define it in `appsettings.json`:
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "Deployments": [
-          {
-            "Name": "text-embedding-3-small",
-            "ClientName": "OpenAI",
-            "ConnectionName": "default",
-            "Purpose": "Embedding"
+  "steps": [
+    {
+      "name": "AIProfile",
+      "profiles": [
+        {
+          "Name": "support-chat",
+          "DisplayText": "Support Chat",
+          "Type": "Chat",
+          "Properties": {
+            "AIProfileSessionDocumentsMetadata": {
+              "AllowSessionDocuments": true,
+              "AllowSessionImageUploads": false
+            }
           }
-        ]
-      }
+        }
+      ]
     }
-  }
+  ]
 }
 ```
 
-### Integration with Chat Sessions, Profiles, and Interactions
+The **Artificial Intelligence Chat** widget follows the settings of the profile it uses. Image uploads also require a vision deployment.
 
-#### Chat Interactions
+### Upload scanning
 
-The `CrestApps.OrchardCore.AI.Documents.ChatInteractions` feature adds document upload endpoints and display drivers to the Chat Interactions UI. Users can upload documents directly in an ad-hoc chat session, and the system indexes them for RAG queries.
+`OrchardUploadedFileScanner` implements CrestApps.Core's `IUploadedFileScanner` and routes every upload from chat interactions, profiles, sessions, and widgets through Orchard Core's `FileCreationService` before storage. Each registered `IFileEventHandler` can reject the file, including the ClamAV handler of `OrchardCore.Antivirus`. Rejections and scan failures fail closed and are logged at `Warning`. Add your own policy with an `IFileEventHandler` (see `orchardcore-file-upload-security` and `orchardcore-antivirus`).
 
-- Upload endpoint registered via `AddUploadChatInteractionDocumentEndpoint`
-- Remove endpoint registered via `AddRemoveChatInteractionDocumentEndpoint`
-- Display driver `ChatInteractionDocumentsDisplayDriver` renders the upload UI
+### Storage and cleanup
 
-#### Profiles
+- Files go through `IDocumentFileStore`, by default `wwwroot/<tenant>/AIDocuments`.
+- Deleting a chat interaction removes its chunks and `AIDocument` records; deleting a chat session removes its documents in a deferred task (`AIChatSessionDocumentCleanupHandler`); removing a profile document cleans its chunks on save.
+- Download endpoints are mapped by the base feature. An answer that cites a figure writes `[fig:N]`, which chat surfaces render as an image served by the figure endpoint; the same rule as the document download decides who can see it.
 
-The `CrestApps.OrchardCore.AI.Documents.Profiles` feature lets administrators attach documents to AI Profiles and Profile Templates. Documents uploaded at the profile level are available to all chat sessions that use that profile.
+### Document agents
 
-- `AIProfileDocumentsDisplayDriver` adds a documents tab to the profile editor
-- `AIProfileTemplateDocumentsDisplayDriver` adds a documents tab to profile templates
+| Agent | Comes with | Does |
+|---|---|---|
+| PowerPoint | AI Documents (OpenXml); PDF export also needs AI Documents (PDF) | Creates, edits, designs, reviews, previews, and exports `.pptx` decks |
+| Word | AI Documents (OpenXml) | Writes, edits, reviews, previews, and exports `.docx` documents |
+| PDF | AI Documents (PDF) | Creates, converts, edits, previews, and analyses PDFs |
 
-#### Chat Sessions
+They are system agents, always available to the primary model and not listed in agent pickers. Previews return as images that the chat UI stacks into a carousel.
 
-The `CrestApps.OrchardCore.AI.Documents.ChatSessions` feature adds per-session document upload for AI Chat Sessions and Widgets. When a chat session is deleted, the `AIChatSessionDocumentCleanupHandler` automatically removes associated documents.
-
-- Upload endpoint registered via `AddUploadChatSessionDocumentEndpoint`
-- Remove endpoint registered via `AddRemoveChatSessionDocumentEndpoint`
-- `AIProfileSessionDocumentsDisplayDriver` adds documents to session configuration
-
-### Key Services
-
-| Service | Description |
-|---------|-------------|
-| `IAIDocumentStore` | Manages document metadata (CRUD operations) |
-| `IAIDocumentChunkStore` | Manages document text chunks and their embeddings |
-| `IDocumentFileStore` | File storage abstraction (file system or Azure Blob) |
-| `IVectorSearchService` | Vector similarity search (Azure AI Search or Elasticsearch, keyed by provider) |
-| `AIDocumentsIndexingService` | Orchestrates indexing of document chunks into search backends |
-| `IDocumentIndexHandler` | Builds index documents from chunk data for a specific provider |
-| `IAIChatDocumentEventHandler` | Handles document lifecycle events |
-| `IAIChatSessionHandler` | Session lifecycle (includes cleanup of documents on session delete) |
-
-### Custom Document Event Handler
-
-Implement `IAIChatDocumentEventHandler` to react to document lifecycle events:
+### React to document events
 
 ```csharp
-public sealed class MyDocumentEventHandler : IAIChatDocumentEventHandler
+public sealed class AuditDocumentEventHandler : IAIChatDocumentEventHandler
 {
-    public Task UploadedAsync(
-        AIChatDocumentUploadContext context,
-        CancellationToken cancellationToken = default)
-    {
-        // Runs after a document is uploaded and processed.
-        return Task.CompletedTask;
-    }
+    public Task UploadedAsync(AIChatDocumentUploadContext context, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 
-    public Task RemovedAsync(
-        AIChatDocumentRemoveContext context,
-        CancellationToken cancellationToken = default)
-    {
-        // Runs after a document is removed.
-        return Task.CompletedTask;
-    }
+    public Task RemovedAsync(AIChatDocumentRemoveContext context, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }
-```
 
-Register the handler in your module startup:
-
-```csharp
 public sealed class Startup : StartupBase
 {
     public override void ConfigureServices(IServiceCollection services)
     {
-        services.AddScoped<IAIChatDocumentEventHandler, MyDocumentEventHandler>();
+        services.AddScoped<IAIChatDocumentEventHandler, AuditDocumentEventHandler>();
     }
 }
 ```
 
-### Security
+### Key services
 
-Document upload and removal endpoints are protected by authorization handlers:
+| Service | Role |
+|---|---|
+| `IAIDocumentStore` | Document records for every reference type (`ReferenceId`, `ReferenceType`) |
+| `IDocumentFileStore` | File storage, replaced by the Azure Blob feature |
+| `IVectorSearchService` | Keyed by provider name, filtered by reference |
+| `AIDocumentsIndexingService` | Writes chat interaction chunks to the index |
+| `IAIChatDocumentEventHandler` | Upload and removal events |
+| `OrchardChatInteractionDocumentAuthorizationHandler`, `OrchardAIChatSessionDocumentAuthorizationHandler`, `OrchardAIProfileDocumentAuthorizationHandler` | Decide who may upload, remove, and download |
 
-- `OrchardChatInteractionDocumentAuthorizationHandler` controls access for chat interaction documents.
-- `OrchardAIChatSessionDocumentAuthorizationHandler` controls access for chat session documents.
+The shared pipeline (readers, chunking, figure processing) is described in `crestapps-core-document-processing`.
 
-These handlers are registered automatically when the base AI Documents feature is enabled.
+### Upgrading from 2.x
+
+- Declare `textEmbedding` on embedding deployments instead of `"Purpose": "Embedding"`. Legacy records are projected automatically.
+- Uploads are now scanned through `FileCreationService`; a custom `IFileEventHandler` that rejects files now also blocks AI document uploads.
+- The profile editor's **Apply Templates** card is gone. Start from a template with the **New AI Profile** picker, which now copies and indexes the template's documents.
+- Code that reads the documents settings must keep using `InteractionDocumentOptions` from CrestApps.Core; this settings screen still releases the shell on save.
+
+### Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| **Index not configured** warning | Select an index profile in **Settings > Artificial Intelligence**. |
+| No **AI Documents** index type | Enable `CrestApps.OrchardCore.AI.Documents.Elasticsearch` or `.AzureAI`. |
+| **Vector Search Service Not Available** | The selected index's provider feature is not enabled. |
+| Upload refused | The scan rejected it, the type has no reader, or the extracted text is over the indexable limit. |
+| No attach button in a session | Enable **Allow session document uploads** or **Allow session image uploads** on the profile. |
+| Figures never described | No deployment fills the `vision` slot, or figure description is turned off. |

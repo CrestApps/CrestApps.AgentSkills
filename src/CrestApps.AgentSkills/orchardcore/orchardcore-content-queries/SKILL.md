@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-queries
-description: Skill for querying content items in Orchard Core using YesSql and saved queries. Covers ContentItemIndex queries and its indexes (including IDX_ContentItemIndex_ContentItemId), custom index creation, ISession and IContentManager queries, query optimization, saved SQL queries of the Queries module (OrchardCore.Queries.Sql, the Cyqwel SQL parser, SELECT-only validation, SQL parameters, helper functions, paging), the Queries recipe step, the api/queries endpoint (ApiExecuteQueryGet and ApiExecuteQueryPost), QueriesPermissions.ManageSqlQueries, ExecuteApi query permissions, GraphQL named query permissions, and the Liquid query filter. Use this skill when requests mention Orchard Core Content Queries, Query Content Items, ContentItemIndex, Creating a Custom YesSql Index, SQL queries, saved queries, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.ContentManagement.Records, OrchardCore.Queries, ISession, IContentManager, MapIndex.
+description: Skill for querying content items in Orchard Core using YesSql and saved queries. Covers ContentItemIndex queries and its indexes (including IDX_ContentItemIndex_ContentItemId), custom YesSql indexes, ISession and IContentManager queries, saved SQL queries of the Queries module (Cyqwel parser, SELECT-only validation, parameters, paging), IQueryManager for creating and running saved queries from code, how SQL templates execute, custom query sources with IQuerySource, AddQuerySource and IQueryHandler, the Queries recipe step, the api/queries endpoint (ApiExecuteQueryGet and ApiExecuteQueryPost), query permissions, and the Liquid query filter. Use this skill when requests mention Orchard Core Content Queries, Query Content Items, ContentItemIndex, SQL queries, saved queries, or related troubleshooting. Strong matches include OrchardCore.Queries, ISession, IContentManager, MapIndex, IQueryManager, IQuerySource, QueryHandlerBase, ManageSqlQueries.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -27,6 +27,16 @@ You are an Orchard Core expert. Generate code for querying content items using Y
 - Use literal column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()` for custom YesSql migrations; do not use `nameof(...)`.
 - `MapIndex` tables already include the `DocumentId` column automatically, so do not add it manually in the migration.
 - Always seal classes.
+
+### Choosing the Right Mechanism
+
+"Query" and "index" mean three different things in Orchard Core. Pick the one that matches the goal.
+
+| Goal | Mechanism | Skill |
+|------|-----------|-------|
+| Fast relational lookup from C# by a column | YesSql `MapIndex` table + `ISession.Query<T, TIndex>()` | this skill, `orchardcore-yessql-indexes` |
+| Named, stored query run from Liquid, Razor, GraphQL or `api/queries` | Queries module (`IQueryManager`, `Sql`, `Lucene`, `Elasticsearch` sources) | this skill |
+| Full-text search over content | Index profiles fed by index handlers | `orchardcore-indexing`, `orchardcore-search-indexing` |
 
 ### Querying with ContentItemIndex
 
@@ -387,6 +397,151 @@ In Orchard Core 4.0, the endpoint is split into two actions with endpoint names 
 | Execute Api - {name} | `QueryPermissions.CreatePermissionForQuery(name)` |
 
 Since Orchard Core 4.0, the GraphQL fields that expose named SQL, Lucene and Elasticsearch queries also require `ExecuteApi_{QueryName}`, like the REST endpoint.
+
+### Running Queries from Code
+
+`IQueryManager` (namespace `OrchardCore.Queries`) creates, stores and runs named queries. `ExecuteQueryAsync` resolves the `IQuerySource` keyed by `Query.Source`.
+
+```csharp
+using System.Text.Json.Nodes;
+using OrchardCore.ContentManagement;
+using OrchardCore.Queries;
+
+public sealed class RecentPostsService
+{
+    private readonly IQueryManager _queryManager;
+
+    public RecentPostsService(IQueryManager queryManager)
+    {
+        _queryManager = queryManager;
+    }
+
+    public async Task EnsureQueryAsync()
+    {
+        if (await _queryManager.GetQueryAsync("RecentBlogPosts") is not null)
+        {
+            return;
+        }
+
+        // The data keys match the recipe step: Name, Template, Schema, ReturnContentItems.
+        var query = await _queryManager.NewAsync("Sql", new JsonObject
+        {
+            ["Name"] = "RecentBlogPosts",
+            ["Template"] = "select DocumentId from ContentItemIndex where ContentType = 'BlogPost' and Published = true order by CreatedUtc desc limit @limit:10",
+            ["ReturnContentItems"] = true,
+        });
+
+        await _queryManager.SaveAsync(query);
+    }
+
+    public async Task<IEnumerable<ContentItem>> GetRecentAsync(int limit)
+    {
+        var query = await _queryManager.GetQueryAsync("RecentBlogPosts");
+
+        var results = await _queryManager.ExecuteQueryAsync(query, new Dictionary<string, object>
+        {
+            ["limit"] = limit,
+        });
+
+        return results.Items.OfType<ContentItem>();
+    }
+}
+```
+
+| Member | Purpose |
+|--------|---------|
+| `NewAsync(source, data)` | Build a query for a registered source; returns `null` when the source is unknown. |
+| `UpdateAsync(query, data)` / `SaveAsync(params Query[])` | Persist changes. |
+| `GetQueryAsync(name)` / `DeleteQueryAsync(params string[])` | Load or remove by name. |
+| `ListQueriesAsync(QueryContext)` / `PageQueriesAsync(page, pageSize, context)` | List queries; the `ListQueriesBySourceAsync(source)` extension filters by source. |
+| `ExecuteQueryAsync(query, parameters)` | Run the query and return `IQueryResults.Items`. |
+
+How a SQL query executes:
+
+1. The `Template` (stored in `SqlQueryMetadata`) is rendered as Liquid with the parameters as Liquid values.
+2. The result is parsed by Cyqwel and translated to the tenant dialect, schema and table prefix. A parse failure is logged as an error and returns an empty result instead of throwing.
+3. The SQL runs through Dapper with the parameters bound as SQL parameters.
+4. With `ReturnContentItems` the `DocumentId` column (or the first `long` column) is used to load `ContentItem` documents; otherwise each row is returned as a `JsonObject`.
+
+### Custom Query Sources
+
+Implement `IQuerySource` and register it with `AddQuerySource<T>(name)`, which registers the source as a keyed service under its name. Pair it with a `DisplayDriver<Query>` for the admin editor and an `IQueryHandler` (or `QueryHandlerBase`) that copies source-specific data from the recipe or editor JSON into the query.
+
+```csharp
+using System.Text.Json.Nodes;
+using OrchardCore.Entities;
+using OrchardCore.Queries;
+using OrchardCore.Queries.Core;
+
+public sealed class ProductQueryMetadata
+{
+    public string Filter { get; set; }
+}
+
+public sealed class ProductQueryResults : IQueryResults
+{
+    public IEnumerable<object> Items { get; set; } = [];
+}
+
+public sealed class ProductQuerySource : IQuerySource
+{
+    public const string SourceName = "Products";
+
+    public string Name => SourceName;
+
+    public Task<IQueryResults> ExecuteQueryAsync(Query query, IDictionary<string, object> parameters)
+    {
+        var metadata = query.GetOrCreate<ProductQueryMetadata>();
+
+        // Run the query against your store using metadata.Filter and the parameters.
+        IQueryResults results = new ProductQueryResults();
+
+        return Task.FromResult(results);
+    }
+}
+
+public sealed class ProductQueryHandler : QueryHandlerBase
+{
+    public override Task InitializingAsync(InitializingQueryContext context)
+        => CopyAsync(context);
+
+    public override Task UpdatingAsync(UpdatingQueryContext context)
+        => CopyAsync(context);
+
+    private static Task CopyAsync(DataQueryContextBase context)
+    {
+        if (context.Query.Source != ProductQuerySource.SourceName)
+        {
+            return Task.CompletedTask;
+        }
+
+        var filter = context.Data?[nameof(ProductQueryMetadata.Filter)]?.GetValue<string>();
+
+        if (!string.IsNullOrEmpty(filter))
+        {
+            context.Query.Put(new ProductQueryMetadata { Filter = filter });
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+```csharp
+[RequireFeatures("OrchardCore.Queries")]
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddQuerySource<ProductQuerySource>(ProductQuerySource.SourceName);
+        services.AddScoped<IQueryHandler, ProductQueryHandler>();
+        // Your DisplayDriver<Query> that renders the Filter editor.
+        services.AddDisplayDriver<Query, ProductQueryDisplayDriver>();
+    }
+}
+```
+
+`IQueryHandler` exposes `InitializingAsync`, `InitializedAsync`, `LoadedAsync`, `UpdatingAsync`, `UpdatedAsync`, `DeletingAsync` and `DeletedAsync`. Every handler sees every query, so check `context.Query.Source` first.
 
 ### Upgrading from 3.x
 

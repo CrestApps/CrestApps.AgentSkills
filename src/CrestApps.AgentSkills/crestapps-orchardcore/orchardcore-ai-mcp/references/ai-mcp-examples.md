@@ -1,8 +1,6 @@
 # Orchard Core MCP Practical Examples
 
-## Recipe: Full MCP Client Setup with SSE Connection
-
-Enable the MCP Client feature and add a remote SSE connection in a single recipe:
+## Recipe: MCP client with a remote SSE connection
 
 ```json
 {
@@ -12,47 +10,23 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
       "enable": [
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.OpenAI"
-      ]
-    },
-    {
-      "name": "AIProviderConnections",
-      "connections": [
-        {
-          "Source": "OpenAI",
-          "Name": "default",
-          "DisplayText": "OpenAI Default",
-          "Properties": {
-            "OpenAIConnectionMetadata": {
-              "Endpoint": "https://api.openai.com/v1",
-              "ApiKey": "{{YourApiKey}}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "AIDeployment",
-      "deployments": [
-        {
-          "ItemId": "openai-chat",
-          "Name": "gpt-4o",
-          "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat"
-        }
+        "CrestApps.OrchardCore.AI.Mcp"
       ]
     },
     {
       "name": "McpConnection",
-      "connections": [
+      "Connections": [
         {
-          "DisplayText": "Remote Tools Server",
+          "Source": "sse",
+          "DisplayText": "Remote tools server",
           "Properties": {
             "SseMcpConnectionMetadata": {
               "Endpoint": "https://mcp-tools.example.com/",
-              "AdditionalHeaders": {}
+              "AuthenticationType": "OAuth2ClientCredentials",
+              "OAuth2TokenEndpoint": "https://auth.example.com/oauth2/token",
+              "OAuth2ClientId": "orchard-site",
+              "OAuth2ClientSecret": "{{McpToolsClientSecret}}",
+              "OAuth2Scopes": "tools.read"
             }
           }
         }
@@ -62,7 +36,9 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
 }
 ```
 
-## Recipe: MCP Client with Local Docker-based Server (Stdio)
+Add your AI provider connection and deployment with the steps described in `orchardcore-ai-connections` and `orchardcore-ai-providers`, then select the connection on an AI profile's **Capabilities** tab.
+
+## Recipe: MCP client with a local Docker server (stdio)
 
 ```json
 {
@@ -71,26 +47,20 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Stdio",
-        "CrestApps.OrchardCore.OpenAI"
+        "CrestApps.OrchardCore.AI.Mcp.Stdio"
       ]
     },
     {
       "name": "McpConnection",
-      "connections": [
+      "Connections": [
         {
-          "DisplayText": "Global Time Capabilities",
+          "Source": "stdio",
+          "DisplayText": "Global time capabilities",
           "Properties": {
             "StdioMcpConnectionMetadata": {
               "Command": "docker",
-              "Arguments": [
-                "run",
-                "-i",
-                "--rm",
-                "mcp/time"
-              ]
+              "Arguments": [ "run", "-i", "--rm", "mcp/time" ]
             }
           }
         }
@@ -100,29 +70,21 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
 }
 ```
 
-## Recipe: MCP Client with Multiple Connections
+## Recipe: several connections at once
 
 ```json
 {
   "steps": [
     {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Stdio",
-        "CrestApps.OrchardCore.OpenAI"
-      ]
-    },
-    {
       "name": "McpConnection",
-      "connections": [
+      "Connections": [
         {
-          "DisplayText": "Remote Database Tools",
+          "Source": "sse",
+          "DisplayText": "Remote database tools",
           "Properties": {
             "SseMcpConnectionMetadata": {
               "Endpoint": "https://db-tools.example.com/mcp",
+              "AuthenticationType": "CustomHeaders",
               "AdditionalHeaders": {
                 "X-Api-Key": "{{DbToolsApiKey}}"
               }
@@ -130,17 +92,12 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
           }
         },
         {
-          "DisplayText": "Local File System Tools",
+          "Source": "stdio",
+          "DisplayText": "Local file system tools",
           "Properties": {
             "StdioMcpConnectionMetadata": {
               "Command": "docker",
-              "Arguments": [
-                "run",
-                "-i",
-                "--rm",
-                "mcp/filesystem",
-                "/data"
-              ]
+              "Arguments": [ "run", "-i", "--rm", "mcp/filesystem", "/data" ]
             }
           }
         }
@@ -150,9 +107,7 @@ Enable the MCP Client feature and add a remote SSE connection in a single recipe
 }
 ```
 
-## Recipe: Enable MCP Server with AI Agent
-
-Enable MCP Server alongside the AI Agent module to expose Orchard Core management tools:
+## Recipe: MCP server with the AI Agent tools
 
 ```json
 {
@@ -163,14 +118,14 @@ Enable MCP Server alongside the AI Agent module to expose Orchard Core managemen
         "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Agent",
         "CrestApps.OrchardCore.AI.Mcp.Server",
-        "CrestApps.OrchardCore.OpenAI"
+        "OrchardCore.Contents"
       ]
     }
   ]
 }
 ```
 
-## MCP Server Configuration: ApiKey Authentication
+Enabling the features exposes nothing yet. Opt in the tools on **Settings → Artificial Intelligence → MCP Server**, or in configuration:
 
 ```json
 {
@@ -179,7 +134,8 @@ Enable MCP Server alongside the AI Agent module to expose Orchard Core managemen
       "AI": {
         "McpServer": {
           "AuthenticationType": "ApiKey",
-          "ApiKey": "your-long-secure-random-api-key"
+          "ApiKey": "your-long-secure-random-api-key",
+          "Tools": [ "searchForContentItems", "getContentItemById", "getLinkForContentItem" ]
         }
       }
     }
@@ -187,37 +143,15 @@ Enable MCP Server alongside the AI Agent module to expose Orchard Core managemen
 }
 ```
 
-Store the API key securely:
+Store the key outside source control:
 
 ```bash
 dotnet user-secrets set "OrchardCore:CrestApps:AI:McpServer:ApiKey" "your-long-secure-random-api-key"
 ```
 
-## MCP Server Configuration: OpenId Authentication
+For `OpenId` mode, enable the Orchard Core OpenID server, register a client application, and grant `AccessMcpServer` to the role or application that calls the server.
 
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "McpServer": {
-          "AuthenticationType": "OpenId",
-          "RequireAccessPermission": true
-        }
-      }
-    }
-  }
-}
-```
-
-Remember to:
-1. Enable the OpenID Server feature for token-based authentication.
-2. Configure OAuth client applications.
-3. Grant the `AccessMcpServer` permission to appropriate roles.
-
-## Connecting VS Code to Orchard Core MCP Server
-
-Configure VS Code's MCP client to connect to your Orchard Core instance:
+## Connecting VS Code to the Orchard Core MCP server
 
 ```json
 {
@@ -235,16 +169,20 @@ Configure VS Code's MCP client to connect to your Orchard Core instance:
 }
 ```
 
-## Registering a Custom MCP Resource Type
+## Registering a custom MCP resource type
 
 ```csharp
+using CrestApps.Core.AI.Mcp;
+using CrestApps.Core.AI.Mcp.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using ModelContextProtocol.Protocol;
 using OrchardCore.Modules;
 
+[RequireFeatures("CrestApps.OrchardCore.AI.Mcp.Server")]
 public sealed class Startup : StartupBase
 {
-    private readonly IStringLocalizer S;
+    internal readonly IStringLocalizer S;
 
     public Startup(IStringLocalizer<Startup> stringLocalizer)
     {
@@ -253,6 +191,8 @@ public sealed class Startup : StartupBase
 
     public override void ConfigureServices(IServiceCollection services)
     {
+        services.AddHttpClient();
+
         services.AddCoreAIMcpResourceType<ApiEndpointResourceHandler>("api", entry =>
         {
             entry.DisplayName = S["API Endpoint"];
@@ -264,48 +204,51 @@ public sealed class Startup : StartupBase
         });
     }
 }
-```
 
-Implement the resource type handler:
-
-```csharp
-public sealed class ApiEndpointResourceHandler : IMcpResourceTypeHandler
+public sealed class ApiEndpointResourceHandler : McpResourceTypeHandlerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
 
     public ApiEndpointResourceHandler(IHttpClientFactory httpClientFactory)
+        : base("api")
     {
         _httpClientFactory = httpClientFactory;
     }
 
-    public string Type => "api";
-
-    public async Task<ReadResourceResult> ReadAsync(
+    protected override async Task<ReadResourceResult> GetResultAsync(
         McpResource resource,
         IReadOnlyDictionary<string, string> variables,
         CancellationToken cancellationToken)
     {
-        var uri = new Uri(resource.Resource.Uri);
-        var client = _httpClientFactory.CreateClient();
+        if (!variables.TryGetValue("path", out var path))
+        {
+            return CreateErrorResult(resource.Resource.Uri, "The path variable is required.");
+        }
 
+        var client = _httpClientFactory.CreateClient();
         var response = await client.GetStringAsync(
-            uri.AbsolutePath,
+            new Uri(new Uri("https://api.example.com/"), SanitizePath(path)),
             cancellationToken);
 
         return new ReadResourceResult
         {
-            Contents = [new TextResourceContents
-            {
-                Text = response,
-                MimeType = resource.Resource.MimeType ?? "application/json",
-                Uri = resource.Resource.Uri,
-            }],
+            Contents =
+            [
+                new TextResourceContents
+                {
+                    Text = response,
+                    MimeType = resource.Resource.MimeType ?? "application/json",
+                    Uri = resource.Resource.Uri,
+                },
+            ],
         };
     }
 }
 ```
 
-## Recipe: Create MCP Resources
+## Recipe: create MCP resources
+
+`Uri` may be the path portion; the import expands it to `{source}://{itemId}/{path}`.
 
 ```json
 {
@@ -315,21 +258,21 @@ public sealed class ApiEndpointResourceHandler : IMcpResourceTypeHandler
       "Resources": [
         {
           "Source": "file",
-          "DisplayText": "Site Configuration",
+          "DisplayText": "Site configuration",
           "Resource": {
-            "Uri": "file://main-config/app/appsettings.json",
+            "Uri": "{providerName}/{fileName}",
             "Name": "site-config",
-            "Description": "Main application configuration",
+            "Description": "Files from a named file provider",
             "MimeType": "application/json"
           }
         },
         {
           "Source": "content-type",
-          "DisplayText": "Blog Articles",
+          "DisplayText": "Published items by type",
           "Resource": {
-            "Uri": "content-type://blog-articles/BlogPost",
-            "Name": "blog-articles",
-            "Description": "List of all blog articles",
+            "Uri": "{contentType}",
+            "Name": "content-by-type",
+            "Description": "All published content items of the requested content type",
             "MimeType": "application/json"
           }
         }

@@ -1,40 +1,61 @@
 ---
 name: orchardcore-ai-mcp
-description: Skill for configuring Model Context Protocol (MCP) in Orchard Core using the CrestApps MCP module. Covers MCP client connections over SSE and standard input/output transports, MCP server setup to expose Orchard Core as an MCP endpoint, MCP resources, authentication, and custom resource types. Use this skill when requests mention Orchard Core MCP (Model Context Protocol), Configure MCP Integration, MCP Features Overview, MCP Client Connecting to External MCP Servers, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp. It also helps with ai mcp examples, Enabling MCP Client Features, Adding a Remote MCP Connection (SSE Transport) via Admin, Adding a Remote MCP Connection via Recipe (SSE), plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Overview skill for Model Context Protocol (MCP) support in Orchard Core through the CrestApps.OrchardCore.AI.Mcp module. Covers choosing between the MCP client features (CrestApps.OrchardCore.AI.Mcp for remote SSE servers, CrestApps.OrchardCore.AI.Mcp.Stdio for local process servers) and the MCP Server feature (CrestApps.OrchardCore.AI.Mcp.Server with opt-in tool exposure), the FTP and SFTP resource modules, the Model Context Protocol admin screens (MCP Hosts, Prompts, Resources), permissions, the McpConnection, McpPrompt and McpResource recipe steps, deployment steps, and a combined setup recipe. Use this skill when requests mention Orchard Core MCP in general, configuring MCP integration, picking the right MCP feature, or an end-to-end MCP setup, then switch to orchardcore-ai-mcp-client, orchardcore-ai-mcp-server or orchardcore-ai-mcp-resources for details.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core MCP (Model Context Protocol) - Prompt Templates
+# Orchard Core Model Context Protocol (MCP)
 
-## Configure MCP Integration
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) is an open standard for connecting LLM applications to tools and data. The `CrestApps.OrchardCore.AI.Mcp` package lets Orchard Core act as an MCP **client** (use tools hosted elsewhere) and as an MCP **server** (offer Orchard Core tools, prompts, and resources to other AI apps).
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for integrating Model Context Protocol (MCP) client and server capabilities into Orchard Core using CrestApps modules.
+## Pick the right feature
 
-### Guidelines
-- The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is an open standard for seamless integration between LLM applications and external tools or data sources.
-- The CrestApps MCP module provides both client and server features.
-- **MCP Client**: Connect Orchard Core to external MCP servers using SSE or local client transports, extending AI chat capabilities with external tools.
-- **MCP Server**: Expose Orchard Core AI tools and resources to external MCP-compatible clients (AI agents, IDEs, copilots).
-- MCP connections can be configured via the admin UI or recipes.
-- MCP server authentication supports OpenId, ApiKey, or None (development only).
-- Never use `AuthenticationType: "None"` in production environments.
-- Install CrestApps packages in the web/startup project.
-- Always secure API keys using user secrets or environment variables.
+| Goal | Feature ID | Skill |
+|---|---|---|
+| Call tools on a remote MCP server over HTTP | `CrestApps.OrchardCore.AI.Mcp` | `orchardcore-ai-mcp-client` |
+| Run a local MCP server process (for example Docker) | `CrestApps.OrchardCore.AI.Mcp.Stdio` | `orchardcore-ai-mcp-client` |
+| Let IDEs and AI apps call Orchard Core tools, prompts, resources | `CrestApps.OrchardCore.AI.Mcp.Server` | `orchardcore-ai-mcp-server` |
+| Expose FTP/FTPS files as MCP resources | `CrestApps.OrchardCore.AI.Mcp.Resources.Ftp` | `orchardcore-ai-mcp-resources` |
+| Expose SFTP files as MCP resources | `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` | `orchardcore-ai-mcp-resources` |
 
-### MCP Features Overview
+All MCP features depend on `CrestApps.OrchardCore.AI`. The client feature also depends on `CrestApps.OrchardCore.Resources`, and the stdio and resource features depend on the client and server features respectively. Install the packages in the web/startup project.
 
-| Feature | Feature ID | Description |
-|---------|-----------|-------------|
-| MCP Client (SSE) | `CrestApps.OrchardCore.AI.Mcp` | Connect to remote MCP servers via Server-Sent Events |
-| MCP Client (Stdio) | `CrestApps.OrchardCore.AI.Mcp.Stdio` | Connect to local MCP servers via Standard Input/Output |
-| MCP Server | `CrestApps.OrchardCore.AI.Mcp.Server` | Expose Orchard Core as an MCP server endpoint |
+## Guidelines
 
-## MCP Client: Connecting to External MCP Servers
+- Client and server are independent. Enable only the side you need.
+- The server exposes **no tools by default**. Opt tools and tool instances in on the **MCP Server** card under **Settings → Artificial Intelligence**, or with `McpServerOptions.Tools` / `ExposeAllTools`.
+- Use `OpenId` authentication for the server in production; `None` is for local development only.
+- Credentials on client connections and FTP/SFTP resources are encrypted at rest and blanked in deployment exports.
+- Tool calls, from either direction, still go through Orchard Core permission checks (`AccessAITool_{name}` or `AccessAnyAITool`).
 
-### Enabling MCP Client Features
+## Admin screens
+
+Under **Artificial Intelligence → Model Context Protocol**:
+
+| Screen | Feature | Permission |
+|---|---|---|
+| **MCP Hosts** | MCP Client | `ManageMcpConnections` |
+| **Prompts** | MCP Server | `ManageMcpPrompts` |
+| **Resources** | MCP Server | `ManageMcpResources` |
+
+The **MCP Server** card under **Settings → Artificial Intelligence** needs `ManageMcpServerSettings`. Calling the server in `OpenId` mode needs `AccessMcpServer` when `RequireAccessPermission` is `true`. All three lists render through Orchard Core's `AdminList` shape (`McpConnections`, `McpPrompts`, `McpResources`); see `orchardcore-admin-lists`.
+
+## Recipe and deployment steps
+
+| Step | Root array | Notes |
+|---|---|---|
+| `McpConnection` | `Connections` | `Source` (`sse` or `stdio`) is required for a new connection |
+| `McpPrompt` | `Prompts` | `Prompt.Name` is the key; messages use role `user` or `assistant` |
+| `McpResource` | `Resources` | `Source` is the resource type; `Resource.Uri` may be the path portion |
+
+With `OrchardCore.Deployment` enabled, matching **Connection**, **Prompt**, and **Resource** deployment steps appear under **Artificial Intelligence** in the deployment-plan editor.
+
+## Combined setup
+
+Connect to a remote MCP server and expose Orchard Core's own content search to MCP clients:
 
 ```json
 {
@@ -43,147 +64,32 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for in
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
+        "CrestApps.OrchardCore.AI.Agent",
         "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Adding a Remote MCP Connection (SSE Transport) via Admin UI
-
-1. Navigate to **Artificial Intelligence → MCP Connections**.
-2. Click **Add Connection**.
-3. Under **Server Sent Events (SSE)**, click **Add**.
-4. Enter connection details:
-   - **Display Text**: A friendly name for the connection.
-   - **Endpoint**: The remote MCP server URL (e.g., `https://mcp-server.example.com/`).
-   - **Additional Headers**: Supply any required authentication headers.
-5. Save the connection.
-6. Create or edit an AI profile and select this MCP connection under available tools.
-
-### Adding a Remote MCP Connection via Recipe (SSE)
-
-```json
-{
-  "steps": [
-    {
-      "name": "McpConnection",
-      "connections": [
-        {
-          "DisplayText": "Remote AI Tools Server",
-          "Properties": {
-            "SseMcpConnectionMetadata": {
-              "Endpoint": "https://mcp-server.example.com/",
-              "AdditionalHeaders": {}
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Adding a Local MCP Connection (Stdio Transport)
-
-The Local MCP Client feature enables connections to MCP servers running locally (e.g., in Docker containers) using Standard Input/Output.
-
-#### Step-by-Step: Connect to a Docker-based MCP Server
-
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop).
-2. Pull the desired MCP Docker image (e.g., `mcp/time`).
-3. Navigate to **Artificial Intelligence → MCP Connections**.
-4. Click **Add Connection**, then under **Standard Input/Output (Stdio)**, click **Add**.
-5. Enter:
-   - **Display Text**: `Global Time Capabilities`
-   - **Command**: `docker`
-   - **Command Arguments**: `["run", "-i", "--rm", "mcp/time"]`
-6. Save the connection.
-
-### Adding a Local MCP Connection via Recipe (Stdio)
-
-```json
-{
-  "steps": [
-    {
-      "name": "McpConnection",
-      "connections": [
-        {
-          "DisplayText": "Global Time Capabilities",
-          "Properties": {
-            "StdioMcpConnectionMetadata": {
-              "Command": "docker",
-              "Arguments": [
-                "run",
-                "-i",
-                "--rm",
-                "mcp/time"
-              ]
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Enabling MCP Client with Local Stdio Support
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Mcp",
-        "CrestApps.OrchardCore.AI.Mcp.Stdio",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-## MCP Server: Exposing Orchard Core as an MCP Endpoint
-
-### Enabling MCP Server
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Mcp.Server"
       ],
       "disable": []
+    },
+    {
+      "name": "McpConnection",
+      "Connections": [
+        {
+          "Source": "sse",
+          "DisplayText": "Remote tools server",
+          "Properties": {
+            "SseMcpConnectionMetadata": {
+              "Endpoint": "https://mcp-tools.example.com/",
+              "AuthenticationType": "Anonymous"
+            }
+          }
+        }
+      ]
     }
   ]
 }
 ```
 
-### MCP Server Authentication
-
-The MCP server supports three authentication modes:
-
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `OpenId` | OpenID Connect via the "Api" scheme (default) | Production environments |
-| `ApiKey` | Predefined API key authentication | Simple integrations, testing |
-| `None` | No authentication | Local development only |
-
-### Configuring MCP Server Authentication
-
-**OpenId (Recommended for production):**
+Then allow the tools for MCP clients in `appsettings.json` (or on the **MCP Server** card):
 
 ```json
 {
@@ -192,7 +98,8 @@ The MCP server supports three authentication modes:
       "AI": {
         "McpServer": {
           "AuthenticationType": "OpenId",
-          "RequireAccessPermission": true
+          "RequireAccessPermission": true,
+          "Tools": [ "searchForContentItems", "getContentItemById" ]
         }
       }
     }
@@ -200,167 +107,17 @@ The MCP server supports three authentication modes:
 }
 ```
 
-When `RequireAccessPermission` is `true`, users must have the `AccessMcpServer` permission.
+An AI provider connection and a chat deployment are also needed before profiles can use the remote tools; see `orchardcore-ai-connections` and `orchardcore-ai-providers`. More end-to-end samples are in [references/ai-mcp-examples.md](references/ai-mcp-examples.md).
 
-**ApiKey (For simple integrations):**
+## Upgrading from 2.x
 
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "McpServer": {
-          "AuthenticationType": "ApiKey",
-          "ApiKey": "your-secure-api-key-here"
-        }
-      }
-    }
-  }
-}
-```
+- The MCP Server no longer exposes every tool. Opt tools in, or set `ExposeAllTools: true`, after upgrading.
+- `McpServerOptions` is refreshed live through `IOptionsMonitor<T>`; code reading it through `IOptions<T>` must switch.
+- The MCP lists use Orchard Core's `AdminList` shape; whole-row template overrides only apply to the List layout.
 
-The API key can be provided in the `Authorization` header as: `Bearer <key>`, `ApiKey <key>`, or the raw key.
+## Discover MCP servers
 
-**None (Local development only — never use in production):**
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "McpServer": {
-          "AuthenticationType": "None"
-        }
-      }
-    }
-  }
-}
-```
-
-### MCP Server Endpoint
-
-Endpoints are registered in `Startup.Configure` via `routes.MapMcp("mcp")` using the Streamable HTTP transport (`WithHttpTransport()`), protected by the MCP authorization policy. Paths are relative to the tenant prefix.
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/mcp` | `POST` (and `GET`/`DELETE`) | Streamable HTTP transport endpoint (current MCP standard) |
-
-### Connecting External Clients to Orchard Core MCP Server
-
-Use the Streamable HTTP transport pointing at the `/mcp` base endpoint. The pinned MCP ASP.NET Core transport maps only that endpoint because legacy SSE is disabled by default.
-
-**With OpenId (Streamable HTTP, recommended):**
-
-```json
-{
-  "mcpServers": {
-    "orchard-core": {
-      "transport": {
-        "type": "http",
-        "url": "https://your-orchard-site.com/mcp",
-        "headers": {
-          "Authorization": "Bearer <your-oauth-token>"
-        }
-      }
-    }
-  }
-}
-```
-
-### Exposed Tools via MCP Server
-
-The MCP server automatically exposes all AI tools registered in Orchard Core, including:
-
-- **Content Management**: Search, create, update, delete, publish/unpublish content (when `OrchardCore.Contents` is enabled)
-- **Feature Management**: List, enable, disable features (when `OrchardCore.Features` is enabled)
-- **User Management**: Search users, get user information (when `OrchardCore.Users` is enabled)
-- **AI Agent Tools**: All tools from the AI Agent module (when `CrestApps.OrchardCore.AI.Agent` is enabled)
-
-### MCP Resources
-
-MCP Resources expose data sources through the MCP protocol. Built-in resource types:
-
-| Type | URI Pattern | Description |
-|------|-------------|-------------|
-| File | `file://{itemId}/{path}` | Local file system access |
-| Content item | `content-item://{itemId}/...` | A specific Orchard Core content item or version |
-| Content type | `content-type://{itemId}/...` | Published items for an Orchard Core content type |
-| Recipe Schema | `recipe-schema://{itemId}/...` | JSON schema definitions |
-| FTP/FTPS | `ftp://{itemId}/{path}` | Remote files via FTP (separate module) |
-| SFTP | `sftp://{itemId}/{path}` | Remote files via SSH (separate module) |
-
-### Creating MCP Resources via Recipe
-
-```json
-{
-  "steps": [
-    {
-      "name": "McpResource",
-      "Resources": [
-        {
-          "Source": "file",
-          "DisplayText": "Application Config",
-          "Resource": {
-            "Uri": "file://abc123/etc/config.json",
-            "Name": "app-config",
-            "Description": "Application configuration file",
-            "MimeType": "application/json"
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Registering a Custom MCP Resource Type
-
-```csharp
-services.AddCoreAIMcpResourceType<DatabaseResourceTypeHandler>("database", entry =>
-{
-    entry.DisplayName = S["Database"];
-    entry.Description = S["Query data from databases."];
-    entry.SupportedVariables =
-    [
-        new McpResourceVariable("table") { Description = S["The database table name."] },
-        new McpResourceVariable("id") { Description = S["The row ID to fetch."] },
-    ];
-});
-```
-
-Implement the handler:
-
-```csharp
-public sealed class DatabaseResourceTypeHandler : McpResourceTypeHandlerBase
-{
-    public DatabaseResourceTypeHandler() : base("database") { }
-
-    protected override Task<ReadResourceResult> GetResultAsync(
-        McpResource resource,
-        IReadOnlyDictionary<string, string> variables,
-        CancellationToken cancellationToken)
-    {
-        variables.TryGetValue("table", out var table);
-        variables.TryGetValue("id", out var id);
-        // Query the selected row and return a ReadResourceResult.
-        return Task.FromResult(new ReadResourceResult());
-    }
-}
-```
-
-### Security Best Practices
-
-- Always use `OpenId` authentication for MCP server in production.
-- Store API keys in user secrets or environment variables, never in source control.
-- Grant the `AccessMcpServer` permission only to trusted users and roles.
-- Individual tool invocations respect Orchard Core's permission system.
-- MCP server operates within a single tenant context for tenant isolation.
-- Rotate API keys periodically when using `ApiKey` authentication.
-
-### Discovering More MCP Servers
-
-Explore MCP-compatible tools at:
-- [Docker Hub: MCP Images](https://hub.docker.com/search?q=mcp)
+- [Docker Hub MCP images](https://hub.docker.com/search?q=mcp)
 - [MCP.so](https://mcp.so/)
-- [Glama.ai MCP Servers](https://glama.ai/mcp/servers)
+- [Glama.ai MCP servers](https://glama.ai/mcp/servers)
 - [MCPServers.org](https://mcpservers.org/)

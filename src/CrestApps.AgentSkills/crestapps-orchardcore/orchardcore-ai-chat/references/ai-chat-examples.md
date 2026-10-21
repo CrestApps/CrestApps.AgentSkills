@@ -2,7 +2,7 @@
 
 ## Recipe: Full AI Chat Setup with OpenAI
 
-Enable the AI Chat feature, add an OpenAI provider connection, and create a chat profile in a single recipe:
+Enable AI Chat, add an OpenAI connection, declare two deployments by capability, and create a chat profile:
 
 ```json
 {
@@ -10,18 +10,17 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.OpenAI"
       ]
     },
     {
       "name": "AIProviderConnections",
-      "connections": [
+      "Connections": [
         {
           "Source": "OpenAI",
-          "Name": "default",
-          "DisplayText": "OpenAI Default",
+          "Name": "openai",
+          "DisplayText": "OpenAI",
           "Properties": {
             "OpenAIConnectionMetadata": {
               "Endpoint": "https://api.openai.com/v1",
@@ -33,35 +32,38 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
     },
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "openai-chat",
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
+          "ConnectionName": "openai",
+          "Properties": {
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming" ]
+            }
+          }
         },
         {
-          "ItemId": "openai-utility",
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Utility",
-          "IsDefault": true
+          "ConnectionName": "openai",
+          "Properties": {
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming" ]
+            }
+          }
         }
       ]
     },
     {
       "name": "AIProfile",
-      "profiles": [
+      "Profiles": [
         {
           "Name": "general-assistant",
           "DisplayText": "General Assistant",
           "WelcomeMessage": "Hi! I'm your AI assistant. How can I help?",
           "Type": "Chat",
           "TitleType": "InitialPrompt",
-          "PromptTemplate": null,
           "ChatDeploymentName": "gpt-4o",
           "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
@@ -70,9 +72,12 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
               "Temperature": 0.5,
               "MaxTokens": 2048,
               "PastMessagesCount": 10
-            },
-            "FunctionInvocationMetadata": { "Names": [] },
-            "AgentInvocationMetadata": { "Names": [] }
+            }
+          },
+          "Settings": {
+            "AIChatProfileSettings": {
+              "IsOnAdminMenu": true
+            }
           }
         }
       ]
@@ -80,6 +85,8 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
   ]
 }
 ```
+
+Pick the deployments as **Default Chat Deployment** and **Default Utility Deployment** under **Settings → Artificial Intelligence → Default Deployments** so profiles that leave them empty still resolve.
 
 ## Recipe: AI Chat with Azure OpenAI
 
@@ -89,21 +96,21 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.OpenAI.Azure.Standard"
+        "CrestApps.OrchardCore.OpenAI.Azure"
       ]
     },
     {
       "name": "AIProviderConnections",
-      "connections": [
+      "Connections": [
         {
-          "Source": "AzureOpenAI",
-          "Name": "azure-default",
+          "Source": "Azure",
+          "Name": "azure-openai",
           "DisplayText": "Azure OpenAI",
           "Properties": {
-            "AzureOpenAIConnectionMetadata": {
+            "AzureConnectionMetadata": {
               "Endpoint": "https://your-resource.openai.azure.com/",
+              "AuthenticationType": "ApiKey",
               "ApiKey": "{{YourAzureApiKey}}"
             }
           }
@@ -112,14 +119,17 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
     },
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "azure-chat",
-          "Name": "gpt-4o",
-          "ClientName": "AzureOpenAI",
-          "ConnectionName": "azure-default",
-          "Purpose": "Chat",
-          "IsDefault": true
+          "Name": "chat-deployment",
+          "ClientName": "Azure",
+          "ConnectionName": "azure-openai",
+          "ModelName": "gpt-4.1",
+          "Properties": {
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming" ]
+            }
+          }
         }
       ]
     }
@@ -127,9 +137,9 @@ Enable the AI Chat feature, add an OpenAI provider connection, and create a chat
 }
 ```
 
-## Recipe: Enable AI Agent with Chat
+## Recipe: A Public Website Assistant
 
-Enable the AI Agent module alongside AI Chat so profiles can perform site tasks:
+Create a chat profile, let anonymous visitors query it, and add the frontend widget to a layer. `OrchardCore.Widgets` and `OrchardCore.Layers` must be enabled.
 
 ```json
 {
@@ -137,90 +147,96 @@ Enable the AI Agent module alongside AI Chat so profiles can perform site tasks:
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
+        "OrchardCore.Widgets",
+        "OrchardCore.Layers",
         "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Agent",
         "CrestApps.OrchardCore.OpenAI"
+      ]
+    },
+    {
+      "name": "AIProfile",
+      "Profiles": [
+        {
+          "Name": "website-assistant",
+          "DisplayText": "Website Assistant",
+          "Type": "Chat",
+          "TitleType": "InitialPrompt",
+          "ChatDeploymentName": "gpt-4o",
+          "Properties": {
+            "AIProfileMetadata": {
+              "SystemMessage": "You answer questions about this website. Keep answers short."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "Roles": [
+        {
+          "Name": "Anonymous",
+          "PermissionBehavior": "Add",
+          "Permissions": [ "QueryAIProfile_website-assistant" ]
+        }
       ]
     }
   ]
 }
 ```
 
-After enabling, navigate to your AI profile, open the **Capabilities** tab, and assign the desired capabilities (content management, feature management, user management, etc.).
+Then add an **Artificial Intelligence Chat** widget to a layer zone and select the profile in its `AIProfilePart`. The profile's own `ItemId` is what `AIProfilePart.ProfileId` stores, so pick it in the admin rather than hard-coding it in a recipe.
 
-## Defining a Chat Profile with Custom Tools in Code
+## Recipe: Chat Embedded in a Frame on Another Site
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "AIVisitorIdentityOptions": {
+        "AllowCrossSiteEmbedding": true,
+        "UsePartitionedCookie": true,
+        "RemoteAddressMode": "Hashed"
+      }
+    }
+  ]
+}
+```
+
+Without cross-site embedding the `SameSite=Lax` visitor cookie is refused inside a third-party frame, so every request looks like a new visitor and the conversation does not survive a page load.
+
+## Code: Turn a Profile into a Voice Conversation
 
 ```csharp
-public sealed class SupportChatMigrations : DataMigration
+public sealed class VoiceAssistantMigrations : DataMigration
 {
     private readonly IAIProfileManager _profileManager;
 
-    public SupportChatMigrations(IAIProfileManager profileManager)
+    public VoiceAssistantMigrations(IAIProfileManager profileManager)
     {
         _profileManager = profileManager;
     }
 
     public async Task<int> CreateAsync()
     {
-        var profile = await _profileManager.NewAsync();
+        var profile = await _profileManager.FindByNameAsync("website-assistant");
 
-        profile.Name = "support-chat";
-        profile.DisplayText = "Support Chat";
-        profile.Type = AIProfileType.Chat;
-        profile.Put(new FunctionInvocationMetadata
+        if (profile is null)
         {
-            Names = ["lookup_order", "check_inventory"],
+            return 1;
+        }
+
+        profile.AlterSettings<ChatModeProfileSettings>(settings =>
+        {
+            settings.ChatMode = ChatMode.Conversation;
+
+            // Leave empty to use the site's default realtime deployment.
+            settings.ConversationDeploymentName = null;
         });
 
-        profile.WithSettings(new AIProfileSettings
-        {
-            LockSystemMessage = true,
-            IsRemovable = false,
-            IsListable = true,
-        });
-
-        profile.WithSettings(new AIChatProfileSettings
-        {
-            IsOnAdminMenu = true,
-        });
-
-        profile.Put(new AIProfileMetadata
-        {
-            SystemMessage = "You are a support agent. Help customers with orders, inventory, and product questions. Use the available tools to look up information.",
-            Temperature = 0.2f,
-            MaxTokens = 4096,
-            PastMessagesCount = 15,
-        });
-
-        await _profileManager.SaveAsync(profile);
+        await _profileManager.UpdateAsync(profile);
 
         return 1;
-    }
-}
-```
-
-## Registering Multiple Custom AI Tools
-
-```csharp
-using Microsoft.Extensions.DependencyInjection;
-using OrchardCore.Modules;
-
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddCoreAITool<LookupOrderFunction>(LookupOrderFunction.TheName)
-            .WithTitle("Order Lookup")
-            .WithDescription("Retrieves order details by order ID.")
-            .WithCategory("Commerce")
-            .Selectable();
-
-        services.AddCoreAITool<CheckInventoryFunction>(CheckInventoryFunction.TheName)
-            .WithTitle("Inventory Checker")
-            .WithDescription("Checks product inventory levels.")
-            .WithCategory("Commerce")
-            .Selectable();
     }
 }
 ```
@@ -235,16 +251,12 @@ public sealed class Startup : StartupBase
         "DefaultParameters": {
           "Temperature": 0.5,
           "MaxOutputTokens": 2048,
-          "TopP": 1,
-          "FrequencyPenalty": 0,
-          "PresencePenalty": 0,
           "PastMessagesCount": 10
         },
         "Connections": [
           {
-            "Name": "default",
+            "Name": "openai",
             "ClientName": "OpenAI",
-            "Endpoint": "https://api.openai.com/v1",
             "ApiKey": "Use a secret provider"
           }
         ],
@@ -252,8 +264,12 @@ public sealed class Startup : StartupBase
           {
             "Name": "gpt-4o",
             "ClientName": "OpenAI",
-            "ConnectionName": "default",
-            "Purpose": "Chat"
+            "ConnectionName": "openai",
+            "Properties": {
+              "AIDeploymentMetadata": {
+                "Features": [ "textGeneration", "toolCalling", "streaming" ]
+              }
+            }
           }
         ]
       }
@@ -262,16 +278,12 @@ public sealed class Startup : StartupBase
 }
 ```
 
-## Storing API Keys Securely
+A tenant's own `App_Data/Sites/{tenant}/appsettings.json` uses the same keys without the `OrchardCore` wrapper.
 
-Use user secrets during development:
+## Storing API Keys Securely
 
 ```bash
 dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "sk-your-api-key"
 ```
 
-For Azure OpenAI:
-
-```bash
-dotnet user-secrets set "OrchardCore:CrestApps:AI:Connections:0:ApiKey" "your-azure-key"
-```
+In production use the environment variable form, for example `OrchardCore__CrestApps__AI__Connections__0__ApiKey`, or a key vault.

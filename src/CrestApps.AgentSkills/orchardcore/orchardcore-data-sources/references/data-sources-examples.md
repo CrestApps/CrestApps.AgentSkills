@@ -164,7 +164,7 @@ public sealed class DataSourcesStartup : StartupBase
 }
 ```
 
-The `Tickets` data set is now offered by the **Add a data source** dialog of the pipeline designer, can be filtered on its fields, and joined to `Users` on `OwnerId`.
+The `Tickets` data set is now offered by the **Add a data source** dialog of the pipeline designer, can be filtered on its fields, and joined to `Users` on `OwnerId`. Because `TicketId` is `IsKeyFilterable`, a consumer that joins data sets (such as a report) may send the ids it needs as an `In` condition marked `IsJoinKey`; `LoadAsync` must then return exactly the tickets of those ids.
 
 ## Implementing `IDataSource` directly
 
@@ -339,19 +339,4 @@ public sealed class XmlDataFileFormat : IDataFileFormat
 services.AddDataFileFormat<XmlDataFileFormat>();
 ```
 
-## Aggregate formula function
-
-```csharp
-services.AddExpressionFunction(ExpressionFunction.CreateAggregate(
-    name: "RANGE",
-    signature: "RANGE(number)",
-    description: "Returns the difference between the largest and the smallest value of the group.",
-    requiresNumericArgument: true,
-    returnType: _ => DataFieldType.Decimal,
-    aggregate: values =>
-    {
-        var numbers = values.Where(value => value is not null).Select(Convert.ToDecimal).ToList();
-
-        return numbers.Count == 0 ? null : numbers.Max() - numbers.Min();
-    }));
-```
+Formula functions, filter conditions and a data source that translates every condition it can into its store query are in `orchardcore-data-formulas`.

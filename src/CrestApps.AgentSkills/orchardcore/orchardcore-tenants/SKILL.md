@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tenants
-description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation, SaaS setup, tenant configuration, the Tenants API, the tenant workflow activities and ITenantValidator validation, feature profiles, tenant removal, generated table prefixes and schemas, and testing with tenants using different recipes (Blog, Agency). Use this skill when requests mention Orchard Core Tenants, Configure Multi-Tenancy, Enabling Multi-Tenancy, Setting Up with the SaaS Recipe, Creating a Tenant via Admin UI, Creating a Tenant via Tenants API, CreateTenantTask, Feature Profiles, TenantsOptions, the OrchardCore Tenants configuration section, or closely related setup or troubleshooting work. Strong matches include OrchardCore.Tenants, OrchardCore.Tenants.FeatureProfiles, OrchardCore.Environment.Shell, OrchardCore.Environment.Shell.Scope, ShellSettings, IShellHost, ITenantValidator, TablePrefixPattern, SchemaPattern, blog.example.com.
+description: Skill for configuring multi-tenancy in Orchard Core. Covers tenant creation in the admin, the API and code (IShellSettingsManager, UpdateShellSettingsAsync, ShellSettings keys, ISetupService), tenant states, running code in a tenant or in every running tenant, SaaS setup, tenant configuration, the Tenants API, the tenant workflow activities and ITenantValidator validation, feature profiles, tenant removal, generated table prefixes and schemas, and testing with tenants using different recipes. Use this skill when requests mention Orchard Core Tenants, Multi-Tenancy, the SaaS Recipe, creating a tenant, CreateTenantTask, Feature Profiles, TenantsOptions, the OrchardCore Tenants configuration section, or closely related setup or troubleshooting work. Strong matches include OrchardCore.Tenants, OrchardCore.Tenants.FeatureProfiles, OrchardCore.Environment.Shell, OrchardCore.Environment.Shell.Scope, ShellSettings, IShellHost, ITenantValidator, TablePrefixPattern, SchemaPattern, IShellSettingsManager, TenantState.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -110,6 +110,62 @@ curl -X POST https://localhost:5001/api/tenants/setup \
     "SiteTimeZone": "UTC"
   }'
 ```
+
+### Tenant States
+
+`ShellSettings.State` is a `TenantState`: `Uninitialized` (created, not set up), `Initializing` (setup running), `Running`, `Disabled` (set up but turned off), or `Invalid`. Check it with `IsUninitialized()`, `IsInitializing()`, `IsRunning()`, `IsDisabled()`, `IsInitialized()` (running or disabled), `IsRemovable()` (uninitialized or disabled) and `IsDefaultShell()`; set it with `AsUninitialized()`, `AsRunning()`, `AsDisabled()`. All live in `OrchardCore.Environment.Shell`.
+
+### Creating a Tenant in Code
+
+This is what the admin **Create** action does. Run it on the Default tenant with `OrchardCore.Tenants` enabled, and validate the input with `ITenantValidator` (namespace `OrchardCore.Tenants.Services`) first when it comes from users.
+
+```csharp
+using OrchardCore.Environment.Shell;
+
+public sealed class TenantProvisioner
+{
+    private readonly IShellHost _shellHost;
+    private readonly IShellSettingsManager _shellSettingsManager;
+
+    public TenantProvisioner(IShellHost shellHost, IShellSettingsManager shellSettingsManager)
+    {
+        _shellHost = shellHost;
+        _shellSettingsManager = shellSettingsManager;
+    }
+
+    public async Task CreateAsync(string name, string urlPrefix)
+    {
+        // Seeded from configuration; dispose it once the shell host has its own copy.
+        using var shellSettings = _shellSettingsManager
+            .CreateDefaultSettings()
+            .AsUninitialized()
+            .AsDisposable();
+
+        shellSettings.Name = name;
+        shellSettings.RequestUrlPrefix = urlPrefix;
+        shellSettings.RequestUrlHost = string.Empty;
+
+        shellSettings["Description"] = $"{name} site";
+        shellSettings["DatabaseProvider"] = "Sqlite";
+        shellSettings["RecipeName"] = "Blog";
+        shellSettings["FeatureProfile"] = "standard";
+        shellSettings["Secret"] = Guid.NewGuid().ToString();
+
+        // Stamps a new VersionId, saves the settings and reloads the shell.
+        await _shellHost.UpdateShellSettingsAsync(shellSettings);
+    }
+}
+```
+
+| Key | Meaning |
+|-----|---------|
+| `DatabaseProvider`, `ConnectionString`, `TablePrefix`, `Schema` | Database settings applied at setup. |
+| `RecipeName` | Setup recipe preselected for the tenant. |
+| `FeatureProfile` | Comma-separated feature profile names. |
+| `Secret` | Token secret used for the setup link. |
+| `Category`, `Description` | Shown and filterable in the tenants list. |
+
+The new tenant is `Uninitialized`; it still needs setup (database schema, admin user, recipe). Use **Setup** in the tenants list, `POST api/tenants/setup`, or `ISetupService.SetupAsync(SetupContext)` with `SetupConstants` property keys (`SiteName`, `AdminUsername`, `AdminEmail`, `AdminPassword`, `SiteTimeZone`, `DatabaseProvider`, `DatabaseConnectionString`, `DatabaseTablePrefix`, `DatabaseSchema`), which is what the API action does.
 
 ### Creating Tenants from Workflows
 
@@ -263,8 +319,30 @@ public sealed class TenantOperationService
         var shellScope = await _shellHost.GetScopeAsync(tenantName);
         await shellScope.UsingAsync(action);
     }
+
+    public async Task RunInAllRunningTenantsAsync(Func<ShellScope, Task> action)
+    {
+        foreach (var settings in _shellHost.GetAllSettings().Where(settings => settings.IsRunning()))
+        {
+            var (scope, success) = await _shellHost.TryGetScopeAsync(settings.Name);
+
+            if (success)
+            {
+                await scope.UsingAsync(action);
+            }
+        }
+    }
 }
 ```
+
+Inside the delegate, resolve services from `scope.ServiceProvider` (or `ShellScope.Services`); they belong to that tenant. From code already running in a tenant, `ShellScope.UsingChildScopeAsync(tenantName, async scope => { ... })` does the same. Never resolve tenant services such as `IContentManager` or `ISession` from the application root provider. Scope mechanics are covered in `orchardcore-shells`.
+
+### Gotchas
+
+- Creating settings is not a usable site; a new tenant must be set up before it serves requests.
+- Dispose the `ShellSettings` created by `CreateDefaultSettings()` (`.AsDisposable()` plus `using`).
+- Only the Default tenant (`ShellSettings.DefaultShellName`) manages other tenants.
+- Every module `Startup` runs per tenant, so a singleton is one instance per tenant, not per application.
 
 ### Upgrading from 3.x
 

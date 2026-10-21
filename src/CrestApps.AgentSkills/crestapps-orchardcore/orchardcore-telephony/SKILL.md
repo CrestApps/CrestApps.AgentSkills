@@ -1,6 +1,6 @@
 ---
 name: orchardcore-telephony
-description: Skill for configuring provider-agnostic telephony and the soft phone in CrestApps Orchard Core. Covers provider selection, call control, OAuth user connections, call history, SignalR hub integration, and soft phone placement. Use this skill when requests mention CrestApps Orchard Core Telephony, soft phone, click-to-dial, call history, or custom telephony providers. Strong matches include work with CrestApps.OrchardCore.Telephony, ITelephonyProvider, ITelephonyService, ITelephonyProviderResolver, TelephonyHub, TelephonySettings, and TelephonyCapabilities.
+description: Skill for configuring and extending the provider-agnostic CrestApps Orchard Core Telephony module and its soft phone. Covers the Telephony, Soft Phone, Soft Phone Extension and Azure Blob Storage features, provider selection, capability-gated provider contracts, TelephonyHub events, dial destination safety, incoming-call cards, call history, extension dialing, encrypted recording storage, TelephonyProviderOptions read through IOptionsMonitor, configuration sections, and upgrading from 2.x. Use this skill when requests mention CrestApps Telephony, soft phone, click-to-dial, extensions, call history, recording storage, or writing a custom telephony provider. Strong matches include CrestApps.OrchardCore.Telephony, CrestApps.OrchardCore.Telephony.Azure, ITelephonyProvider, TelephonyCapabilities, ITelephonyService, TelephonyHub, TelephonySettings, IIncomingCallContextProvider, IDialDestinationPolicy, IRecordingMediaStore, and ProviderVoiceEvent.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,22 +11,22 @@ metadata:
 
 ## Configure Provider-Agnostic Telephony
 
-You are an Orchard Core expert. Generate accurate code, configuration, recipes, and administration guidance for the CrestApps Telephony module. It supplies a provider-neutral call-control layer and optional floating soft phone. It does not provide an SMS abstraction or SMS provider; use Orchard Core SMS or Omnichannel features for SMS.
+You are an Orchard Core expert. Generate accurate code, configuration, recipes, and administration guidance for the CrestApps Telephony module. It supplies a provider-neutral call-control layer, a SignalR hub, call history, an internal extension registry, encrypted recording storage, and an optional floating soft phone. It does not provide SMS; use Orchard Core SMS (`orchardcore-sms`) or the Omnichannel skills for text messaging.
+
+In this module, **provider** means the telephony backend adapter (Telnyx, Asterisk, or a custom PBX or carrier integration), not the phone company in the billing sense.
 
 ### Guidelines
 
-- Install `CrestApps.OrchardCore.Telephony` in the web/startup project.
-- Enable `CrestApps.OrchardCore.Telephony` for provider resolution, services, the hub, and call-history persistence.
-- Enable `CrestApps.OrchardCore.Telephony.Admin` for the Telephony settings screen and administration menu.
-- The core feature depends on `OrchardCore.Users` and `CrestApps.OrchardCore.SignalR`.
-- Enable `CrestApps.OrchardCore.Telephony.SoftPhone` only when the floating widget is needed.
-- Select a default provider only after that provider feature is enabled and configured.
-- Use `ITelephonyService` from application code; do not invoke a provider directly unless implementing framework infrastructure.
-- Implement `ITelephonyProvider` in provider packages and declare only the capabilities actually supported.
-- Use `ITelephonyAuthenticationProvider` only when a provider requires per-user authentication.
+- Install `CrestApps.OrchardCore.Telephony` (and any provider package) in the web/startup project.
+- Enable `CrestApps.OrchardCore.Telephony` for the runtime services, the hub, call history, extensions, and the **Settings → Communication → Telephony** screen. There is no separate administration feature in 3.0.
+- The core feature depends on `OrchardCore.Users` and `OrchardCore.SignalR` (the Orchard Core framework SignalR module; see `orchardcore-signalr`).
+- Enable `CrestApps.OrchardCore.Telephony.SoftPhone` only when the floating widget or the front-end **Soft Phone** widget is needed. Enable `CrestApps.OrchardCore.Telephony.SoftPhone.Extension` for the standalone `/softphone` page used by the browser extension and desktop app.
+- Enable a provider feature (`orchardcore-telephony-telnyx`, `orchardcore-telephony-asterisk`, or your own) and select it as the default provider.
+- Call `ITelephonyService` from application code; never call a provider directly, because the service enforces capability, contract, and dial-destination checks.
+- Implement `ITelephonyProvider` plus only the capability contracts the backend really supports, and advertise exactly those `TelephonyCapabilities`.
+- Read `TelephonyProviderOptions` through `IOptionsMonitor<TelephonyProviderOptions>` and call `IOptionsUpdateNotifier.RequestUpdate<TelephonyProviderOptions>()` after a provider's settings change.
 - Keep provider credentials and user tokens server-side; never send an API key or OAuth refresh token to browser code.
-- Register a provider settings display driver in `TelephonyConstants.SettingsGroupId` so it appears on the Telephony settings screen.
-- Register hubs through `HubRouteManager`, not a fixed route, to preserve tenant prefixes and site base URLs.
+- Map hubs with `SignalRHubRoutes.GetHubPath<T>()` and generate client URLs with `Html.SignalRHubUrl<T>()`; `HubRouteManager` no longer exists.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except for View Models.
 
@@ -34,9 +34,13 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
 
 | Feature | Feature ID | Purpose |
 |---|---|---|
-| Telephony | `CrestApps.OrchardCore.Telephony` | Provider resolver, services, SignalR hub, OAuth routes, interaction history, and recording-store infrastructure |
-| Telephony Administration | `CrestApps.OrchardCore.Telephony.Admin` | Provider settings screen and administration menu |
-| Telephony Soft Phone | `CrestApps.OrchardCore.Telephony.SoftPhone` | Floating soft phone on the admin, front end, or both |
+| Telephony | `CrestApps.OrchardCore.Telephony` | Provider resolver, services, `TelephonyHub`, OAuth routes, settings screen and menu, call history, extension registry, recording store |
+| Telephony Soft Phone Core | `CrestApps.OrchardCore.Telephony.SoftPhone.Core` | Shared soft phone presenter, resources and `softphone/dial` endpoint. Enabled by dependency only |
+| Telephony Soft Phone | `CrestApps.OrchardCore.Telephony.SoftPhone` | Floating soft phone on admin pages plus a placeable **Soft Phone** widget. Depends on `OrchardCore.Widgets` |
+| Telephony Soft Phone Extension | `CrestApps.OrchardCore.Telephony.SoftPhone.Extension` | Standalone `/softphone` page and `GET /softphone/extension-config` for the CrestApps Soft Phone browser extension and desktop app |
+| Telephony - Azure Blob Storage | `CrestApps.OrchardCore.Telephony.Azure` | Stores the encrypted recording and voice-media store in Azure Blob Storage. See [references/recording-storage.md](references/recording-storage.md) |
+
+Declare a dependency on Telephony with `TelephonyConstants.Feature.Area`.
 
 ### Enable the Features
 
@@ -47,7 +51,6 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
       "name": "Feature",
       "enable": [
         "CrestApps.OrchardCore.Telephony",
-        "CrestApps.OrchardCore.Telephony.Admin",
         "CrestApps.OrchardCore.Telephony.SoftPhone"
       ],
       "disable": []
@@ -56,149 +59,222 @@ You are an Orchard Core expert. Generate accurate code, configuration, recipes, 
 }
 ```
 
-The soft-phone feature depends on the core Telephony feature. Omit it when only server-side call services are required.
-
 ## Architecture
 
-The browser never calls a telephony vendor directly:
-
 ```text
-Soft phone or custom client
-        -> TelephonyHub
-        -> ITelephonyService
-        -> ITelephonyProviderResolver
-        -> selected ITelephonyProvider
+Browser command --SignalR--> TelephonyHub --> ITelephonyService --> ITelephonyProviderResolver --> provider
+Provider webhook or stream --> ProviderVoiceEvent --> INormalizedVoiceEventIngestor --> handlers
+                                                         |
+                                                         +--> CallStateChanged pushed to the soft phone
 ```
 
-`TelephonyHub` returns `TelephonyResult` values for commands and pushes `CallStateChanged`, `IncomingCall`, and `ReceiveError` events through `ITelephonyClient`. The hub uses a tenant-aware route created by `HubRouteManager`.
+- `CrestApps.OrchardCore.Telephony.Abstractions` holds the provider contracts, request and result models, `TelephonyProviderOptions`, `TelephonySettings`, `TelephonyPermissions`, and `TelephonyConstants`. A provider module depends only on this package (plus `CrestApps.OrchardCore.ContactCenter.Abstractions` when it adapts Contact Center).
+- `CrestApps.OrchardCore.Telephony.Core` holds the normalized voice-event pipeline (`INormalizedVoiceEventIngestor`, `INormalizedVoiceEventHandler`), the extension registry services, and the default dial and transfer policies.
+- Command results only acknowledge a request. Live state comes from provider events normalized into `ProviderVoiceEvent`, so the server stays the source of truth.
 
-The core registrations include `DefaultTelephonyService`, `DefaultTelephonyProviderResolver`, `DefaultTelephonyAuthenticationService`, `DefaultTelephonyUserTokenStore`, and `DefaultTelephonyInteractionStore`. Interaction records are indexed through `TelephonyInteractionIndexProvider`.
+### The Provider Contract
 
-### Call Operations
+`ITelephonyProvider` declares only `Name` (a `LocalizedString`) and `Capabilities`. Each operation lives on its own contract. `TelephonyCapabilityContracts` maps every flag to the contract that must back it, and `DefaultTelephonyService` refuses an operation unless the provider both advertises the flag and implements the contract.
 
-`ITelephonyProvider` identifies the provider and its advertised capabilities.
-It does not contain all operations. Implement the matching capability
-interfaces only for operations a provider can execute:
+| Capability | Contract | Methods |
+|---|---|---|
+| `Dial`, `Hangup` | `ITelephonyCallControlProvider` | `DialAsync`, `HangupAsync` |
+| `ReceiveCalls` | `ITelephonyInboundCallProvider` | `AnswerAsync`, `RejectAsync` |
+| `Hold`, `Resume` | `ITelephonyHoldProvider` | `HoldAsync`, `ResumeAsync` |
+| `Mute` | `ITelephonyMuteProvider` | `MuteAsync`, `UnmuteAsync` |
+| `Transfer` | `ITelephonyTransferProvider` | `TransferAsync` |
+| `AttendedTransfer` | `ITelephonyAttendedTransferProvider` | `StartAttendedTransferAsync` |
+| `Merge` | `ITelephonyConferenceProvider` | `MergeAsync` |
+| `SendDigits` | `ITelephonyDtmfProvider` | `SendDigitsAsync` |
+| `Voicemail` | `ITelephonyVoicemailProvider` | `SendToVoicemailAsync` |
+| `Directory` | `ITelephonyDirectoryProvider` | `GetDirectoryAsync` |
+| `ExtensionDial`, `ExtensionConference` | `ITelephonyExtensionDialProvider` | `DialExtensionAsync`, `AddExtensionToConferenceAsync` |
+| `BridgedDial` | `ITelephonyCallControlProvider` | `DialAsync` with `RequestMetadata.SoftPhoneCredentialId` set |
 
-| Intent | Capability contract and method |
+Optional contracts that are not capability-gated:
+
+| Contract | Purpose |
 |---|---|
-| Start or end a call | `ITelephonyCallControlProvider` with `DialAsync` and `HangupAsync` |
-| Pause and continue | `ITelephonyHoldProvider` with `HoldAsync` and `ResumeAsync` |
-| Control local audio | `ITelephonyMuteProvider` with `MuteAsync` and `UnmuteAsync` |
-| Blind transfer or conference | `ITelephonyTransferProvider` or `ITelephonyConferenceProvider` |
-| Send DTMF | `ITelephonyDtmfProvider.SendDigitsAsync` |
-| Handle an incoming call | `ITelephonyInboundCallProvider` |
-| Initialize a browser client | `ITelephonySoftPhoneCredentialsProvider.GetClientCredentialsAsync` |
+| `ITelephonySoftPhoneCredentialsProvider` | `GetClientCredentialsAsync` issues browser bootstrap credentials |
+| `ITelephonyCallStateProvider` | `GetCallStateAsync` reports provider-authoritative call state for reconciliation |
+| `ITelephonyAudioProvider` | `AudioCapabilities` (`Browser`, `ExternalDevice`), `ConfiguredAudioMode`, `BrowserMediaAdapterName` |
+| `ITelephonyConsultTransferProvider` | `GetConsultAsync`, `CompleteConsultAsync`, `CancelConsultAsync` for a transfer carried out as a consult call |
+| `ITelephonyAuthenticationProvider` | Per-user OAuth for providers that need it (the built-in providers do not) |
 
-Expose supported operations in `TelephonyCapabilities`. The widget hides controls that are not represented by the provider capability flags.
+Every operation returns `TelephonyResult` with `Succeeded`, `OutcomeUnknown`, `Error`, `ErrorCode`, and `Call`. Use `TelephonyResult.Unknown(...)` when a provider cannot confirm the outcome (for example a timeout after the request was sent) so callers never retry an operation that may have succeeded.
 
-## Configure a Provider
+For the full provider walkthrough, event normalization rules, and transport models, see [references/custom-providers.md](references/custom-providers.md).
 
-Enable the Telephony Administration feature, then enable a provider feature and
-configure it under **Settings → Communication → Telephony**. The Soft Phone
-tab selects the default enabled provider and configures widget placement. A
-provider module adds its own tab through a site display driver.
+## Site Settings
 
-The default provider lives in `TelephonySettings.DefaultProviderName`. When the sole configured provider is enabled it becomes the default automatically. Disabling the selected provider clears the default.
+Settings live under **Settings → Communication → Telephony** (group `TelephonyConstants.SettingsGroupId`, value `telephony`) and require `ManageTelephonySettings`. The **Soft Phone** tab selects the default provider and lists **Allowed short codes**; every enabled provider adds its own tab through a `SiteDisplayDriver<TSettings>` whose `SettingsGroupId` is `TelephonyConstants.SettingsGroupId`.
 
-### API-Key and Per-User Authentication
+- Enabling the only configured provider makes it the default. Disabling the default provider clears `TelephonySettings.DefaultProviderName` and the soft phone is disabled until a new default is chosen.
+- Settings export through the **Telephony Settings** and **Soft Phone Widget Settings** deployment steps and import through the built-in `Settings` recipe step. Provider credentials travel through each provider's own step.
 
-Use shared credentials when one tenant-level account makes calls. Do not add an authentication provider for that case.
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "TelephonySettings": {
+        "DefaultProviderName": "Telnyx",
+        "AllowedShortCodes": ["611"]
+      },
+      "SoftPhoneWidgetSettings": {
+        "Enabled": true,
+        "DisplayOnAdmin": true,
+        "EnableDiagnostics": false,
+        "AccentColor": "#2f6fed",
+        "RecentCallsCount": 30,
+        "DefaultCountryCode": "US"
+      }
+    }
+  ]
+}
+```
 
-For OAuth-like per-user providers:
+### Dial Destination Safety
 
-1. Implement `ITelephonyAuthenticationProvider`.
-2. Return the appropriate `AuthenticationScheme`; OAuth providers use `TelephonyConstants.AuthenticationSchemes.OAuth2`.
-3. Build authorization and token-exchange requests in the provider.
-4. Let `ITelephonyAuthenticationService` and `ITelephonyUserTokenStore` persist encrypted user tokens.
-5. Register `{scheme}://{host}/Telephony/Connect/Callback`, including any tenant URL prefix, with the remote provider.
+Every dial and transfer path (keypad, transfer field, extension field, Contact Center dial and transfer) is checked by `IDialDestinationPolicy.Evaluate(address, DialDestinationContext)` before a provider is reached. The default policy refuses emergency short codes (`911`, `112`, `999`, `000` and others), premium-rate prefixes (`1900`, `1976`, `4470`), and anything that is neither a dialable international number nor an allowed short code. **Allowed short codes** can never open an emergency code. This is a refusal to originate, not an emergency-calling capability.
 
-The core module maps the `TelephonyOAuthConnect`, `TelephonyOAuthCallback`, and `TelephonyOAuthDisconnect` routes. Do not duplicate these routes in a provider module.
+`ITransferTargetPolicy` decides what an agent may transfer to. Contact Center Voice replaces it with a curated-destination policy, and replaces `IOutboundLineResolver` so each user dials out from an assigned line (see `orchardcore-contact-center`).
 
 ## Soft Phone
 
-Enable `CrestApps.OrchardCore.Telephony.SoftPhone`, then configure the **Soft Phone** tab:
+With `CrestApps.OrchardCore.Telephony.SoftPhone` enabled, the **Soft Phone** tab configures `SoftPhoneWidgetSettings`:
 
-- Show on the admin dashboard.
-- Show on the front end.
-- Choose an accent color.
+| Setting | Property | Default |
+|---|---|---|
+| Enable the soft phone (kill switch) | `Enabled` | `true` |
+| Show on the admin dashboard | `DisplayOnAdmin` | `true` |
+| Enable the diagnostics tab | `EnableDiagnostics` | `false` (or add `?diag=1` to a URL for one session) |
+| Default country | `DefaultCountryCode` | Automatic (culture, then browser locale, then United States) |
+| Accent color | `AccentColor` | `#2f6fed` |
+| Recent calls to display | `RecentCallsCount` | `30` (1 to 200) |
 
-The widget is shown only where enabled and only to users with the `Use the telephony soft phone` permission. Its position and expanded state are persisted in browser local storage.
-
-For manual placement, register the resources and render `SoftPhoneWidget`:
+- The widget renders only for users with `UseTelephonySoftPhone` (display name "Use the telephony soft phone").
+- Admin pages get the widget in the `Footer` zone automatically. For the front end, add the **Soft Phone** widget from **Design → Widgets**, optionally on an authenticated layer.
+- To render it in a theme without a widget, render the `SoftPhoneWidget` shape through `IDisplayManager<SoftPhoneWidget>` and register the resources. `telephony-soft-phone` depends on `signalr`, `telephony-client`, and `intl-tel-input`, so ResourceManager resolves them.
 
 ```cshtml
 <style asp-name="telephony-soft-phone" at="Head"></style>
 <script asp-name="telephony-soft-phone" at="Foot"></script>
 <script asp-name="telephony-phone-field" at="Foot"></script>
-
-@await DisplayAsync(await New.SoftPhoneWidget())
 ```
 
-The `telephony-soft-phone` resource depends on the SignalR resource. The widget also augments phone-field `data-phone-dial` placeholders to support click-to-dial.
+- The keypad normalizes a valid national number to E.164 using intl-tel-input so outbound compliance screening (`orchardcore-dnc-registry`, `orchardcore-phone-numbers`) sees a canonical number. The **Dial extension** toggle sends `DialRequest.IsExtension` and skips that screening.
+- The Phone Field editor and display expose a `data-phone-dial` placeholder; the soft phone attaches a **Call with the soft phone** button that posts to `softphone/dial`. With the Extension feature, `SoftPhoneExtensionDialerFilter` enables the button on admin pages and the hub sends `DialRequested` to the standalone phone.
+- Modules add footer tabs with a `DisplayDriver<SoftPhoneWidget>`; Contact Center adds the **Work** tab this way.
+- Browser audio providers register `window.telephonySoftPhone.mediaAdapters[adapterName]`; the server provider must implement `ITelephonyAudioProvider`, advertise `Browser`, and return the same `BrowserMediaAdapterName`.
 
-## Call History
+### Hub and Client Events
 
-The core service persists calls through `ITelephonyInteractionStore`. `TelephonyInteractionIndex` records provider interaction id, provider name, user, direction, outcome, call timestamps, and duration. This history remains available after a provider feature is removed.
+`TelephonyHub` authorizes every method against `UseTelephonySoftPhone` and joins a tenant-qualified user group. Main methods include `Dial`, `Hangup`, `Hold`, `Resume`, `Mute`, `Unmute`, `Transfer`, `Merge`, `SendDigits`, `Answer`, `Reject`, `Voicemail`, `DialExtension`, `AddExtensionToConference`, `GetConsult`, `CompleteConsult`, `CancelConsult`, `GetActiveCall`, `GetActiveCalls`, `GetInteractions`, `GetExtensionDirectory`, `GetDirectory`, `GetCapabilities`, `GetCredentials`, and `GetConnectionStatus`.
 
-Use the hub’s `GetInteractions` support for the widget’s recent-calls view. Provider webhooks may report inbound calls, but outbound calls placed through the hub are recorded by the core flow.
+`ITelephonyClient` pushes `CallStateChanged`, `IncomingCall`, `IncomingCallAnswered`, `CredentialsIssued`, `RemotePartyChanged`, `DialRequested`, and `ReceiveError`. Providers report ringback state through `ITelephonyRemotePartyNotifier.NotifyAsync(providerName, providerCallId, RemotePartyState)`, which drives the `RemotePartyChanged` message and the soft phone's ringback tone.
 
-## Creating a Provider
+## Incoming Calls
 
-Reference `CrestApps.OrchardCore.Telephony.Abstractions` from the provider project. Install any resulting CrestApps package in the consuming web/startup project.
+Telephony owns the incoming-call modal and media controls; it does not decide who receives a call. An orchestration module resolves the user and calls `IIncomingCallDispatcher.DispatchAsync(userId, call)`. Other modules add cards to the modal with `IIncomingCallContextProvider`:
 
 ```csharp
 using CrestApps.OrchardCore.Telephony;
 using CrestApps.OrchardCore.Telephony.Models;
-using Microsoft.Extensions.Localization;
 
-namespace MyCompany.OrchardCore.MyTelephony;
+namespace MyCompany.OrchardCore.Crm;
 
-public sealed class MyTelephonyProvider : ITelephonyProvider, ITelephonyCallControlProvider
+public sealed class CustomerIncomingCallContextProvider : IIncomingCallContextProvider
 {
-    public LocalizedString Name => new("MyTelephony", "My Telephony");
-
-    public TelephonyCapabilities Capabilities => TelephonyCapabilities.Dial | TelephonyCapabilities.Hangup;
-
-    public Task<TelephonyResult> DialAsync(DialRequest request, CancellationToken cancellationToken = default)
+    public Task ContributeAsync(IncomingCallContributionContext context, CancellationToken cancellationToken = default)
     {
-        // Translate the normalized request into the vendor API request.
-        throw new NotImplementedException();
-    }
+        context.Cards.Add(new IncomingCallCard
+        {
+            Title = "Jane Doe",
+            Subtitle = context.Call.From,
+            Icon = "fa-solid fa-user",
+            Url = "/Admin/Contents/ContentItems/4k9.../Edit",
+        });
 
-    public Task<TelephonyResult> HangupAsync(CallReference call, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        return Task.CompletedTask;
+    }
 }
 ```
 
-Add only `ITelephonyHoldProvider`, `ITelephonyMuteProvider`,
-`ITelephonyTransferProvider`, `ITelephonyConferenceProvider`,
-`ITelephonyDtmfProvider`, `ITelephonyInboundCallProvider`, or
-`ITelephonySoftPhoneCredentialsProvider` when the provider implements the
-associated operation. Keep `TelephonyCapabilities` aligned with those
-implemented contracts; the service fails closed when either is absent.
+Register it with `services.AddScoped<IIncomingCallContextProvider, CustomerIncomingCallContextProvider>()`. Each card renders **Answer & open** and **Open** actions. Setting `context.Properties["acceptUrl"]` and `context.Properties["declineUrl"]` makes the modal post to those URLs as the agent answers or ignores the call.
 
-Register provider availability through `TelephonyProviderOptions`. Read the tenant settings in an `IConfigureOptions<TelephonyProviderOptions>` implementation and add a `TelephonyProviderTypeOptions` only when the provider is enabled:
+## Call History
 
-```csharp
-services.AddTelephonyProviderOptionsConfiguration<MyTelephonyProviderOptionsConfiguration>();
-services.AddSiteDisplayDriver<MyTelephonySettingsDisplayDriver>();
+`TelephonyCallHistoryVoiceEventHandler` and the hub persist every call through `ITelephonyInteractionStore`, indexed by `TelephonyInteractionIndex` (provider interaction id, provider name, user, direction, outcome, timestamps, duration). History survives removal of a provider. Updates use optimistic concurrency. Active-call restoration calls `GetActiveCalls`, which validates each in-progress record against `ITelephonyCallStateProvider` and deletes confirmed orphans.
+
+## Extensions
+
+The tenant-scoped extension registry maps a dialed number to an Orchard user, managed under **Interaction Center → Management → Extensions** with `ManageTelephonyExtensions`. The list is an Orchard Core `AdminList` named `TelephonyExtensions` with `Name`, `Number`, and `User` grid columns, so other modules can add columns through `IAdminListColumnsProvider` (see `orchardcore-admin-lists`). Extensions import through the `TelephonyExtension` recipe step. Details, the provider contract, and the recipe shape are in [references/extension-dialing.md](references/extension-dialing.md).
+
+## Recording Storage
+
+`IRecordingMediaStore` holds Contact Center call recordings and voice-media master copies, encrypted with the tenant data-protection key, by default under `App_Data/Sites/{tenant}/RecordingMedia`. Writes stream from `RecordingMediaWriteRequest.Content` (a `Stream`); `OpenReadAsync` returns a seekable decrypting stream. Enable `CrestApps.OrchardCore.Telephony.Azure` to move the ciphertext to Azure Blob Storage. See [references/recording-storage.md](references/recording-storage.md).
+
+## Configuration Sections
+
+| Section | Keys |
+|---|---|
+| `CrestApps_Telephony:Commands` | `Timeout` (default `00:00:10`, 1 second to 2 minutes). The deadline for one PBX command |
+| `CrestApps_Telephony:Coordination` | `InteractionLockTimeout` (`00:00:05`), `InteractionLockExpiration` (`00:02:00`), `NewInteractionGracePeriod` (`00:00:15`), `ClientRecordedCallMaxAge` (`04:00:00`), `ClientRecordedCallSilenceTimeout` (`00:05:00`), `TokenRefreshLockTimeout` (`00:00:10`), `TokenRefreshLockExpiration` (`00:01:00`) |
+| `CrestApps:Telephony:AzureRecordings` | `ConnectionString`, `ContainerName`, `BasePath`, `CreateContainer` |
+
+```json
+{
+  "OrchardCore": {
+    "CrestApps_Telephony": {
+      "Commands": {
+        "Timeout": "00:00:15"
+      },
+      "Coordination": {
+        "InteractionLockTimeout": "00:00:10"
+      }
+    }
+  }
+}
 ```
 
-Use a stable provider technical name. The resolver uses the configured default provider name and should not rely on the display name.
+Environment variables keep the single underscore, for example `OrchardCore__CrestApps_Telephony__Commands__Timeout=00:00:15`. Options are validated on tenant activation, and each lease expiration must exceed its lock timeout.
 
-## Permissions and Operations
+## Permissions
 
-Telephony contributes administration permissions for managing Telephony settings and a user-facing permission for using the soft phone. Grant the latter narrowly. Provider configuration, OAuth callbacks, and saved user tokens must be protected by the tenant’s data-protection configuration.
+| Permission | Name | Use |
+|---|---|---|
+| `TelephonyPermissions.ManageTelephonySettings` | `ManageTelephonySettings` | Telephony settings screen and every provider tab |
+| `TelephonyPermissions.UseSoftPhone` | `UseTelephonySoftPhone` | Soft phone widget, hub, `/softphone` page |
+| `TelephonyPermissions.ManageExtensions` | `ManageTelephonyExtensions` | Extension registry |
 
-Prefer explicit error results from provider operations. A `TelephonyResult` allows the hub to notify the client without leaking provider secrets or raw API payloads.
+## Upgrading from 2.x
+
+- Remove `CrestApps.OrchardCore.Telephony.Admin` from recipes and deployment plans; the settings screen and menu are part of `CrestApps.OrchardCore.Telephony`. `TelephonyConstants.Feature.Admin`, `TelephonyAdminStartup`, and `AsteriskAdminStartup` are removed; depend on `TelephonyConstants.Feature.Area`.
+- The Dialpad provider (`CrestApps.OrchardCore.Dialpad`) is removed. Move to Telnyx (`orchardcore-telephony-telnyx`), Asterisk (`orchardcore-telephony-asterisk`), or a custom provider, and update `TelephonySettings.DefaultProviderName`.
+- Read `TelephonyProviderOptions` (and `TelnyxOptions`) through `IOptionsMonitor<T>.CurrentValue` or `IOptionsSnapshot<T>`. `IOptions<T>` keeps the first value and never sees a settings change. Custom providers call `IOptionsUpdateNotifier.RequestUpdate<TelephonyProviderOptions>()` after saving settings.
+- `ITelephonyAuthenticationProvider.RevokeTokensAsync` and `ITelephonyAuthenticationService.DisconnectAsync` return `Task<TelephonyResult>`.
+- `RecordingMediaWriteRequest.Content` is a `Stream`, not `byte[]`; `InteractionId` is `null` for voice-media master copies.
+- Custom `ITelephonyUserAccessor` implementations add `ReloadCurrentUserAsync()` and `PersistCurrentUserAsync(Func<IUser, bool> mutate)`.
+- `IVoiceMediaProvisioner` gains `GetAvailabilityAsync(mediaReference, cancellationToken)` returning `VoiceMediaAvailability`; the default answers `Unknown`, so override it to let a lost provider copy be re-uploaded from the master copy.
+- The CrestApps SignalR module is deprecated in favor of `OrchardCore.SignalR`; replace `HubRouteManager` with `SignalRHubRoutes.GetHubPath<T>()` and `Html.SignalRHubUrl<T>()`.
+- The extension list renders through the Orchard Core `AdminList` shape; whole-row template overrides only apply to the List layout. Use `SummaryAdminGrid` placement for the Grid layout.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Widget says Not Ready | Ensure a provider is enabled, selected as `DefaultProviderName`, and exposes the required capability contracts |
-| Widget never renders | Enable `CrestApps.OrchardCore.Telephony.SoftPhone`, select an admin or front-end surface, and grant use permission |
-| OAuth callback fails | Verify the callback URL, tenant prefix, client credentials, and provider OAuth settings |
-| Controls are missing | Confirm the provider reports the matching `TelephonyCapabilities` flags |
-| Hub URL is wrong behind a prefix | Map and generate routes through `HubRouteManager` |
-| Call history is empty | Ensure calls pass through `ITelephonyService` or report interactions through the core interaction store |
+| Widget says no provider is configured | Enable a provider, configure it, and select it as the default on the **Soft Phone** tab |
+| Widget never renders | Enable `CrestApps.OrchardCore.Telephony.SoftPhone`, keep **Enable the soft phone** on, and grant `UseTelephonySoftPhone` |
+| A control is missing | The provider must advertise the `TelephonyCapabilities` flag and implement the matching contract |
+| Settings change ignored until restart | Code reads `IOptions<TelephonyProviderOptions>`; switch to `IOptionsMonitor` |
+| Dial refused for a short code | Add it to **Allowed short codes** (emergency codes can never be allowed) |
+| Hub URL wrong behind a tenant prefix | Use `Html.SignalRHubUrl<TelephonyHub>()` |
+| Call stays connected after the far end hung up | The provider must normalize its events into `ProviderVoiceEvent` and implement `ITelephonyCallStateProvider` |
+
+## Related Skills
+
+- `orchardcore-telephony-telnyx` and `orchardcore-telephony-asterisk` for the built-in providers.
+- `orchardcore-contact-center` for queues, routing, the dialer, recording governance, and Contact Center voice provider adapters.
+- `orchardcore-signalr`, `orchardcore-websockets`, `orchardcore-phone-numbers`, `orchardcore-dnc-registry`.
+- `orchardcore-admin-lists`, `orchardcore-site-settings`, `orchardcore-configuration` for the framework mechanics.

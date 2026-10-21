@@ -1,118 +1,94 @@
 ---
 name: orchardcore-custom-indexing-azureai
-description: Skill for creating Orchard Core custom indexing pipelines for arbitrary data using Azure AI Search, based on CrestApps AI Memory and OrchardCore.Indexing patterns. Use this skill when requests mention Orchard Core Custom Indexing for Azure AI Search, Create a custom Azure AI Search index for arbitrary data, When to use this skill, Architecture to follow, Master index pattern, Key Orchard Core pieces, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.Indexing, CrestApps.OrchardCore.AI.Memory, CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing.Core, OrchardCore.AzureAI, OrchardCore.Entities, OrchardCore.Indexing.Models, OrchardCore.Infrastructure.Entities, OrchardCore.AzureAI.Core. It also helps with Master index pattern, Key Orchard Core pieces, Recommended implementation steps, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for building a custom Azure AI Search index for arbitrary records in Orchard Core 4.0, following the CrestApps AI Memory pattern of CrestApps.OrchardCore 3.0. Covers a custom index profile type with AddAzureAISearchIndexingSource, IndexProfileHandlerBase mappings with AzureAISearchIndexMetadata, AzureAISearchIndexMap with IndexingKey and AzureFieldKey, vector fields with AzureAISearchIndexMapVectorInfo and VectorSearchMappings, normalizing managed mappings in LoadedAsync, an embedding deployment from the embedding slot stored in DataSourceIndexProfileMetadata, IDocumentIndexHandler mapping, a custom indexing service with the keyed IDocumentIndexManager, deferred lifecycle indexing, and re-sync through SynchronizedAsync. Use it for custom Azure AI Search indexing of non-content data, vector search over custom records, or questions about CrestApps.OrchardCore.AI.Memory.AzureAI, OrchardCore.Indexing, OrchardCore.AzureAI, IIndexProfileStore, IndexProfileEmbeddingMetadataAccessor, and VectorizedQuery.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Custom Indexing for Azure AI Search - Prompt Templates
+# Orchard Core Custom Indexing for Azure AI Search
 
-## Create a custom Azure AI Search index for arbitrary data
+## Index arbitrary records into Azure AI Search
 
-You are an Orchard Core expert. Generate code and configuration for indexing arbitrary records into Azure AI Search using Orchard Core index profiles, document handlers, and provider-specific mappings.
+You are an Orchard Core expert. Generate code that indexes custom records (not content items) into an Azure AI Search index profile, optionally with vectors. Model it on `CrestApps.OrchardCore.AI.Memory` (records, settings, indexing service) and `CrestApps.OrchardCore.AI.Memory.AzureAI` (provider registration and mappings).
 
-### When to use this skill
+### When to use it
 
-Use this skill when Orchard content-item indexing is not enough and you need an index for custom records such as:
+- Records you store yourself (CRM rows, generated summaries, user-scoped facts, imported data) that need full-text, filtered, or vector search.
+- For Orchard content items use the built-in content index (see `orchardcore-azure-ai-search`). For RAG over an index you already have, an AI data source is usually enough (see `orchardcore-ai-data-sources`).
 
-- generated AI artifacts
-- domain records stored in a custom catalog
-- user-scoped memory or preference records
-- imported external business data
-- custom vector-search sources
+### Architecture
 
-## Architecture to follow
+The shared module (records, neutral document, master-index setting, indexing service, lifecycle handler, re-sync handler) is identical to the Elasticsearch variant; build it as shown in `orchardcore-custom-indexing-elasticsearch`. This skill covers the Azure AI Search provider module and what differs.
 
-Use the CrestApps AI Memory modules as the reference architecture:
+| Piece | Namespace | Role |
+|---|---|---|
+| `AddAzureAISearchIndexingSource(type, o => ...)` | `OrchardCore.AzureAI` | Adds the index type to **Search > Indexing** |
+| `IndexProfileHandlerBase` | `OrchardCore.Indexing.Core.Handlers` | Shapes the profile on initialize, create, update, and load |
+| `AzureAISearchIndexMetadata`, `AzureAISearchIndexMap`, `AzureAISearchIndexMapVectorInfo`, `VectorSearchMappings` | `OrchardCore.AzureAI.Models` | Field and vector configuration |
+| `AzureAISearchConstants.ProviderName` | `OrchardCore.AzureAI` | The provider key (`AzureAISearch`) |
+| `IDocumentIndexHandler`, keyed `IDocumentIndexManager` | `OrchardCore.Indexing` | Map and write documents |
+| `IndexProfileEmbeddingMetadataAccessor` | `CrestApps.OrchardCore.AI.Core` | Reads the embedding deployment from `DataSourceIndexProfileMetadata` |
 
-- `CrestApps.OrchardCore.AI.Memory` contains the shared record/indexing logic and the master index setting.
-- `CrestApps.OrchardCore.AI.Memory.AzureAI` registers the Azure AI Search indexing source plus provider-specific handlers.
-- `CrestApps.OrchardCore.AI.Memory.Elasticsearch` proves the same neutral-document approach can target another provider with different mappings.
-
-### Master index pattern
-
-For arbitrary data, create a single logical index profile type for that record family and let the tenant choose the active master index profile by name.
-
-Then:
-
-1. persist the source record in your own store
-2. build a neutral index document model from it
-3. use `IDocumentIndexHandler` to map that neutral document into Azure AI Search fields
-4. write through the keyed `IDocumentIndexManager`
-5. trigger add/update/delete from the record lifecycle, not a single UI path
-
-## Key Orchard Core pieces
-
-- `IIndexProfileStore`
-- `IndexProfileHandlerBase`
-- `IDocumentIndexHandler`
-- keyed `IDocumentIndexManager`
-- `services.AddAzureAISearchIndexingSource(type, options => ...)`
-
-## Recommended implementation steps
-
-### 1. Define the custom index profile type
+### 1. Register the provider
 
 ```csharp
-public static class CustomerInsightsConstants
-{
-    public const string IndexingTaskType = "CustomerInsights";
-}
-```
-
-### 2. Add profile metadata for provider-independent indexing configuration
-
-```csharp
-public sealed class CustomerInsightIndexProfileMetadata
-{
-    public string EmbeddingProviderName { get; set; }
-    public string EmbeddingConnectionName { get; set; }
-    public string EmbeddingDeploymentName { get; set; }
-}
-```
-
-Current CrestApps AI index profiles read embedding selection through
-`IndexProfileEmbeddingMetadataAccessor`. Do not couple a new module to the
-legacy `AIMemoryIndexProfileMetadata` key. Store custom metadata only for
-settings the shared embedding metadata does not already represent.
-
-### 3. Register the Azure AI Search source
-
-```csharp
-using OrchardCore.Indexing;
-using OrchardCore.Indexing.Core;
-using OrchardCore.AzureAI;
-
 public sealed class Startup : StartupBase
 {
+    internal readonly IStringLocalizer S;
+
+    public Startup(IStringLocalizer<Startup> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddIndexProfileHandler<CustomerInsightAzureAISearchIndexProfileHandler>();
         services.AddScoped<IDocumentIndexHandler, CustomerInsightAzureAISearchDocumentIndexHandler>();
 
-        services.AddAzureAISearchIndexingSource(CustomerInsightsConstants.IndexingTaskType, options =>
+        services.AddAzureAISearchIndexingSource(CustomerInsightsConstants.IndexingTaskType, o =>
         {
-            options.DisplayName = S["Customer insights (Azure AI Search)"];
-            options.Description = S["Create an Azure AI Search index for custom customer insight records."];
+            o.DisplayName = S["Customer insights (Azure AI Search)"];
+            o.Description = S["Create an Azure AI Search index for customer insight records."];
         });
     }
 }
 ```
 
-### 4. Configure Azure AI Search mappings in an index-profile handler
+The provider module depends on your shared feature, `OrchardCore.Indexing`, and `OrchardCore.AzureAI`.
+
+### 2. Shape the fields
+
+Azure AI Search mappings need both keys on every map: `AzureFieldKey` names the Azure field and `IndexingKey` names the `DocumentIndex` entry it is filled from. Missing indexing keys make upserts fail with null-key mapping errors. A vector field needs a vector search profile.
 
 ```csharp
-using OrchardCore.Entities;
-using OrchardCore.Indexing.Models;
-using OrchardCore.Infrastructure.Entities;
-using OrchardCore.AzureAI;
-using OrchardCore.AzureAI.Core;
-using OrchardCore.AzureAI.Models;
-
 public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfileHandlerBase
 {
+    private const int DefaultDimensions = 1536;
+
+    private static readonly HashSet<string> _managedFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        CustomerInsightsConstants.ColumnNames.RecordId,
+        CustomerInsightsConstants.ColumnNames.CustomerId,
+        CustomerInsightsConstants.ColumnNames.Title,
+        CustomerInsightsConstants.ColumnNames.Content,
+        CustomerInsightsConstants.ColumnNames.UpdatedUtc,
+        CustomerInsightsConstants.ColumnNames.Embedding,
+    };
+
+    private readonly IAIDeploymentManager _deploymentManager;
+    private readonly IAIClientFactory _aiClientFactory;
+
+    public CustomerInsightAzureAISearchIndexProfileHandler(
+        IAIDeploymentManager deploymentManager,
+        IAIClientFactory aiClientFactory)
+    {
+        _deploymentManager = deploymentManager;
+        _aiClientFactory = aiClientFactory;
+    }
+
     public override Task InitializingAsync(InitializingContext<IndexProfile> context)
         => SetMappingAsync(context.Model);
 
@@ -122,182 +98,210 @@ public sealed class CustomerInsightAzureAISearchIndexProfileHandler : IndexProfi
     public override Task UpdatingAsync(UpdatingContext<IndexProfile> context)
         => SetMappingAsync(context.Model);
 
-    private static Task SetMappingAsync(IndexProfile indexProfile)
+    public override Task LoadedAsync(LoadedContext<IndexProfile> context)
     {
-        if (!string.Equals(indexProfile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(indexProfile.ProviderName, AzureAISearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase))
+        if (CanHandle(context.Model))
         {
-            return Task.CompletedTask;
+            var metadata = context.Model.GetOrCreate<AzureAISearchIndexMetadata>();
+            Normalize(metadata, dimensions: null);
+            context.Model.Put(metadata);
         }
 
-        if (!indexProfile.TryGet<AzureAISearchIndexMetadata>(out var metadata))
-        {
-            metadata = new AzureAISearchIndexMetadata();
-        }
-
-        metadata.IndexMappings ??= [];
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "RecordId",
-            Type = DocumentIndex.Types.Text,
-            IsKey = true,
-            IsFilterable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "CustomerId",
-            Type = DocumentIndex.Types.Text,
-            IsFilterable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "Title",
-            Type = DocumentIndex.Types.Text,
-            IsSearchable = true,
-            IsFilterable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "Summary",
-            Type = DocumentIndex.Types.Text,
-            IsSearchable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "Content",
-            Type = DocumentIndex.Types.Text,
-            IsSearchable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "UpdatedUtc",
-            Type = DocumentIndex.Types.DateTime,
-            IsFilterable = true,
-            IsSortable = true,
-        });
-        metadata.IndexMappings.Add(new AzureAISearchIndexMap
-        {
-            AzureFieldKey = "Embedding",
-            Type = DocumentIndex.Types.Vector,
-            IsSearchable = true,
-            VectorInfo = new AzureAISearchIndexMapVectorInfo
-            {
-                Dimensions = 1536,
-                VectorSearchConfiguration = "default",
-            },
-        });
-
-        indexProfile.Put(metadata);
         return Task.CompletedTask;
     }
+
+    private async Task SetMappingAsync(IndexProfile indexProfile)
+    {
+        if (!CanHandle(indexProfile))
+        {
+            return;
+        }
+
+        var metadata = indexProfile.GetOrCreate<AzureAISearchIndexMetadata>();
+
+        Normalize(metadata, await GetEmbeddingDimensionsAsync(indexProfile));
+
+        metadata.VectorSearchMappings = new VectorSearchMappings
+        {
+            Profiles =
+            [
+                new VectorSearchProfileMap
+                {
+                    Name = "default",
+                    AlgorithmConfigurationName = "default-hnsw",
+                },
+            ],
+            Algorithms =
+            [
+                new VectorSearchAlgorithmMap
+                {
+                    Name = "default-hnsw",
+                    Kind = VectorSearchAlgorithmMap.HnswKind,
+                },
+            ],
+        };
+
+        indexProfile.Put(metadata);
+    }
+
+    // Rebuilds the managed fields once each and keeps any custom field the administrator added.
+    private static void Normalize(AzureAISearchIndexMetadata metadata, int? dimensions)
+    {
+        var existing = new Dictionary<string, AzureAISearchIndexMap>(StringComparer.OrdinalIgnoreCase);
+        var custom = new List<AzureAISearchIndexMap>();
+
+        foreach (var map in metadata.IndexMappings)
+        {
+            map.IndexingKey ??= map.AzureFieldKey;
+            var key = map.AzureFieldKey ?? map.IndexingKey;
+
+            if (!_managedFields.Contains(key))
+            {
+                custom.Add(map);
+            }
+            else
+            {
+                existing.TryAdd(key, map);
+            }
+        }
+
+        metadata.IndexMappings.Clear();
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.RecordId, DocumentIndex.Types.Text, m =>
+        {
+            m.IsKey = true;
+            m.IsFilterable = true;
+        }));
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.CustomerId, DocumentIndex.Types.Text, m => m.IsFilterable = true));
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.Title, DocumentIndex.Types.Text, m => m.IsSearchable = true));
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.Content, DocumentIndex.Types.Text, m => m.IsSearchable = true));
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.UpdatedUtc, DocumentIndex.Types.DateTime, m =>
+        {
+            m.IsFilterable = true;
+            m.IsSortable = true;
+        }));
+        metadata.IndexMappings.Add(Map(existing, CustomerInsightsConstants.ColumnNames.Embedding, DocumentIndex.Types.Vector, m =>
+        {
+            var current = m.VectorInfo?.Dimensions;
+            m.IsSearchable = true;
+            m.VectorInfo = new AzureAISearchIndexMapVectorInfo
+            {
+                Dimensions = dimensions ?? current ?? DefaultDimensions,
+                VectorSearchConfiguration = "default",
+            };
+        }));
+
+        foreach (var map in custom)
+        {
+            metadata.IndexMappings.Add(map);
+        }
+    }
+
+    private static AzureAISearchIndexMap Map(
+        Dictionary<string, AzureAISearchIndexMap> existing,
+        string key,
+        DocumentIndex.Types type,
+        Action<AzureAISearchIndexMap> configure)
+    {
+        if (!existing.TryGetValue(key, out var map))
+        {
+            map = new AzureAISearchIndexMap();
+        }
+
+        map.IndexingKey = key;
+        map.AzureFieldKey = key;
+        map.Type = type;
+        map.IsKey = false;
+        map.IsFilterable = false;
+        map.IsSortable = false;
+        map.IsSearchable = false;
+        configure(map);
+
+        return map;
+    }
+
+    private async Task<int> GetEmbeddingDimensionsAsync(IndexProfile indexProfile)
+    {
+        var deploymentName = IndexProfileEmbeddingMetadataAccessor.GetMetadata(indexProfile).GetEmbeddingDeploymentName();
+        var deployment = string.IsNullOrWhiteSpace(deploymentName) ? null : await _deploymentManager.FindByNameAsync(deploymentName);
+
+        if (deployment is null)
+        {
+            return DefaultDimensions;
+        }
+
+        var generator = await _aiClientFactory.CreateEmbeddingGeneratorAsync(deployment, builder => builder
+            .UseDefaultResilience()
+            .UseUsageLabels(purpose: AIUsagePurposes.Indexing));
+
+        if (generator is null)
+        {
+            return DefaultDimensions;
+        }
+
+        var embeddings = await generator.GenerateAsync(["Sample"]);
+
+        return embeddings?.Count > 0 && embeddings[0].Vector.Length > 0
+            ? embeddings[0].Vector.Length
+            : DefaultDimensions;
+    }
+
+    private static bool CanHandle(IndexProfile indexProfile)
+        => string.Equals(indexProfile.Type, CustomerInsightsConstants.IndexingTaskType, StringComparison.OrdinalIgnoreCase) &&
+           string.Equals(indexProfile.ProviderName, AzureAISearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase);
 }
 ```
 
-### 5. Map neutral records into Azure AI Search documents
+Normalizing in `LoadedAsync` keeps reopening and saving the profile from appending duplicate managed fields, which is the bug the CrestApps memory, documents, and data source handlers fixed. Wrap the dimension probe in a `try`/`catch` that logs and falls back in production code.
+
+### 3. Map the neutral document
 
 ```csharp
-using OrchardCore.Indexing;
-using OrchardCore.Indexing.Models;
-using OrchardCore.AzureAI;
-
 public sealed class CustomerInsightAzureAISearchDocumentIndexHandler : IDocumentIndexHandler
 {
     public Task BuildIndexAsync(BuildDocumentIndexContext context)
     {
-        if (context.Record is not CustomerInsightIndexDocument record)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (!context.AdditionalProperties.TryGetValue(nameof(IndexProfile), out var profile) ||
-            profile is not IndexProfile indexProfile ||
+        if (context.Record is not CustomerInsightIndexDocument record ||
+            !context.AdditionalProperties.TryGetValue(nameof(IndexProfile), out var value) ||
+            value is not IndexProfile indexProfile ||
             !string.Equals(indexProfile.ProviderName, AzureAISearchConstants.ProviderName, StringComparison.OrdinalIgnoreCase))
         {
             return Task.CompletedTask;
         }
 
-        context.DocumentIndex.Set("RecordId", record.RecordId, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("CustomerId", record.CustomerId, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Title", record.Title, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Summary", record.Summary, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Content", record.Content, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("UpdatedUtc", record.UpdatedUtc, DocumentIndexOptions.Store);
-        context.DocumentIndex.Set("Embedding", record.Embedding, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.RecordId, record.RecordId, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.CustomerId, record.CustomerId, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.Title, record.Title, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.Content, record.Content, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(CustomerInsightsConstants.ColumnNames.UpdatedUtc, record.UpdatedUtc, DocumentIndexOptions.Store);
+        context.DocumentIndex.Set(
+            CustomerInsightsConstants.ColumnNames.Embedding,
+            record.Embedding,
+            record.Embedding?.Length ?? 0,
+            DocumentIndexOptions.Store,
+            new Dictionary<string, object> { ["VectorSearchConfiguration"] = "default" });
 
         return Task.CompletedTask;
     }
 }
 ```
 
-### 6. Implement a custom indexing service
+### 4. Shared module steps
 
-For arbitrary data, a dedicated indexing service like `AIMemoryIndexingService` is the recommended approach.
+Follow `orchardcore-custom-indexing-elasticsearch` for:
 
-That service should:
+- the embedding deployment picker (`GetAllBySlotAsync(AIDeploymentSlotNames.Embedding)`, `AIDeploymentFeatureNames.TextEmbedding`, `IndexProfileEmbeddingMetadataAccessor.StoreMetadata`, locked once the index exists);
+- the indexing service that resolves the active profile through `IOptionsMonitor<TOptions>`, embeds the record, builds a `BuildDocumentIndexContext` with the `IndexProfile` in `AdditionalProperties`, and calls the keyed `IDocumentIndexManager`;
+- the catalog handler that flushes upserts and deletes in a `ShellScope` deferred task;
+- the `SynchronizedAsync` handler that rebuilds a profile when it is synchronized from **Search > Indexing**.
 
-- read the configured master index profile from site settings
-- resolve the profile from `IIndexProfileStore`
-- create a neutral index document model
-- resolve the keyed `IDocumentIndexManager`
-- add/update documents
-- delete documents by stable record ID
-- support full sync for selected profile IDs
+### Querying
 
-If embeddings are needed, resolve `IEmbeddingGenerator<string, Embedding<float>>` from `IAIClientFactory` and generate vectors during document build.
+Embed the query with the index's deployment and send a `VectorizedQuery` on `embedding` with `KNearestNeighborsCount = topN`, plus an OData `Filter` that scopes the results (for example `customerId eq '...'`). Only fields declared `IsFilterable` can be filtered. `AzureAISearchMemoryVectorSearchService` in `CrestApps.OrchardCore.AI.Memory.AzureAI` is the reference, including its mandatory `userId` filter.
 
-### 7. Trigger indexing from the store lifecycle
+### Azure AI Search rules
 
-Do not wire Azure AI Search updates only into a tool, controller, or admin button.
-
-Preferred pattern:
-
-- queue upserts and deletes in a scoped handler
-- flush them after the underlying catalog/store successfully saves changes
-
-This is the same improvement used in CrestApps AI Memory so every create, update, and delete path stays synchronized automatically.
-
-### 8. Support re-sync when the profile changes
-
-Override `SynchronizedAsync(IndexProfileSynchronizedContext)` in the shared
-index-profile handler and call the module's indexing service to rebuild the
-affected profile ID. AI Memory uses this pattern to call
-`SyncByIndexProfileIdsAsync`.
-
-That is especially important when:
-
-- field mappings change
-- embedding configuration changes
-- the Azure AI Search profile is re-created or renamed
-
-## Azure AI Search specifics
-
-- use `AzureAISearchIndexMetadata`
-- create one `AzureAISearchIndexMap` per field
-- set `IsKey = true` for the stable document ID field
-- use `DocumentIndex.Types.Vector` and `VectorInfo.Dimensions` for embedding fields
-- mark searchable text fields with `IsSearchable = true`
-- mark sortable/filterable fields explicitly
-
-## Choosing between Orchard indexing service styles
-
-### Use a custom indexing service when
-
-- the source is arbitrary data
-- the module owns the records and the document-building logic
-- site settings choose the active master index
-- provider-specific handlers shape the final `DocumentIndex`
-- indexing must happen from a shared store lifecycle
-
-## CrestApps reference points
-
-- `CrestApps.OrchardCore.AI.Memory`
-- `CrestApps.OrchardCore.AI.Memory.AzureAI`
-- `CrestApps.OrchardCore.AI.Memory.Elasticsearch`
-
-For the Elasticsearch variant of this pattern, use the sibling
-`orchardcore-custom-indexing-elasticsearch` skill.
-
-Follow that separation when generating code:
-
-1. shared module for source records and indexing orchestration
-2. provider module for Azure AI Search registration and mappings
+- One `AzureAISearchIndexMap` per field, with matching `IndexingKey` and `AzureFieldKey`.
+- Exactly one key field (`IsKey = true`), filled with the same stable id as the `DocumentIndex`.
+- Vector fields use `DocumentIndex.Types.Vector`, `IsSearchable = true`, `VectorInfo.Dimensions`, and a `VectorSearchConfiguration` that names a profile in `VectorSearchMappings`.
+- Mark every field you filter or sort on as `IsFilterable` or `IsSortable`; Azure rejects filters on undeclared fields.
+- A new embedding model with different dimensions needs a new index profile and a full re-sync.

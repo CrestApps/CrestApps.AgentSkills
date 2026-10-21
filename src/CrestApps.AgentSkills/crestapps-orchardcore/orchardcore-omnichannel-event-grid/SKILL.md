@@ -1,6 +1,6 @@
 ---
 name: orchardcore-omnichannel-event-grid
-description: Skill for receiving and dispatching Omnichannel events through Azure Event Grid in Orchard Core using CrestApps modules. Covers webhook authentication, Event Grid subscription validation, inbound message persistence, event handler dispatch, and tenant configuration. Use this skill when requests mention Orchard Core Omnichannel Azure Event Grid, Event Grid webhooks, Event Grid subscription validation, aeg-sas-key, Microsoft Entra bearer tokens, or inbound omnichannel event dispatch. Strong matches include work with CrestApps.OrchardCore.Omnichannel.EventGrid, EventGridOptions, AzureEventGridEndpoint, IOmnichannelEventHandler, OmnichannelEvent, and OmnichannelMessage.
+description: Skill for receiving Azure Event Grid events in Orchard Core with the CrestApps Omnichannel - Azure Event Grid feature CrestApps.OrchardCore.Omnichannel.EventGrid. Covers the anonymous POST api/azure/webhook/eventgrid endpoint, aeg-sas-key and Microsoft Entra bearer-token authentication through EventGridOptions, the Event Grid schema requirement, the subscription validation handshake, the 1 MB limit, routing of Azure Communication Services SMSReceived texts onto SmsReceived with de-duplication, stored delivery reports and custom events dispatched to IOmnichannelEventHandler, and troubleshooting. Use this skill when requests mention Omnichannel Event Grid, Azure Event Grid webhooks, ACS inbound SMS, aeg-sas-key, or Event Grid subscription validation. Strong matches include EventGridOptions, AzureEventGridEndpoint, EventGridEventMapper, EventGridEventTypes, and IOmnichannelEventHandler.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,45 +11,26 @@ metadata:
 
 ## Configure Event Grid Ingestion
 
-You are an Orchard Core expert. Configure secure Azure Event Grid ingestion for
-the CrestApps Omnichannel pipeline, and implement handlers only for the events
-your application understands.
+You are an Orchard Core expert. Configure a secure Azure Event Grid webhook for
+the CrestApps Omnichannel pipeline, most commonly to receive Azure
+Communication Services (ACS) inbound texts.
 
 ### Guidelines
 
-- Install `CrestApps.OrchardCore.Omnichannel.EventGrid` in the web/startup project.
-- Enable the base Omnichannel feature and the exact Event Grid feature ID
-  `CrestApps.OrchardCore.Omnichannel.EventGrid`.
-- The module exposes an anonymous `POST` endpoint at
-  `Omnichannel/webhook/AzureEventGrid`; it disables antiforgery because Azure
-  Event Grid cannot supply an Orchard antiforgery token.
-- Prefer a valid Microsoft Entra bearer token for Event Grid delivery. A configured
-  `aeg-sas-key` request header is a supported shared-secret alternative. Do not
-  expose an unauthenticated public webhook.
-- Configure all three AAD settings when using bearer authentication. A partial
-  AAD configuration cannot validate a token and the request is rejected.
-- Keep SAS keys and token configuration in user secrets, Key Vault, or
-  environment-specific configuration. Never place a production secret in a
-  recipe or source file.
-- The endpoint accepts Event Grid event arrays and rejects request bodies larger
-  than 1 MiB with HTTP 413.
-- The module saves each normal event as an inbound `OmnichannelMessage` in the
-  `Omnichannel` YesSql collection, then invokes every registered
-  `IOmnichannelEventHandler`.
-- Event Grid payload normalization is deliberately generic. It checks common
-  data names such as `from`, `to`, `content`, `channel`, and `timestamp`; a
-  channel-specific handler should interpret provider-specific data.
+- Install `CrestApps.OrchardCore.Omnichannel.EventGrid` in the web/startup
+  project and enable `CrestApps.OrchardCore.Omnichannel.EventGrid` (it depends
+  only on `CrestApps.OrchardCore.Omnichannel`).
+- The endpoint `POST ~/api/azure/webhook/eventgrid` is anonymous and disables
+  antiforgery; every request, including the validation handshake, must pass the
+  SAS key or bearer-token check or it gets `401 Unauthorized`.
+- Only the **Event Grid event schema** is accepted. A CloudEvents subscription
+  is answered with `400 Bad Request`.
+- Keep the SAS key and Entra settings in secrets or environment configuration,
+  never in recipes or source.
+- For ACS, also enable `CrestApps.OrchardCore.Omnichannel.AzureCommunicationServices`
+  for the outbound providers (see `orchardcore-omnichannel`).
 
-## Feature and Package
-
-| Item | Value |
-|---|---|
-| NuGet package | `CrestApps.OrchardCore.Omnichannel.EventGrid` |
-| Base feature | `CrestApps.OrchardCore.Omnichannel` |
-| Event Grid feature | `CrestApps.OrchardCore.Omnichannel.EventGrid` |
-| Webhook route | `POST /Omnichannel/webhook/AzureEventGrid` |
-
-Install the package in the web/startup project, then enable it with a recipe:
+## Enable via Recipe
 
 ```json
 {
@@ -57,7 +38,6 @@ Install the package in the web/startup project, then enable it with a recipe:
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.Omnichannel",
         "CrestApps.OrchardCore.Omnichannel.EventGrid"
       ],
       "disable": []
@@ -66,88 +46,80 @@ Install the package in the web/startup project, then enable it with a recipe:
 }
 ```
 
-## Configure Webhook Authentication
+## Configure Authentication
 
-The feature binds `EventGridOptions` from
-`CrestApps:Omnichannel:EventGrid` in tenant configuration.
+`EventGridOptions` is bound from the tenant shell configuration section
+`CrestApps:Omnichannel:EventGrid`. In the application's root `appsettings.json`
+the section sits under the `OrchardCore` key:
 
 ```json
 {
-  "CrestApps": {
-    "Omnichannel": {
-      "EventGrid": {
-        "EventGridSasKey": "${EVENT_GRID_SAS_KEY}",
-        "AADIssuer": "https://sts.windows.net/<tenant-id>/",
-        "AADAudience": "api://<application-id>",
-        "AADMetadataAddress": "https://login.microsoftonline.com/<tenant-id>/.well-known/openid-configuration"
+  "OrchardCore": {
+    "CrestApps": {
+      "Omnichannel": {
+        "EventGrid": {
+          "EventGridSasKey": "set-from-secrets",
+          "AADIssuer": "https://sts.windows.net/<tenant-id>/",
+          "AADAudience": "api://<application-id>",
+          "AADMetadataAddress": "https://login.microsoftonline.com/<tenant-id>/.well-known/openid-configuration"
+        }
       }
     }
   }
 }
 ```
 
+A tenant's own `App_Data/Sites/{tenant}/appsettings.json` uses the same keys
+without the `OrchardCore` wrapper.
+
 | `EventGridOptions` property | Use |
 |---|---|
-| `EventGridSasKey` | Fixed-time comparison against the `aeg-sas-key` header |
-| `AADIssuer` | Expected issuer for bearer token validation |
-| `AADAudience` | Expected audience for bearer token validation |
-| `AADMetadataAddress` | OpenID Connect metadata source for signing keys |
+| `EventGridSasKey` | Fixed-time comparison with the `aeg-sas-key` request header. |
+| `AADIssuer`, `AADAudience`, `AADMetadataAddress` | Validate a Microsoft Entra bearer token. All three are required; with only some set, a warning is logged and bearer tokens are rejected (SAS keeps working). |
 
-Prefer Microsoft Entra delivery for production:
+The SAS key is checked first; a valid bearer token authorizes the request when
+the SAS check fails.
 
-1. For Entra delivery, set `AADIssuer`, `AADAudience`, and
-   `AADMetadataAddress`, then configure Event Grid token delivery to match.
-2. For shared-key delivery, set `EventGridSasKey` and configure Event Grid to
-   send the same value in `aeg-sas-key`.
-3. A request is authorized as soon as either configured mechanism succeeds.
+## Create the Subscription
 
-## Create the Event Subscription
+1. Deploy the site with the feature enabled and a public HTTPS address.
+2. In Azure, add an event subscription to the topic or system topic (for ACS,
+   the Communication Services resource's SMS events) with **Webhook** delivery
+   and **Event Grid Schema**.
+3. Target `https://<host>/api/azure/webhook/eventgrid`.
+4. For SAS delivery, add a custom delivery property (header) named
+   `aeg-sas-key` whose value equals `EventGridSasKey`; Event Grid does not send
+   it on its own. For Entra delivery, configure token delivery for the same
+   issuer and audience.
+5. Configure authentication before creating the subscription, because the
+   `Microsoft.EventGrid.SubscriptionValidationEvent` handshake is authenticated
+   too. The endpoint echoes `{ "validationResponse": "<code>" }`; a validation
+   event without a code gets `400`.
 
-1. Enable the feature and deploy the public HTTPS endpoint first.
-2. In Azure Event Grid, create an event subscription with **Webhook** delivery.
-3. Set its target to
-   `https://<host>/Omnichannel/webhook/AzureEventGrid`.
-4. Configure the selected authentication mechanism.
-5. Let Event Grid send its validation event before publishing application
-   events.
-6. Monitor HTTP 401, HTTP 400, and HTTP 413 responses in the application logs.
+## What Happens to Each Event
 
-### Subscription Validation Flow
+| Event type | Behavior |
+|---|---|
+| `Microsoft.Communication.SMSReceived` | Mapped onto the `SMS` channel and raised as `OmnichannelConstants.Events.SmsReceived`, the same event Twilio and Telnyx raise, so SMS Automation and the SMS Messaging Channel both act on it. |
+| `Microsoft.Communication.SMSDeliveryReportReceived` | Stored as an inbound message and passed to handlers; the sent message's delivery status is not updated. |
+| Any other type | Stored as an inbound message (channel `Unknown` unless the data names one) and passed to every `IOmnichannelEventHandler` with its raw type. |
 
-Event Grid sends an event whose type is
-`Microsoft.EventGrid.SubscriptionValidationEvent`. The endpoint reads
-`SubscriptionValidationEventData.ValidationCode` and responds with:
+ACS inbound text fields map as `from` to customer address, `to` to service
+address (which selects the SMS omnichannel address, so the number must exist as
+one), `message` to content, `messageId` to provider message id (event id when
+missing), and `receivedTimestamp` to the created time.
 
-```json
-{
-  "validationResponse": "<validation-code>"
-}
-```
+- Inbound texts are answered `200 OK` immediately and processed in the
+  background, because an automated reply can outlast Event Grid's 30-second
+  wait. A redelivered `messageId` is ignored. Storage concurrency conflicts are
+  retried up to three attempts.
+- A text without `from` or `to` is stored like an unmapped event with a warning.
+- Payloads over 1 MB get `413 Payload Too Large`; malformed JSON gets `400`.
 
-Do not register a custom `IOmnichannelEventHandler` to answer this handshake.
-The endpoint handles it before persistence and event-handler dispatch.
+## Handle Custom Events
 
-## Inbound Event Processing
-
-For every non-validation `EventGridEvent`, `AzureEventGridEndpoint`:
-
-1. Creates an inbound `OmnichannelMessage`.
-2. Reads common fields from the event data where they exist.
-3. Falls back to preserving raw event JSON as message content when parsing
-   fails.
-4. Stores the message in `OmnichannelConstants.CollectionName`.
-5. Creates an `OmnichannelEvent` with the Event Grid ID, event type, subject,
-   binary data, and stored message.
-6. Invokes registered `IOmnichannelEventHandler` implementations.
-
-This endpoint does not map a provider event to a particular channel processor.
-Use an event handler to recognize event types and validate the provider payload
-before applying business behavior.
-
-## Implement a Channel-Specific Handler
-
-Implement `IOmnichannelEventHandler` in the consuming module and ignore events
-outside its scope. Keep the handler `sealed` and use a file-scoped namespace.
+Unmapped events reach every registered `IOmnichannelEventHandler`. Filter by the
+raw event type and validate the provider payload before acting.
 
 ```csharp
 using CrestApps.OrchardCore.Omnichannel.Core;
@@ -155,36 +127,36 @@ using CrestApps.OrchardCore.Omnichannel.Core.Models;
 
 namespace MyCompany.OrchardCore.Communications;
 
-public sealed class ProviderEventHandler : IOmnichannelEventHandler
+public sealed class ContosoEventGridHandler : IOmnichannelEventHandler
 {
     public Task HandleAsync(OmnichannelEvent omnichannelEvent, CancellationToken cancellationToken = default)
     {
-        if (!string.Equals(omnichannelEvent.EventType, "Contoso.SmsReceived", StringComparison.Ordinal))
+        if (!string.Equals(omnichannelEvent.EventType, "Contoso.Orders.Shipped", StringComparison.Ordinal))
         {
             return Task.CompletedTask;
         }
 
-        // Validate and process the provider-specific payload here.
+        // omnichannelEvent.Data holds the raw Event Grid data.
         return Task.CompletedTask;
     }
 }
 ```
 
-Register it with the appropriate Orchard Core lifetime in the consuming
-feature. Event Grid invokes all registered handlers, so handlers must filter by
-event type, channel, direction, or provider data before acting.
+Register it with `services.AddScoped<IOmnichannelEventHandler, ContosoEventGridHandler>();`
+and keep it idempotent because Event Grid delivers at least once.
 
-## Operational and Security Checklist
+## Troubleshooting
 
-- Use HTTPS and a publicly reachable route for the Event Grid subscription.
-- Do not treat successful Event Grid authentication as provider-payload
-  validation when multiple publishers share a topic.
-- Log only non-sensitive identifiers; do not log body content, SAS keys, or
-  bearer tokens.
-- Keep event handlers idempotent because Event Grid delivery can be retried.
-- Treat `Channel = "Unknown"` as a signal that provider data needs explicit
-  mapping in a handler.
-- Keep the payload under 1 MiB or store large content externally and publish a
-  reference event.
-- Test subscription validation, an authorized application event, a missing
-  credential, and malformed JSON before production rollout.
+The endpoint logs one line per event (type and id), then what it did with it:
+mapped to `SmsReceived` (with provider message id and length), delivery report
+stored, redelivery ignored, concurrency retry (warning, error only when every
+attempt fails), mapping failure (warning), or no mapping (debug). Logs never
+include message text or phone numbers. Watch for `401`, `400` and `413` on the
+route.
+
+## Upgrading from 2.x
+
+- The route moved from `Omnichannel/webhook/AzureEventGrid` to
+  `api/azure/webhook/eventgrid`; update every subscription.
+- ACS `SMSReceived` events are now routed to the SMS channel instead of only
+  being stored, so remove custom handlers that duplicated that mapping.

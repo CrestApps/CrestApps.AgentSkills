@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data-sources
-description: Skill for the Orchard Core Data Pipelines Core feature (OrchardCore.DataPipelines.Core), the shared data layer of data pipelines and reports. Covers the built-in Contents, Users and Queries data sources, ContentDataSourceOptions, data sets, schemas and field types, filter operators, the CSV, Excel, JSON and JSON Lines file formats, IDataFileFormat, IDataWorkbookFormat, the formula language, ExpressionCompiler, AddExpressionFunction, IExpressionFunctionProvider, IExpressionFunctionCatalog, IDataTimeZoneResolver, the DataSorter, DataDistinct, DataAggregator and DataJoin data operations, custom data sources with AddDataSource, RecordDataSource, RecordDataSet, DataConditions, IDataAggregateSource, OnSucceeded, AddDataFileFormat, and shared links with ISharedLinkHandler and ISharedLinkManager. Use this skill when requests mention Orchard Core data sources, exposing module data to data pipelines or reports, formula functions, tabular exports, or closely related Orchard Core implementation or troubleshooting work.
+description: Skill for the data layer of the Orchard Core Data Pipelines Core feature (OrchardCore.DataPipelines.Core). Covers data sources, data sets, schemas and field types, reading with the access of a user, the built-in Contents, Users and Queries data sources, ContentDataSourceOptions for reading more parts and fields, reading from code with IDataSourceManager, the CSV, Excel, JSON and JSON Lines file formats and IDataWorkbookFormat, the DataSorter, DataDistinct, DataAggregator and DataJoin data operations, IDataTimeZoneResolver, custom data sources with RecordDataSource, RecordDataSet, IDataSource and AddDataSource, confirming what was read with ConsumerId and OnSucceeded, aggregating in the data source with IDataAggregateSource and IAggregateRecordDataSet, and custom file formats with AddDataFileFormat. Use this skill for Orchard Core data sources, exposing module data to data pipelines or reports, a custom data source or file format, or change feeds.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,33 +9,30 @@ metadata:
 
 # Orchard Core Data Sources (Data Pipelines Core)
 
-The **Data Pipelines Core** feature (`OrchardCore.DataPipelines.Core`, also `DataPipelinesConstants.CoreFeatureId`) ships with Orchard Core 4.0 in the `OrchardCore.DataPipelines` module. It is the data layer shared by data pipelines (see `orchardcore-data-pipelines`) and other features such as reports:
+The **Data Pipelines Core** feature (`OrchardCore.DataPipelines.Core`, also `DataPipelinesConstants.CoreFeatureId`) ships with Orchard Core 4.0 in the Data Pipelines module. It is the data layer that data pipelines and other features, such as reports, share:
 
 - **data sources** that expose site data as typed, tabular **data sets**, read in batches with the access of a user;
-- **file formats**: CSV, Excel, JSON and JSON Lines;
-- a **formula language** whose functions modules can add or replace;
+- **file formats** rows are written to and read from: CSV, Excel, JSON and JSON Lines;
+- the **formula language** and filter operators (see `orchardcore-data-formulas`);
 - bounded-memory **data operations** (sort, distinct, group, join) that spill to temporary files;
-- **shared links**: expiring, revocable, token-secured links to a resource, listed under **Tools > Shared Links**.
+- **shared links** (see `orchardcore-data-pipeline-steps`).
 
-The feature is `EnabledByDependencyOnly`: it has no admin screen of its own and is enabled by the features that depend on it, such as `OrchardCore.DataPipelines`.
+The feature has no admin screen and is `EnabledByDependencyOnly`: features such as `OrchardCore.DataPipelines` enable it. Using pipelines: `orchardcore-data-pipelines`.
 
-## Packages
-
-Install the module package in the web/startup project. Module projects that extend data sources reference the abstractions and core packages:
+## Packages and dependencies
 
 ```xml
 <!-- Web/startup project -->
 <PackageReference Include="OrchardCore.DataPipelines" Version="4.*" />
 
-<!-- Module project -->
+<!-- Module project that reads or adds data sources -->
 <PackageReference Include="OrchardCore.DataSources.Abstractions" Version="4.*" />
 <PackageReference Include="OrchardCore.DataSources.Core" Version="4.*" />
-<!-- Only for shared links, IDataTimeZoneResolver or step types -->
-<PackageReference Include="OrchardCore.DataPipelines.Abstractions" Version="4.*" />
-<PackageReference Include="OrchardCore.DataPipelines.Core" Version="4.*" />
 ```
 
-A module that reads or adds data sources depends on the feature in its manifest (enabling the module then enables the feature), or registers services in a `[RequireFeatures("OrchardCore.DataPipelines.Core")]` startup (registered only once another feature enabled it).
+`ContentDataSourceOptions` lives in the `OrchardCore.DataPipelines` package; `IDataTimeZoneResolver` in `OrchardCore.DataPipelines.Core`.
+
+A module that reads or adds data sources either depends on the feature in its manifest (enabling the module enables the feature), or registers its services in a `[RequireFeatures("OrchardCore.DataPipelines.Core")]` startup (registered once another feature, such as Data Pipelines, enabled it):
 
 ```csharp
 [assembly: Module(
@@ -49,34 +46,61 @@ A module that reads or adds data sources depends on the feature in its manifest 
 
 | Concept | Description |
 |---------|-------------|
-| Data source | An `IDataSource` scoped service with a stable static `Name` (e.g. `Contents`). |
-| Data set | One table of a data source (`DataSetDescriptor`: `Name`, `DisplayName`, `Description`, `Group`, `References`). |
-| Schema | Ordered `DataField`s (`Name`, may contain dots such as `TitlePart.Title`, `DisplayName`, `Type`, `Group`, `IsIdentifier`, `IsKeyFilterable`, `References`). |
-| Field type | `DataFieldType`: `Text` (`string`), `Integer` (`long`), `Decimal` (`decimal`), `Boolean` (`bool`), `Date` and `DateTime` (`DateTime`). Missing value is `null`. |
-| Batch | `DataBatch` of rows (`object[]` in field order), 500 rows by default (`DataSourceQuery.DefaultBatchSize`). |
+| Data source | An `IDataSource` scoped service with a stable static `Name` (such as `Contents`). |
+| Data set | One table of a data source. `DataSetDescriptor`: `Name` (stable), `DisplayName`, `Description`, `Group`, `DefaultDateField` (its main date field, if any), `References` (data sets its fields link to). |
+| Schema | `DataSetSchema`: the descriptor and its ordered `DataField`s (`Name`, may contain dots such as `TitlePart.Title`; `DisplayName`, `Type`, `Group`, `Description`, `IsIdentifier`, `IsKeyFilterable`, `References`). `FindField(name)`. |
+| Field type | `DataFieldType`: `Text` (`string`), `Integer` (`long`), `Decimal` (`decimal`), `Boolean` (`bool`), `Date` (a calendar date, `DateTime`) and `DateTime` (UTC, or a local time without zone after a conversion or from a file). A missing value is `null`. |
+| Batch | `DataBatch` (`Fields`, `Rows` of `object[]` in field order, `Count`, `IndexOf(name)`), 500 rows by default (`DataSourceQuery.DefaultBatchSize`). |
 
-Data is always read for `DataSourceContext.User`. A data source lists only readable data sets, returns `null` from `GetSchemaAsync` for an unreadable one (the security boundary) and checks again in `ReadAsync`. In a pipeline preview the user is the designer; in a background run it is the user who published the pipeline.
+A data source can tell which fields identify a record (`IsIdentifier`) and which data sets a field refers to (`new DataFieldReference(source, dataSet, field)`, such as the `Owner` of a content item referring to `Users.UserId`), so consumers suggest related data sets and joins.
+
+### Reading with the access of a user
+
+Data is always read for `DataSourceContext.User`. A data source lists only the data sets this user may read, returns **no schema** (`null`) for a data set the user may not read (the security boundary), and checks the user's access again when it reads rows. While a pipeline is designed or previewed, data is read for the designer; when a published pipeline runs in the background, for the user who published it.
 
 ## Built-in data sources
 
-| Name | Requires | Data sets |
-|------|----------|-----------|
-| `Contents` | `OrchardCore.Contents` | One per content type, grouped by stereotype, visible with `ViewContent`. Users with `EditContent` read the latest version (drafts), others the published version. |
-| `Users` | `OrchardCore.Users` | `Users` (with `Roles` as comma-separated text) and `UserRoles`, only for `ViewUsers`. Passwords and security stamps are never exposed. |
-| `Queries` | `OrchardCore.Queries` | One per saved query, grouped by source (`Sql`, `Lucene`, ...), visible with `ExecuteApi_{QueryName}` (implied by `ExecuteApiAll`, `ManageQueries`). Parameters via `DataSourceQuery.Parameters`. A query runs as a whole, then is split into batches, so limit its results in the query itself. |
+Each is part of Data Pipelines Core and available when the feature owning its data is enabled.
 
-Every content type data set has `ContentItemId`, `ContentItemVersionId`, `ContentType`, `DisplayText`, `Owner` (references `Users.UserId`), `Author`, `Published`, `Latest`, `CreatedUtc`, `ModifiedUtc`, `PublishedUtc`, then part and field values:
+| Name | Requires | Data sets and access |
+|------|----------|----------------------|
+| `Contents` | `OrchardCore.Contents` | One per content type, grouped by stereotype, for users with `ViewContent` on the type. With `EditContent` the latest version (drafts included) is read, otherwise the published version. |
+| `Users` | `OrchardCore.Users` | `Users` (`UserId`, `UserName`, `Email`, `EmailConfirmed`, `PhoneNumber`, `PhoneNumberConfirmed`, `IsEnabled`, `TwoFactorEnabled`, `IsLockoutEnabled`, `LockoutEndUtc`, `AccessFailedCount`, `Roles` as comma-separated text) and `UserRoles` (`UserId`, `UserName`, `RoleName`), for users with `ViewUsers`. Passwords, security stamps and other secrets are never exposed. |
+| `Queries` | `OrchardCore.Queries` | One per saved query, grouped by source (`Sql`, `Lucene`, ...), for users with `ExecuteApi_{QueryName}` (implied by `ExecuteApiAll` and `ManageQueries`). Parameters via `DataSourceQuery.Parameters` (the **Parameters** of the pipeline step). |
 
-- part value: `{PartName}.{Property}`, e.g. `TitlePart.Title` (nested objects up to three levels: `{PartName}.{Object}.{Property}`);
-- single-value field: `{PartName}.{FieldName}`, e.g. `Product.Price`;
-- multi-value field: `{PartName}.{FieldName}.{Property}`, e.g. `Product.Website.Url`;
-- lists (content picker ids, media paths, ...) are read as comma-separated text.
+- A query returning content items has the common content fields below, without part and field values; other queries' fields are inferred from a sample executed without parameters.
+- A query runs as a whole, then its results are split into batches: limit the results in the query itself.
 
-Values come from `ContentDataSourceOptions` first, then the public properties of part and field classes registered in code, then the fields added to part definitions in the admin. Secrets (`Password`, `Secret`, `ApiKey`, `ConnectionString`, names ending with `Token`), `[JsonIgnore]` properties, dictionaries and raw JSON are skipped.
+### Content items
 
-### Describing more parts and fields
+Every content type data set has `ContentItemId`, `ContentItemVersionId`, `ContentType`, `DisplayText`, `Owner` (refers to `Users.UserId`), `Author`, `Published`, `Latest`, `CreatedUtc`, `ModifiedUtc`, `PublishedUtc`, then, part by part:
 
-`ContentDataSourceOptions` (namespace `OrchardCore.DataSources.Contents`, defined in the `OrchardCore.DataPipelines` module package) maps part and field type names to `ContentDataValue[]`. Described values are also writable by the **Save content items** pipeline step unless `IsReadOnly`.
+- a part value: `{PartName}.{Property}` (such as `TitlePart.Title`), objects held by the part as `{PartName}.{Object}.{Property}`;
+- a single-value content field: `{PartName}.{FieldName}` (such as `Product.Price`);
+- a multi-value field: `{PartName}.{FieldName}.{Property}` (such as `Product.Website.Url`, `Product.Website.Text`);
+- lists (content picker ids, media paths, ...) as one comma-separated text.
+
+Values come from, in order: the values described in `ContentDataSourceOptions` (with their described types); the other public properties of part and field classes registered with `AddContentPart<TPart>()` / `AddContentField<TField>()` (numbers, booleans, dates, text, enums, lists of them; nested objects up to three levels; a content field declared as a part property, such as the images of `SeoMetaPart`, is read like a definition field); and the content fields added to part definitions in the admin. Lists of objects, dictionaries, raw JSON, `[JsonIgnore]` properties, and properties named like secrets (`Password`, `Secret`, `ApiKey`, `ConnectionString`, or ending with `Token`) are skipped. A field type described in the options is read only as described.
+
+The data source applies some conditions in the database (content item id and owner lists, `CreatedUtc`, `ModifiedUtc` and `PublishedUtc` ranges), reads in pages, and releases each page from the session before the next.
+
+#### Reading more parts and fields
+
+Values described by default:
+
+| Part or field | Values |
+|---------------|--------|
+| `TitlePart` / `AutoroutePart` / `AliasPart` | `Title` / `Path` / `Alias` |
+| `HtmlBodyPart` / `MarkdownBodyPart` | `Html` / `Markdown` |
+| `ContainedPart` | `ListContentItemId`, `Order` |
+| `LocalizationPart` | `Culture`, `LocalizationSet` |
+| `PublishLaterPart` / `ArchiveLaterPart` | `ScheduledPublishUtc` / `ScheduledArchiveUtc` |
+| `TextField`, `HtmlField`, `MarkdownField`, `YoutubeField` | `Text`, `Html`, `Markdown`, `RawAddress` |
+| `NumericField` / `BooleanField` / `DateField` / `DateTimeField` / `TimeField` | `Value` (decimal / boolean / date / date and time / text) |
+| `LinkField` | `Url`, `Text` |
+| `ContentPickerField`, `UserPickerField`, `TaxonomyField`, `MediaField`, `MultiTextField`, `LocalizationSetContentPickerField` | `ContentItemIds`, `UserIds`, `TermContentItemIds`, `Paths`, `Values`, `LocalizationSets` (lists) |
+
+Describe other values, or read one differently (another type, a list, a part without a class), with `ContentDataSourceOptions` (namespace `OrchardCore.DataSources.Contents`). Each `ContentDataValue(property, type)` reads the JSON property of that name or a nested path such as `Settings.Mode`, with `IsList`, `IsReadOnly` (not writable by **Save content items**) and `DisplayName`:
 
 ```csharp
 using OrchardCore.DataSources;
@@ -84,10 +108,20 @@ using OrchardCore.DataSources.Contents;
 
 services.Configure<ContentDataSourceOptions>(options =>
 {
+    // One value: the field {PartName}.{FieldName}.
     options.Fields["ColorField"] = [new("Value", DataFieldType.Text)];
+
+    // Several values: one {PartName}.{FieldName}.{Property} field each.
+    options.Fields["AddressField"] =
+    [
+        new("Street", DataFieldType.Text),
+        new("City", DataFieldType.Text),
+    ];
+
+    // A list, read as comma-separated text.
     options.Fields["TagsField"] = [new("Tags", DataFieldType.Text) { IsList = true }];
 
-    // Nested JSON paths are allowed.
+    // Part values: {PartName}.{Property}.
     options.Parts["RatingPart"] =
     [
         new("Score", DataFieldType.Decimal),
@@ -96,7 +130,7 @@ services.Configure<ContentDataSourceOptions>(options =>
 });
 ```
 
-Built-in descriptions include `TitlePart.Title`, `AutoroutePart.Path`, `AliasPart.Alias`, `HtmlBodyPart.Html`, `MarkdownBodyPart.Markdown`, `ContainedPart`, `LocalizationPart`, `PublishLaterPart`, `ArchiveLaterPart` and the common fields (`TextField.Text`, `NumericField.Value`, `LinkField.Url/Text`, `ContentPickerField.ContentItemIds`, `MediaField.Paths`, ...). `ContentDataValueDiscovery.Describe(type)` lists how a class is read.
+`ContentDataValueDiscovery.Describe(type)` describes how a class is read, for modules that list the values of a part or field type.
 
 ## Reading a data source from code
 
@@ -115,11 +149,13 @@ public sealed class OrdersExporter
 
     public async Task ExportAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
     {
+        // Resolved from the services of the scope; null when no data source has that name.
         var dataSource = _dataSourceManager.GetDataSource("Contents");
         var context = new DataSourceContext { User = user };
 
-        // Null when the type doesn't exist or the user may not read it.
+        // Null when the data set doesn't exist or the user may not read it.
         var schema = await dataSource.GetSchemaAsync("Order", context, cancellationToken);
+
         if (schema is null)
         {
             return;
@@ -152,24 +188,25 @@ public sealed class OrdersExporter
 }
 ```
 
-Applying conditions is optional for a data source; consumers re-apply every condition to the rows. `dataSource.ReadRowsAsync(query, maxRows)` reads the first rows into memory (previews), and `DataValues.Coerce(value, fieldType)` converts a raw value to a field type's CLR type.
-
-### Filter operators
-
-`DataFilterOperator`: `Equals`, `NotEquals`, `In`, `NotIn`, `IsEmpty`, `IsNotEmpty` (every type); `Contains`, `NotContains`, `StartsWith`, `EndsWith` (text, ignore case); `GreaterThan`, `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Between` (numbers and dates; empty bound is open); `InLastDays`, `InNextDays` (dates, counting today). `DataFilterOperatorExtensions.AppliesTo(type)` tells whether an operator applies to a field type.
+- A data source **may ignore** conditions it can't translate; a consumer applies every condition again to the rows it reads. Conditions, operators and how pipelines pass them down: `orchardcore-data-formulas`.
+- `DataSourceQuery`: `DataSet`, `Fields` (empty = all), `Conditions`, `MaxRows` (0 = all), `BatchSize`, `Parameters`, `Context` (`User`, `ConsumerId`, `Properties`, `OnSucceeded`).
+- `IDataSourceManager.GetDataSources()` / `GetDescriptor(name)` list `DataSourceDescriptor`s without creating data sources.
+- `dataSource.ReadRowsAsync(query, maxRows)` reads the first rows into a `DataRowSet` (`Fields`, `Rows`, `Truncated`), such as for a preview. `DataValues.Coerce(value, fieldType)` converts a raw value to a field type's CLR type.
 
 ## File formats
 
-`IDataFileFormatManager` lists `DataFileFormatDescriptor`s without creating formats, finds one by extension (`GetDescriptorByFileName`) and returns it with `GetFormat(name)`.
+`IDataFileFormat` services, listed by `IDataFileFormatManager` (`GetFormats()`, `GetDescriptor(name)`, `GetDescriptorByFileName(fileName)`, `GetFormat(name)`). Name, label, extension and media type are static, so formats are listed with their `DataFileFormatDescriptor` without being created.
 
 | Name | Extension | Notes |
 |------|-----------|-------|
-| `csv` | `.csv` | RFC 4180 quoting, UTF-8 with BOM, comma delimiter by default (`tab` or `\t` for tab). Every column read is text. |
-| `xlsx` | `.xlsx` | Streamed (about 16 MB of memory whatever the row count), one data set per worksheet via `IDataWorkbookFormat`, max 1,048,576 rows per sheet, types preserved. |
-| `json` | `.json` | Array of objects; fields inferred from the first batch. |
-| `jsonl` | `.jsonl` | One object per line, for large exports. |
+| `csv` | `.csv` | RFC 4180 quoting, UTF-8 with BOM, comma by default (`tab` or `\t` for tab). Every column read is text. |
+| `xlsx` | `.xlsx` | Streamed one row at a time (about 16 MB whatever the row count). Several data sets via `IDataWorkbookFormat`. At most 1,048,576 rows per sheet including the header (writing more fails). Numbers, booleans, dates keep their types; read types are inferred from the first batch. Sheet `Sheet1` unless named; reads the first sheet unless named. |
+| `json` | `.json` | An array of objects. Fields and types inferred from the first batch; later new properties are ignored; nested objects and arrays read as JSON text. |
+| `jsonl` | `.jsonl` | One object per line, for large exports. Inferred as JSON. |
 
-`DataFileOptions`: `Delimiter`, `HasHeaderRow`, `SheetName`, `Indented`, `UseDisplayNames`, `BatchSize`.
+Text output writes dates as `yyyy-MM-dd`, date-times in ISO 8601 (ending with `Z` when UTC), numbers without grouping, booleans as `true`/`false`. `DataFileOptions`: `Delimiter`, `HasHeaderRow`, `SheetName`, `Indented`, `UseDisplayNames`, `BatchSize`.
+
+`IDataWorkbookFormat.WriteSheetsAsync` (namespace `OrchardCore.DataSources.Files`) writes several `DataSheet`s (name, fields, batches) to one workbook and returns the row count of each; `SheetName` is ignored. Sheets are written in order, each read completely before the next starts, so later sheets' batches must be able to wait. Names are made valid (`: \ / ? * [ ]` become `_`, 31 characters max, empty becomes `SheetN`, duplicates get ` (2)`).
 
 ```csharp
 using OrchardCore.DataSources.Files;
@@ -186,169 +223,121 @@ if (dataFileFormatManager.GetFormat("xlsx") is IDataWorkbookFormat workbookForma
 }
 ```
 
-Sheets are written in order, each read completely before the next starts; sheet names are sanitized for Excel (invalid characters replaced, 31 characters max, duplicates numbered).
-
-## Formulas
-
-Formulas compute a value from a row, e.g. `[Price] * [Quantity]`, `UPPER(TRIM([Country]))`, `[CreatedUtc] >= '2025-01-01'`.
-
-- Fields in brackets (`[TitlePart.Title]`, escape `]` as `]]`), text in single or double quotes (double a quote to escape it), numbers with a dot, `TRUE`, `FALSE`, `NULL`.
-- Operators by precedence: `OR`/`||`, `AND`/`&&`, `NOT`/`!`, comparisons (`=`, `==`, `!=`, `<>`, `<`, `<=`, `>`, `>=`), `&` (text join), `+ -`, `* / %`, unary `-`.
-- Missing values propagate in arithmetic; division by zero gives a missing value; date plus number adds days; functions return missing rather than failing on bad arguments.
-- Function categories: Text (`UPPER`, `LOWER`, `TRIM`, `LEFT`, `MID`, `REPLACE`, `CONCAT`, `SPLIT`, `TEXT`, ...), Number (`ROUND`, `FLOOR`, `POWER`, `NUMBER`, `INTEGER`, `LEAST`, `GREATEST`, ...), Date (`NOW`, `TODAY`, `YEAR`, `WEEK`, `DATEADD`, `DATEDIFF`, `DATETRUNC`, ...), Logical (`IF`, `IFS`, `SWITCH`, `COALESCE`, `IFNULL`, `ISBLANK`, `IN`, ...), Aggregate (`SUM`, `AVG`, `MEDIAN`, `MIN`, `MAX`, `COUNTD`, `COUNT`).
-- `NOW()`/`TODAY()` use the site time zone; in a pipeline run they return the run start time. Pipeline step formulas are per row and cannot use aggregate functions.
-
-Compile and evaluate from code with `ExpressionCompiler` and the `IExpressionFunctionCatalog` singleton:
-
-```csharp
-using OrchardCore.DataSources.Expressions;
-
-var scope = new FieldListExpressionScope(batch.Fields);
-
-// Throws ExpressionException (localized message) when invalid.
-var expression = ExpressionCompiler.Compile("[Price] * [Quantity]", scope, _functionCatalog, S);
-
-foreach (var row in batch.Rows)
-{
-    var total = expression.Evaluate(new ExpressionContext { Row = row, Now = now });
-}
-```
-
-`CompiledExpression.DataType`, `References` and `Aggregates` (aggregate calls, computable with `DataAggregator` as rows arrive, then evaluated with `ExpressionContext.AggregateValues`). `IExpressionFunctionCatalog.Functions` lists every function with signature and description; `Find(name)` is case-insensitive.
-
-### Adding formula functions
-
-```csharp
-using OrchardCore.DataSources;
-using OrchardCore.DataSources.Expressions;
-using OrchardCore.Modules;
-
-[RequireFeatures("OrchardCore.DataPipelines.Core")]
-public sealed class FormulasStartup : StartupBase
-{
-    private const decimal TaxRate = 0.15m;
-
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddExpressionFunction(ExpressionFunction.CreateScalar(
-            name: "TAX",
-            category: ExpressionFunctions.NumberCategory,
-            signature: "TAX(amount)",
-            description: "Returns the sales tax of an amount.",
-            minArguments: 1,
-            maxArguments: 1,
-            returnType: _ => DataFieldType.Decimal,
-            invoke: args => args[0] switch
-            {
-                long amount => Math.Round(amount * TaxRate, 2),
-                decimal amount => Math.Round(amount * TaxRate, 2),
-                _ => null,
-            }));
-    }
-}
-```
-
-- `ExpressionFunction.CreateAggregate(...)` creates group functions (pass a `DataAggregate` when it computes one, so it can be computed as rows arrive).
-- A registered function replaces a built-in of the same name, regardless of startup order; the description stays in English and is localized for display.
-- For several functions, implement `IExpressionFunctionProvider.GetFunctions()` and register it with `services.AddExpressionFunctionProvider<TProvider>()` (singleton).
-
-## Time zones
-
-`IDataTimeZoneResolver` (namespace `OrchardCore.DataPipelines.Services`) resolves the same `ITimeZone` in a request and in a background run: `GetSiteTimeZoneAsync()`, `GetUserTimeZoneAsync(user)` and `GetTimeZone(timeZoneId)`.
-
 ## Data operations
 
-`OrchardCore.DataSources.Operations` (in `OrchardCore.DataSources.Core`) processes any number of rows with bounded memory, spilling to temporary files described by `DataSpillOptions` (32 MB by default, `DataSpillOptions.DefaultMemoryLimit`).
+The static classes of `OrchardCore.DataSources.Operations` (package `OrchardCore.DataSources.Core`) process any number of rows with bounded memory: rows stay in memory up to a limit and spill to temporary files deleted when done. `DataSpillOptions(temporaryDirectory, memoryLimit)` sets the folder (created when needed) and limit (32 MB, `DataSpillOptions.DefaultMemoryLimit`). Inputs and outputs are `IAsyncEnumerable<object[]>`.
 
 | Operation | Description |
 |-----------|-------------|
-| `DataSorter.SortAsync` | Stable external merge sort; `DataSorter.CreateComparer` builds the comparer (text ignores case, missing values first). |
-| `DataDistinct.DistinctAsync` | Keeps the first row of each key, preserving order. |
-| `DataAggregator.AggregateAsync` | Groups by fields and computes `DataMeasure`s, e.g. `new DataMeasure(DataAggregate.Sum, amountIndex)` or `new DataMeasure(DataAggregate.Count, -1)`. |
-| `DataJoin.JoinAsync` | `Inner`, `Left`, `Right` or `Full` join (`DataJoinType`); hash join when the right input fits, otherwise sort-merge. |
+| `DataSorter.SortAsync(rows, comparer, options)` | Stable external merge sort. `DataSorter.CreateComparer([(index, Descending: true)])`: numbers by value, text ignoring case, missing values first. |
+| `DataDistinct.DistinctAsync` | First row of each key, in order. |
+| `DataAggregator.AggregateAsync(rows, groupIndexes, measures, options)` | Groups and computes `DataMeasure(DataAggregate function, int fieldIndex)` per group, such as `new DataMeasure(DataAggregate.Sum, amountIndex)` or `new DataMeasure(DataAggregate.Count, -1)` (rows). Groups in first-seen order; no group fields = one group (even for an empty input). Values come from `DataAggregations.Compute`, including over `DataPartialAggregate`s a data source computed per group. Medians and distinct counts stay in memory. |
+| `DataJoin.JoinAsync` | `DataJoinType` `Inner`, `Left`, `Right`, `Full`. Right input read first: a hash join when it fits, otherwise sort-merge in temporary files; same output order either way. A key with a missing value never matches. |
+
+Grouping, deduplicating and joining build keys with `DataKeys`: numbers by value (`2` equals `2.0`), text exactly unless ignoring case, two missing values equal.
 
 ```csharp
 using OrchardCore.DataSources.Operations;
 
-var options = new DataSpillOptions(
-    _tempDirectoryProvider.CreateTempSubdirectory("orders"),
-    memoryLimit: 64L * 1024 * 1024);
+// _tempDirectoryProvider is the ITempDirectoryProvider (see orchardcore-temp-file-storage).
+var options = new DataSpillOptions(_tempDirectoryProvider.CreateTempSubdirectory("orders"), memoryLimit: 64L * 1024 * 1024);
 
 var comparer = DataSorter.CreateComparer([(fields.IndexOf("Amount"), Descending: true)]);
 
 await foreach (var row in DataSorter.SortAsync(rows, comparer, options, cancellationToken))
 {
+    // The first row is available once every row was read.
 }
 ```
 
-Helpers: `DataRowBuffer`, `DataRowQueue`, `DataKeys`, `DataFieldTransforms.Apply` (`Year`, `Quarter`, `Month`, `Day`, `Upper`, `Round`, ...). See `orchardcore-temp-file-storage` for `ITempDirectoryProvider`.
+Helpers: `DataRowBuffer` (re-readable rows that spill to one file), `DataRowQueue` (FIFO of batches in a temporary file, for a producer that must not wait for a slower consumer), `DataFieldTransforms.Apply` with a `DataFieldTransform` (`Year`, `Quarter`, `Month`, `Day`, `Upper`, `Round`, ...; `Supports` and `GetResultType`). Pipeline steps get spill options from `DataPipelineRowReader.CreateSpillOptions(context)` (see `orchardcore-data-pipeline-steps`).
 
-## Custom data sources
+## Time zones
 
-- Derive from `RecordDataSource` and declare each data set as a `RecordDataSet<TRecord>` over a .NET type, or implement `IDataSource` directly for dynamic data sets or hand-built batches.
-- `Name`, `DisplayName` and `Description` are **static** members (`LocalizationSource` labels); `RecordDataSource` is a base class, so the data source also declares `IDataSource`.
-- Register with `services.AddDataSource<TDataSource>()` (scoped). Two data sources cannot share a name. Keep data set and field names stable; saved pipelines store them.
-- `RecordDataSet<TRecord>.AddField(name, displayName, type, read, group)` returns the `DataField`; set `IsIdentifier`, `IsKeyFilterable` (then `LoadAsync` must honor `DataConditions.Keys` exactly) and `References` (e.g. `new DataFieldReference("Users", "Users", "UserId")`).
-- Override `CanReadAsync` to authorize (everyone may by default). `LoadAsync` streams records in a stable order, a page at a time; the base class enforces fields, `MaxRows` and batching, converts enums to names and dates to UTC.
-- `DataConditions.Keys(conditions, field)` and `DataConditions.DateRange(conditions, field)` extract the conditions a store can apply.
-- Implement `IAggregateRecordDataSet` (or `IDataAggregateSource` on an `IDataSource`) to answer `DataAggregateQuery` with a `GROUP BY`; return `null` when the query cannot be answered exactly.
-- For queue-based change feeds, use `query.Context.ConsumerId` and `query.Context.OnSucceeded((services, token) => ...)` to remove entries only after a successful run.
+`IDataTimeZoneResolver` (namespace `OrchardCore.DataPipelines.Services`) resolves the same `ITimeZone` in a request and in a background run: `GetSiteTimeZoneAsync()`, `GetUserTimeZoneAsync(user)`, `GetTimeZone(timeZoneId)`.
 
-See [references/data-sources-examples.md](references/data-sources-examples.md) for a complete `RecordDataSource`, an `IDataSource` implementation, aggregation, and a custom file format.
+## Extending data sources
 
-### Custom file formats
+### Define your own data source
 
-Implement `IDataFileFormat` (static `Name`, `DisplayName`, `Extension`, `ContentType`; `WriteAsync` and `ReadAsync`) and register it as a singleton with `services.AddDataFileFormat<TFormat>()`. Implement `IDataWorkbookFormat` too for multi-sheet files. The format is then offered by the **Create a file** and **Read a media file** pipeline steps.
+Derive from `RecordDataSource` (package `OrchardCore.DataSources.Abstractions`) and describe each data set as a `RecordDataSet<TRecord>` over a .NET type (a document, an index row):
 
-## Shared links
-
-Shared links (namespace `OrchardCore.DataPipelines.SharedLinks`) give signed-in recipients access to a resource with a 256-bit token (only a SHA-256 hash is stored), an expiry, an optional maximum number of uses (counted atomically) and revocation. They are emailed to recipients (Email feature) and listed under **Tools > Shared Links** (`ManageSharedLinks` permission). A link opens at `/SharedLinks/{linkId}?token=...`.
+- `AddField(name, displayName, type, read, group)` declares a field, in order, with the function reading it from a record, and returns the `DataField` to set `IsIdentifier`, `References` or `IsKeyFilterable` (the data set can load only the records of a list of keys; it must then honor `DataConditions.Keys` exactly).
+- `CanReadAsync(context)` authorizes the user (everyone by default); the data source lists, describes and reads only readable data sets.
+- The data sets fields reference are listed in `DataSetDescriptor.References`, so consumers know related data sets before reading fields.
+- `LoadAsync(query, cancellationToken)` streams records in a **stable order**, a page at a time, and stops when the enumeration stops: the base class reads only the requested fields and `MaxRows`, and splits rows into batches. Values are converted to their field type (enums become names, `DateTimeOffset`, local and unspecified dates become UTC).
+- `Name`, `DisplayName`, `Description` are static; `RecordDataSource` is a base class, so the data source declares `IDataSource` itself.
 
 ```csharp
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using OrchardCore.DataPipelines.SharedLinks;
-using OrchardCore.Localization;
-
-public sealed class ReportLinkHandler : ISharedLinkHandler
+public sealed class SupportDataSource : RecordDataSource, IDataSource
 {
-    public static string Kind => "Reports.Report";
+    public SupportDataSource(ITicketStore ticketStore, IAuthorizationService authorizationService, IStringLocalizer<SupportDataSource> localizer)
+    {
+        DataSets = [new TicketsDataSet(ticketStore, authorizationService, localizer)];
+    }
 
-    public static LocalizationSource DisplayName { get; } = LocalizationSource.Create<ReportLinkHandler>("Report");
+    public static string Name => "Support";
 
-    // Called once the user is signed in, a recipient, and has the token.
-    public Task<IActionResult> OpenAsync(SharedLink link, HttpContext httpContext)
-        => Task.FromResult<IActionResult>(new ViewResult
-        {
-            ViewName = "SharedReport",
-            ViewData = { ["ReportId"] = link.ResourceId },
-        });
+    public static LocalizationSource DisplayName { get; } = LocalizationSource.Create<SupportDataSource>("Support");
+
+    public static LocalizationSource Description { get; } = LocalizationSource.Create<SupportDataSource>("The tickets of the help desk.");
+
+    protected override IEnumerable<IRecordDataSet> DataSets { get; }
 }
 ```
 
 ```csharp
-services.AddSharedLinkHandler<ReportLinkHandler>();
-```
-
-```csharp
-var result = await _sharedLinkManager.CreateAsync(new SharedLinkRequest
+[RequireFeatures("OrchardCore.DataPipelines.Core")]
+public sealed class DataSourcesStartup : StartupBase
 {
-    Kind = ReportLinkHandler.Kind,
-    ResourceId = report.Id,
-    Title = report.Name,
-    SourceName = report.Name,
-    Recipients = ["alice", "bob@example.com"],
-    Lifetime = TimeSpan.FromDays(30),
-    MaxUses = 10,
-});
-
-// List (and clean up) the links of a resource, most recent first.
-foreach (var link in await _sharedLinkManager.ListAsync(ReportLinkHandler.Kind, report.Id))
-{
-    await _sharedLinkManager.DeleteAsync(link);
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.AddDataSource<SupportDataSource>();
+    }
 }
 ```
 
-- With `NotifyByEmail = false`, deliver `result.Url` (it holds the token) yourself.
-- Optional handler members: `GetSourceUrl(link, urlHelper)` (admin page shown in the shared links list) and `DeletedAsync(link)`.
-- `ISharedLinkManager` also has `GetAsync`, `UseAsync`, `RevokeAsync`, `DeleteAsync` and a paged `ListAsync(search, skip, take)`.
+The full `TicketsDataSet` (fields, references, `CanReadAsync`, `LoadAsync` with `DataConditions`) is in [references/data-sources-examples.md](references/data-sources-examples.md). `DataField.WithName(name, displayName)` copies a field under another name (type, group, description, identifier and references kept), such as when a consumer prefixes joined fields.
+
+### Confirming what was read
+
+A data source reading changes from a queue removes them only once delivered. `DataSourceQuery.Context`:
+
+- `ConsumerId`: a stable id of the reader, `{pipelineId}/{stepId}` for a pipeline step, `null` for a preview. Keep the changes each consumer still has to read.
+- `OnSucceeded((services, token) => ...)`: runs once the consumer delivered what was read. A pipeline run runs it only when the run succeeds **and** its step read every row; a preview never runs it.
+
+```csharp
+protected override async IAsyncEnumerable<ChangedOrder> LoadAsync(DataSourceQuery query, [EnumeratorCancellation] CancellationToken cancellationToken)
+{
+    var changes = await _queue.ListAsync(query.Context.ConsumerId, cancellationToken);
+
+    foreach (var change in changes)
+    {
+        yield return await LoadOrderAsync(change, cancellationToken);
+    }
+
+    var ids = changes.Select(change => change.Id).ToArray();
+
+    // Removed once the run delivered them.
+    query.Context.OnSucceeded((services, token) => services.GetRequiredService<OrderChangeQueue>().RemoveAsync(ids, token));
+}
+```
+
+### Aggregating in the data source
+
+A consumer that only counts, sums or takes min/max (such as a report of orders per month) asks an `IDataAggregateSource` first and reads rows when it answers `null`. `AggregateAsync(DataAggregateQuery)`:
+
+- `Groups`: `DataAggregateGroup` (`Field`, optional `Boundaries` that bucket a date field, such as months; the group value is the bucket index).
+- `Measures`: `DataAggregateMeasure` (`Function` `Count`, `Sum`, `Min` or `Max`, and `Field`; `Count` without a field counts rows). Consumers combine these across groups and derive others (an average from a sum and a count).
+- `Conditions` must be applied **exactly** (text ignoring case, dates in UTC, `NotEquals`/`NotIn` keep rows without a value), unlike row queries.
+- `MaxGroups` (10,000 by default), `DataSet`, `Context`.
+
+Answer one row per group (group values then measure values), only with rows the context user may read. Answer `null` for anything you can't answer exactly: an unsupported field, condition or function, or more than `MaxGroups` groups. `RecordDataSource` implements `IDataAggregateSource` and asks data sets implementing `IAggregateRecordDataSet`, after checking the user may read them; other data sets answer `null`.
+
+### Adding a data source
+
+Implement `IDataSource` directly for data sets listed dynamically or batches built by hand: `GetDataSetsAsync(context)`, `GetSchemaAsync(dataSet, context)` (return `null` for unreadable data sets) and `ReadAsync(query)` (check access again; one value per field in field order with the field type's CLR type; honor `MaxRows` and `BatchSize`). Register with `AddDataSource<T>()`; data sources are scoped, names must be unique, and data set and field names must stay stable (saved pipelines store them). Example in [references/data-sources-examples.md](references/data-sources-examples.md).
+
+### Adding a file format
+
+Implement `IDataFileFormat` (static `Name`, `DisplayName`, `Extension`, `ContentType`; `WriteAsync(stream, fields, batches, options)` returning the row count; `ReadAsync(stream, options)` yielding batches, one empty batch with the fields for a file without rows), and `IDataWorkbookFormat` too for several sheets. Register with `services.AddDataFileFormat<T>()` (singleton). It is then offered by the **Create a file** and **Read a media file** steps.

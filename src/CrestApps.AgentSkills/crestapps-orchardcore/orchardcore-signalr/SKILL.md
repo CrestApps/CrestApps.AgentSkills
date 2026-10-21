@@ -1,6 +1,6 @@
 ---
 name: orchardcore-signalr
-description: Skill for tenant-aware SignalR integration in CrestApps Orchard Core. Covers hub registration, HubRouteManager URLs, SignalR JSON settings, resource registration, typed hubs, and client connections. Use this skill when requests mention Orchard Core SignalR, tenant-aware hubs, HubRouteManager, real-time notifications, or SignalR JavaScript resources. Strong matches include work with CrestApps.OrchardCore.SignalR, HubRouteManager, AddSignalR, ResourceManagementOptionsConfiguration, JOptions.KnownConverters, and HubOptions.
+description: Skill for SignalR in CrestApps Orchard Core 3.0, where hosting moved to the Orchard Core framework. Covers migrating from the deprecated CrestApps.OrchardCore.SignalR, CrestApps.OrchardCore.SignalR.Redis and CrestApps.OrchardCore.SignalR.Azure compatibility features to OrchardCore.SignalR, OrchardCore.SignalR.Redis and OrchardCore.SignalR.Azure, mapping hubs with SignalRHubRoutes.GetHubPath, tenant-aware client URLs with Html.SignalRHubUrl, tenant-isolated user and group destinations with TenantSignalRGroupName, the HubConnectionWork cancellation convention, the signalr script resource, and Redis or Azure SignalR backplanes. Use this skill when requests mention Orchard Core SignalR, CrestApps SignalR, tenant-aware hubs, HubRouteManager removal, real-time notifications, SignalR backplanes, or hub URLs under a tenant prefix. Strong matches include OrchardCore.SignalR, SignalRHubRoutes, SignalRHubUrl, TenantSignalRGroupName, HubConnectionWork, SignalRConstants, MapHub, and HubOptions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,21 +11,18 @@ metadata:
 
 ## Build Tenant-Aware SignalR Features
 
-You are an Orchard Core expert. Generate accurate real-time hub, route, resource, and client code for the CrestApps SignalR module. It configures SignalR for the Orchard tenant and provides `HubRouteManager` so hubs and generated URLs respect the shell request prefix and site base URL.
+You are an Orchard Core expert. Generate accurate hub, route, resource, and client code for SignalR in CrestApps Orchard Core 3.0. SignalR hosting now lives in the Orchard Core framework (`OrchardCore.SignalR`); CrestApps contributes only routing and tenant-isolation helpers that every CrestApps hub follows.
 
 ### Guidelines
 
-- Install `CrestApps.OrchardCore.SignalR` in the web/startup project.
-- Enable `CrestApps.OrchardCore.SignalR`.
-- Map every module hub through `HubRouteManager.MapHub<T>` rather than `MapHub<T>` with a hard-coded path.
-- Generate browser URLs with `HubRouteManager.GetUriByHub<T>(HttpContext)`.
-- Use the registered `signalr` resource as a script dependency instead of copying the client library into a theme.
-- Keep hub authorization explicit with normal ASP.NET Core or Orchard Core authorization patterns.
-- Configure `HubOptions<T>` for a specific hub when its work requires non-default connection timing.
-- The module configures camel-case SignalR JSON and registers `JOptions.KnownConverters`.
-- Enable `CrestApps.OrchardCore.SignalR.Redis` when a tenant needs the built-in Redis backplane. It depends on `OrchardCore.Redis`.
-- The backplane uses Orchard Core Redis configuration, clones its connection options, and qualifies its channel prefix with the configured instance prefix and the shell name.
-- Do not hard-code tenant prefixes, host names, or base URLs in hub JavaScript.
+- Enable `OrchardCore.SignalR` for new work. The CrestApps SignalR features are deprecated compatibility shims.
+- CrestApps modules that use SignalR (AI Chat, Chat Interactions, Contact Center, Omnichannel Messaging, Telephony, Reports) depend on `OrchardCore.SignalR` directly.
+- Map hubs with `routes.MapHub<T>(SignalRHubRoutes.GetHubPath<T>())`. `HubRouteManager` was removed in 3.0.
+- Build browser URLs with `Html.SignalRHubUrl<T>()` (adds the request path base), never a hard-coded path or tenant prefix.
+- Use the framework `signalr` script resource as a dependency instead of copying the client library.
+- Send per-user or per-group messages to `TenantSignalRGroupName` destinations, never to a bare `Clients.User(userId)` or an unqualified group name.
+- Pass `HubConnectionWork.MustComplete` to hub work that changes durable state or group membership.
+- Enable at most one backplane per tenant. `OrchardCore.SignalR.Azure` and `OrchardCore.SignalR.Redis` cannot be enabled together.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except for View Models.
 
@@ -33,13 +30,15 @@ You are an Orchard Core expert. Generate accurate real-time hub, route, resource
 
 | Item | Value |
 |---|---|
-| Package | `CrestApps.OrchardCore.SignalR` |
-| Feature ID | `CrestApps.OrchardCore.SignalR` |
-| Redis backplane feature | `CrestApps.OrchardCore.SignalR.Redis` |
-| Route service | `HubRouteManager` |
-| Script resource | `signalr` |
-| JSON naming | camel case |
-| Hub dependency | `Microsoft.AspNetCore.SignalR.Core` for modules that define hubs |
+| Hosting feature | `OrchardCore.SignalR` (package `OrchardCore.SignalR`) |
+| Redis backplane | `OrchardCore.SignalR.Redis` (depends on `OrchardCore.Redis`) |
+| Azure backplane | `OrchardCore.SignalR.Azure` (Azure SignalR Service) |
+| Deprecated compatibility features | `CrestApps.OrchardCore.SignalR`, `CrestApps.OrchardCore.SignalR.Redis`, `CrestApps.OrchardCore.SignalR.Azure` |
+| Route and URL helpers | `SignalRHubRoutes`, `SignalRHtmlHelperExtensions` in `CrestApps.OrchardCore.Core` (namespace `CrestApps.OrchardCore`) |
+| Tenant destinations | `TenantSignalRGroupName`, `HubConnectionWork` in `CrestApps.OrchardCore.SignalR.Core` |
+| Hub path convention | `/Communication/Hub/{HubTypeName}` |
+| Script resource | `signalr` (registered by `OrchardCore.SignalR`, `@microsoft/signalr` 10.0.0) |
+| JSON protocol | camel case, with Orchard `JOptions.KnownConverters` |
 
 ### Enable SignalR
 
@@ -49,7 +48,7 @@ You are an Orchard Core expert. Generate accurate real-time hub, route, resource
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.SignalR"
+        "OrchardCore.SignalR"
       ],
       "disable": []
     }
@@ -57,24 +56,12 @@ You are an Orchard Core expert. Generate accurate real-time hub, route, resource
 }
 ```
 
-## What the Module Registers
-
-The module registers:
-
-- `HubRouteManager` as a scoped service using `ShellSettings.RequestUrlPrefix` and the current site `BaseUrl`.
-- ASP.NET Core SignalR through `AddSignalR()`.
-- SignalR JSON protocol configuration with `JsonNamingPolicy.CamelCase`.
-- Orchard JSON converters from `JOptions.KnownConverters`.
-- `ResourceManagementOptionsConfiguration`, which registers the `signalr` script resource.
-
-The resource has local debug and minified URLs under the module and a CDN definition for `@microsoft/signalr@10.0.0`. Use the resource manager rather than picking a URL manually.
-
 ## Define and Map a Hub
 
-Install `Microsoft.AspNetCore.SignalR.Core` in the web/startup project or module that defines the hub. Keep hub behavior in the consuming module; the CrestApps SignalR module provides the host integration.
+Reference `CrestApps.OrchardCore.Core` for the routing helpers. Install third-party module packages in the web/startup project.
 
 ```csharp
-using CrestApps.Core.SignalR.Services;
+using CrestApps.OrchardCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
@@ -97,20 +84,16 @@ public sealed class Startup : StartupBase
         IEndpointRouteBuilder routes,
         IServiceProvider serviceProvider)
     {
-        HubRouteManager.MapHub<NotificationsHub>(routes);
+        routes.MapHub<NotificationsHub>(SignalRHubRoutes.GetHubPath<NotificationsHub>());
     }
 }
 ```
 
-`HubRouteManager.MapHub<T>` uses the hub type to establish its route. Avoid declaring the same hub with an additional hard-coded route because tenant URL prefixes and generated links can then diverge.
+Declare `OrchardCore.SignalR` as a dependency of the feature that maps the hub so the SignalR services are present.
 
-## Configure Hub Options
-
-Configure a specific hub if it has long-running operations or distinct connection requirements:
+Configure a specific hub only when it needs non-default timing:
 
 ```csharp
-using Microsoft.AspNetCore.SignalR;
-
 services.Configure<HubOptions<NotificationsHub>>(options =>
 {
     options.ClientTimeoutInterval = TimeSpan.FromMinutes(10);
@@ -118,111 +101,119 @@ services.Configure<HubOptions<NotificationsHub>>(options =>
 });
 ```
 
-Choose values based on expected network and workload behavior. Do not use excessively long timeouts to mask failing hub methods or blocked background work.
-
-## Generate a Tenant-Aware URL
-
-Inject `HubRouteManager` into a Razor view or service:
+## Connect from a View
 
 ```cshtml
-@inject CrestApps.Core.SignalR.Services.HubRouteManager HubRouteManager
-
+@using CrestApps.OrchardCore
 @{
-    var hubUrl = HubRouteManager.GetUriByHub<NotificationsHub>(ViewContext.HttpContext);
+    var hubUrl = Html.SignalRHubUrl<NotificationsHub>();
 }
-```
 
-The generated URL incorporates the shell request prefix and tenant base URL. This is essential for a tenant mounted below a path, reverse proxies, and non-root deployments.
-
-## Connect from JavaScript
-
-Declare the resource dependency and use the generated URL:
-
-```cshtml
 <script at="Foot" depends-on="signalr">
     document.addEventListener("DOMContentLoaded", () => {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("@hubUrl")
+            .withAutomaticReconnect()
             .build();
 
-        connection.on("pong", () => console.log("Connected to notifications."));
-
-        connection.start().catch(error => {
-            console.error("SignalR connection failed.", error);
-        });
+        connection.on("pong", () => console.log("Connected."));
+        connection.start().catch(error => console.error("SignalR connection failed.", error));
     });
 </script>
 ```
 
-Method and payload names are camel case on the wire because the module configures camel-case JSON. Keep client handlers aligned with the names actually sent by the hub.
+Outside a view, call `SignalRHubRoutes.GetTenantAwareHubUrl<T>(httpContext)`. Built scripts are bundled per file in 3.0, so a script that exposes an API must assign it to `window`.
 
-## Typed Hubs and Services
+## Tenant-Isolated Destinations
 
-Use `Hub<TClient>` when the application benefits from compile-time checking of client contracts:
+A backplane is shared infrastructure while user ids and group names are tenant-local. Qualify every destination with the shell name:
 
 ```csharp
+using CrestApps.OrchardCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR;
+using OrchardCore.Environment.Shell;
 
-namespace MyCompany.OrchardCore.Live;
-
-public interface INotificationsClient
+public sealed class AlertsHub : Hub
 {
-    Task ReceiveNotification(string message);
-}
+    private readonly ShellSettings _shellSettings;
 
-public sealed class TypedNotificationsHub : Hub<INotificationsClient>
-{
-    public Task NotifyCallerAsync(string message)
+    public AlertsHub(ShellSettings shellSettings)
     {
-        return Clients.Caller.ReceiveNotification(message);
+        _shellSettings = shellSettings;
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        var userId = Context.UserIdentifier;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            Context.Abort();
+
+            return;
+        }
+
+        // Group membership is durable state, so never abandon it half-way on ConnectionAborted.
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            TenantSignalRGroupName.ForUser(_shellSettings.Name, userId),
+            HubConnectionWork.MustComplete);
+
+        await base.OnConnectedAsync();
     }
 }
 ```
 
-Authorize hub methods and groups according to tenant permissions. Do not trust a caller-supplied tenant id, user id, or group name to decide authorization.
+Publish from a service through `IHubContext<T>` to the same name:
 
-## Multi-Tenant Behavior
+```csharp
+await hubContext.Clients
+    .Group(TenantSignalRGroupName.ForUser(shellSettings.Name, userId))
+    .SendAsync("notify", payload);
+```
 
-`HubRouteManager` is the tenancy-sensitive integration point. It is scoped because it uses the active shell settings and site settings. Resolve it in the active request or shell scope; do not cache it in a singleton.
+- `ForUser(tenantName, userId)` and `ForGroup(tenantName, logicalGroupName)` build length-prefixed names (`tenant:{len}:{tenant}:user:{len}:{id}`), so equal ids in different shells never collide and a crafted name cannot spoof another tenant.
+- Add only authorized connections to a group. Do not trust caller-supplied tenant, user, or group names.
+- Work that only returns a value to the caller may honour `Context.ConnectionAborted`; work that changes durable state or group membership uses `HubConnectionWork.MustComplete`.
 
-Each hub method runs under normal tenant service resolution. Use scoped services for tenant data, and do not retain a `HubCallerContext` or scoped service after a hub call completes.
+## Scale-Out
 
-## Scale-Out and Redis
-
-The base feature registers SignalR, route management, camel-case JSON
-configuration, and the browser resource. The optional
-`CrestApps.OrchardCore.SignalR.Redis` feature adds `AddStackExchangeRedis()`
-only when Orchard Core Redis services are available.
-
-Enable the Redis feature on every tenant that shares SignalR messages across
-nodes:
+| Backplane | Feature | Configuration |
+|---|---|---|
+| Redis | `OrchardCore.SignalR.Redis` | Uses Orchard Core Redis (`OrchardCore.Redis`) options; the channel prefix is qualified with the Redis instance prefix and the shell name. |
+| Azure SignalR Service | `OrchardCore.SignalR.Azure` | Shell configuration `SignalR:Azure:ConnectionString` (in `appsettings.json` under `OrchardCore`); the application name is derived per tenant. A warning is logged when the connection string is missing. |
 
 ```json
 {
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.SignalR.Redis"
-      ],
-      "disable": []
+  "OrchardCore": {
+    "SignalR": {
+      "Azure": {
+        "ConnectionString": "Endpoint=https://contoso.service.signalr.net;AccessKey=...;Version=1.0;"
+      }
     }
-  ]
+  }
 }
 ```
 
-The resulting channel prefix is
-`{InstancePrefix}{ShellName}:SignalR`. Preserve `HubRouteManager` for routing
-regardless of the backplane choice. Azure SignalR and other scale-out providers
-remain hosting decisions outside this module.
+The Contact Center topology check still looks for the deprecated `CrestApps.OrchardCore.SignalR.Redis` feature ID when a topology profile (for example `single-node-distributed`) requires a Redis backplane. Enable that compatibility feature on those sites; it turns on `OrchardCore.SignalR.Redis`. See `orchardcore-contact-center`.
+
+## Upgrading from 2.x
+
+- Keep the deprecated `CrestApps.OrchardCore.SignalR` module installed until the upgrade runs. Its features now depend on `OrchardCore.SignalR`, `OrchardCore.SignalR.Redis`, or `OrchardCore.SignalR.Azure`, so the matching framework feature is enabled automatically. Afterwards remove the CrestApps package and keep the framework features, or enable the framework features yourself and remove the package immediately.
+- Replace `CrestApps.OrchardCore.SignalR.Redis` with `OrchardCore.SignalR.Redis` in recipes (except where the Contact Center topology check needs it).
+- Replace `HubRouteManager.MapHub<T>(routes)` with `routes.MapHub<T>(SignalRHubRoutes.GetHubPath<T>())`.
+- Replace `HubRouteManager.GetUriByHub<T>(HttpContext)` with `Html.SignalRHubUrl<T>()` or `SignalRHubRoutes.GetTenantAwareHubUrl<T>(HttpContext)`.
+- Replace any hand-built tenant group names with `TenantSignalRGroupName.ForUser` or `ForGroup`; the encoding changed to length-prefixed names.
 
 ## Common Failures
 
 | Symptom | Check |
 |---|---|
-| 404 on hub negotiation | Enable the SignalR feature and map the hub with `HubRouteManager.MapHub<T>` |
-| URL misses tenant prefix | Generate it through `GetUriByHub<T>(HttpContext)` |
-| `signalR` is undefined | Add `depends-on="signalr"` and ensure the resource manager renders footer scripts |
-| Payload casing differs | Account for the configured camel-case JSON protocol |
-| Hub services resolve from the wrong tenant | Avoid singleton caching and resolve services in the active shell scope |
-| Multi-node clients miss messages | Enable the Redis backplane feature and configure Orchard Core Redis, or configure another hosting-level provider |
+| 404 on hub negotiation | Enable `OrchardCore.SignalR` and map the hub with `SignalRHubRoutes.GetHubPath<T>()` |
+| URL misses the tenant prefix | Generate it with `Html.SignalRHubUrl<T>()` |
+| `signalR` is undefined | Add `depends-on="signalr"` and render footer scripts |
+| Payload casing differs | The JSON protocol is camel case |
+| Messages reach users of another tenant | Use `TenantSignalRGroupName` destinations instead of `Clients.User` |
+| Agent connected but receives no queue events | Group membership was cancelled half-way; use `HubConnectionWork.MustComplete` |
+| Tenant fails to start with both backplanes | Enable only one of `OrchardCore.SignalR.Redis` and `OrchardCore.SignalR.Azure` |
+| Multi-node clients miss messages | Enable a backplane and configure Redis or Azure SignalR |

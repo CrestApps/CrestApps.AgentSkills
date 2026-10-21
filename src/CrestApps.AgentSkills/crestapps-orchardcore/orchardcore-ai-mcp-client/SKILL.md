@@ -1,99 +1,25 @@
 ---
 name: orchardcore-ai-mcp-client
-description: Skill for configuring CrestApps MCP client connections in Orchard Core. Covers SSE and standard input/output transports, authentication, recipes, and assigning MCP connections to AI experiences. Use this skill when requests mention Orchard Core MCP Client, Configure MCP Clients, Feature Overview, Enable the SSE MCP Client, Add a Remote MCP Connection via Admin UI, SSE Authentication Types, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Mcp, CrestApps.OrchardCore.AI.Mcp.Stdio, CrestApps.OrchardCore.AI, ApiKey, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2Mtls, CustomHeaders. It also helps with Add a Remote MCP Connection via Admin UI, SSE Authentication Types, SSE Recipe Example, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for connecting Orchard Core to external MCP servers with the CrestApps MCP client features CrestApps.OrchardCore.AI.Mcp (remote SSE and HTTP transport) and CrestApps.OrchardCore.AI.Mcp.Stdio (local process transport). Covers the MCP Hosts admin screen, SseMcpConnectionMetadata authentication types (Anonymous, ApiKey, Basic, OAuth2ClientCredentials, OAuth2PrivateKeyJwt, OAuth2Mtls, CustomHeaders), StdioMcpConnectionMetadata for Docker-based servers, the McpConnection recipe step with its required Source value, deployment export with secrets cleared, encrypted credentials, the ManageMcpConnections permission, and assigning MCP connections to AI profiles, profile templates, chat interactions and the AI Completion using Direct Config workflow task. Use this skill when requests mention Orchard Core MCP client, MCP connections, MCP Hosts, connecting to a remote MCP server, running an MCP server in Docker, or troubleshooting MCP connection imports.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core MCP Client - Prompt Templates
+# Orchard Core MCP Client
 
-## Configure MCP Clients
+The MCP client features let AI profiles, chat interactions, and workflow tasks call tools, prompts, and resources hosted by external MCP servers.
 
-You are an Orchard Core expert. Generate admin, configuration, and recipe guidance for connecting Orchard Core to external MCP servers through the CrestApps MCP client features.
+## Guidelines
 
-### Guidelines
-- Use `CrestApps.OrchardCore.AI.Mcp` for remote MCP servers over SSE.
-- Use `CrestApps.OrchardCore.AI.Mcp.Stdio` for local MCP servers over standard input/output.
-- Remote SSE connections are managed under **Artificial Intelligence → MCP Connections**.
-- Sensitive secrets are encrypted at rest using ASP.NET Core Data Protection.
-- Do not export encrypted values and do not commit plaintext secrets.
+- `CrestApps.OrchardCore.AI.Mcp` adds the client runtime and the remote **Server-Sent Events** transport (source `sse`). It depends on `CrestApps.OrchardCore.AI` and `CrestApps.OrchardCore.Resources`.
+- `CrestApps.OrchardCore.AI.Mcp.Stdio` adds the local process transport (source `stdIo`, matched case-insensitively). Enable it only on hosts that may start local processes.
+- Install `CrestApps.OrchardCore.AI.Mcp` in the web/startup project.
+- Connections are managed under **Artificial Intelligence → Model Context Protocol → MCP Hosts** (permission `ManageMcpConnections`).
+- Credentials are encrypted at rest with ASP.NET Core Data Protection and cleared from deployment exports. Never commit plaintext secrets in recipes.
 
-### Feature Overview
-
-| Transport | Feature ID | Description |
-|-----------|-----------|-------------|
-| SSE | `CrestApps.OrchardCore.AI.Mcp` | Connect to remote MCP servers over HTTP/SSE |
-| Stdio | `CrestApps.OrchardCore.AI.Mcp.Stdio` | Connect to local MCP servers over stdin/stdout |
-
-### Enable the SSE MCP Client
-
-```json
-{
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Mcp"
-      ],
-      "disable": []
-    }
-  ]
-}
-```
-
-### Add a Remote MCP Connection via Admin UI
-
-1. Navigate to **Artificial Intelligence → MCP Connections**.
-2. Click **Add Connection**.
-3. Under **Server Sent Events (SSE)**, click **Add**.
-4. Enter:
-   - **Display Text**
-   - **Endpoint** such as `https://localhost:1234/`
-   - **Authentication** method
-5. Save the connection.
-
-### SSE Authentication Types
-
-| Type | Description |
-|------|-------------|
-| `Anonymous` | No authentication |
-| `ApiKey` | Sends an API key using a configurable header and optional prefix |
-| `Basic` | Uses HTTP basic authentication |
-| `OAuth2ClientCredentials` | Uses OAuth 2.0 client credentials |
-| `OAuth2PrivateKeyJwt` | Uses a private key JWT client assertion |
-| `OAuth2Mtls` | Uses mTLS with a client certificate |
-| `CustomHeaders` | Sends raw headers as JSON |
-
-### SSE Recipe Example
-
-```json
-{
-  "steps": [
-    {
-      "name": "McpConnection",
-      "connections": [
-        {
-          "DisplayText": "Example server",
-          "Properties": {
-            "SseMcpConnectionMetadata": {
-              "Endpoint": "https://localhost:1234/",
-              "AuthenticationType": "ApiKey",
-              "ApiKeyHeaderName": "Authorization",
-              "ApiKeyPrefix": "Bearer",
-              "ApiKey": "your-api-key-here"
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Enable the Local MCP Client
+## Enable the features
 
 ```json
 {
@@ -111,36 +37,68 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
 }
 ```
 
-### Add a Local MCP Connection via Admin UI
+Drop `CrestApps.OrchardCore.AI.Mcp.Stdio` when you only connect to remote servers.
 
-1. Navigate to **Artificial Intelligence → MCP Connections**.
-2. Click **Add Connection**.
-3. Under **Standard Input/Output (Stdio)**, click **Add**.
-4. Enter:
-   - **Display Text**: `Global Time Capabilities`
-   - **Command**: `docker`
-   - **Command Arguments**: `["run", "-i", "--rm", "mcp/time"]`
-5. Save the connection.
+## Add a remote connection
 
-### Local Client Recipe Example
+1. Open **Artificial Intelligence → Model Context Protocol → MCP Hosts**.
+2. Click **Add Connection** and choose **Server-Sent Events**.
+3. Enter a **Title**, the server **Endpoint** (for example `https://mcp.example.com/`), and an **Authentication** method.
+4. Save.
+
+### Authentication types (`SseMcpConnectionMetadata.AuthenticationType`)
+
+| Value | Fields |
+|---|---|
+| `Anonymous` | None |
+| `ApiKey` | `ApiKey`, `ApiKeyHeaderName` (default `Authorization`), optional `ApiKeyPrefix` such as `Bearer` |
+| `Basic` | `BasicUsername`, `BasicPassword` |
+| `OAuth2ClientCredentials` | `OAuth2TokenEndpoint`, `OAuth2ClientId`, `OAuth2ClientSecret`, `OAuth2Scopes` |
+| `OAuth2PrivateKeyJwt` | `OAuth2TokenEndpoint`, `OAuth2ClientId`, `OAuth2PrivateKey` (PEM), optional `OAuth2KeyId`, `OAuth2Scopes` |
+| `OAuth2Mtls` | `OAuth2TokenEndpoint`, `OAuth2ClientId`, `OAuth2ClientCertificate` (Base64 PFX), optional `OAuth2ClientCertificatePassword`, `OAuth2Scopes` |
+| `CustomHeaders` | `AdditionalHeaders` as a JSON object |
+
+OAuth tokens are acquired with the client credentials grant and cached. The editor shares **Token Endpoint**, **Client ID**, and **Scopes** across the OAuth variants.
+
+## Add a local (stdio) connection
+
+1. Install Docker and pull an MCP image, for example `mcp/time`.
+2. Open **MCP Hosts**, click **Add Connection**, and choose **Standard Input/Output**.
+3. Enter a **Title**, the **Command** `docker`, and **Command arguments** `["run", "-i", "--rm", "mcp/time"]`.
+4. Save.
+
+`StdioMcpConnectionMetadata` also supports `WorkingDirectory` and `EnvironmentVariables`.
+
+## Recipe step
+
+The `McpConnection` step creates or updates connections. `Source` is required for a new connection (`sse` or `stdio`); without it the import reports "Could not find provider name". An entry whose `ItemId` matches an existing connection is updated.
 
 ```json
 {
   "steps": [
     {
       "name": "McpConnection",
-      "connections": [
+      "Connections": [
         {
-          "DisplayText": "Global Time Capabilities",
+          "Source": "sse",
+          "DisplayText": "Remote tools server",
+          "Properties": {
+            "SseMcpConnectionMetadata": {
+              "Endpoint": "https://mcp.example.com/",
+              "AuthenticationType": "ApiKey",
+              "ApiKeyHeaderName": "Authorization",
+              "ApiKeyPrefix": "Bearer",
+              "ApiKey": "{{McpToolsApiKey}}"
+            }
+          }
+        },
+        {
+          "Source": "stdio",
+          "DisplayText": "Global time capabilities",
           "Properties": {
             "StdioMcpConnectionMetadata": {
               "Command": "docker",
-              "Arguments": [
-                "run",
-                "-i",
-                "--rm",
-                "mcp/time"
-              ]
+              "Arguments": [ "run", "-i", "--rm", "mcp/time" ]
             }
           }
         }
@@ -150,24 +108,40 @@ You are an Orchard Core expert. Generate admin, configuration, and recipe guidan
 }
 ```
 
-### Assign MCP Connections to AI Experiences
+Sensitive values supplied in a recipe (`ApiKey`, `BasicPassword`, `OAuth2ClientSecret`, `OAuth2PrivateKey`, `OAuth2ClientCertificate`, `OAuth2ClientCertificatePassword`) are encrypted on import. Do not paste already-encrypted values.
 
-After creating a connection, assign it where needed:
+With `OrchardCore.Deployment` enabled, an **MCP Connection** deployment step exports all or selected connections, with those secret fields blanked. Re-enter them on the target tenant.
 
-- **AI Profiles**: select connections under the **Capabilities** tab.
-- **AI Templates**: select connections under the **Capabilities** tab for profile-source templates.
-- **Chat Interactions**: select connections under the **Capabilities** area of the interaction editor.
+## Assign connections
 
-### Security Notes
+After a connection exists, select it where the model should use it:
 
-- Sensitive values such as API keys, client secrets, private keys, and certificates are encrypted at rest.
-- Sensitive values are not exported in deployment packages.
-- Do not commit raw secrets in recipes.
-- Use secure secret storage for production deployments.
+| Surface | Where |
+|---|---|
+| AI Profile | **Capabilities** tab, **MCP Connections** |
+| AI Profile Template (Profile source) | **Capabilities** tab |
+| Chat Interaction | **Capabilities** tab, **Connections** |
+| AI Completion using Direct Config workflow task | **Capabilities** tab (needs `CrestApps.OrchardCore.AI.Chat.Interactions` and `OrchardCore.Workflows`) |
 
-### Best Practices
+The selector renders only when at least one connection exists.
 
-- Use SSE for remote MCP services shared across environments.
-- Use Stdio for local tools, containers, and offline utilities.
-- Give connections descriptive names so editors can choose correctly.
-- Prefer standard authentication types over custom headers unless required.
+## Admin list
+
+**MCP Hosts** uses Orchard Core's `AdminList` shape (list name `McpConnections`), so it follows the site's List or Grid layout. See `orchardcore-admin-lists` for columns and layout overrides.
+
+## Upgrading from 2.x
+
+- Older samples of the `McpConnection` step omitted `Source`, which the step has always required for new connections; add it.
+- Theme overrides of the old connection list rows only apply to the List layout; see `orchardcore-admin-lists`.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Recipe reports "Could not find provider name" | Add `"Source": "sse"` or `"Source": "stdio"`. |
+| "Invalid source used for MCP connection" | The stdio feature is not enabled, or the source name is misspelled. |
+| Stdio connection never starts | The command is not on the server PATH, or the host blocks process creation. |
+| Remote tools never appear in chat | The connection is not selected on the profile or interaction, or the remote server rejects the credentials. |
+| Imported connection fails to authenticate | Secrets are blanked in exports; re-enter them. |
+
+See `orchardcore-ai-mcp-server` to expose Orchard Core itself as an MCP server.

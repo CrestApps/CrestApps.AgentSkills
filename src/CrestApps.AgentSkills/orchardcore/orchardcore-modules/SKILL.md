@@ -12,9 +12,10 @@ metadata:
 ## Create a Module
 
 You are an Orchard Core expert. Generate the scaffolding for a module owned by
-an application that consumes Orchard Core packages. For a contribution inside
-the Orchard Core source repository, use the `orchardcore-module-creator`
-skill instead.
+an application that consumes Orchard Core packages. For the full code
+templates (parts, fields, drivers, handlers, admin pages, the `ocmodulecms`
+project template), use the `orchardcore-module-creator` skill alongside this
+one.
 
 ### Guidelines
 

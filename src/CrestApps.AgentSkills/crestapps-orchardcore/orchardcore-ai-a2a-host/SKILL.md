@@ -1,35 +1,26 @@
 ---
 name: orchardcore-ai-a2a-host
-description: Skill for configuring the CrestApps A2A Host feature in Orchard Core. Covers exposing Agent AI Profiles as A2A agents, host authentication, agent cards, endpoints, and host settings. Use this skill when requests mention Orchard Core A2A Host, Configure an A2A Host, Feature Overview, Enable the Host Feature, Create Agent Profiles, Host Settings in Configuration, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.A2A.Host, CrestApps.OrchardCore.AI, AIProfile, ExposeAgentsAsSkill, agentName, AuthenticationType, OrchardCore:CrestApps:AI:A2AHost, ApiKey. It also helps with Create Agent Profiles, Host Settings in Configuration, Agent Exposure Modes, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for the CrestApps Orchard Core A2A Host feature (CrestApps.OrchardCore.AI.A2A.Host), which exposes AI profiles of type Agent through the Agent-to-Agent protocol. Covers the public /.well-known/agent-card.json discovery endpoint, A2A 1.0 agent cards that publish their endpoint in supportedInterfaces with the JSON-RPC binding instead of the deprecated url field, multi-agent mode with /a2a?agent={agentName} versus ExposeAgentsAsSkill skill mode with agentName metadata routing, A2AHostOptions configured under OrchardCore:CrestApps:AI:A2AHost (AuthenticationType OpenId, ApiKey or None, ApiKey, RequireAccessPermission), security schemes advertised on the card, the AccessA2AHost permission, AI usage metered under the A2A category, and creating Agent profiles with the AIProfile recipe step. Use this skill when requests mention Orchard Core A2A host, exposing agents to other AI apps, agent cards, supportedInterfaces, ExposeAgentsAsSkill, or troubleshooting A2A clients that cannot reach an Orchard Core agent.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core A2A Host - Prompt Templates
+# Orchard Core A2A Host
 
-## Configure an A2A Host
+The A2A Host feature makes every AI profile of type **Agent** discoverable and callable by external A2A clients, including another Orchard Core site running the A2A Client feature (`orchardcore-ai-a2a-client`).
 
-You are an Orchard Core expert. Generate configuration and guidance for exposing Orchard Core Agent AI Profiles through the CrestApps A2A Host feature.
+## Guidelines
 
-### Guidelines
-- Use the A2A Host feature ID `CrestApps.OrchardCore.AI.A2A.Host`.
-- The host exposes AI Profiles whose `Type` is `Agent`.
-- Agent cards are served from `/.well-known/agent-card.json`.
-- By default, the well-known endpoint returns a JSON array of agent cards, one per Agent AI Profile.
-- Each card points to `/a2a?agent={agentName}` through its `url` property.
-- When `ExposeAgentsAsSkill` is enabled, the host returns a single combined agent card and routes requests using the `agentName` metadata field.
-- Keep agent `Description` accurate because it becomes part of the external agent or skill description.
-- Prefer authenticated host access in shared or production environments.
+- Feature ID `CrestApps.OrchardCore.AI.A2A.Host`, in the `CrestApps.OrchardCore.AI.A2A` package (install it in the web/startup project). It depends only on `CrestApps.OrchardCore.AI`.
+- Only profiles whose `Type` is `Agent` are exposed. Their `Name` identifies the agent and their `Description` becomes the card and skill description.
+- Cards follow A2A 1.0: each card publishes its endpoint in `supportedInterfaces` (protocol binding JSON-RPC). The deprecated top-level `url` is no longer emitted.
+- The discovery endpoint is always anonymous so clients can read the authentication requirements. The `/a2a` endpoint is protected by the `A2AHostPolicy` policy.
+- Options come from shell configuration only (no admin settings page). Default authentication is `OpenId`.
+- Use `None` only for local development.
 
-### Feature Overview
-
-| Feature | Feature ID | Description |
-|---------|-----------|-------------|
-| A2A Host | `CrestApps.OrchardCore.AI.A2A.Host` | Expose Agent AI Profiles via the Agent-to-Agent protocol |
-
-### Enable the Host Feature
+## Enable the feature
 
 ```json
 {
@@ -46,11 +37,9 @@ You are an Orchard Core expert. Generate configuration and guidance for exposing
 }
 ```
 
-### Prerequisite: Create Agent Profiles
+## Create agent profiles
 
-Only AI Profiles of type `Agent` are exposed by the host.
-
-The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the agent to deployments by technical name.
+Create an AI profile with **Profile type** set to **Agent** in the admin, or import one. Bind deployments by technical name; see `orchardcore-ai` for the full profile contract.
 
 ```json
 {
@@ -64,7 +53,6 @@ The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the age
           "Description": "Researches topics and returns sourced summaries.",
           "Type": "Agent",
           "ChatDeploymentName": "research-chat",
-          "UtilityDeploymentName": "research-utility",
           "Properties": {
             "AIProfileMetadata": {
               "SystemMessage": "You are a research assistant.",
@@ -82,61 +70,39 @@ The `AIProfile` recipe format is source-agnostic. Omit `Source` and bind the age
 }
 ```
 
-### Host Settings in Configuration
-
-```json
-{
-  "OrchardCore": {
-    "CrestApps": {
-      "AI": {
-        "A2AHost": {
-          "AuthenticationType": "OpenId",
-          "RequireAccessPermission": true,
-          "ExposeAgentsAsSkill": false
-        }
-      }
-    }
-  }
-}
-```
-
-### Agent Exposure Modes
-
-#### Multi-Agent Mode (Default)
-
-Use `ExposeAgentsAsSkill: false` when you want one agent card per Agent profile.
-
-- `/.well-known/agent-card.json` returns a JSON array of cards.
-- Each card advertises a single agent.
-- Each card points clients to `/a2a?agent={agentName}`.
-
-#### Skill Mode
-
-Use `ExposeAgentsAsSkill: true` when you want a single combined agent card.
-
-- The well-known endpoint returns one combined card.
-- Each Agent AI Profile is represented as a skill.
-- Requests are routed using the `agentName` metadata field.
-
-### Endpoints
+## Endpoints
 
 | Endpoint | Purpose |
-|----------|---------|
-| `/.well-known/agent-card.json` | Agent discovery endpoint |
-| `/a2a?agent={agentName}` | Sends messages to a specific exposed agent |
+|---|---|
+| `GET /.well-known/agent-card.json` | Discovery. A JSON array of cards in multi-agent mode, one combined card in skill mode. |
+| `/a2a` | A2A JSON-RPC endpoint. |
+| `/a2a?agent={agentName}` | Targets one agent in multi-agent mode. |
 
-### Authentication Guidance
+Messages are routed by the `agent` query parameter first, then by an `agentName` entry in the message metadata, and otherwise to the first agent profile. The host supports streaming; task subscription and push notifications are not supported.
 
-The host configuration supports authentication settings through `AuthenticationType` and related options in `OrchardCore:CrestApps:AI:A2AHost`. Its default authentication type is `OpenId`.
+### Exposure modes
 
-Use these settings as your starting point:
+| Mode | Setting | Card shape |
+|---|---|---|
+| Multi-agent (default) | `ExposeAgentsAsSkill: false` | One card per agent; each `supportedInterfaces` entry points to `/a2a?agent={agentName}` |
+| Skill | `ExposeAgentsAsSkill: true` | One card whose skills are the agents; clients route with `agentName` metadata |
 
-- `AuthenticationType: "OpenId"` is the default and is appropriate when the tenant has an API authentication scheme.
-- `AuthenticationType: "None"` is for local development only.
-- Set `ApiKey` when using API-key-based access.
-- Use `RequireAccessPermission: true` when you want Orchard permission checks enforced for host access.
+A multi-agent card looks like this (trimmed):
 
-### Example Host Configuration for a Shared Environment
+```json
+[
+  {
+    "name": "Research Agent",
+    "description": "Researches topics and returns sourced summaries.",
+    "supportedInterfaces": [
+      { "url": "https://example.com/a2a?agent=research-agent", "protocolBinding": "JSONRPC" }
+    ],
+    "capabilities": { "streaming": true }
+  }
+]
+```
+
+## Configuration
 
 ```json
 {
@@ -147,7 +113,7 @@ Use these settings as your starting point:
           "AuthenticationType": "ApiKey",
           "ApiKey": "{{A2AHostApiKey}}",
           "RequireAccessPermission": true,
-          "ExposeAgentsAsSkill": true
+          "ExposeAgentsAsSkill": false
         }
       }
     }
@@ -155,10 +121,41 @@ Use these settings as your starting point:
 }
 ```
 
-### Best Practices
+| Setting | Default | Description |
+|---|---|---|
+| `AuthenticationType` | `OpenId` | `OpenId`, `ApiKey`, or `None` |
+| `ApiKey` | | Key required in `ApiKey` mode |
+| `RequireAccessPermission` | `true` | Authenticated callers also need `AccessA2AHost` |
+| `ExposeAgentsAsSkill` | `false` | Combine all agents into one card |
 
-- Use Agent profiles, not Chat profiles, for A2A host exposure.
-- Write strong profile descriptions so remote clients can pick the right agent.
-- Keep `ExposeAgentsAsSkill` disabled when clients should select named agents directly.
-- Enable `ExposeAgentsAsSkill` when clients prefer one consolidated card with multiple skills.
-- Avoid `AuthenticationType: "None"` outside local development.
+The older `OrchardCore:CrestApps:A2AHost` section is still read first for backward compatibility; prefer `OrchardCore:CrestApps:AI:A2AHost`. Configuration changes need an app restart.
+
+### Authentication on the card
+
+| Mode | Advertised security scheme | Client sends |
+|---|---|---|
+| `OpenId` | `openId`, with `{host}/.well-known/openid-configuration` | `Authorization: Bearer <token>` from the Orchard Core OpenID server (`Api` scheme) |
+| `ApiKey` | `apiKey` in the `Authorization` header | `Authorization: Bearer <key>` or `Authorization: ApiKey <key>` |
+| `None` | none | nothing |
+
+`AccessA2AHost` is security critical and is not granted to any role by default; grant it to the role or OpenID application that calls the host.
+
+## Usage analytics
+
+Completions run for A2A requests are labelled with the **A2A** usage category, so they appear under that category in **AI Usage Analytics** (`orchardcore-ai-usage-analytics`).
+
+## Upgrading from 2.x
+
+- Cards no longer contain the top-level `url`. Clients must read the endpoint from `supportedInterfaces`. The CrestApps A2A client already does.
+- Multi-agent mode still points each interface at `/a2a?agent={agentName}`.
+- Move configuration from `OrchardCore:CrestApps:A2AHost` to `OrchardCore:CrestApps:AI:A2AHost`.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| The card array is empty | No AI profile has type **Agent**. |
+| A client reports a missing endpoint | It still reads `url`; update it to A2A 1.0 `supportedInterfaces`. |
+| 401 or 403 on `/a2a` | Credentials do not match `AuthenticationType`, or the caller lacks `AccessA2AHost`. |
+| Card URLs miss the tenant prefix | Card URLs are built from the request scheme and host. Verify the advertised interface URL on prefixed tenants and behind reverse proxies. |
+| The wrong agent answers | Send `?agent={name}` (multi-agent) or `agentName` metadata (skill mode); otherwise the first agent answers. |

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-module-creator
-description: Creates new Orchard Core modules inside the Orchard Core source repository with proper structure, manifest, startup, and Orchard Core 4.0 patterns. Use when the user needs to create a module, add content parts, fields, drivers, handlers, settings, admin pages with breadcrumbs and admin lists, minimal API endpoints with Problem Details errors, permissions with LocalizationSource descriptions, RequiredStartup components, temporary files with ITempDirectoryProvider, secure uploads with FileCreationService, or ES module editor scripts without jQuery. Use this skill when requests mention Orchard Core Module Creator, Module Creation Workflow, Create Module Directory, Create Required Files, or closely related Orchard Core work. Strong matches include OrchardCore.Modules, OrchardCore.Module.Targets, StartupBase, RequireFeatures, RequiredStartup, FeatureAttribute, OCSG002, DisplayDriver, Initialize, Factory, AdminNavigationProvider, IPermissionProvider.
+description: Creates new Orchard Core modules in a solution that consumes Orchard Core packages, with the ocmodulecms project template, proper structure, manifest, startup, and Orchard Core 4.0 patterns. Use when the user needs to create a module, add content parts, fields, drivers, handlers, settings, admin pages with breadcrumbs and admin lists, minimal API endpoints with Problem Details errors, permissions with LocalizationSource descriptions, RequiredStartup components, temporary files with ITempDirectoryProvider, secure uploads with FileCreationService, or ES module editor scripts without jQuery. Use this skill when requests mention Orchard Core Module Creator, Module Creation Workflow, dotnet new ocmodulecms, or closely related Orchard Core work. Strong matches include OrchardCore.Modules, OrchardCore.Module.Targets, OrchardCore.ProjectTemplates, StartupBase, RequireFeatures, RequiredStartup, FeatureAttribute, OCSG002, DisplayDriver, Initialize, Factory, AdminNavigationProvider, IPermissionProvider.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,14 +9,12 @@ metadata:
 
 # Orchard Core Module Creator
 
-This skill is for contributing a module to the Orchard Core source repository.
-For a module owned by an application that consumes Orchard Core packages, use
-the `orchardcore-modules` skill instead.
+Step-by-step creation of a module for an Orchard Core site built on NuGet packages, with code templates for each kind of component. `orchardcore-modules` covers module structure, feature design, and installing third-party modules in more depth; a short section at the end lists what differs when contributing to the Orchard Core repository itself.
 
 ## Prerequisites
 
-- OrchardCore repository (working directory)
-- .NET SDK 10.0+ installed
+- .NET SDK 10.0+
+- An Orchard Core web project (startup project) referencing `OrchardCore.Application.Cms.Targets`
 
 ## Module Creation Workflow
 
@@ -31,12 +29,18 @@ the `orchardcore-modules` skill instead.
 | **API** | JSON endpoints | Minimal API endpoint class + Startup route registration |
 | **Background Task** | Scheduled jobs | `IBackgroundTask` |
 
-### Step 2: Create Module Directory
+### Step 2: Scaffold the Project
 
 ```bash
-mkdir src/OrchardCore.Modules/OrchardCore.YourModule
-cd src/OrchardCore.Modules/OrchardCore.YourModule
+dotnet new install OrchardCore.ProjectTemplates
+dotnet new ocmodulecms -n Contoso.YourModule -o src/Modules/Contoso.YourModule
+dotnet sln add src/Modules/Contoso.YourModule/Contoso.YourModule.csproj
+dotnet add src/Contoso.Web/Contoso.Web.csproj reference src/Modules/Contoso.YourModule/Contoso.YourModule.csproj
 ```
+
+- `--AddPart true --PartName Rating` also generates a `RatingPart` with its driver, handler, settings, migration, and views (`Part` is appended to the name); `-ov` picks the Orchard Core package version.
+- Use `dotnet new ocmodulemvc` for a plain MVC module without content management.
+- The module must be referenced **by the web project**; unreferenced modules are not discovered.
 
 ### Step 3: Create Required Files
 
@@ -44,7 +48,7 @@ Every module needs:
 
 1. **Manifest.cs** - Module metadata and features
 2. **Startup.cs** - Service registration
-3. **OrchardCore.YourModule.csproj** - Project file
+3. **Contoso.YourModule.csproj** - Project file referencing `OrchardCore.Module.Targets`
 
 Add a `ConfigurationSchema.json` (and the `JsonSchemaSegment` build item) when the module reads a configuration section; see `orchardcore-configuration`. See `references/module-structure.md` for templates.
 
@@ -113,7 +117,7 @@ public sealed class DeploymentStartup : StartupBase
 | `[RequiredStartup]` (4.0) | Composes the public type for **every tenant**, even when the feature that defines it is disabled. Its services are attributed to `Application.DefaultFeatureId`. Combine with `[RequireFeatures]` to still require other features. |
 
 ```csharp
-// Always registered, even when 'OrchardCore.YourModule' is disabled,
+// Always registered, even when 'Contoso.YourModule' is disabled,
 // as long as OrchardCore.Contents is enabled.
 [RequiredStartup]
 [RequireFeatures("OrchardCore.Contents")]
@@ -181,7 +185,7 @@ internal static class GetWeatherEndpoint
 - **Admin menu**: derive from `AdminNavigationProvider`; there is no legacy admin menu layout any more.
 - **Front-end scripts in admin**: admin pages no longer load jQuery or jQuery UI. Use native DOM APIs and Bootstrap's JS API. Field and part editor scripts that can be injected via Flow, Bag, or Widgets "Add" must use `<script at="Foot" type="module">` and must not wait for `DOMContentLoaded`. Admin Vue apps use Vue 3.
 - **Temporary files**: inject `ITempDirectoryProvider` instead of `Path.GetTempPath()`.
-- **User uploads** stored outside `IMediaFileStore`: run them through `FileCreationService.CreateAsync()` first and abort when `Succeeded` is `false`.
+- **User uploads**: run every uploaded file through the file event pipeline. Storing it with `IMediaFileStore.CreateFileFromStreamAsync(path, stream)` does **not** do that (it only runs `IMediaCreatingEventHandler`s); use the `MediaFileStoreExtensions.CreateFileFromStreamAsync(fileCreationService, path, stream, ...)` overload, or call `FileCreationService.CreateAsync()` yourself for other stores and abort when `Succeeded` is `false`. See `orchardcore-file-upload-security`.
 - **Settings-backed options**: read `IOptionsMonitor<T>.CurrentValue`; see `orchardcore-site-settings`.
 - **Configuration sections**: name them `OrchardCore:YourService[:Provider]` without an `OrchardCore_` prefix.
 - **Static files**: module `wwwroot` files are served from `/{ModuleId}/...`; the application's own `wwwroot` is resolved through the web root, so do not build paths from `Application.Root`.
@@ -189,12 +193,10 @@ internal static class GetWeatherEndpoint
 ### Step 6: Build and Test
 
 ```bash
-dotnet build src/OrchardCore.Modules/OrchardCore.YourModule
+dotnet build
+dotnet run --project src/Contoso.Web
 
-cd src/OrchardCore.Cms.Web
-dotnet run -f net10.0
-
-# Enable the feature in Admin → Tools → Features
+# Enable the feature in Admin → Tools → Features, or with a recipe "feature" step
 ```
 
 Use the `orchardcore-tester` skill to verify the feature in a browser.
@@ -205,35 +207,41 @@ Use the `orchardcore-tester` skill to verify the feature in a browser.
 
 | Item | Convention | Example |
 |------|------------|---------|
-| Module folder | `OrchardCore.ModuleName` | `OrchardCore.Rating` |
-| Namespace | `OrchardCore.ModuleName` | `OrchardCore.Rating` |
-| Feature ID | `OrchardCore.ModuleName` | `OrchardCore.Rating` |
+| Module project and ID | `Company.ModuleName` | `Contoso.Rating` |
+| Namespace | `Company.ModuleName` | `Contoso.Rating` |
+| Feature ID | Module ID, or `Company.ModuleName.SubFeature` | `Contoso.Rating`, `Contoso.Rating.Api` |
 | Content Part | `NamePart` | `RatingPart` |
 | Driver | `NamePartDisplayDriver` | `RatingPartDisplayDriver` |
 | Permissions | `NamePermissions` (static) | `RatingPermissions` |
 | View | `PartName.cshtml` | `RatingPart.cshtml` |
 | Edit View | `PartName_Edit.cshtml` | `RatingPart_Edit.cshtml` |
+| Static files | `~/{ModuleId}/...` | `~/Contoso.Rating/js/rating.js` |
 
-### Common Dependencies
+### Common Package References
 
 ```xml
-<!-- Core module support -->
-<ProjectReference Include="..\..\OrchardCore\OrchardCore.Module.Targets\OrchardCore.Module.Targets.csproj" />
+<!-- Marks the project as a module (required) -->
+<PackageReference Include="OrchardCore.Module.Targets" Version="3.*" />
 
-<!-- Content management -->
-<ProjectReference Include="..\..\OrchardCore\OrchardCore.ContentManagement\OrchardCore.ContentManagement.csproj" />
+<!-- Content parts, fields, drivers -->
+<PackageReference Include="OrchardCore.ContentManagement" Version="3.*" />
+<PackageReference Include="OrchardCore.ContentTypes.Abstractions" Version="3.*" />
+<PackageReference Include="OrchardCore.DisplayManagement" Version="3.*" />
 
 <!-- Admin UI -->
-<ProjectReference Include="..\..\OrchardCore\OrchardCore.Admin.Abstractions\OrchardCore.Admin.Abstractions.csproj" />
+<PackageReference Include="OrchardCore.Admin.Abstractions" Version="3.*" />
 ```
 
 ### Feature Categories
 
 Use in `Manifest.cs`: `Content Management`, `Content`, `Navigation`, `Security`, `Infrastructure`, `Theming`, `Developer`.
 
+### Inside the Orchard Core repository
+
+Only when contributing a module to Orchard Core itself: create it under `src/OrchardCore.Modules/OrchardCore.ModuleName`, use `ProjectReference`s to `src/OrchardCore/*` projects instead of packages, fill the manifest with `ManifestConstants.OrchardCoreTeam`, `OrchardCoreWebsite`, and `OrchardCoreVersion`, run the app from `src/OrchardCore.Cms.Web`, and follow the repository's `AGENTS.md` for build and test commands.
+
 ## References
 
 - `references/module-structure.md` - Directory layout and file templates
 - `references/patterns.md` - Code patterns (parts, drivers, handlers, permissions, uploads, temp files)
 - `references/examples.md` - Complete module examples
-- `AGENTS.md` (repo root) - Coding conventions and build commands

@@ -58,9 +58,9 @@ standalone backend; enable this provider or the Elasticsearch provider alongside
 ### Configure the memory index
 
 1. Configure the Orchard Core Azure AI Search connection.
-2. Configure an embedding-capable AI deployment.
+2. Create an embedding deployment that declares `textEmbedding`; the picker lists deployments in the `embedding` slot only (see `orchardcore-ai-model-capabilities`).
 3. Create **AI Memory (Azure AI Search)** in **Search → Indexing**.
-4. Select the embedding deployment and save the profile.
+4. Select the embedding deployment and save the profile. It is stored in `DataSourceIndexProfileMetadata.EmbeddingDeploymentName` and becomes read-only once the index exists.
 5. Select that profile as the Memory **Index profile** site setting.
 6. Enable user memory for a supported profile or interaction and test with an authenticated user.
 
@@ -114,7 +114,7 @@ alone is not authorization and could expose memory belonging to another user.
 | Symptom | Check |
 |---|---|
 | Memory index source is absent | Enable `OrchardCore.Indexing`, `OrchardCore.AzureAI`, and the exact Azure AI Memory feature. |
-| No embedding deployment is selectable | Configure an embedding deployment rather than only a chat deployment. |
+| No embedding deployment is selectable | Declare `textEmbedding` on an embedding deployment; chat deployments are not offered. |
 | Memory tool returns nothing | Confirm an authenticated identity, an active memory index profile, saved memory records, and a valid embedding configuration. |
 | Index edit duplicates mappings | Reopen and save it. The handler normalizes managed duplicates while retaining custom fields. |
 | Search fails | Check Azure endpoint, credentials, network rules, index availability, and vector dimensions. |

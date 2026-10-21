@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat
-description: Skill for configuring AI Chat in Orchard Core using the CrestApps AI Chat module. Covers chat profiles, admin chat UI, frontend chat widgets, provider connections, and the AI Agent module for task automation. Use this skill when requests mention Orchard Core AI Chat, Configure AI Chat, Available AI Completion Providers, Enabling AI Chat Features, Setting Up a Provider Connection via Recipe, Creating a Chat Profile via Recipe, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with CrestApps.OrchardCore.AI.Chat, CrestApps.OrchardCore.AI.Agent, CrestApps.OrchardCore.OpenAI, CrestApps.OrchardCore.AzureAIInference, CrestApps.OrchardCore.Ollama. It also helps with ai chat examples, Setting Up a Provider Connection via Recipe, Creating a Chat Profile via Recipe, Making a Chat Profile Visible on the Admin Menu, plus the code patterns, admin flows, recipe steps, and referenced examples captured in this skill.
+description: Skill for setting up and extending AI Chat in Orchard Core with the CrestApps AI Chat module. Covers the CrestApps.OrchardCore.AI.Chat and CrestApps.OrchardCore.AI.Chat.AdminWidget features, chat profiles on the admin menu, the admin chat session and history pages, Invoke Profile, the frontend AIChat widget with AIProfilePart, chat modes through ChatModeProfileSettings with ConversationDeploymentName and VoiceName, text-to-speech playback, session uploads, citations, PromptSecurityOptions rate-limit tiers, AIVisitorIdentityOptions cross-site cookies, AIChatHub methods, the AIChatSessions admin list, and upgrading from deployment purposes and ChatMode.Realtime. Use this skill when requests mention Orchard Core AI Chat, chat profiles, chat widgets, anonymous chat visitors, chat rate limits, or prompt security. Strong matches include AIChatHub, AIChatProfileSettings, IsOnAdminMenu, AIProfilePart, QueryAIProfile, and AIChatApp.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,33 +11,34 @@ metadata:
 
 ## Configure AI Chat
 
-You are an Orchard Core expert. Generate code, configuration, and recipes for adding AI chat capabilities to an Orchard Core application using CrestApps modules.
+You are an Orchard Core expert. Generate code, configuration, and recipes for adding profile-driven AI chat to an Orchard Core application with the CrestApps AI Chat module.
 
 ### Guidelines
-- The CrestApps AI Chat module (`CrestApps.OrchardCore.AI.Chat`) builds on the core AI Services feature to provide chat interfaces.
-- You must enable at least one AI completion provider (OpenAI, Azure OpenAI, Azure AI Inference, Ollama, DeepSeek) alongside the chat feature.
-- Chat-type AI profiles with the "Show On Admin Menu" option appear under the **Artificial Intelligence** section in the admin menu.
-- When the Widgets feature is enabled, an AI Chat widget can be embedded in frontend content.
-- The AI Agent module (`CrestApps.OrchardCore.AI.Agent`) extends AI profiles with capabilities for content management, user management, feature management, and more.
-- Profile types include `Chat`, `Utility`, `TemplatePrompt`, and `Agent`.
-- Agent profiles function as reusable AI agents exposed as tools. They require a `Description` field and can be selected in the Capabilities tab.
-- Agent availability modes: `OnDemand` (default, user selects) or `AlwaysAvailable` (auto-included in every request).
-- The Capabilities tab is organized: MCP Connections first, then Agents, then Tools.
-- Always secure API keys using user secrets or environment variables; never hardcode them.
-- Install CrestApps packages in the web/startup project.
 
-### Available AI Completion Providers
+- Install `CrestApps.OrchardCore.AI.Chat` and at least one provider package (OpenAI, Azure OpenAI, Azure AI Inference or Ollama) in the web/startup project.
+- `CrestApps.OrchardCore.AI.Chat` depends on `OrchardCore.SignalR` (the Orchard Core module, not the deprecated CrestApps one), `OrchardCore.Liquid`, `CrestApps.OrchardCore.Resources`, `CrestApps.OrchardCore.AI` and the dependency-only `CrestApps.OrchardCore.AI.Chat.Core` (**AI Chat Services**).
+- AI Chat ships no completion client. Enable a provider feature and create a connection and deployments for it.
+- A deployment declares **model capabilities** in `Properties.AIDeploymentMetadata.Features`. The deployment purpose (`Purpose`, `Type`) is gone in 3.0. Which deployment serves chat, utility, speech and the other slots is chosen under **Settings → Artificial Intelligence → Default Deployments** or on the profile. See `orchardcore-ai-model-capabilities`.
+- A chat-type profile with **Show On Admin Menu** (`AIChatProfileSettings.IsOnAdminMenu`) appears under **Artificial Intelligence**. The menu entry needs `QueryAnyAIProfile` or the per-profile `QueryAIProfile_{profileName}` permission.
+- **Add Profile** opens the **New AI Profile** picker. **Blank profile** opens the editor; every other card creates the profile from a profile template. See `orchardcore-ai-profile-templates`.
+- The **Chat deployment** is the text model only. A spoken conversation is carried by the **Conversation deployment**. See `orchardcore-ai-realtime-voice`.
+- Read chat-mode settings with `profile.TryGetSettings<ChatModeProfileSettings>()` and write them with `profile.AlterSettings<ChatModeProfileSettings>(...)`. They live in `AIProfile.Settings`, not in `Properties`.
+- Never put API keys in recipes or committed configuration. Use user secrets, environment variables, or a key vault.
+- All recipe JSON uses the root `{ "steps": [...] }` format and C# classes are `sealed`, except view models.
 
-| Provider | Feature ID | Description |
-|----------|-----------|-------------|
-| OpenAI | `CrestApps.OrchardCore.OpenAI` | Connect to OpenAI or any OpenAI-compatible endpoint (DeepSeek, Gemini, Together AI, LM Studio, etc.) |
-| Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | Azure OpenAI service |
-| Azure AI Inference | `CrestApps.OrchardCore.AzureAIInference` | Azure AI Inference (GitHub Models) |
-| Ollama | `CrestApps.OrchardCore.Ollama` | Local Ollama models |
+### Features
 
-For retrieval-backed chat, pair the chat feature with the current AI data and document modules such as `CrestApps.OrchardCore.AI.DataSources.AzureAI`, `CrestApps.OrchardCore.AI.DataSources.Elasticsearch`, and the matching `CrestApps.OrchardCore.AI.Documents.*` modules instead of the older Azure OpenAI with data feature names.
+| Feature | ID | Notes |
+|---|---|---|
+| AI Chat | `CrestApps.OrchardCore.AI.Chat` | Admin chat UI, frontend widget, chat modes, prompt security and visitor identity settings |
+| AI Chat Admin Widget | `CrestApps.OrchardCore.AI.Chat.AdminWidget` | Floating chat on every admin page. Depends on AI Chat and `CrestApps.OrchardCore.AI.Agent` |
+| AI Chat Session Analytics | `CrestApps.OrchardCore.AI.Chat.Analytics` | See `orchardcore-ai-chat-analytics` |
+| AI Chat Services | `CrestApps.OrchardCore.AI.Chat.Core` | Dependency only; hub, session manager and handlers |
+| AI Chat WebAPI | `CrestApps.OrchardCore.AI.Chat.Api` | REST chat API, shipped by the AI module |
 
-### Enabling AI Chat Features
+Provider features: `CrestApps.OrchardCore.OpenAI`, `CrestApps.OrchardCore.OpenAI.Azure`, `CrestApps.OrchardCore.AzureAIInference`, `CrestApps.OrchardCore.Ollama`. See `orchardcore-ai-providers`.
+
+### Enable AI Chat
 
 ```json
 {
@@ -45,7 +46,6 @@ For retrieval-backed chat, pair the chat feature with the current AI data and do
     {
       "name": "Feature",
       "enable": [
-        "CrestApps.OrchardCore.AI",
         "CrestApps.OrchardCore.AI.Chat",
         "CrestApps.OrchardCore.OpenAI"
       ],
@@ -55,17 +55,17 @@ For retrieval-backed chat, pair the chat feature with the current AI data and do
 }
 ```
 
-### Setting Up a Provider Connection via Recipe
+### Connection, Deployments and a Chat Profile
 
 ```json
 {
   "steps": [
     {
       "name": "AIProviderConnections",
-      "connections": [
+      "Connections": [
         {
           "Source": "OpenAI",
-          "Name": "default",
+          "Name": "openai",
           "DisplayText": "OpenAI",
           "Properties": {
             "OpenAIConnectionMetadata": {
@@ -75,72 +75,59 @@ For retrieval-backed chat, pair the chat feature with the current AI data and do
           }
         }
       ]
-    }
-  ]
-}
-```
-
-### Managing Deployments via Recipe
-
-Use typed deployments to bind chat profiles to specific models:
-
-```json
-{
-  "steps": [
+    },
     {
       "name": "AIDeployment",
-      "deployments": [
+      "Deployments": [
         {
-          "ItemId": "openai-chat",
           "Name": "gpt-4o",
           "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Chat",
-          "IsDefault": true
+          "ConnectionName": "openai",
+          "Properties": {
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming" ]
+            }
+          }
         },
         {
-          "ItemId": "openai-utility",
           "Name": "gpt-4o-mini",
           "ClientName": "OpenAI",
-          "ConnectionName": "default",
-          "Purpose": "Utility",
-          "IsDefault": true
+          "ConnectionName": "openai",
+          "Properties": {
+            "AIDeploymentMetadata": {
+              "Features": [ "textGeneration", "toolCalling", "streaming" ]
+            }
+          }
         }
       ]
-    }
-  ]
-}
-```
-
-### Creating a Chat Profile via Recipe
-
-```json
-{
-  "steps": [
+    },
     {
       "name": "AIProfile",
-      "profiles": [
+      "Profiles": [
         {
           "Name": "customer-support-chat",
           "DisplayText": "Customer Support Chat",
           "WelcomeMessage": "Hello! How can I help you today?",
           "Type": "Chat",
           "TitleType": "InitialPrompt",
-          "PromptTemplate": null,
           "ChatDeploymentName": "gpt-4o",
           "UtilityDeploymentName": "gpt-4o-mini",
           "Properties": {
             "AIProfileMetadata": {
-              "SystemMessage": "You are a helpful customer support assistant. Answer questions about our products and services. Be friendly and concise.",
+              "SystemMessage": "You are a helpful customer support assistant. Be friendly and concise.",
               "Temperature": 0.3,
-              "TopP": null,
-              "FrequencyPenalty": null,
-              "PresencePenalty": null,
               "MaxTokens": 2048,
               "PastMessagesCount": 10
+            }
+          },
+          "Settings": {
+            "AIChatProfileSettings": {
+              "IsOnAdminMenu": true
             },
-            "FunctionInvocationMetadata": { "Names": [] },
-            "AgentInvocationMetadata": { "Names": [] }
+            "ChatModeProfileSettings": {
+              "ChatMode": "TextInput",
+              "EnableTextToSpeechPlayback": false
+            }
           }
         }
       ]
@@ -149,20 +136,18 @@ Use typed deployments to bind chat profiles to specific models:
 }
 ```
 
-The `AIProfile` recipe format omits `Source`. Profiles are source-agnostic and resolve their active client from `ChatDeploymentName` and `UtilityDeploymentName`.
+- Profiles are source-agnostic. The selected chat and utility deployments decide the client and model, so `Source` is not needed.
+- Leaving `ChatDeploymentName` empty uses the connection default, then **Default Chat Deployment** in site settings.
+- Link a persona with a top-level `"PersonaId"` on the profile. See `orchardcore-ai-personas`.
 
-### Making a Chat Profile Visible on the Admin Menu
-
-When creating or editing a profile, enable the "Show On Admin Menu" option. Profiles with this setting appear under **Artificial Intelligence** in the admin sidebar.
-
-### Defining a Chat Profile in Code with DataMigration
+### Define a Chat Profile in Code
 
 ```csharp
-public sealed class AIChatProfileMigrations : DataMigration
+public sealed class SiteAssistantMigrations : DataMigration
 {
     private readonly IAIProfileManager _profileManager;
 
-    public AIChatProfileMigrations(IAIProfileManager profileManager)
+    public SiteAssistantMigrations(IAIProfileManager profileManager)
     {
         _profileManager = profileManager;
     }
@@ -195,69 +180,84 @@ public sealed class AIChatProfileMigrations : DataMigration
             PastMessagesCount = 10,
         });
 
-        await _profileManager.SaveAsync(profile);
+        var result = await _profileManager.ValidateAsync(profile);
+
+        if (result.Succeeded)
+        {
+            await _profileManager.CreateAsync(profile);
+        }
 
         return 1;
     }
 }
 ```
 
-### Enabling the AI Agent Module
+`IAIProfileManager` is a catalog manager: `NewAsync`, `ValidateAsync`, `CreateAsync`, `UpdateAsync`, `FindByNameAsync`, `DeleteAsync`. There is no `SaveAsync`.
 
-The AI Agent module provides tools that allow AI profiles to perform tasks on the Orchard Core site (content management, feature management, user management, etc.).
+For agent profiles, profile types and tools, see `orchardcore-ai`, `orchardcore-ai-agent` and `orchardcore-ai-tools`. The framework profile API is described in `crestapps-core-ai-profiles`.
 
-```json
+### Profile Editor Layout
+
+- The first tab holds the **General**, **Deployments & Interactions**, **Instructions**, **Parameters** and **Prompt Security** cards. **Knowledge**, **Capabilities** and **Data Processing & Metrics** tabs come from enabled features.
+- **Deployments & Interactions** reads in one pass: chat deployment, its model parameters, **Chat mode**, **Conversation deployment**, **Voice**, **Enable text-to-speech playback**, then the utility deployment and its parameters.
+- **Start the conversation automatically** (formerly **Add initial prompt**) with its **Opening message** (formerly **Initial prompt**) still stores `AIProfileMetadata.InitialPrompt`. The session is created lazily: it is persisted only when the visitor sends the first message, and the opening message is inserted ahead of it.
+- A **Welcome Message** is placeholder text for new sessions and is never added to the model history.
+
+### Chat Modes
+
+| Mode | Behavior | Requirement |
+|---|---|---|
+| `TextInput` | Typed chat (default) | None |
+| `AudioInput` | Microphone dictation; transcript is placed in the input for review | A speech-to-text deployment in the `speechToText` slot |
+| `Conversation` | Voice toggle beside a working message box; both kinds of turn land in one thread | A realtime deployment that resolves, or both speech-to-text and text-to-speech deployments |
+
+```csharp
+profile.AlterSettings<ChatModeProfileSettings>(settings =>
 {
-  "steps": [
-    {
-      "name": "Feature",
-      "enable": [
-        "CrestApps.OrchardCore.AI",
-        "CrestApps.OrchardCore.AI.Chat",
-        "CrestApps.OrchardCore.AI.Agent",
-        "CrestApps.OrchardCore.OpenAI"
-      ],
-      "disable": []
-    }
-  ]
-}
+    settings.ChatMode = ChatMode.Conversation;
+
+    // Empty means the site's default realtime deployment, then the first realtime-capable one.
+    settings.ConversationDeploymentName = "gpt-realtime";
+    settings.VoiceName = "alloy";
+    settings.EnableTextToSpeechPlayback = false;
+});
 ```
 
-Once enabled, navigate to your AI profile and assign capabilities under the **Capabilities** tab. The tab is organized in this order: MCP Connections, Agents, Tools.
+- The **Chat mode** field only appears on **Chat** profiles, and only when a speech-to-text deployment or a realtime deployment exists.
+- `VoiceName` is kept whatever the mode, because phone calls answered or placed with the profile use it. Without one, the persona's voice, then the site default voice, then the provider default is used.
+- **Enable text-to-speech playback** adds a read-aloud button to each answer and needs a text-to-speech deployment. It is hidden in Conversation mode, which already speaks.
+- Resolution order, cascaded realtime and transport configuration are in `orchardcore-ai-realtime-voice`.
 
-### Creating an Agent Profile
+### Admin Chat Pages
 
-Agent profiles are reusable agents that can be invoked as tools by other profiles. When creating an Agent profile:
+| Route | Purpose | Permission |
+|---|---|---|
+| `ai/chat/session/{profileId}/{sessionId?}` | Admin chat session | `QueryAnyAIProfile` or `QueryAIProfile_{name}` |
+| `ai/chat/history/{profileId}` | Chat history (`AIChatSessions` admin list) | Same |
+| `ai/chat/test/{profileId}` | **Invoke Profile** for Utility and Agent profiles; no session, history or metrics | `QueryAnyAIProfile` |
+| `ai/chat/chat-session/delete/{sessionId}` | Delete one session | `DeleteChatSession` |
+| `ai/chat/history/{profileId}/delete-all` | Delete all sessions of a profile | `DeleteAllChatSessions` |
 
-1. Set `Type` to `Agent`
-2. Provide a `Description` — this is used by the LLM to decide when to invoke the agent
-3. Set `Availability` to `OnDemand` (default) or `AlwaysAvailable`
-4. Configure a system message, tools, and other capabilities
+The history page renders through Orchard Core's `AdminList` shape (`AIChatSessions`, rows are `AIChatSessionEntry_SummaryAdmin`, grid columns `Name`, `Status`, `LastActivity`, `Actions`). Add columns with an `IAdminListColumnsProvider` for `AIChatSessions`; see `orchardcore-admin-lists`.
+
+### Admin Widget
+
+Enable `CrestApps.OrchardCore.AI.Chat.AdminWidget`, then pick the profile, the history size (1 to 50, default 10) and the primary color (default `#41b670`) in the **Admin Widget** section of **Settings → Artificial Intelligence** (permission `ManageAIProfiles`). It renders for signed-in users allowed to query that profile and keeps its position, size and session in browser local storage.
+
+### Frontend Widget
+
+With `OrchardCore.Widgets` enabled, the module creates the `AIChat` widget type (**Artificial Intelligence Chat**) with `AIProfilePart` (`ProfileId`, `TotalHistory`). The widget renders only for visitors allowed to query the profile, so grant the `Anonymous` role `QueryAIProfile_{profileName}` for a public assistant. History is listed for the visitor's own identity: a signed-in user's sessions, or the sessions owned by an anonymous visitor's cookie.
 
 ```json
 {
   "steps": [
     {
-      "name": "AIProfile",
-      "profiles": [
+      "name": "Roles",
+      "Roles": [
         {
-          "Name": "research-agent",
-          "DisplayText": "Research Agent",
-          "Description": "An agent that can research topics and provide comprehensive summaries with citations.",
-          "Type": "Agent",
-          "TitleType": "InitialPrompt",
-          "ChatDeploymentName": "gpt-4o",
-          "UtilityDeploymentName": "gpt-4o-mini",
-          "Properties": {
-            "AIProfileMetadata": {
-              "SystemMessage": "You are a research assistant. Gather information, verify facts, and provide comprehensive answers with sources.",
-              "Temperature": 0.3,
-              "MaxTokens": 4096
-            },
-            "AgentMetadata": {
-              "Availability": "OnDemand"
-            }
-          }
+          "Name": "Anonymous",
+          "PermissionBehavior": "Add",
+          "Permissions": [ "QueryAIProfile_customer-support-chat" ]
         }
       ]
     }
@@ -265,152 +265,83 @@ Agent profiles are reusable agents that can be invoked as tools by other profile
 }
 ```
 
-### Creating an Agent Profile in Code
+### Prompt Security and Visitor Identity
 
-```csharp
-var profile = await _profileManager.NewAsync();
+Both are sections of **Settings → Artificial Intelligence** (permission `ManageAIProfiles`) and both are site settings that can be set with the `Settings` recipe step. Saving either still releases the tenant shell, because their readers in CrestApps.Core use `IOptions<T>`.
 
-profile.Name = "research-agent";
-profile.DisplayText = "Research Agent";
-profile.Description = "Researches topics and provides comprehensive summaries with citations.";
-profile.Type = AIProfileType.Agent;
-
-profile.Put(new AIProfileMetadata
+```json
 {
-    SystemMessage = "You are a research assistant...",
-    Temperature = 0.3f,
-    MaxTokens = 4096,
-});
-
-profile.Put(new AgentMetadata
-{
-    Availability = AgentAvailability.OnDemand,
-});
-
-await _profileManager.SaveAsync(profile);
-```
-
-### Adding an AI Chat Widget to Frontend Content
-
-When the Widgets feature is enabled, you can add an AI Chat widget to zones. Create a widget layer and add the AI Chat widget to display the chat interface on your frontend pages.
-
-### Creating a Custom AI Tool for Chat
-
-```csharp
-public sealed class LookupOrderFunction : AIFunction
-{
-    public const string TheName = "lookup_order";
-
-    private static readonly JsonElement _jsonSchema = JsonSerializer.Deserialize<JsonElement>(
-    """
-     {
-       "type": "object",
-       "properties": {
-         "OrderId": {
-           "type": "string",
-           "description": "The order ID to look up."
-         }
-       },
-       "additionalProperties": false,
-       "required": ["OrderId"]
-     }
-    """);
-
-    public override string Name => TheName;
-
-    public override string Description => "Looks up order details by order ID.";
-
-    public override JsonElement JsonSchema => _jsonSchema;
-
-    protected override async ValueTask<object> InvokeCoreAsync(
-        AIFunctionArguments arguments,
-        CancellationToken cancellationToken)
+  "steps": [
     {
-        if (!arguments.TryGetValue("OrderId", out var value) || value is null)
-        {
-            return "OrderId is required.";
-        }
-
-        var orderId = value is JsonElement jsonElement
-            ? jsonElement.GetString()
-            : value?.ToString();
-
-        // Replace with actual order lookup logic.
-        return $"Order {orderId}: Status=Shipped, ETA=2 days.";
+      "name": "Settings",
+      "PromptSecurityOptions": {
+        "EnableInjectionDetection": true,
+        "MaxPromptLength": 8000,
+        "BlockingThreshold": "High",
+        "MaxMessagesPerWindow": 20,
+        "RateLimitWindow": "00:01:00",
+        "AnonymousMessageRateLimitTiers": [
+          { "Limit": 5, "Window": "00:00:30" },
+          { "Limit": 150, "Window": "01:00:00" }
+        ],
+        "AnonymousSessionStartRateLimitTiers": [
+          { "Limit": 10, "Window": "00:05:00" }
+        ]
+      },
+      "AIVisitorIdentityOptions": {
+        "CookieName": "crestapps-ai-visitor",
+        "CookieLifetime": "180.00:00:00",
+        "AllowCrossSiteEmbedding": true,
+        "UsePartitionedCookie": true,
+        "RemoteAddressMode": "Hashed"
+      }
     }
+  ]
 }
 ```
 
-Register the tool and assign it to a profile:
+- Tiers apply to anonymous callers only and take precedence over the single-window values. Lowering `MaxAnonymousSessionsPerWindow` has no effect while tiers are set; clear the tier list or lower a tier instead.
+- The default for **Maximum anonymous sessions per window** is now `20`.
+- A profile can override every throttle value on its **Prompt Security** tab, or opt out of tiers with **Do not use tiered ... limits for this profile**. Injection detection, output filtering and prompt length stay site-wide.
+- A throttled session start is sent to the client as `ReceiveSessionStartRejected` with a generic, localizable message.
+- Turn on `AllowCrossSiteEmbedding` only when the chat runs in a frame on another site. It writes the cookie `SameSite=None; Secure` (HTTPS requests only) and `UsePartitionedCookie` adds `Partitioned`.
+- `RemoteAddressMode` values are `Disabled`, `Hashed` (recommended), `PlainText` and `Encrypted`. Configure forwarded headers behind a reverse proxy.
 
-```csharp
-services.AddCoreAITool<LookupOrderFunction>(LookupOrderFunction.TheName)
-    .WithTitle("Order Lookup")
-    .WithDescription("Looks up order details by order ID.")
-    .WithCategory("Commerce")
-    .Selectable();
-```
+### Session Documents and Citations
 
-### Security Best Practices
+- Enable `CrestApps.OrchardCore.AI.Documents.ChatSessions` and turn on **Allow session document uploads** and **Allow session image uploads** per profile (`AIProfileSessionDocumentsMetadata`). Image uploads also need a vision deployment. See `orchardcore-ai-documents`.
+- `[doc:N]` markers render as superscript citations with a linked reference list in the admin chat, the admin widget and the frontend widget.
+- Pictures returned together, such as document previews, stack into the `chat-image-carousel`.
 
-- Store API keys using `dotnet user-secrets` during development.
-- Use environment variables or Azure Key Vault in production.
-- Restrict AI profile access with Orchard Core permissions.
-- Set appropriate token limits to control costs.
-- Lock system messages on production profiles to prevent prompt injection.
+### AIChatHub Methods
 
-### Chat Mode Configuration
+The hub is mapped with `SignalRHubRoutes.GetHubPath<AIChatHub>()`, and `ConfigureCrestAppsChatHubOptions<AIChatHub>()` sets its SignalR options.
 
-Chat profiles support three modes via the `ChatModeProfileSettings`:
+| Method | Purpose |
+|---|---|
+| `StartSession` | Start a session for a profile |
+| `LoadSession` | Load a session and join its group |
+| `SendMessage` | Stream a reply to a typed prompt |
+| `SendAudioStream` | Stream audio for dictation |
+| `StartConversation` / `StopConversation` | Speech-to-text plus text-to-speech conversation |
+| `StartRealtimeConversation` / `StartRealtimeWebRtc` | Realtime voice over WebSocket or WebRTC |
+| `GetRealtimeIceServers`, `AddRealtimeIceCandidate`, `UpdateRealtimeSettings`, `UpdateRealtimeSpeechSpeed` | Realtime session control |
+| `SynthesizeSpeech` | Read an answer aloud |
+| `RateMessage` | Thumbs up or down |
+| `HandleNotificationAction` | Run a notification action, see `orchardcore-ai-chat-notifications` |
 
-| Mode | Description | Requirements |
-|------|-------------|--------------|
-| `TextInput` | Standard text-only chat (default) | None |
-| `AudioInput` | Adds microphone button for speech-to-text dictation. User types or dictates, then sends manually. | `DefaultSpeechToTextDeploymentName` configured in site settings |
-| `Conversation` | Two-way voice conversation. User speaks → transcript sent automatically → AI responds with text and spoken audio. | Both `DefaultSpeechToTextDeploymentName` and `DefaultTextToSpeechDeploymentName` configured |
+### Resources
 
-Chat mode is set in the AI Profile edit page under the "Chat Mode" dropdown (only visible for Chat-type profiles).
+The chat UI comes from the `@crestapps/ai-chat-ui` package. Scripts `AIChatApp`, `AIChatWidgetApp`, `realtime-audio` and `chat-image-carousel`, and styles `AIChatApp`, `AIChatWidget` and `chat-image-carousel`, are registered by the modules. Assistant messages show the persona's name and avatar when a persona is linked.
 
-**In code:**
-```csharp
-profile.AlterSettings<ChatModeProfileSettings>(s =>
-{
-    s.ChatMode = ChatMode.Conversation;
-    s.VoiceName = "en-US-JennyNeural"; // Optional TTS voice
-});
-```
+### Upgrading from 2.x
 
-> **Important:** Always use `profile.TryGetSettings<ChatModeProfileSettings>()` to read and `profile.AlterSettings<ChatModeProfileSettings>()` to write. Do not read this data from `Entity.Properties`; chat mode settings live in `AIProfile.Settings`.
+- Replace `"Purpose": "Chat"` and similar on deployments with `Properties.AIDeploymentMetadata.Features`. Old recipes and stored records still import because the purpose is projected onto capabilities on read.
+- `ChatMode.Realtime` and the separate realtime deployment field are gone. Put the speech-to-speech model in `ChatModeProfileSettings.ConversationDeploymentName` and set `ChatMode` to `Conversation`. Stored profiles are folded on read.
+- The chat deployment picker now lists text-capable deployments only.
+- The CrestApps SignalR module is deprecated. AI Chat depends on `OrchardCore.SignalR` directly, and `HubRouteManager` is replaced by `SignalRHubRoutes.GetHubPath<T>()` and `Html.SignalRHubUrl<T>()`.
+- The chat history list uses the `AdminList` shape. A theme override of the whole row only applies to the List layout.
+- The **Apply Templates** card is gone from the profile editor; use the **New AI Profile** picker, or link to `Create?templateId=`.
+- The CSS source maps `ai-chat.css.map` and `chat-widget.css.map` are no longer shipped.
 
-### Voice Configuration
-
-When `ChatMode` is `Conversation`, a voice dropdown appears in the AI Profile editor, populated via AJAX from the configured TTS deployment. Voices are grouped by language and sorted alphabetically. If no voice is selected, the provider's default voice is used.
-
-The `SpeechVoice` model includes: `Id`, `Name`, `Language`, `Gender`, and `VoiceSampleUrl`.
-
-### Admin Chat Session UI
-
-Chat profiles are accessible at `/admin/ai-chat/session/{profileId}`. The session view:
-- Supports all three chat modes (TextInput, AudioInput, Conversation)
-- Shows microphone button when `AudioInput` or `Conversation` mode is enabled
-- Shows conversation (headset) button when `Conversation` mode is enabled
-- Streams audio and text simultaneously during conversation mode
-- Supports document upload when the session documents feature is enabled
-
-### Admin Widget and Frontend Widget
-
-Both the admin widget (`AIChatAdminWidget`) and frontend widget (`Widget-AIChat`) support all chat modes. Chat configuration is passed to JavaScript via `data-config` attributes on hidden elements, not inline `@Html.Raw()`.
-
-### SignalR Hub Methods (AIChatHub)
-
-| Method | Description |
-|--------|-------------|
-| `StartSession` | Creates a new chat session for a profile |
-| `LoadSession` | Loads an existing chat session |
-| `SendMessage` | Streams a text-message response for a profile and session |
-| `SendAudioStream` | Streams audio chunks for speech-to-text transcription |
-| `StartConversation` | Starts a full two-way voice conversation |
-| `SynthesizeSpeech` | Converts text to speech audio |
-| `RateMessage` | Rates an assistant message (thumbs up/down) |
-| `HandleNotificationAction` | Dispatches a notification action |
-| `StopConversation` | Cancels the active conversation |
+See [ai-chat-examples.md](references/ai-chat-examples.md) for more recipes.

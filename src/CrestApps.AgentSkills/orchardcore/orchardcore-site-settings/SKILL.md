@@ -235,19 +235,25 @@ The view model must not be `sealed` (proxy-based shapes, see analyzer `OCSG001` 
 
 #### Step 3: Razor View (`Views/SocialMediaSettings.Edit.cshtml`)
 
+The editor renders only its rows, using the admin `ocat-*` classes; the settings page supplies the form and the Save button (see `orchardcore-admin-edit-views`).
+
 ```html
 @model SocialMediaSettingsViewModel
 
-<div class="mb-3" asp-validation-class-for="FacebookUrl">
-    <label asp-for="FacebookUrl" class="form-label">@T["Facebook URL"]</label>
-    <input asp-for="FacebookUrl" class="form-control" />
-    <span asp-validation-for="FacebookUrl"></span>
+<div class="ocat-wrapper" asp-validation-class-for="FacebookUrl">
+    <label asp-for="FacebookUrl" class="ocat-label">@T["Facebook URL"]</label>
+    <div class="ocat-end">
+        <input asp-for="FacebookUrl" class="form-control" />
+        <span asp-validation-for="FacebookUrl"></span>
+    </div>
 </div>
 
-<div class="mb-3">
-    <div class="form-check">
-        <input asp-for="ShowSocialLinks" class="form-check-input" />
-        <label asp-for="ShowSocialLinks" class="form-check-label">@T["Display social media links"]</label>
+<div class="ocat-wrapper">
+    <div class="ocat-end-offset">
+        <div class="form-check">
+            <input asp-for="ShowSocialLinks" class="form-check-input" />
+            <label asp-for="ShowSocialLinks" class="form-check-label">@T["Display social media links"]</label>
+        </div>
     </div>
 </div>
 ```
