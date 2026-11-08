@@ -88,7 +88,26 @@ Settings are site settings, so the standard Orchard Core `Settings` recipe step 
 - `MarketplaceLedger.GetLineGross` is a line's total less its share of the order's discounts. `Split` rounds the commission to the cent and gives the vendor the rest. `GetRefundShare` is a vendor's share of a refund: the refund's lines when named, else a share of the order total.
 - `MarketplaceService.RecordSaleAsync` writes a held earning per vendor line of a paid order (idempotent). `RecordRefundAsync` writes a negative earning keyed by the refund.
 - `ReleaseDueAsync` makes earnings available once the hold ended and, for goods, the order is fulfilled. `ReleaseOrderAsync(vendorId, orderId)` releases early, for example when a service is delivered.
-- `PayOutAsync(vendor)` pays what is available, one payout per order, through the first registered `IVendorPayoutProvider`. It refuses suspended vendors and vendors without `PayoutsEnabled`. `PayOutAllAsync` pays every vendor.
+- `PayOutAsync(vendor)` pays what is available, one payout per order, through the `IVendorPayoutProvider` named by `MarketplaceSettings.PayoutProvider`, or the only one enabled when none is named (several enabled and none named pays nothing). It refuses suspended vendors and vendors without `PayoutsEnabled`. Each payout's idempotency key comes from the vendor, order and earnings (`MarketplaceLedger.GetPayoutKey`), so a payout retried after the transfer went through but its save failed gets the same transfer back; a refused payout bumps the earnings' `RefusedPayouts` so the next try is a new request. `PayOutAllAsync` pays every vendor.
+
+## Recipes, deployment and reporting
+
+The `Vendors` step creates or updates vendors, matched by `ItemId`, then by name. Users are named by `UserNames` (must exist); commission is 0 to 100 or none. The **Vendors** deployment step (*Commerce*) writes every vendor. Stripe Connect accounts belong to the site they were made on, so account ids, onboarding keys and payout status are never exported or imported; earnings and payouts stay on the site.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Vendors",
+      "Vendors": [
+        { "ItemId": "4vd00000000000000000000001", "Name": "Acme Crafts", "Email": "sales@acme.test", "UserNames": [ "acme" ], "CommissionPercent": 12.5, "Status": "Active", "Country": "US" }
+      ]
+    }
+  ]
+}
+```
+
+With **Data Pipelines Core** on (Report Builder), the **Marketplace** data source (`Marketplace`, permission `ManageMarketplace`) has `Vendors`, `VendorEarnings` (refunds negative) and `VendorPayouts`. Stripe account ids, keys and transfer references are never exposed. A vendor's user and email are anonymized by `VendorPersonalDataContributor` on a personal data erasure.
 
 ## Stripe Connect
 

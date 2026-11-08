@@ -22,6 +22,7 @@ You are an Orchard Core expert. CrestApps Content Transfer bulk imports and expo
 - Download the template for a type rather than hand-authoring columns; it reflects the registered handlers.
 - Imports save drafts unless **Publish imported content** is checked. A row with an existing `ContentItemId` updates a new latest version; `ContentItemVersionId` is exported for reference and ignored on import.
 - Validation runs through `IContentManager.ValidateAsync()`. Rejected rows download in the original format while that format is enabled.
+- A cell that holds only the text `NULL` (any case, surrounding spaces ignored), as database and spreadsheet exports write a missing value, is read as an empty cell, so handlers skip it instead of storing the word.
 - Exports above `ExportQueueThreshold`, or with options that set `ExportRequest.RequiresQueue`, are queued; smaller ones stream directly. Enable `OrchardCore.Notifications` for the built-in completion notification.
 - On more than one instance, enable `OrchardCore.Redis.Lock`, store files in Azure Blob Storage, and keep session affinity for chunked uploads (or share the temp directory).
 
@@ -65,11 +66,12 @@ Build a typed permission with `ContentTransferPermissions.CreateDynamicPermissio
 
 ## Import processing
 
-1. An upload is stored through `IContentTransferFileStore` as a **Pending** `ContentTransferEntry` and processing starts immediately. The **Imported Files Processor** background task (every 10 minutes) picks up pending entries and resumes stalled ones.
+1. An upload is stored through `IContentTransferFileStore` as a **Pending** `ContentTransferEntry` and processing starts immediately. The **Imported Files Processor** background task (`ImportFilesBackgroundTask`, schedule `* * * * *`, every minute) picks up pending entries and resumes imports a restart interrupted or that stalled. Every run, including one started from the admin, is linked to the host stopping, so a shutdown does not mark the import failed.
 2. One run works on an import at a time under a lock named after the entry. The lock lasts 30 minutes, so a run reads rows for at most 15 minutes, saves progress after the batch in flight, and the import continues under a fresh lock.
 3. A watchdog names any row slower than a minute in a warning, abandons a row still running after 10 minutes or a run past 28 minutes (releasing the lock), and skips a row that stops two runs, listing it in the error file. An abandoned run cannot save progress later.
-4. Statuses: **Pending**, **Processing**, **Paused**, **Deleting**, **Completed**, **Completed with errors**, **Failed**. A **Processing** entry with no saved progress for 10 minutes is stalled; **Resume import** continues paused, failed, pending and stalled imports from the last saved batch, and reports when a run is still working.
-5. Deleting an entry removes it and its file in the background; it never deletes imported content.
+4. A run that fails with an unexpected error (for example a database timeout) does not fail the import: the same run retries it after a pause growing from 15 seconds to two minutes, up to five times, then leaves it to the next scheduled run. The import is marked **Failed** only after the same row failed three runs in a row with no progress between them.
+5. Statuses: **Pending**, **Processing**, **Paused**, **Deleting**, **Completed**, **Completed with errors**, **Failed**. A **Processing** entry with no saved progress for 10 minutes is stalled; **Resume import** continues paused, failed, pending and stalled imports from the last saved batch, and reports when a run is still working.
+6. Deleting an entry removes it and its file in the background; it never deletes imported content.
 
 The admin lists use Orchard Core's `AdminList` standard (List or Grid layout, filters in the toolbar); see the framework `orchardcore-admin-lists` skill for customizing rows.
 
@@ -157,7 +159,7 @@ Also enable `OrchardCore.Redis.Lock` so two instances never import the same file
 
 | Extension point | Use it for | Registration |
 |---|---|---|
-| `IContentImportHandler` | Content-item-level columns | `services.AddScoped<IContentImportHandler, T>()` |
+| `IContentImportHandler` | Content-item-level columns (`GetColumnsAsync`, `ImportAsync`, `ExportAsync`) | `services.AddScoped<IContentImportHandler, T>()` |
 | `IContentPartImportHandler` | Columns owned by a part | `services.AddContentPartImportHandler<TPart, THandler>()` |
 | `StandardFieldImportHandler` / `IContentFieldImportHandler` | Columns of a field (`{Part}_{Field}_{Property}`) | `services.AddContentFieldImportHandler<TField, THandler>()` |
 | `IContentImportRowFilter` | Skip rows before mapping (`InitializeAsync`, `PrepareBatchAsync`, `ShouldSkipRowAsync`) | `services.AddScoped<IContentImportRowFilter, T>()` |
@@ -176,6 +178,8 @@ Omnichannel Management contributes contact-specific import options (duplicate ph
 - Admin lists render through Orchard Core's `AdminList` shape. `ContentTransferEntryDisplayDriver` places the row shapes (`ContentTransferEntry_Checkbox_SummaryAdmin`, `ContentTransferEntry_Fields_SummaryAdmin`, ...) for both the `SummaryAdmin` (List) and `SummaryAdminGrid` (Grid) display types. A custom driver that adds a shape to these rows must give it a `SummaryAdminGrid` location too, and overrides of the old list markup must be redone.
 - The module depends on `OrchardCore.Resources` because `crestapps-bootstrap-select` was removed in favor of Orchard Core's `bootstrap-select`.
 - Imports are supervised by a watchdog and lock slices, so an import stuck on one row no longer holds the lock until a restart. A DNC registry timeout now skips the row instead of ending the run.
+- **Breaking:** `IContentImportHandler.GetColumns` is now `GetColumnsAsync` and returns `Task<IReadOnlyCollection<ImportColumn>>`; return fixed columns through `Task.FromResult`. `IContentPartImportHandler` and `IContentFieldImportHandler` keep the synchronous `GetColumns`.
+- Admin create, edit and import forms render their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; theme overrides and UI tests that look for the old row must update.
 - New in 3.0: the Azure Blob Storage feature, `BackgroundWork:Pacing`, `IContentExportBatchHandler`, `ExportRequest` export options, `ContentExportContext.Exclude`, and `IContentTransferFileReaderTransformer`.
 - Permission descriptions use `LocalizationSource`.
 
@@ -183,7 +187,8 @@ Omnichannel Management contributes contact-specific import options (duplicate ph
 
 - `.xlsx` missing from the pickers: enable the OpenXml feature and install its package in the web project.
 - A content type is missing: `AllowBulkImport` or `AllowBulkExport` is off, or the user lacks the typed permission.
-- An import stays **Processing**: check the log for the watchdog warnings and the lock; with several instances, enable Redis locks. Use **Resume import** after 10 minutes without progress.
+- An import stays **Processing**: check the log for the watchdog warnings and the lock (each run logs where it started, stopped and why); with several instances, enable Redis locks. Use **Resume import** after 10 minutes without progress.
+- The word `NULL` ended up in imported items: that was the behavior before `NULL` cells were read as empty; re-import the affected rows.
 - *The import file no longer exists*: files were on a local disk another instance or a restarted container cannot read; use Azure Blob Storage.
 - Every row was created twice: two instances imported the same file without a shared lock.
 - Uploads fail with IIS `404.13`: lower `MaxUploadChunkSize` below `30000000` or raise `maxAllowedContentLength`.

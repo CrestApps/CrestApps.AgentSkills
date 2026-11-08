@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "description": "Creates or updates customers\u0027 store credit, matched by ItemId, then by customer and currency.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "StoreCreditAccounts",
+      "description": "Recipe step discriminator. Must be \u0027StoreCreditAccounts\u0027."
+    },
+    "Accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A customer\u0027s store credit in one currency.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the record. When it matches a stored record, that record is updated. Otherwise a new record is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "CustomerId": {
+            "type": "string",
+            "description": "The id of the customer who holds the credit. Import the customers first."
+          },
+          "Currency": {
+            "type": "string",
+            "description": "The ISO 4217 currency code of the credit."
+          },
+          "Balance": {
+            "type": "number",
+            "description": "The credit left."
+          },
+          "Activity": {
+            "type": "array",
+            "description": "The changes to the balance, oldest first."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "CustomerId",
+          "Currency"
+        ]
+      },
+      "description": "The records to create, or to update when their ItemId matches a stored record."
+    }
+  },
+  "required": [
+    "name",
+    "Accounts"
+  ],
+  "additionalProperties": true
+}

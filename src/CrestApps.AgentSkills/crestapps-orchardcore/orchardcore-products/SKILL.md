@@ -22,7 +22,7 @@ Products (new in CrestApps.OrchardCore 3.0) turns any content type into a produc
 | Markets (`orchardcore-markets`) | Implements `IShopperCurrency` and `IProductSaleRestriction` |
 | Shipping (`orchardcore-shipping`) | Adds weights and classes through `ShippingPart` |
 | Taxation (`orchardcore-taxation`) | Classifies products through `TaxationPart`; `ProductTaxableItemProvider` |
-| Companies (`orchardcore-companies`) | Implements `IBuyerPriceProvider` for price lists |
+| Accounts B2B (`CrestApps.OrchardCore.Accounts.B2B`, replaces Companies) | Implements `IBuyerPriceProvider` for business account price lists |
 
 ## Features
 
@@ -235,6 +235,11 @@ public sealed class GiftWrapActionDriver : ContentPartDisplayDriver<ProductPart>
 
 Listing configuration, theming shapes, search servers and SEO are in [references/product-listing.md](references/product-listing.md). Merchandising features, feeds, import and the Catalog API are in [references/merchandising-and-feeds.md](references/merchandising-and-feeds.md).
 
+## Report Builder data source and structured data
+
+- With **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) on, as the Report Builder does, Products registers the **Products** data source (`Products`) with `Products`, `ProductVariants` and `ProductPrices`; Product Bundles adds `ProductBundleItems` and Product Listing adds `ProductAttributes`. It uses content permissions (**View content** per product type; latest versions, drafts included, for types the user may edit), so rows are never grouped in the database. Order lines join on `Products/Products/ContentItemId` and `Products/ProductVariants/VariantId`. See `orchardcore-report-builder`.
+- With Advanced SEO (`CrestApps.OrchardCore.Seo`) on, `ProductStructuredDataProvider` publishes every `ProductPart` item as a schema.org `Product` node (`sku`, and `brand`, `gtin`, `mpn` from the feed part) with one `Offer` (current price, `priceCurrency`, inventory `availability`, `itemCondition`, `priceValidUntil` for a sale with an end date) or an `AggregateOffer` for variants; hidden, on-request and recurring prices publish no offer. Reviews adds `aggregateRating`. See [orchardcore-advanced-seo](../orchardcore-advanced-seo/SKILL.md).
+
 ## Samples
 
 | Recipe | Creates |
@@ -255,3 +260,5 @@ Products use Orchard Core content permissions. `ManageProductFeeds` (Product Fee
 - The built-in `/ServicePlans` page was removed; plans list through a Product Listing.
 - Money is `decimal` everywhere (`ProductPart.Price`), and `ProductPart` moved to `CrestApps.OrchardCore.Products.Core` (stored content is unaffected).
 - The product picker search endpoint (`Admin/api/crestapps/products/search`) moved to the Product Listing feature.
+- `CurrencyScale` moved to `CrestApps.OrchardCore.Abstractions` (namespace `CrestApps.OrchardCore.Currencies`), so the catalog rounds prices without referencing payments.
+- A product picked on a bundle with the **How many** box left empty now counts as one instead of failing validation.

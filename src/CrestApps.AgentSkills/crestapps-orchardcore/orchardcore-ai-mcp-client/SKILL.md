@@ -110,7 +110,7 @@ The `McpConnection` step creates or updates connections. `Source` is required fo
 
 Sensitive values supplied in a recipe (`ApiKey`, `BasicPassword`, `OAuth2ClientSecret`, `OAuth2PrivateKey`, `OAuth2ClientCertificate`, `OAuth2ClientCertificatePassword`) are encrypted on import. Do not paste already-encrypted values.
 
-With `OrchardCore.Deployment` enabled, an **MCP Connection** deployment step exports all or selected connections, with those secret fields blanked. Re-enter them on the target tenant.
+With `OrchardCore.Deployment` enabled, the **MCP Connections** deployment step exports all or selected connections, with those secret fields blanked. Re-enter them on the target tenant. With **CrestApps Recipes** (`CrestApps.OrchardCore.Recipes`) enabled, the `McpConnection` step has a JSON schema.
 
 ## Assign connections
 
@@ -144,4 +144,4 @@ The selector renders only when at least one connection exists.
 | Remote tools never appear in chat | The connection is not selected on the profile or interaction, or the remote server rejects the credentials. |
 | Imported connection fails to authenticate | Secrets are blanked in exports; re-enter them. |
 
-See `orchardcore-ai-mcp-server` to expose Orchard Core itself as an MCP server.
+See `orchardcore-ai-mcp-server` to expose Orchard Core itself as an MCP server, and `orchardcore-ai-webmcp` to give tools to AI agents in the user's browser.

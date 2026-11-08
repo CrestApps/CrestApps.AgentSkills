@@ -28,14 +28,16 @@ namespace MyModule.ContentTransfer;
 
 public sealed class ExternalSkuImportHandler : IContentImportHandler
 {
-    public IReadOnlyCollection<ImportColumn> GetColumns(ImportContentContext context)
-        => [
+    // IContentImportHandler columns are asynchronous; a handler with fixed columns returns them through Task.FromResult.
+    public Task<IReadOnlyCollection<ImportColumn>> GetColumnsAsync(ImportContentContext context)
+        => Task.FromResult<IReadOnlyCollection<ImportColumn>>(
+        [
             new ImportColumn
             {
                 Name = "ExternalSku",
                 Description = "The SKU used by the product system.",
             },
-        ];
+        ]);
 
     public Task ImportAsync(ContentImportContext context)
     {
@@ -241,7 +243,7 @@ services.AddScoped<IDisplayDriver<ExportRequest>, CatalogExportOptionsDisplayDri
 
 The base module supplies the `ExportRequest.Edit.cshtml` container; you only add `CatalogExportOptions.Edit.cshtml`.
 
-Read the option back in an `IContentImportHandler`: `ImportContentContext.Entry` is available in `GetColumns` and `ExportAsync`. Return `ImportColumnType.ExportOnly` columns only when the option is on, and set `ContentExportContext.Exclude = true` to drop an item from the output.
+Read the option back in an `IContentImportHandler`: `ImportContentContext.Entry` is available in `GetColumnsAsync` and `ExportAsync`. Return `ImportColumnType.ExportOnly` columns only when the option is on, and set `ContentExportContext.Exclude = true` to drop an item from the output.
 
 To avoid one query per row, implement `IContentExportBatchHandler.PrepareExportBatchAsync(ContentExportBatchContext context)` (`ContentItems` of the current page) on the same class and forward both interfaces to one scoped instance:
 

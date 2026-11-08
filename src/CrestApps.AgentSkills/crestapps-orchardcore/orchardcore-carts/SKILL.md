@@ -157,6 +157,10 @@ Forms are plain antiforgery POSTs (`POST cart/add`, `cart/update`, `cart/remove`
 
 `CrestApps.OrchardCore.Carts.Wishlists` keeps a `Wishlist` per signed-in user (up to 100, `WishlistIndex`). `WishlistButton` posts to `wishlist/{contentItemId}/add` or `/remove`; `account/wishlist` lists saved products with their add to cart and adds **Wishlist** to the account menu.
 
+## Report Builder data source
+
+With **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) on, as the Report Builder does, Carts registers the **Carts** data source (`Carts`): `Carts` and `CartLines` (open carts and their product lines), and with Wishlists `Wishlists` and `WishlistItems`. Every data set needs `ManageOrders` (Carts has no screens of its own). The indexes hold no dates, so there is no main date; the guest cart token and typed line details are never exposed. An order's `CartId` joins its cart. See `orchardcore-report-builder`.
+
 ## Cart API
 
 `CrestApps.OrchardCore.Carts.Api` maps into `api/commerce/v1`:

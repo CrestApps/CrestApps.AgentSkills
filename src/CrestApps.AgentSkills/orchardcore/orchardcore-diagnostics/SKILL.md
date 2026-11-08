@@ -181,6 +181,11 @@ helpful, cache-aware themed response. An exception is an operational failure
 and should lead users to a generic page while server telemetry retains the
 diagnostic context.
 
+For that server telemetry, `orchardcore-opentelemetry` exports traces, metrics
+and logs tagged with the tenant name over OTLP: failed requests and the
+exceptions they raise show up as spans with an `Error` status, and logs go to
+the same backend. Use `orchardcore-logging-serilog` for file or console logs.
+
 ## Route Considerations
 
 The built-in area route is `Error/{status?}`. Avoid defining an application

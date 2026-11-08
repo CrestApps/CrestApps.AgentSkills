@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-users
-description: Skill for the CrestApps Users module in Orchard Core. Covers the dependency-only core feature with user caching and the UserPicker view component, User Display Name with UserFullNamePart, DisplayNameSettings formats, IDisplayNameProvider and the display_name Liquid filter, display-name search and picker labels, User Avatar with UserAvatarOptions read through IOptionsMonitor, Sign in with an email code, the ManageDisplaySettings and ManageAvatarSettings permissions, and the IndexUsers recipe step. Use this skill when requests mention CrestApps user display names, a user picker in an admin screen, user avatars, passwordless email code sign-in, or re-indexing users. Strong matches include CrestApps.OrchardCore.Users, CrestApps.OrchardCore.Users.DisplayName, CrestApps.OrchardCore.Users.Avatars, CrestApps.OrchardCore.Users.EmailCodeSignIn, IDisplayNameProvider, UserFullNamePart, UserAvatarPart, UserAvatarOptions, UserPickerViewComponent and UpdateUserRecipeStepHandler.
+description: Skill for the CrestApps Users module in Orchard Core. Covers the dependency-only core feature with user caching and the UserPicker view component, User Display Name with UserFullNamePart, DisplayNameSettings formats, IDisplayNameProvider and the display_name Liquid filter, display-name search and picker labels, User Avatar with UserAvatarOptions read through IOptionsMonitor, Sign in with an email code, the ManageDisplaySettings, ManageAvatarSettings and SearchUsers permissions, IUserSearchService, IRoleGrantService role grants, and the IndexUsers recipe step. Use this skill when requests mention CrestApps user display names, a user picker in an admin screen, user avatars, passwordless email code sign-in, or re-indexing users. Strong matches include CrestApps.OrchardCore.Users, CrestApps.OrchardCore.Users.DisplayName, CrestApps.OrchardCore.Users.Avatars, CrestApps.OrchardCore.Users.EmailCodeSignIn, IDisplayNameProvider, UserFullNamePart, UserAvatarPart, UserPickerViewComponent and IUserSearchService.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -51,7 +51,7 @@ You are an Orchard Core expert. CrestApps Users extends Orchard Core Users with 
 
 ### Permissions
 
-`UserPermissions` (namespace `CrestApps.OrchardCore.Users.Core`) declares its descriptions with `LocalizationSource.Create<UserPermissions>(...)`. Both are granted to **Administrator** by default and registered with `AddSiteSettingsPermission` for their settings group, so a role holding only that permission can open the page.
+`UserPermissions` (a static class in namespace `CrestApps.OrchardCore.Users.Core`) declares its descriptions with `LocalizationSource.Create("...", typeof(UserPermissions))`. Feature IDs are in `UsersConstants.Feature` (`CrestApps.OrchardCore.Users.Abstractions`). Both are granted to **Administrator** by default and registered with `AddSiteSettingsPermission` for their settings group, so a role holding only that permission can open the page.
 
 | Permission | Opens |
 |---|---|
@@ -83,7 +83,33 @@ The core feature ships a `UserPicker` view component that renders through the sh
 | `roles` | Restrict results to these role names |
 | `label`, `buttonText`, `searchPlaceholder`, `smallButton` | Display options |
 
-The picker calls `GET Admin/api/crestapps/users/search` (route name `CrestApps.Users.Search`) with `query`, `valueType` and `role`. It requires an authenticated user, matches the normalized user name, and returns up to 50 enabled users as `{ value, text, isEnabled }` with `text` from `IDisplayNameProvider`.
+The picker calls `GET Admin/api/crestapps/users/search` (route name `CrestApps.Users.Search`) with `query`, `valueType` and `role`. It requires the `SearchUsers` permission (**Search users in user pickers**, `UserSearchPermissions.SearchUsers`, implied by the admin panel permission, so admin roles keep their pickers while a signed-in storefront customer cannot list users) and returns `403` otherwise. It delegates to `IUserSearchService` and returns up to 50 enabled users as `{ value, text, isEnabled }` with `text` from the display name.
+
+## Shared user building blocks
+
+The Users abstractions (`CrestApps.OrchardCore.Users.Abstractions`) hold contracts other modules reuse instead of querying users themselves:
+
+- `IUserSearchService` (registered by the core feature with `services.AddUserSearchService()`): `SearchAsync(UserSearchQuery)` finds enabled users by `Text` (optionally `MatchEmail`), `Roles` and `MaxResults` (default 50), ordered by user name; `GetAsync(userIds)` loads users by id, enabled or not. Results are `UserSearchResult` (`UserId`, `UserName`, `NormalizedUserName`, `Email`, `DisplayName`, `IsEnabled`). The service does not authorize; an endpoint that exposes it checks `UserSearchPermissions.SearchUsers` or its own permission first.
+- `IRoleGrantService` (register with `services.AddRoleGrants()` from Users.Core): `GrantAsync(userId, roleName, source, sourceId)`, `RevokeAsync(...)` and `ListAsync(userId)` put users in roles on behalf of a source and record each grant (`RoleGrant`). A role is removed only when no source still grants it, and never when the user had it before any grant. Implement `IRoleGrantSource` (`Source`, `ListExistingGrantsAsync`) so grants made before recording are kept. Memberships and Subscriptions use it.
+- The core feature registers `UserPartySource` for the `User` party kind of the shared parties building block (`CrestApps.OrchardCore.Parties.Abstractions`, `IPartyDirectory`).
+
+```csharp
+public sealed class PlanRoleSync
+{
+    private readonly IRoleGrantService _roleGrants;
+
+    public PlanRoleSync(IRoleGrantService roleGrants)
+    {
+        _roleGrants = roleGrants;
+    }
+
+    public Task ActivateAsync(string userId, string planId)
+        => _roleGrants.GrantAsync(userId, "Premium", "Plan", planId);
+
+    public Task DeactivateAsync(string userId, string planId)
+        => _roleGrants.RevokeAsync(userId, "Premium", "Plan", planId);
+}
+```
 
 ## User display names
 
@@ -226,6 +252,8 @@ public sealed class AvatarReader
 - Permission descriptions use `LocalizationSource`, so translate them from PO files with the declaring type as context.
 - The display name and avatar settings groups now register their permission, so roles with only `ManageDisplaySettings` or `ManageAvatarSettings` can open those pages.
 - New: the `UserPicker` view component (over the existing user search endpoint) and the Email Code Sign-in feature.
+- The user search endpoint now requires `SearchUsers` instead of any authenticated user. Roles with the admin panel permission get it implicitly; grant it explicitly to a non-admin role that uses a user picker.
+- Search users through `IUserSearchService` rather than querying `UserIndex` directly.
 
 ## Troubleshooting
 
@@ -235,3 +263,4 @@ public sealed class AvatarReader
 - Avatar box missing: check `OrchardCore.Media`, the Avatars feature and the editor's `ManageMedia` permission.
 - A custom Liquid format will not save: fix the template validation errors.
 - Email code limits seem per instance: configure a shared distributed cache.
+- The user picker returns 403: grant `SearchUsers` (or the admin panel permission) to the role.

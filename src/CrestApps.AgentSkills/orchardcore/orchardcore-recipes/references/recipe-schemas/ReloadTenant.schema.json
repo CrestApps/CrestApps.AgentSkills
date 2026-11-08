@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "description": "Requests a reload of the tenant when the recipe completes. Place it after the steps whose settings must become active, such as a \u0027Settings\u0027 step that changes CORS policies.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ReloadTenant",
+      "description": "Recipe step discriminator. Must be \u0027ReloadTenant\u0027."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

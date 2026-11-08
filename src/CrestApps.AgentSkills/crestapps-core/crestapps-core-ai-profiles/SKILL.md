@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-ai-profiles
-description: Skill for designing CrestApps.Core 2.0 AI Profiles, the reusable contract that controls prompts, deployments, tools, agents, retrieval, memory, persona, chat mode and session behavior. Covers AIProfile fields and types (Chat, Utility, TemplatePrompt, Agent), chat and utility deployment selection resolved through slots, AIProfileMetadata, FunctionInvocationMetadata, AgentInvocationMetadata, PromptTemplateMetadata, AIDeploymentParametersMetadata chat and utility model parameters, AIPersonaMetadata, ChatModeProfileSettings with ConversationDeploymentName, PromptSecurityProfileSettings, ResponseHandlerProfileSettings, IAIProfileManager and code-defined IAIProfileProvider profiles, Markdown profile templates under Templates Profiles, the profile as the tool authorization boundary, and upgrading from the removed RealtimeDeploymentName and ChatMode Realtime. Use it when creating or editing profiles in code, choosing what belongs on a profile versus a deployment, or troubleshooting profile behavior.
+description: Skill for designing CrestApps.Core 2.0 AI Profiles, the reusable contract that controls prompts, deployments, tools, agents, retrieval, memory, persona, chat mode and session behavior. Covers AIProfile types, deployment selection through slots, AIProfileMetadata, FunctionInvocationMetadata, AgentInvocationMetadata, PromptTemplateMetadata, AIDeploymentParametersMetadata, ChatModeProfileSettings, IAIProfileManager and IAIProfileProvider, Markdown profile templates, the opt-in speaking styles, guardrails, conversation privacy and profile versions (AddSpeakingStyles, AddGuardrails, AddConversationPrivacy, AddProfileVersions), AIProfileSpeechSettings, AIProfileLanguageSettings, typed DataExtractionEntry fields, the profile as the tool authorization boundary, and upgrading notes. Use it when creating or editing profiles in code, choosing what belongs on a profile versus a deployment, redacting or versioning profiles, or troubleshooting profile behavior.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -95,6 +95,12 @@ if (validation.Succeeded)
 | Anti-spam throttles | `PromptSecurityProfileSettings` via `WithSettings(...)` |
 | First response handler | `ResponseHandlerProfileSettings.InitialResponseHandlerName` |
 | Orchestrator | `OrchestratorName` (empty or unknown uses the default) |
+| Speaking styles | `AIProfileSpeakingStyleSettings.Styles` (needs `AddSpeakingStyles()`) |
+| Refused topics | `AIProfileGuardrailSettings` (needs `AddGuardrails()`) |
+| Redaction and retention | `AIProfileDataPrivacySettings` (needs `AddConversationPrivacy()`) |
+| Speaking rate, pronunciation, fallback TTS, recognition, barge-in | `AIProfileSpeechSettings` |
+| Allowed and starting languages | `AIProfileLanguageSettings` |
+| Extracted fields and their types | `AIProfileDataExtractionSettings.DataExtractionEntries` |
 
 Settings objects use the profile settings helpers:
 
@@ -116,6 +122,44 @@ if (profile.TryGetSettings<ChatModeProfileSettings>(out var chatMode)) { /* ... 
 ```
 
 The chat deployment means only "the text model this profile talks to". `ChatMode` (`TextInput`, `AudioInput`, `Conversation`) decides whether the conversation is spoken. In `Conversation` mode the realtime slot is resolved first (`ConversationDeploymentName`, then `DefaultRealtimeDeploymentName`, then the first realtime-capable deployment); the speech-to-text plus text-to-speech cascade is used only when no realtime-capable deployment resolves.
+
+## Opt-In Profile Features
+
+Four features moved from the Orchard Core modules into the framework. Each is added on the AI suite and configured per profile through settings:
+
+```csharp
+builder.Services.AddCrestAppsCore(crestApps => crestApps
+    .AddAISuite(ai => ai
+        .AddSpeakingStyles()
+        .AddGuardrails()
+        .AddConversationPrivacy()
+        .AddProfileVersions(versions => versions.AddYesSqlStores())));
+```
+
+| Feature | Settings | What it does |
+|---|---|---|
+| Speaking styles | `AIProfileSpeakingStyleSettings` | Appends System Prompt templates of the `Speaking style` category to the system message (`AISpeakingStyleCompletionContextBuilderHandler`) |
+| Guardrails | `AIProfileGuardrailSettings` | `AIGuardrailService` asks the utility deployment whether a customer message or reply falls under a refused `Guardrail topic` template and answers with `PlaceholderReply`; `IAIGuardrailHandler` is told |
+| Conversation privacy | `AIProfileDataPrivacySettings` | `AIConversationPrivacyService.ProcessAsync`, run by the host on a schedule, redacts (`RedactPersonalData`) or strips (`MetadataOnly`) ended conversations and deletes them after `RetentionDays`; `NamesToKeep` protects the assistant's and business's names |
+| Profile versions | none | Every save becomes an `AIProfileVersion` in `IAIProfileVersionStore`; compare with `AIProfileVersionComparer`, restore with `AIProfileVersionRestorer` |
+
+The eight default speaking styles and eight guardrail topics are seeded as editable System Prompt templates by `IAISystemPromptTemplateSeeder.SeedAsync()`; call it once from a migration or setup step (see `crestapps-core-ai-templates`). Guardrails sit behind prompt security and the output filter in the chat hub (see `crestapps-core-prompt-security`). Full examples are in [profile-features-examples.md](references/profile-features-examples.md).
+
+## Speech, Language and Typed Extraction
+
+These settings need no registration and are ignored until set:
+
+- `AIProfileSpeechSettings`: `SpeakingRate`, `SpeakingEmotion`, `PronunciationEntries`, `FallbackTextToSpeechDeploymentName`, `BoostedKeywords`, `RecognitionLanguages`, `InterruptionSensitivity`, `EnableBackchanneling` and `BackchannelPhrases`. The chat hub and the cascaded realtime pipeline apply them (see `crestapps-core-realtime-voice`).
+- `AIProfileLanguageSettings`: `AllowedLanguages` and `StartingLanguage`. `AICompletionContextKeys.ConversationLanguage` overrides the starting language per conversation, and `IConversationLanguageService.ReportDetectedLanguageAsync` runs every `IConversationLanguageHandler` when the host reports a different allowed language.
+- `DataExtractionEntry.FieldType` (`Text`, `Number`, `Boolean`, `Date`, `Enum`, `List`) and `AllowedValues`. `DataExtractionValueNormalizer` normalizes each value before it is stored and drops values that do not fit. A `List` collects items across messages, without duplicates.
+
+```csharp
+profile.AlterSettings<AIProfileLanguageSettings>(settings =>
+{
+    settings.AllowedLanguages = ["en", "es"];
+    settings.StartingLanguage = "en";
+});
+```
 
 ## Code-Defined Profiles
 
@@ -176,6 +220,14 @@ You are a meticulous research assistant.
 - **The profile lost its system message, tools and model parameters**: a context builder handler failed and was skipped; check the log for "Error in completion context building handler".
 - **A selected system prompt template does not render**: in 2.0 `AIProfileSystemPromptTemplateProvider` ships with `AddCoreAITemplating()`; stored `ai-profile:` identifiers still resolve as aliases.
 - **The profile speaks with a realtime model unexpectedly**: it is in `Conversation` mode and a realtime-capable deployment resolved. Remove the `realtime` feature from deployments to keep the cascade.
+- **A guardrail never triggers**: `AddGuardrails()` was not called, `CheckCustomer` and `CheckReplies` are both off, or the profile has no utility deployment (the check is skipped with a warning).
+- **No speaking styles or guardrail topics to pick**: the defaults are not served read-only; run `IAISystemPromptTemplateSeeder.SeedAsync()` once.
+- **Conversations are never redacted or deleted**: `AddConversationPrivacy()` schedules nothing; the host must call `ProcessAsync` per profile and commit afterwards.
+
+## Upgrading Within 2.0 Previews
+
+- A `PastMessagesCount` of `1` now keeps exactly one message. It used to send the whole history (the clients tested `> 1`). Clear the field to keep sending everything; blank, `0` or negative still keeps all.
+- Profile versions on YesSql need the `AIProfileVersionIndex` table (`CreateAIProfileVersionIndexSchemaAsync`).
 
 ## Upgrading from 1.x
 

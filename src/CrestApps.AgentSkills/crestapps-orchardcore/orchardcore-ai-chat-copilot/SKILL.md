@@ -19,7 +19,7 @@ You are an Orchard Core expert. Generate configuration, recipes, and extension c
 - Tenant settings take precedence when `AuthenticationType` is non-default or `HasStoredConfiguration()` is true.
 - Use `GitHubOAuth` for user or profile GitHub credentials and `ApiKey` for a directly configured model provider.
 - `NotConfigured` intentionally disables the Copilot orchestrator for a tenant.
-- OAuth mode requires a GitHub OAuth App, a Copilot-entitled identity, and the callback URL `/copilot/OAuthCallback`.
+- OAuth mode requires a GitHub app (the settings card walks through creating one), a Copilot-entitled identity, and the callback URL `/copilot/OAuthCallback`.
 - OAuth settings protect the client secret; API-key settings protect the provider API key with ASP.NET Core Data Protection.
 - API-key mode supports `openai`, `azure`, and `anthropic` provider types.
 - Azure API-key mode requires an Azure API version and API key. Keep the base URL at the Azure resource URL.
@@ -90,9 +90,9 @@ CrestApps.Core reads `CopilotOptions` through `IOptionsMonitor<CopilotOptions>`.
 
 Use OAuth when sessions should use models entitled to a GitHub identity:
 
-1. Create a GitHub OAuth App.
-2. Set its callback URL to `https://your-domain.example/copilot/OAuthCallback`.
-3. Configure the client ID and client secret in **Settings → Artificial Intelligence → Copilot**.
+1. In GitHub, open **Settings → Developer settings → GitHub Apps → New GitHub App**, with an app name and the site's homepage URL. The **Copilot** card shows these steps with the exact callback URL to copy.
+2. Set the **Callback URL** to `https://your-domain.example/copilot/OAuthCallback`, uncheck **Webhook → Active** (webhooks are not needed), and grant **Copilot Chat → Read-only** under **Account permissions** so models can be listed.
+3. Create the app, copy the **Client ID**, generate a client secret, and enter both in **Settings → Artificial Intelligence → Copilot** (the secret is stored encrypted).
 4. Select **GitHub Signed-in User** authentication.
 5. Ask the user to select **Sign in with GitHub**.
 6. Select an available Copilot model after authorization.

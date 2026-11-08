@@ -251,7 +251,7 @@ public sealed class MyPbxEventTranslator
 
 | Model | Shape |
 |---|---|
-| Webhook | Provider-owned minimal API endpoint validates the signature, commits the raw delivery to `IProviderWebhookInbox`, and an `IProviderWebhookInboxHandler` normalizes it (Telnyx uses this) |
+| Webhook | Provider-owned minimal API endpoint validates the signature, commits the raw delivery to `IProviderWebhookInbox`, and an `IProviderWebhookInboxHandler` normalizes it (Telnyx uses this). Both live in `CrestApps.OrchardCore.Webhooks.Abstractions` (namespace `CrestApps.OrchardCore.Webhooks`); the handler declares a `WebhookHandlerReplaySafety` |
 | Live stream | A tenant-scoped `ModularTenantEvents` component keeps the socket open, reconnects with backoff, and resolves services through `ShellScope.UsingChildScopeAsync(...)` per event (Asterisk ARI uses this) |
 | Hybrid | Both, normalized into the same `ProviderVoiceEvent` |
 

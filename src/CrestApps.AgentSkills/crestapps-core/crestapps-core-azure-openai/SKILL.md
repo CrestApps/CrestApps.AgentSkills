@@ -215,6 +215,8 @@ public sealed class SpeechSynthesisService
 
 `AzureSpeechServiceTextToSpeechClient` honors `TextToSpeechOptions.AudioFormat` and reports the matching media type. Names are case-insensitive: `Pcm8000`, `Pcm16000`, `Pcm24000`, `Pcm48000` (raw PCM, `audio/L16`), `Riff8000` through `Riff48000` (WAV), `Mp3`, `Mp3_16000`, `Mp3_24000`, `Mp3_48000`, or a Speech SDK format name. MP3 at 16 kHz is the default. Raw PCM is what lets Azure Speech be the speaking leg of a cascaded realtime deployment. `TextToSpeechOptions.Speed` is applied as SSML `prosody rate` within 0.5 to 2 when a voice is named. Azure Speech has no realtime client, so it cannot be a cascade's speech-to-text leg.
 
+The `AzureSpeech` text-to-speech client is wrapped in `SpeechMarkupTextToSpeechClient`, so neutral speech markup (`<break time="500ms"/>`, `<spell>AB12</spell>`) is rendered as plain punctuation and spaced letters instead of being read aloud (see `crestapps-core-speech-voices`). The `"Azure"` (Azure OpenAI) provider has no text-to-speech client; use `AzureSpeech`, OpenAI, ElevenLabs or Cartesia for the speaking leg.
+
 ## Responses API and Realtime
 
 - A chat request with function tools and a reasoning effort other than `None` goes to `/openai/v1/responses` (with `store: false`); every other request stays on Chat Completions. Set the connection's `ChatApi` to `ChatCompletions` to turn this off, for example in a region without the Responses API. The routing uses a temporary built-in client (`CrestApps.Core.AI.OpenAI.Azure.Responses`) because the pinned `Azure.AI.OpenAI` SDK throws `MissingMethodException` on its own Responses client.

@@ -13,7 +13,7 @@
         "properties": {
           "ItemId": {
             "type": "string",
-            "description": "Optional unique identifier."
+            "description": "Optional unique identifier. When it matches a stored connection, that connection is updated; otherwise the connection is matched by Name."
           },
           "Source": {
             "type": "string",
@@ -33,7 +33,7 @@
           },
           "Endpoint": {
             "type": "string",
-            "description": "Common connection endpoint alias for recipe imports."
+            "description": "Alias of the provider metadata\u0027s Endpoint, read by the OpenAI, Azure OpenAI and Azure AI Inference providers."
           },
           "AuthenticationType": {
             "type": "string",
@@ -42,15 +42,15 @@
               "ManagedIdentity",
               "ApiKey"
             ],
-            "description": "Common Azure connection authentication type alias for recipe imports."
+            "description": "Alias of the Azure metadata\u0027s AuthenticationType."
           },
           "ApiKey": {
             "type": "string",
-            "description": "Common connection API key alias for recipe imports."
+            "description": "Alias of the provider metadata\u0027s ApiKey. Provider API key in clear text. It is encrypted when stored; a deployment plan exports it blank, so fill it in before importing."
           },
           "IdentityId": {
             "type": "string",
-            "description": "Common Azure connection managed identity client ID alias for recipe imports."
+            "description": "Alias of the Azure metadata\u0027s IdentityId."
           },
           "Properties": {
             "type": "object",
@@ -60,22 +60,22 @@
                 "properties": {
                   "Endpoint": {
                     "type": "string",
-                    "description": "Provider API endpoint."
+                    "description": "Provider API endpoint (an absolute address)."
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "Provider API key."
+                    "description": "Provider API key in clear text. It is encrypted when stored; a deployment plan exports it blank, so fill it in before importing."
                   }
                 },
                 "additionalProperties": true,
-                "description": "Metadata for OpenAI-compatible connections."
+                "description": "Metadata for OpenAI-compatible connections (Source OpenAI)."
               },
               "AzureConnectionMetadata": {
                 "type": "object",
                 "properties": {
                   "Endpoint": {
                     "type": "string",
-                    "description": "Provider API endpoint."
+                    "description": "Provider API endpoint (an absolute address)."
                   },
                   "AuthenticationType": {
                     "type": "string",
@@ -88,7 +88,7 @@
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                    "description": "Provider API key in clear text. It is encrypted when stored; a deployment plan exports it blank, so fill it in before importing. Required when AuthenticationType is ApiKey."
                   },
                   "IdentityId": {
                     "type": "string",
@@ -96,14 +96,14 @@
                   }
                 },
                 "additionalProperties": true,
-                "description": "Metadata for Azure AI Inference connections."
+                "description": "Metadata for Azure OpenAI connections."
               },
               "AzureOpenAIConnectionMetadata": {
                 "type": "object",
                 "properties": {
                   "Endpoint": {
                     "type": "string",
-                    "description": "Provider API endpoint."
+                    "description": "Provider API endpoint (an absolute address)."
                   },
                   "AuthenticationType": {
                     "type": "string",
@@ -116,7 +116,7 @@
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                    "description": "Provider API key in clear text. It is encrypted when stored; a deployment plan exports it blank, so fill it in before importing. Required when AuthenticationType is ApiKey."
                   },
                   "IdentityId": {
                     "type": "string",
@@ -124,14 +124,14 @@
                   }
                 },
                 "additionalProperties": true,
-                "description": "Metadata for Azure AI Inference connections."
+                "description": "Legacy metadata alias for Azure OpenAI connections, read when AzureConnectionMetadata is missing."
               },
               "AzureAIInferenceConnectionMetadata": {
                 "type": "object",
                 "properties": {
                   "Endpoint": {
                     "type": "string",
-                    "description": "Provider API endpoint."
+                    "description": "Provider API endpoint (an absolute address)."
                   },
                   "AuthenticationType": {
                     "type": "string",
@@ -144,7 +144,7 @@
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "Provider API key. Required when AuthenticationType is ApiKey."
+                    "description": "Provider API key in clear text. It is encrypted when stored; a deployment plan exports it blank, so fill it in before importing. Required when AuthenticationType is ApiKey."
                   },
                   "IdentityId": {
                     "type": "string",
@@ -156,7 +156,7 @@
               }
             },
             "additionalProperties": true,
-            "description": "Provider-specific connection metadata grouped by metadata object name."
+            "description": "Provider-specific connection metadata grouped by metadata object name. Merged into the stored properties."
           }
         },
         "required": [

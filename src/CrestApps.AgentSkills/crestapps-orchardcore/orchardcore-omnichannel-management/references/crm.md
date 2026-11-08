@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Feature | **Omnichannel CRM** `CrestApps.OrchardCore.Omnichannel.Crm` |
-| Depends on | `CrestApps.OrchardCore.Omnichannel.Managements`, `OrchardCore.ContentFields`, `OrchardCore.Lists`, `OrchardCore.Title` |
+| Depends on | `CrestApps.OrchardCore.Omnichannel.Managements`, `CrestApps.OrchardCore.Accounts`, `OrchardCore.ContentFields`, `OrchardCore.Lists`, `OrchardCore.Title` |
 | Starter recipe | `OmnichannelCrmStarter` (adds `Lead`, `Contact`, `SalesOpportunity` types and lead sources) |
 | Menus | **Interaction Center > Leads**, **Accounts**, **Opportunities**; **Management > Lead Statuses**, **Lead Sources**, **Opportunity Stages** |
 
@@ -20,7 +20,15 @@ type with `OmnichannelContactPart` is a contact.
 
 ## What the Feature Creates
 
-- `LeadPart`, `AccountPart`, `OpportunityPart`; an `Account` type if none exists.
+- `LeadPart` and `OpportunityPart`. `AccountPart`, the `Account` type, the
+  account picker, the account search and the `Account` import column come from
+  the Accounts feature; the CRM registers `CrmAccountChildTypeRule`
+  (`IAccountChildTypeRule`) so every contact and opportunity type joins an
+  account's list. `CrmAccountsFeatureMigrations` enables Accounts on sites that
+  ran the CRM before, keeping their `Account` type and accounts.
+- On an account's page the CRM adds **Contacts**, **Opportunities**, **Leads**
+  (converted into its contacts) and **Activities** tabs
+  (`AccountCrmTabsDisplayDriver`, 25 rows each).
 - `LeadIndex` (with `IDX_LeadIndex_ContentType_Converted`) and `OpportunityIndex`;
   `ContentType` and `IsConverted` columns on `OmnichannelContactIndex`.
 - Seeded **Lead Status** and **Opportunity Stage** catalogs.
@@ -116,7 +124,17 @@ uses the normal content permissions; the CRM menus need `ListContent`.
 ## Reports
 
 **Lead funnel**, **Lead conversion by source and list** and **Opportunity
-pipeline** (CRM and Campaigns category, `ViewOmnichannelReports`).
+pipeline** (CRM and Campaigns category, `ViewOmnichannelReports`; date range
+filter only).
+
+In the Report Builder, leads, accounts and opportunities are read through
+Orchard Core's **Content items** data source (one data set per content type,
+with values such as `LeadPart.IsConverted`, `LeadPart.ConvertedAccountItemId`
+or `OpportunityPart.IsWon`). Join the Omnichannel **Activities**
+`ConvertedFromLeadItemId` to the lead type's `ContentItemId`.
+
+A disposition's **Set lead status** moves a lead when its activity is completed
+with that disposition (see the main skill).
 
 ## Recipes
 

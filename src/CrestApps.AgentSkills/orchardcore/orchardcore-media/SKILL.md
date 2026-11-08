@@ -344,6 +344,7 @@ Standalone library files that no media field references are not indexed.
 - `OrchardCore.Media.ImageSharpV3` and the **Media ImageSharp Image Processing** feature were removed. Remove the package reference and the feature from recipes; NetVips processes images (tenants that had it enabled keep working). To keep ImageSharp, implement `IImageProcessingEngine` in your project and replace the registration as shown above.
 - `OrchardCore.Media.Permissions`, `SecureMediaPermissions.View*` and `MediaCachePermissions.ManageAssetCache` members were removed; use `MediaPermissions.*` (role claim names are unchanged).
 - The Anonymous role no longer gets `ViewMediaContent` from Secure Media; grant it explicitly if needed.
+- `.csv` is now in the default `AllowedFileExtensions` (for example for Data Pipelines exports); sites that replace the list keep their own list.
 - `.css`, `.js` and `.svg` moved to `RestrictedFileExtensions`; grant `UploadRestrictedMedia` to roles that upload them.
 - `MediaOptions.TusTempPath` was removed; use `OrchardCore:TempDirectory:Path`.
 - Rename `OrchardCore_Media` to `Media` in configuration (env var `OrchardCore__Media__...`); the old name is deprecated but still read.

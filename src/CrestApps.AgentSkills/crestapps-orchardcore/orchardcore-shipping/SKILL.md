@@ -19,7 +19,8 @@ Shipping (new in CrestApps.OrchardCore 3.0) prices shipping and records shipment
 | Orders (`orchardcore-orders`) | Required. Adds the Shipping step to an order's checkout and fills `Order.Shipping`, `ShippingAddress`, `FulfillmentStatus` |
 | Addresses (`orchardcore-addresses`) | Required. Zones and rates work on the shared `Address` |
 | Checkout (`orchardcore-checkout`) | The shipping line is a taxed billing item; the shipping address becomes the tax destination |
-| Customers (`orchardcore-customers`) | Optional address book on the step |
+| Customers (`orchardcore-customers`) | Optional address book on the step, through `IShippingAddressBook` |
+| Store Profile (`orchardcore-commerce`) | The ship-from address falls back to the store profile's address |
 | Inventory (`orchardcore-inventory`) | Pickup locations take units from a stock location |
 | Markets (`orchardcore-markets`) | Methods in the market's currency, else converted |
 
@@ -94,7 +95,7 @@ The `ShippingZones` step creates or updates zones by `ItemId` or `Name` (names a
 | `ShippingZone` (`INamedCatalog<ShippingZone>`) | `Name`, `Position`, `Countries` (ISO alpha-2), `Regions` (ISO 3166-2 such as `US-AK`), `RestOfWorld`, `Methods` |
 | `ShippingMethod` | `MethodId`, `Name`, `Description`, `ProviderName`, `Enabled`, `Position`, `Currency` (empty for any), `TaxCategoryCode`, `ClassSurcharges`; provider settings in its properties |
 | `ShippingPart` | `Weight` (site unit), `ShippingClass`, `VariantWeights`; `GetWeight(variantId)` |
-| `ShippingSettings` (group `shipping`) | `WeightUnit` (`Kilogram`, `Pound`), `ShippingClasses`, `Carriers`, `SendShippedEmails`, `PickupLocations` (up to 20, with `Fee`, `Instructions`, `StockLocationId`), `ShipFrom`, default parcel size, `PackagingWeight` |
+| `ShippingSettings` (group `shipping`) | `WeightUnit` (`Kilogram`, `Pound`), `ShippingClasses`, `Carriers`, `SendShippedEmails`, `PickupLocations` (up to 20, with `Fee`, `Instructions`, `StockLocationId`), `ShipFrom` (falls back to the store profile address when empty), default parcel size, `PackagingWeight` |
 
 Provider settings: `FlatRateSettings` (`Amount`, `PerItemAmount`), `TableRateSettings` (`Basis`, `Rows` of `From` and `Amount`, `Maximum`), `FreeShippingSettings` (`MinimumSubtotal`), `LocalDeliverySettings` (`PostalCodes` with `981*` wildcards, `Amount`, `FreeFromSubtotal`, `MinimumSubtotal`), `CarrierRateSettings` (`Carriers`, `MaxRates`, `MarkupPercent`, `MarkupAmount`, `FallbackAmount`).
 
@@ -143,6 +144,27 @@ Register with `services.AddScoped<IShippingRateProvider, PerKiloShippingProvider
 
 - `ShippingCheckoutHandler` adds the **Shipping** step (`ShippingConstants.CheckoutStepKey`, after Contact) when a line is a `ProductType.Good`. The step finishes only with a rate priced on the server.
 - The choice is kept as `CheckoutShippingInfo` (address, rate, method, zone, amount) and becomes a billing line with `TaxableKind = Shipping` and the method's `TaxCategoryCode`.
+- The address comes from the buyer's address book, from an `IShippingAddressSource`, or the address editor. Shipping reads and saves the book through `IShippingAddressBook` (Addresses.Abstractions: `GetAsync(userId)`, `AddAsync(userId, address)`), which the Customers feature implements; without it buyers have no address book and Shipping never references Customers. An `IShippingAddressSource` (Shipping.Core) offers a signed-in buyer more addresses, such as a business account's locations; they are listed after the book with their source, shipped to as they are and never saved to the book.
+
+```csharp
+public sealed class DepotShippingAddressSource : IShippingAddressSource
+{
+    public Task<IReadOnlyList<ShippingAddressOption>> GetAddressesAsync(string userId, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<ShippingAddressOption>>(
+        [
+            new ShippingAddressOption
+            {
+                AddressId = "depot-reno",
+                Label = "Reno depot",
+                Description = "Company depots",
+                Address = new Address { Company = "Contoso", AddressLine1 = "2 Pine St", City = "Reno", Region = "NV", PostalCode = "89501", Country = "US" },
+            },
+        ]);
+}
+
+// services.AddScoped<IShippingAddressSource, DepotShippingAddressSource>();
+```
+
 - The checkout tax destination is the shipping address, else the billing address.
 - **Store pickup** offers `PickupLocations`: no quote, rate `pickup:{locationId}` with provider `Pickup`, the location's fee and address (taxed there); `StockLocationId` flows to `OrderShipping.LocationId` for Inventory.
 
@@ -183,7 +205,11 @@ EasyPost (`CrestApps.OrchardCore.Shipping.EasyPost`) keeps `ApiKey` and `Webhook
 
 ## Admin and permissions
 
-**Commerce > Shipping** (`shipping/zones`) lists zones in the order they are tried; **Try rates** (`shipping/rates`) quotes an address. With Reports, **Shipping times** (`FulfillOrders`).
+**Commerce > Shipping** (`shipping/zones`) lists zones in the order they are tried; **Try rates** (`shipping/rates`) quotes an address. With Reports, **Shipping times** (`FulfillOrders`) and, with Admin Dashboard, the **Shipping Times** widget.
+
+With **Data Pipelines Core** on (Report Builder), the **Shipping** data source (`Shipping`) has `Shipments` and `ShipmentLines` (`FulfillOrders`) and `ShippingZones` and `ShippingMethods` (`ManageShipping`). Carrier accounts and quoted rates are not exposed. The `ShippingReportBuilderReports` recipe adds a **Shipments by carrier** report to the **Store** group. See `orchardcore-report-builder`.
+
+Saving a deployment plan with the **Shipping zones** step returned a 500 before 3.0's fix (#1228); upgrade if you see it.
 
 | Permission | Allows | Default roles |
 | --- | --- | --- |

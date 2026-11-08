@@ -23,7 +23,7 @@
               "null",
               "string"
             ],
-            "description": "Unique name of the opportunity stage."
+            "description": "Unique name of the opportunity stage. An entry whose ItemId matches no stored stage is matched by this name, so a second run updates it."
           },
           "Description": {
             "type": [

@@ -1,0 +1,195 @@
+{
+  "type": "object",
+  "description": "Creates or updates time categories and stages, matched by ItemId then name, and adds time entries. A member left out of a category or stage keeps its stored value.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TimeTracker",
+      "description": "Recipe step discriminator. Must be \u0027TimeTracker\u0027."
+    },
+    "Categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A time category: what time counts toward, such as paid or billable time.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The category\u0027s id. When it matches a stored category, that category is updated; otherwise it is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The category name, unique."
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A short code."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "position": {
+            "type": "integer",
+            "description": "Where it is listed."
+          },
+          "factor": {
+            "type": "number",
+            "description": "How a minute counts toward the category. Defaults to 1."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the category is in use."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The time categories to create or update."
+    },
+    "Stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A time stage: what a person is doing, such as working or on a break.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The stage\u0027s id. When it matches a stored stage, that stage is updated; otherwise it is matched by name, and a new one keeps this id so activity codes that point at it still do."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The stage name, unique."
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A short code."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "position": {
+            "type": "integer",
+            "description": "Where it is listed."
+          },
+          "selfService": {
+            "type": "boolean",
+            "description": "Whether people can switch to it themselves."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the stage is in use."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The names of the categories its time counts toward. When present, they replace the stage\u0027s categories; a name that doesn\u0027t match a category is reported and skipped."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The time stages to create or update. Categories are imported first, so a stage can name a category of the same step."
+    },
+    "Entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A time entry. It is skipped when the person already has time in that range.",
+        "properties": {
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name of the person; the user must exist."
+          },
+          "stage": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the stage; it must exist or be listed in Stages."
+          },
+          "startUtc": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the entry starts, in UTC."
+          },
+          "endUtc": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the entry ends, in UTC."
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "examples": [
+              "Self",
+              "Manager",
+              "Kiosk",
+              "Mobile",
+              "ContactCenter",
+              "TimeOff",
+              "Api",
+              "Import"
+            ],
+            "description": "Where the entry came from. Defaults to Import."
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A note."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "userName",
+          "stage",
+          "startUtc",
+          "endUtc"
+        ]
+      },
+      "description": "The time entries to add."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

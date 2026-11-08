@@ -59,7 +59,7 @@ Taxation (new in CrestApps.OrchardCore 3.0) is a provider-agnostic engine built 
 4. **Tables** (optional): versioned bracket rows (`Minimum`, `Maximum`, `Rate`, `FixedAmount`) with an effective window; validated for overlaps. A rule needing a table with none in effect is skipped.
 5. **Rules**: pick a calculation method (the rule's fixed `Source`), then jurisdiction, category (or any), tax type, display name (`TaxName`), customer type, priority, effective dates, thresholds and flags (**Enabled**, **Included in price**, **Compound**, **Reverse charge**, **Applies to shipping**).
 6. **Classify content**: attach `TaxationPart` and set the defaults.
-7. **Settings > Commerce > Tax origin** (`TaxOriginSettings`): the store's address for origin-sourced taxes.
+7. **Settings > Commerce > Tax origin** (`TaxOriginSettings`): the store's address for origin-sourced taxes; when empty, checkout taxes and the VAT OSS report fall back to the Store Profile address (see `orchardcore-commerce`).
 
 A rule without a category taxes everything in its jurisdiction and stacks with category rules (for example a 30% tobacco excise on top of 7.5% sales tax). A rule without a jurisdiction applies everywhere.
 
@@ -151,7 +151,7 @@ Convert content items with `ITaxableItemResolver.ResolveAsync(contentItem)`. Cap
 | Reverse charge | For a `B2B` customer, a zero line marked reverse charge |
 | Nexus | Without `MerchantTaxRegistration` records every rule collects. With records, only covered jurisdictions and types collect, once `ThresholdAccumulatedAmount` reaches `ThresholdAmount` (the host maintains the running total) |
 | Sourcing | `ITaxSourcingStrategy` by item kind: `Origin`, `Destination`, `CustomerResidence`, `CustomerBusiness`, `ServiceLocation`, `EventLocation` |
-| Rounding | `TaxationOptions`: `DecimalPlaces` (2), `MidpointRounding` (AwayFromZero), `RoundingLevel` (`Line`, `Tax`, `Jurisdiction`, `Transaction`), `CurrencyDecimalPlaces` |
+| Rounding | `TaxationOptions`: `DecimalPlaces` (empty by default, so tax rounds to each currency's ISO 4217 precision from `CurrencyScale`, the same as the payment: 0 for JPY, 3 for KWD; set it only to force one precision), `MidpointRounding` (AwayFromZero), `RoundingLevel` (`Line`, `Tax`, `Jurisdiction`, `Transaction`), `CurrencyDecimalPlaces` (per-currency override, always wins) |
 | Determinism | Same context and rule and table versions give the same result; time comes from `IClock` |
 
 ## Extending
@@ -209,7 +209,28 @@ public sealed class ErpTaxClassificationProvider : ITaxClassificationProvider
 
 ## Recipes, deployment and reports
 
-Recipe and deployment steps `TaxCategory`, `TaxType`, `TaxJurisdiction`, `TaxTable`, `TaxRule` match entries by `ItemId`, refuse duplicate names, and never import `CreatedUtc`, `ModifiedUtc`, `Author`, `OwnerId` or `Version`. Examples, the EU VAT standard rates recipe and the taxonomy worked example are in [references/taxation-recipes.md](references/taxation-recipes.md). With `CrestApps.OrchardCore.Recipes` on, JSON Schema is contributed for these steps and `TaxationPart`.
+Recipe and deployment steps `TaxCategory`, `TaxType`, `TaxJurisdiction`, `TaxTable`, `TaxRule` match entries by `ItemId`, refuse duplicate names, and never import `CreatedUtc`, `ModifiedUtc`, `Author`, `OwnerId` or `Version`.
+
+The `MerchantTaxRegistration` step (`MerchantTaxRegistrations` array; matched by `ItemId`, then name; needs a name and `JurisdictionId`) imports the store's registrations, and the `ExemptionCertificate` step (`ExemptionCertificates` array; keeps its `ItemId`, which customers' `ExemptionCertificateIds` list; otherwise matched by `CustomerId` and `CertificateNumber`; must expire after it takes effect) imports customers' certificates. Import customers and jurisdictions first. The **Tax registrations** and **Exemption certificates** deployment steps (*Taxation*) write the same shape.
+
+```json
+{
+  "steps": [
+    {
+      "name": "MerchantTaxRegistration",
+      "MerchantTaxRegistrations": [
+        { "Name": "California sales tax", "JurisdictionId": "us-ca", "TaxType": "SalesTax", "RegistrationNumber": "123-456", "IsActive": true, "ThresholdAmount": 100000 }
+      ]
+    },
+    {
+      "name": "ExemptionCertificate",
+      "ExemptionCertificates": [
+        { "Name": "Resale", "CertificateNumber": "R-1001", "CustomerId": "4cs00000000000000000000001", "ExemptionType": "Resale", "Status": "Active", "TaxTypes": [ "SalesTax" ], "JurisdictionIds": [ "us-ca" ] }
+      ]
+    }
+  ]
+}
+``` Examples, the EU VAT standard rates recipe and the taxonomy worked example are in [references/taxation-recipes.md](references/taxation-recipes.md). With `CrestApps.OrchardCore.Recipes` on, JSON Schema is contributed for these steps and `TaxationPart`.
 
 With Orders and Reports on, **Tax on orders** and **VAT one-stop shop (OSS)** (`order-vat-oss`, `ManageOrders`) sum `Order.TaxLines` with `TaxType` `VAT` by EU destination country and rate, refunds taken off proportionally.
 
@@ -218,4 +239,5 @@ With Orders and Reports on, **Tax on orders** and **VAT one-stop shop (OSS)** (`
 - `TaxRule.Source` (the calculation method name, fixed at creation) replaced `TaxRule.CalculationMethod`.
 - Tax types became a managed catalog with its own recipe step; existing rule values are kept.
 - `TaxRule.TaxName` is optional and falls back to `Name`.
+- `TaxationOptions.DecimalPlaces` is now nullable and empty by default (currency precision); a site that relied on the old fixed 2 for JPY or KWD must set it explicitly.
 - The no-op checkout tax service is a fallback (`TryAddScoped`), so enabling Taxation always taxes checkouts.

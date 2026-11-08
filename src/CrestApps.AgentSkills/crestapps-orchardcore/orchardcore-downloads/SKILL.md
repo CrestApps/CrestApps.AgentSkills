@@ -35,10 +35,11 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 | Entitlements | `DownloadEntitlement` in collection `Downloads`, `DownloadEntitlementIndex` |
 | Service | `DownloadService` (`GrantAsync`, `ListAsync`, `CreateUrlAsync`, `ResolveAsync`, `RecordDownloadAsync`, `RevokeOrderAsync`, `RevokeAsync`, `ResetAsync`) |
 | Site settings | `DownloadSettings` (group `downloads`, **Settings > Commerce > Downloads**): `DownloadLimit` 5, `LinkLifetimeDays` 30 |
-| Order seams | `DownloadOrderEventHandler` (`OrderGrantHandlerBase`), `IOrderEmailSectionProvider`, `OrderDownloadsDisplayDriver` |
+| Order seams | `DownloadOrderEventHandler` (`OrderLineGrantHandlerBase<DigitalFilesPart>`), `IOrderEmailSectionProvider`, `OrderDownloadsDisplayDriver` |
 | Permission | `ManageDigitalDownloads` ("Manage digital files and downloads"; Administrator, Store manager), also guards the settings group |
 | Recipe step | `DigitalFiles` (needs `OrchardCore.Recipes.Core`) |
-| Report | **Downloads** under Reports > Commerce (with `CrestApps.OrchardCore.Reports`) |
+| Report | **Downloads** under Reports > Commerce and the **Digital Downloads** dashboard widget (with `CrestApps.OrchardCore.Reports`) |
+| Report Builder | **Downloads** data source (`Downloads`) with `DownloadEntitlements` (`ManageDigitalDownloads`; file store ids and links never exposed); recipe `DownloadsReportBuilderReports` adds an editable copy to the **Store** group |
 | Sample recipe | Digital downloads sample: a Digital Product type, two ebooks with PDFs, an Ebooks listing, coupons WELCOME10 and EBOOKS5 |
 
 ## The Part and Settings
@@ -51,7 +52,7 @@ When an `IFileEventHandler` refuses a file, or the scanner cannot be reached, no
 
 ## Granting and Revoking
 
-`DownloadOrderEventHandler` derives from `OrderGrantHandlerBase` (Orders.Core):
+`DownloadOrderEventHandler` derives from `OrderLineGrantHandlerBase<DigitalFilesPart>` (Orders.Core), which reads each line's files from the product version the order bought (`IContentManager.GetPurchasedAsync(line)`), so editing the product later does not change what a buyer gets:
 
 - **Paid**: `DownloadService.GrantAsync(order)` creates one entitlement per file of each line's product, from the product version that was bought, inside the checkout's unit of work so the confirmation email can carry the links. Granting again adds only what is missing.
 - **Canceled**: revokes the order's entitlements.
@@ -91,7 +92,7 @@ A product type for downloads uses `ProductPart` with product type `Digital` plus
 ## Extending
 
 - Add a section to the order confirmation email from another module by implementing the Orders `IOrderEmailSectionProvider` seam, as `DownloadEmailSectionProvider` does.
-- Grant other entitlements on payment by deriving from `OrderGrantHandlerBase`, which already handles paid, canceled and full-refund events.
+- Grant other entitlements on payment by deriving from `OrderGrantHandlerBase`, or `OrderLineGrantHandlerBase<TPart>` (implement `GetGrantedLineIdsAsync`, `GrantLineAsync`, `RevokeLineAsync`) when the grant comes from a product part; both handle paid, canceled and full-refund events.
 - Resolve `DownloadService` to list or revoke an order's entitlements from custom code instead of writing to the `Downloads` collection.
 
 ## Troubleshooting

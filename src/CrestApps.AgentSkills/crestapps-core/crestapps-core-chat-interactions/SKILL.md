@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-chat-interactions
-description: Skill for Chat Interactions and the shared chat hubs and chat UI in CrestApps.Core 2.0. Covers AddChatInteractions with AddEntityCoreStores or AddYesSqlStores, ConfigureVisitorIdentity, ConfigureChatRateLimiting and ConfigureChatHubOptions, subclassing ChatInteractionHubBase and AIChatHubCore with AuthorizeAsync, AuthorizeProfileAsync and the other override hooks, the ChatInteraction model with chat, utility and conversation deployment names, IChatInteractionSettingsHandler, SaveSettings filter validation, send-time tool access checks through IAIToolAccessEvaluator, input-boundary delimiters, document upload endpoints, the IChatInteractionHubClient contract, the @crestapps/ai-chat-ui scripts with chat-markers, the stacked image carousel, assistant name and avatar, and upgrading from 1.x. Use it to stand up the fastest chat playground for a provider, build a chat page or widget, extend interaction settings, or troubleshoot chat hubs and chat UI.
+description: Skill for Chat Interactions and the shared chat hubs and chat UI in CrestApps.Core 2.0. Covers AddChatInteractions with AddEntityCoreStores or AddYesSqlStores, ConfigureVisitorIdentity, ConfigureChatRateLimiting and ConfigureChatHubOptions, subclassing ChatInteractionHubBase and AIChatHubCore with AuthorizeAsync, AuthorizeProfileAsync, owner-only AuthorizeSessionAsync and the other override hooks, the ChatInteraction model with chat, utility and conversation deployment names, IChatInteractionSettingsHandler, SaveSettings filter validation, send-time tool access checks through IAIToolAccessEvaluator, input-boundary delimiters, document upload endpoints, the IChatInteractionHubClient contract, the @crestapps/ai-chat-ui scripts with chat-markers, the stacked image carousel, assistant name and avatar, and upgrading from 1.x. Use it to stand up the fastest chat playground for a provider, build a chat page or widget, extend interaction settings, or troubleshoot chat hubs and chat UI.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ A **Chat Interaction** is an operator-controlled conversation that needs no AI P
 - Start with Chat Interactions to validate a connection and deployment, then move reusable behavior into an AI Profile (`crestapps-core-ai-profiles`).
 - Register stores for `ChatInteraction` and `IChatInteractionPromptStore` on the chat interactions builder.
 - The framework does not ship a mapped hub. Subclass `ChatInteractionHubBase` (and `AIChatHubCore<TClient>` for sessions), map it, and call `ConfigureChatHubOptions<THub>()` for each concrete hub.
-- The hubs' authorization hooks return `true` by default. Override them or put `[Authorize]` on the hub.
+- The hubs' authorization hooks return `true` by default, except `AuthorizeSessionAsync` on `AIChatHubCore<TClient>`, which only lets a session's owner in. Override them or put `[Authorize]` on the hub.
 - Chat Interactions do not get the AI Profile prompt-security preamble or injection blocking (the operator controls the prompt), but they do get input-boundary delimiters and a per-user tool access check at send time.
 - Use `crestapps-core-chat` for server-side completion code, `crestapps-core-signalr` for hub routes and authentication, and `crestapps-core-realtime-voice` for voice sessions.
 
@@ -100,6 +100,30 @@ public sealed class ChatInteractionHub : ChatInteractionHubBase
 
 Other virtual hooks include `GetDeploymentSettingsAsync` (returns the `DefaultAIDeploymentSettings` used for slot defaults), `IsTextToSpeechPlaybackEnabledAsync`, `CollectStreamingReferences` (merge citations with `CitationReferenceCollector`), `OnAssistantPromptCreatedAsync`, `ValidateSettings`, and the localizable message methods (`GetNotAuthorizedMessage`, `GetSettingsValidationMessage`, `GetNoRealtimeDeploymentMessage`, `GetConversationDeploymentNotRealtimeMessage`, and others). `AIChatHubCore<TClient>` exposes `AuthorizeProfileAsync(IServiceProvider, AIProfile)` and `GetRateLimitedMessage(PromptSecurityResult)`, which returns a "slow down" message with the retry delay when the message rate limit is hit.
 
+`AIChatHubCore<TClient>` also exposes `AuthorizeSessionAsync(IServiceProvider, AIChatSession)` and `ValidateOutputAsync(...)` (the output security filter, then the profile's guardrails; returns the replacement text for a blocked reply or `null`).
+
+### Session Ownership
+
+Loading, continuing, rating and acting on a session all call `AuthorizeSessionAsync` first. By default it allows only the signed-in user whose id (`ClaimTypes.NameIdentifier`, else the name) equals `AIChatSession.UserId`, or, for a visitor session, the same `ClientId` from `IAIVisitorIdentityResolver`. A session with neither is refused. A refused id is answered with `GetSessionNotFoundMessage()`, and a message sent to it starts a new session for the caller. Let staff open other users' conversations by widening it:
+
+```csharp
+protected override async Task<bool> AuthorizeSessionAsync(IServiceProvider services, AIChatSession chatSession)
+{
+    if (await base.AuthorizeSessionAsync(services, chatSession))
+    {
+        return true;
+    }
+
+    var authorizationService = services.GetRequiredService<IAuthorizationService>();
+
+    return (await authorizationService.AuthorizeAsync(Context.User, "Admin")).Succeeded;
+}
+```
+
+### Stop After Streaming
+
+When the user presses Stop after the answer has streamed, the hubs still validate, save and finish the turn: the remaining work ignores the cancelled token, and `SendMessage` runs in a child scope the hub owns because SignalR disposes the invocation scope on cancel. A host that overrides `ExecuteInScopeAsync` with its own scope keeps that scope.
+
 Hub methods called by the client (interaction hub; the session hub takes `profileId` and `sessionId` instead of `itemId`):
 
 | Method | Purpose |
@@ -109,6 +133,7 @@ Hub methods called by the client (interaction hub; the session hub takes `profil
 | `StartConversation`, `SendAudioStream`, `SynthesizeSpeech` | Speech-to-text and text-to-speech conversation mode |
 | `StartRealtimeConversation`, `StartRealtimeWebRtc`, `AddRealtimeIceCandidate`, `GetRealtimeIceServers`, `UpdateRealtimeSettings`, `UpdateRealtimeSpeechSpeed`, `StopConversation` | Realtime voice (see `crestapps-core-realtime-voice`) |
 | `HandleNotificationAction(sessionId, notificationType, actionName)` | Chat notification buttons |
+| `SetPageTools(tools)` / `ClearPageTools()` | Session hub only: the WebMCP tools the tab exposes (see `crestapps-core-webmcp`) |
 
 `IChatInteractionHubClient` callbacks: `ReceiveError`, `LoadInteraction`, `SettingsSaved`, `HistoryCleared`, `ReceiveTranscript`, `ReceiveAudioChunk`, `ReceiveAudioComplete`, `ReceiveRealtimeAnswer`, `ReceiveRealtimeIceCandidate`, `ReceiveRealtimeEvent`, `ReceiveConversationUserMessage`, `ReceiveConversationAssistantToken`, `ReceiveConversationAssistantComplete`, `ReceiveNotification`, `UpdateNotification`, `RemoveNotification`.
 
@@ -164,6 +189,11 @@ The browser scripts are published as `@crestapps/ai-chat-ui` (npm or jsDelivr). 
 - `realtime-audio.js` (global `CoreAIRealtime`) is the shared voice client; `chat-interaction.js` and `ai-chat-widget.js` are the other entry points.
 - Assistant name and avatar: `data-coreai-chat-assistant-label` and `data-coreai-chat-assistant-avatar-url` (Chat Interactions take `assistantLabel` and `assistantAvatarUrl` in `data-chat-interaction-config`). Resolve them from the linked persona with `await services.ResolveChatAssistantDisplayAsync(profile)` (namespace `CrestApps.Core.AI.Profiles`; a host without personas gets the default look).
 - Pin package versions in production (`@crestapps/ai-chat-ui@<version>`), and pin SignalR with an `integrity` hash.
+
+## Upgrading Within 2.0 Previews
+
+- **The session hub only opens a session for its owner.** Hubs whose staff review other users' conversations through the hub override `AuthorizeSessionAsync`, as the sample hosts do for the `Admin` policy. Sessions with no `UserId` and no `ClientId` (for example ones started by another channel) are no longer opened by anyone unless the override allows them.
+- A Stop click after the answer streamed no longer loses the turn; remove any client workaround that re-sent the message.
 
 ## Upgrading from 1.x
 

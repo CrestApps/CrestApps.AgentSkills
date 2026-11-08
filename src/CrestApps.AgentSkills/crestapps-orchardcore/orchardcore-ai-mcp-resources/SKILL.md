@@ -21,6 +21,7 @@ connection metadata, deployment-safe credential handling, and URI patterns.
 - Enable `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` for SSH File Transfer Protocol resources.
 - Both feature IDs depend on the MCP server feature `CrestApps.OrchardCore.AI.Mcp.Server` (`McpPermissions.Feature.Server`), which is enabled automatically as a dependency. See `orchardcore-ai-mcp-server`.
 - The FTP module registers the source through `AddCoreAIFtpMcpResources`; the SFTP module uses `AddCoreAISftpMcpResources`.
+- `FtpConnectionMetadata` and `SftpConnectionMetadata` now come from CrestApps.Core (`CrestApps.Core.AI.Ftp.Models` and `CrestApps.Core.AI.Sftp.Models`), not from the modules' own `Models` namespaces. The resource editors derive from the shared `FtpConnectionDisplayDriverBase<T>` and `SftpConnectionDisplayDriverBase<T>` in `CrestApps.OrchardCore.AI.FileTransfer.Core`, the same connection editors the AI File Sources connectors use. Stored property names are unchanged.
 - Both sources support one URI variable named `path`, which is the remote file path.
 - Configure resources under **Artificial Intelligence → Model Context Protocol → Resources** (permission `ManageMcpResources`). The `McpResource` recipe step can create the resource entry, but connection metadata is entered in the editor (see below).
 - The modules expose remote file content as resources. They do not provide arbitrary command execution on remote hosts.

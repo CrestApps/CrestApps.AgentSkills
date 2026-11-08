@@ -217,7 +217,7 @@ public class MaskTextStepViewModel
 | Attributes | Behavior |
 |------------|----------|
 | `data-dp-list data-dp-prefix="Keys"` with `<template data-dp-template>`, `data-dp-rows`, `data-dp-row`, `data-dp-add`, `data-dp-remove`, `data-dp-up`, `data-dp-down` | Editable row lists (`Keys[__index__].Field` in the template), renumbered after each change, raising `change`. |
-| `select[data-dp-select]` with `data-live-search`, `data-show-selected-tags` | Searchable bootstrap-select, created on inject and destroyed on unmount. |
+| `select[data-dp-select]` with `data-live-search`, `data-show-selected-tags` | Searchable bootstrap-select, created on inject and destroyed on unmount. Add `data-actions-box="true"` with `data-select-all-text` / `data-deselect-all-text` to a multi-select field picker for **Select all** / **Deselect all**, as the built-in field selectors do. |
 | `data-dp-formula-scope`, `data-dp-formula`, `data-dp-insert="Field"`, `data-dp-insert-function="NAME"`, `data-dp-functions`, `data-dp-function-search` | Insert `[Field]` or `NAME()` at the caret; search the function list. |
 | `data-dp-filter-row` and its `data-dp-filter-*` parts | Typed filter rows that show the comparisons of the chosen field's `data-dp-type`. |
 | `data-dp-dataset-picker`, `data-dp-dataset-input`, `data-dp-dataset-open` | Opens the designer's data set dialog (`dp:choose-data-set` event). |

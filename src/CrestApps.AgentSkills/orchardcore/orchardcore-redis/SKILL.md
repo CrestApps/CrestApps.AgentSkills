@@ -20,7 +20,7 @@ You are an Orchard Core expert. Generate code and configuration for Redis integr
 - Enable `OrchardCore.Redis.Bus` for distributed `ISignal` service, making cache invalidation work across multiple application instances.
 - Enable `OrchardCore.Redis.Lock` for distributed locking using Redis.
 - Enable `OrchardCore.Redis.DataProtection` for storing ASP.NET Core Data Protection keys in Redis.
-- Configure the Redis connection string via `OrchardCore:Redis:Configuration` (env var `OrchardCore__Redis__Configuration`, Key Vault secret `OrchardCore--Redis--Configuration`). Without it the Redis features stay inactive and an error is logged.
+- Configure the Redis connection string via `OrchardCore:Redis:Configuration` (env var `OrchardCore__Redis__Configuration`, Key Vault secret `OrchardCore--Redis--Configuration`). Without it (or when it is invalid) an error is logged and the tenant keeps running without Redis: Cache, Bus, Lock, DataProtection and the SignalR backplane fall back to the default implementations, and the health check reports Redis as unhealthy.
 - Use `InstancePrefix` to namespace all Redis keys and prevent collisions between environments or applications.
 - Data Protection keys must be stored in durable storage; ensure Redis persistence (AOF or RDB) is enabled.
 - The Redis module provides a health check for monitoring Redis server status.
@@ -28,6 +28,7 @@ You are an Orchard Core expert. Generate code and configuration for Redis integr
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
 - `OrchardCore.SignalR.Redis` reuses the same connection for the SignalR backplane.
+- In a module that depends on `OrchardCore.Redis`, inject `IRedisService` directly; it is always registered (a `NullRedisService` when the configuration is missing or invalid). In a startup that swaps a default service for a Redis-backed one, guard with `services.IsRedisConfigured()`.
 
 ### Enabling Redis Features
 
@@ -287,6 +288,69 @@ Enable the health check feature:
 }
 ```
 
+### Using Redis from a Module
+
+`IRedisService` (`OrchardCore.Redis.Abstractions`) exposes `ConnectAsync()`, `Connection`, `Database` and `InstancePrefix`. `Connection` and `Database` stay `null` until a connection is created, which can fail, and are always `null` for `NullRedisService`:
+
+```csharp
+using Microsoft.Extensions.Logging;
+using OrchardCore.Environment.Shell;
+using OrchardCore.Redis;
+
+public sealed class CounterService
+{
+    private readonly IRedisService _redis;
+    private readonly string _prefix;
+    private readonly ILogger _logger;
+
+    public CounterService(IRedisService redis, ShellSettings shellSettings, ILogger<CounterService> logger)
+    {
+        _redis = redis;
+        _prefix = redis.InstancePrefix + shellSettings.Name + ':';
+        _logger = logger;
+    }
+
+    public async Task<long> IncrementAsync(string key)
+    {
+        if (_redis.Database is null)
+        {
+            await _redis.ConnectAsync();
+
+            if (_redis.Database is null)
+            {
+                return 0;
+            }
+        }
+
+        try
+        {
+            return await _redis.Database.StringIncrementAsync(_prefix + key);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Unable to increment '{KeyName}'.", _prefix + key);
+
+            return 0;
+        }
+    }
+}
+```
+
+Only replace a default implementation with a Redis one when Redis is configured:
+
+```csharp
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        if (services.IsRedisConfigured())
+        {
+            services.AddSingleton<ICounterStore, RedisCounterStore>();
+        }
+    }
+}
+```
+
 ### Multi-Instance Deployment Checklist
 
 For load-balanced or multi-instance Orchard Core deployments using Redis:
@@ -306,3 +370,5 @@ For load-balanced or multi-instance Orchard Core deployments using Redis:
 - Rename the `OrchardCore_Redis` section to `Redis` (`OrchardCore:Redis:Configuration`).
 - Environment variable `OrchardCore__OrchardCore_Redis__Configuration` becomes `OrchardCore__Redis__Configuration`; Key Vault secret `OrchardCore--OrchardCore---Redis--Configuration` becomes `OrchardCore--Redis--Configuration`.
 - The old name is deprecated but still read; the new name wins when both are set.
+- `IRedisService` is now always registered while `OrchardCore.Redis` is enabled. Remove `serviceProvider.GetService<IRedisService>()` null checks, and replace `services.Any(d => d.ServiceType == typeof(IRedisService))` with `services.IsRedisConfigured()`; otherwise tenants without a Redis configuration get Redis-backed replacements.
+- `RedisHealthCheck`'s constructor takes an `IRedisService` instead of an `IServiceProvider`; code constructing it directly instead of calling `AddRedisCheck()` must be updated.

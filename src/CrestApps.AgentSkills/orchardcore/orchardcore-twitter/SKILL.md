@@ -1,6 +1,6 @@
 ---
 name: orchardcore-twitter
-description: Skill for integrating X Twitter in Orchard Core. Covers TwitterClient, X API settings, sign in with X Twitter, TwitterSettings, TwitterSigninSettings, ConfigureTwitterSettings with the OrchardCore X configuration section, ConsumerSecret and AccessTokenSecret from configuration or environment variables, recipes, and workflow status update activities. Use this skill when requests mention Orchard Core Twitter, Orchard Core X, TwitterClient, sign in with X, TwitterSettings, UpdateTwitterStatusTask, X workflow activity, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Twitter, OrchardCore.Twitter.Signin, OrchardCore.Twitter.Services, OrchardCore.Twitter.Workflows, ITwitterSettingsService, ITwitterSigninService, TwitterOptionsConfiguration, and UpdateTwitterStatusTask. It also helps with OAuth credentials, external authentication, recipes, and the source-backed patterns captured in this skill.
+description: Skill for integrating X Twitter in Orchard Core. Covers TwitterClient, X API settings, sign in with X Twitter, TwitterSettings, TwitterSigninSettings, ConfigureTwitterSettings with the OrchardCore X configuration section, ConsumerSecret and AccessTokenSecret from configuration or the Secrets module, recipes, and workflow status update activities. Use this skill when requests mention Orchard Core Twitter, Orchard Core X, TwitterClient, sign in with X, TwitterSettings, UpdateTwitterStatusTask, X workflow activity, or closely related Orchard Core implementation setup extension or troubleshooting work. Strong matches include work with OrchardCore.Twitter, OrchardCore.Twitter.Signin, OrchardCore.Twitter.Services, OrchardCore.Twitter.Workflows, ITwitterSettingsService, ITwitterSigninService, TwitterOptionsConfiguration, and UpdateTwitterStatusTask. It also helps with OAuth credentials, external authentication, recipes, and the source-backed patterns captured in this skill.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -71,6 +71,15 @@ Configure them at **Settings → Integrations → X (Twitter)**. `TwitterSetting
 | `ConsumerSecret` | Application consumer secret. |
 | `AccessToken` | Account access token for API operations. |
 | `AccessTokenSecret` | Account access-token secret. |
+| `ConsumerSecretSecretName`, `AccessTokenSecretSecretName` | 4.0. Names of `TextSecret` entries of the Secrets module; each takes precedence over its protected value. |
+
+With the `OrchardCore.Secrets` feature enabled, both secret editors offer
+**Use a secret** (suggested names `Twitter.ConsumerSecret` and
+`Twitter.AccessTokenSecret`), and saved values can be moved without retyping
+them from **Tools → Security → Migrate Secrets**. The generic `Settings` step
+can set the two `*SecretName` properties in `TwitterSettings` after a
+`Secrets` step created the secrets; the `TwitterSettings` step has no
+secret-name properties. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
 
 The recipe step name is `TwitterSettings` (the generic `Settings` step with a
 `TwitterSettings` object works too). The client decrypts the stored secrets
@@ -115,7 +124,8 @@ builder.Services
 
 `ConsumerSecret` and `AccessTokenSecret` are plain values here (for example
 from `OrchardCore__X__ConsumerSecret` environment variables or a key vault);
-Orchard Core protects them before use.
+Orchard Core protects them before use. In 4.0 they log a
+`LegacySecretConfiguration` warning (event `8100`); move them to secrets.
 
 ## Sign In With X
 
@@ -186,3 +196,4 @@ limits and policies.
 - Rename the `OrchardCore_X` or `OrchardCore_Twitter` configuration section to `OrchardCore:X` (old names still work but are deprecated).
 - Plain `ConsumerSecret` and `AccessTokenSecret` values from configuration are now honored; in 3.x they had to be already protected and were otherwise ignored.
 - `TwitterClient` no longer fails after its first request; it no longer overwrites the shared settings' encrypted secrets with decrypted values.
+- Saved secrets keep working. Code reading `TwitterSettings.ConsumerSecret` or `AccessTokenSecret` directly must also honor `ConsumerSecretSecretName` and `AccessTokenSecretSecretName`.

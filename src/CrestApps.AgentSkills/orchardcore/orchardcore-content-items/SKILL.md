@@ -120,7 +120,7 @@ public sealed class {{ServiceName}}
 }
 ```
 
-Reads by id (`GetAsync(id)` and `GetAsync(ids)`) use the `IDX_ContentItemIndex_ContentItemId` SQL index added in Orchard Core 4.0 (`ContentItemId`, `DocumentId`, `Published`, `Latest`). Prefer one batched `GetAsync(ids)` over a loop of single reads.
+Reads by id (`GetAsync(id)` and `GetAsync(ids)`) use the `IDX_ContentItemIndex_ContentItemId` SQL index added in Orchard Core 4.0 (`ContentItemId`, `DocumentId`, `Published`, `Latest`). Prefer one batched `GetAsync(ids)` over a loop of single reads. `GetVersionAsync` seeks `IDX_ContentItemIndex_ContentItemVersionId`, and filters on one content type or owner seek `IDX_ContentItemIndex_ContentType` / `IDX_ContentItemIndex_Owner` (see `orchardcore-content-queries`).
 
 When a content type generates its title from a `TitlePart` pattern, the pattern is also evaluated when a version is published (Orchard Core 4.0), so republishing an item sets its display text from the pattern, at most once per item per request.
 

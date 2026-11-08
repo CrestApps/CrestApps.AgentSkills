@@ -1,0 +1,109 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TaxJurisdiction",
+      "description": "Recipe step discriminator. Must be \u0027TaxJurisdiction\u0027."
+    },
+    "TaxJurisdictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The stable identifier of the jurisdiction. Preserved across environments."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The display name of the jurisdiction."
+          },
+          "Code": {
+            "type": "string",
+            "description": "The code of the jurisdiction."
+          },
+          "Level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Country",
+                  "State",
+                  "Province",
+                  "Region",
+                  "County",
+                  "City",
+                  "Special",
+                  "Other"
+                ]
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "The administrative level of the jurisdiction."
+          },
+          "Country": {
+            "type": "string",
+            "description": "The ISO country code the jurisdiction belongs to."
+          },
+          "Region": {
+            "type": "string",
+            "description": "The state, province, or region code the jurisdiction belongs to."
+          },
+          "County": {
+            "type": "string",
+            "description": "The county the jurisdiction belongs to."
+          },
+          "City": {
+            "type": "string",
+            "description": "The city the jurisdiction belongs to."
+          },
+          "PostalCode": {
+            "type": "string",
+            "description": "The postal code the jurisdiction covers."
+          },
+          "ParentId": {
+            "type": "string",
+            "description": "The identifier of the parent jurisdiction, forming a hierarchy."
+          },
+          "EffectiveFromUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the jurisdiction stops being effective."
+          },
+          "EffectiveToUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the jurisdiction stops being effective."
+          }
+        },
+        "required": [
+          "Name",
+          "Code"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The tax jurisdictions to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "TaxJurisdictions"
+  ],
+  "additionalProperties": true
+}

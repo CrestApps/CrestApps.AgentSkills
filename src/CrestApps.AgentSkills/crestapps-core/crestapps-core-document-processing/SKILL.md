@@ -184,6 +184,10 @@ The hidden Tabular Data Agent (`tabular-data-agent`) tools are `list_tabular_dat
 
 Tool results that implement `IAIToolContentProvider` reach a chat model as text, while the MCP server keeps the rich content blocks.
 
+## Upgrading Within 2.0 Previews
+
+- The PDF writer in `CrestApps.Core.AI.Documents.Pdf` no longer uses PDFsharp or MigraDoc; it is built on PdfPig. `AddPdf()` on the document-processing builder still registers the reader and writer. See `crestapps-core-document-agents` for the tool-level notes.
+
 ## Upgrading from 1.x
 
 - Change `using` directives for types that moved to `CrestApps.Core.AI.Ingestion`: `IDocumentFileStore`, `FileSystemFileStore`, `DocumentFileSystemFileStoreOptions`, `IImageAnalysisService`, `ChatDocumentsOptions` and `ExtractorExtension`. `AddCoreAIIngestionDocumentReader<T>` also moved there from `CrestApps.Core.AI.Documents`.

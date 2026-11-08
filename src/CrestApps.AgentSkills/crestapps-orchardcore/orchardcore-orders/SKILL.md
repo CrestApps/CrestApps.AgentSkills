@@ -1,6 +1,6 @@
 ---
 name: orchardcore-orders
-description: Skill for the CrestApps Orchard Core Orders module (CrestApps.OrchardCore.Orders, Orders.GiftCards, Orders.Returns, Orders.Api). Covers checking a cart out as a draft order through the Checkout framework with CheckoutReferenceTypes.Order, OrderCheckoutHandler, order statuses and cancel reasons, IOrderService, IOrderEventHandler and OrderEventHandlerBase (created, paid, canceled, refunded, returned, lines changed), OrderGrantHandlerBase, OrderOperationsService refunds and cancels, guest order links with IOrderLinkService, confirmations and ICommerceEmailSender with AddCommerceEmailKind and Liquid email templates, IOrderEmailSectionProvider, invoices and packing slips, draft orders and quotes, sales channels, order bumps, gift cards, returns, order reports, workflow events, IDisplayManager of Order display types, OrderSettings, and the Orders API. Use it when requests mention Orchard Core orders, order events, refunds, invoices, gift cards, returns, quotes, order emails or the orders API.
+description: Skill for the CrestApps Orchard Core Orders module (CrestApps.OrchardCore.Orders, Orders.GiftCards, Orders.Returns, Orders.Api). Covers checking a cart out as a draft order through the Checkout framework with CheckoutReferenceTypes.Order, OrderCheckoutHandler, order statuses and cancel reasons, IOrderService, IOrderEventHandler and OrderEventHandlerBase (created, paid, canceled, refunded, returned, lines changed), OrderGrantHandlerBase and OrderLineGrantHandlerBase, IOrderOperationsService refunds and cancels, guest order links, ICommerceEmailSender with AddCommerceEmailKind and Liquid email templates, invoices and packing slips, draft orders and quotes, sales channels, order bumps, gift cards, returns, order reports, dashboard widgets, the Report Builder data source, workflow events, IDisplayManager of Order display types, OrderSettings, and the Orders API. Use it when requests mention Orchard Core orders, order events, refunds, invoices, gift cards, returns, quotes, order emails or the orders API.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,6 +23,7 @@ Orders (new in CrestApps.OrchardCore 3.0) checks a cart out through the Checkout
 | Shipping (`orchardcore-shipping`) | Adds the Shipping step, `Order.Shipping`, shipments and `FulfillmentStatus` |
 | Taxation (`orchardcore-taxation`) | Tax lines copied to `Order.TaxLines` |
 | Receipts (`orchardcore-receipts`) | `ReceiptSettings` brand invoices and packing slips |
+| Accounts B2B (`CrestApps.OrchardCore.Accounts.B2B`) | Orders placed for a business account (`Order.AccountId`, formerly `CompanyId`), approvals, account terms |
 
 ## Features
 
@@ -37,7 +38,7 @@ Orders (new in CrestApps.OrchardCore 3.0) checks a cart out through the Checkout
 
 - Install `CrestApps.OrchardCore.Orders` in the web/startup project and enable a payment provider.
 - React to orders with `IOrderEventHandler`; never poll order status.
-- Cancel only through `IOrderService.CancelAsync`, and refund through `OrderOperationsService`, so every handler and ledger stays in step.
+- Cancel only through `IOrderService.CancelAsync`, and refund through `IOrderOperationsService` (Orders.Core), so every handler and ledger stays in step.
 - Send customer emails through `ICommerceEmailSender` so the store's templates, layout and the buyer's culture apply.
 - Resolve services that need `IOrderService` from `IServiceProvider` inside the handler method to avoid a dependency cycle.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
@@ -130,11 +131,11 @@ public sealed class GiftWrapOrderHandler : OrderEventHandlerBase
 }
 ```
 
-Register with `services.AddScoped<IOrderEventHandler, GiftWrapOrderHandler>();`. To give the buyer something a paid order bought (files, a membership) and take it back on a cancel or full refund, derive from `OrderGrantHandlerBase` and implement `GrantAsync(Order, CancellationToken)` and `RevokeAsync(Order, OrderRevokeReason, CancellationToken)`. After a partial refund the buyer keeps what they bought.
+Register with `services.AddScoped<IOrderEventHandler, GiftWrapOrderHandler>();`. To give the buyer something a paid order bought (files, a membership) and take it back on a cancel or full refund, derive from `OrderGrantHandlerBase` and implement `GrantAsync(Order, CancellationToken)` and `RevokeAsync(Order, OrderRevokeReason, CancellationToken)`. When the grant comes from a content part on the product, derive from `OrderLineGrantHandlerBase<TPart>` instead and implement `GetGrantedLineIdsAsync`, `GrantLineAsync` and `RevokeLineAsync`: it reads each line's product version through `IContentManager.GetPurchasedAsync(line)` (`OrderLine.ContentItemVersionId`), so the grant is what was bought even after the product is edited, and it skips lines already granted. Any code that reads a line's product after payment should use `GetPurchasedAsync` too. After a partial refund the buyer keeps what they bought.
 
 ## Managing an order
 
-`OrderOperationsService` (permission `ManageOrders`) backs the order page and the staff API:
+`IOrderOperationsService` (Orders.Core, implemented by the Orders feature's `OrderOperationsService`; permission `ManageOrders`) backs the order page and the staff API, and is how other modules act on orders (Point of Sale refunds a till return through it). `OrderOperationResult`, `OrderMoney` and `OrderPermissions` are in Orders.Core too:
 
 - **Refund** an amount or everything: online payments through `ICheckoutRefundService` (newest first), Pay Later through `ITransactionCommandService.RefundAsync`, then balances (gift card, store credit, points) through `ICheckoutTenderLedger.ReturnAsync`. With `asStoreCredit`, the amount goes to the buyer through `IOrderStoreCreditRefunder` instead.
 - **Cancel** as `CanceledByStore`, optionally refunding everything and restocking.
@@ -165,13 +166,14 @@ services.AddCommerceEmailSender()
         LocalizationSource.Create<Startup>("{{ Message }}: the gift message."));
 ```
 
-`ICommerceEmailSender` builds a `CommerceEmail` (`Kind`, `To`, `Order`, `Culture`, `Reference`) in the buyer's culture, applies the store's Liquid template and layout for its kind (**Settings > Commerce > Emails**), sends it, and returns `false` instead of throwing on failure. Orders registers `order-confirmation`, `order-invoice`, `order-quote` and `checkout-recovery`. Add a section to the confirmation email with `IOrderEmailSectionProvider`.
+`ICommerceEmailSender`, `AddCommerceEmailKind`, `CommerceEmail` and `ICommerceEmailTemplates` moved to Commerce.Abstractions (namespace `CrestApps.OrchardCore.Commerce.Emails`); `AddCommerceEmailSender()` and `LiquidCommerceEmailTemplates` are in Commerce.Core. A `CommerceEmail` carries `Kind`, `To`, `Models` (the records the template reads by name; pass `OrderEmailModels.For(order)` so the template reads `{{ Order }}`), `Culture` and `Reference`. The sender renders in the buyer's culture, applies the store's Liquid template and layout for its kind (**Settings > Commerce > Emails**), sends it, and returns `false` instead of throwing on failure. Orders registers `order-confirmation`, `order-invoice`, `order-quote` and `checkout-recovery`; payment reminders, receipts, refund notices and installment plan notices sent through `ICustomerOwnerNotifier` use the same templates. Add a section to the confirmation email with `IOrderEmailSectionProvider`.
 
 ## Guest access and the storefront account
 
 - `IOrderLinkService` signs a 60-day link (`orders/view/{token}`) opened read-only, with a pay link while something is owed.
 - `orders/find` emails a guest their order links; `orders/track` finds an order by number and email. Both are rate limited (`find-order` group).
 - `account/orders` and `account/orders/{orderId}` show the signed-in user's orders; a guest's confirmation can create an account from the order's email.
+- With Accounts on, an account's page gets an **Orders** tab (latest 25 orders with `OrderQuery.AccountId`, `ManageOrders`). The business storefront routes are `account/business` and `checkout/{id}/business` (formerly `.../company`), and `ApiOrder.accountId` replaces `companyId`.
 - **Settings > Commerce > Orders** (`OrderSettings`): `SendConfirmations`, `SendRecoveryEmails` with `RecoveryDelayHours`, `AllowQuoteRequests`, and the order bump (`OrderBumpProductId`, `OrderBumpPercentOff`, `OrderBumpHeadline`).
 
 Drafts and quotes, invoices and packing slips, gift cards, returns, sales channels, reports, workflow events and automation recipes are in [references/order-features.md](references/order-features.md).
@@ -179,6 +181,17 @@ Drafts and quotes, invoices and packing slips, gift cards, returns, sales channe
 ## Orders API
 
 `CrestApps.OrchardCore.Orders.Api` maps `POST checkout` (checks the caller's cart out, holds stock, returns `X-Checkout-Token`), `me/orders`, `me/orders/{orderId}`, returns under it (with Returns), `me/quotes`, `checkout/{id}/gift-cards` (with Gift Cards) and the staff `orders` endpoints (list, get, by number, refund, cancel) with `ManageOrders`. `ApiOrder` carries `channel`, `culture` and grouped `taxes`. See the API reference in `orchardcore-commerce`.
+
+## Report Builder data source
+
+With **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) on, as the Report Builder does, Orders registers the **Orders** data source (`Orders`). The main date is when the order was placed; filter or group on `PaidUtc` for payments. Street lines, phone numbers, notes and gift card codes are never exposed. The **Reports: store reports to adapt** recipe (`CommerceReportBuilderReports`) adds editable copies of the built-in sales, tax, discount, refund, dispute and orders-to-ship reports to the **Store** report group. See `orchardcore-report-builder`.
+
+| Data set | One row per | Feature | Permission |
+| --- | --- | --- | --- |
+| `Orders` | Order, drafts and quotes included | Orders | `ManageOrders` |
+| `OrderLines`, `OrderRefunds`, `OrderDisputes`, `OrderDiscounts`, `OrderTaxes` | Line, refund, dispute, discount or tax of an order | Orders | `ManageOrders` |
+| `Returns` | Return | Returns | `ManageOrders` |
+| `GiftCards` | Gift card | Gift Cards | `ManageGiftCards` |
 
 ## Permissions
 

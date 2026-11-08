@@ -16,9 +16,11 @@ You are an Orchard Core expert. Generate configuration and code for Orchard Core
 ### Guidelines
 
 - Orchard Core 4.0 writes temporary files through `ITempDirectoryProvider` (namespace `OrchardCore.FileStorage`, package `OrchardCore.Infrastructure.Abstractions`): in-progress media chunked uploads, TUS resumable uploads, deployment and recipe import/export archives (local and remote), workflow type import/export, recipes written to disk before tenant setup (tenant API recipe uploads), PDF text extraction for media indexing, and ClamAV buffering of non-seekable uploads.
-- The default `DefaultTempDirectoryProvider` stores files under `{Path}/{TenantName}/...`. The tenant sub-directory is added automatically; never compose it yourself. Tenants cannot see or collide with each other's files.
-- Configure the base path with `OrchardCore:TempDirectory:Path` (bound to `TempDirectoryOptions`). When it is omitted, `Path.GetTempPath()` is used, which matches the previous behavior.
-- On Unix-like systems, new tenant directories get owner-only permissions (`700`), like `Directory.CreateTempSubdirectory()`.
+- With `Path` set, the default `DefaultTempDirectoryProvider` stores files under `{Path}/{TenantName}/...`. The tenant sub-directory is added automatically; never compose it yourself. Tenants cannot see or collide with each other's files.
+- Configure the base path with `OrchardCore:TempDirectory:Path` (bound to `TempDirectoryOptions`). When it is omitted, the provider uses `OrchardCore/Temp` under `Environment.SpecialFolder.LocalApplicationData` (`{LocalApplicationData}/OrchardCore/Temp/{TenantName}`), without a warning; that per-user folder must be private to the app identity.
+- If that location can't be determined or created, the provider falls back to a random `Directory.CreateTempSubdirectory("OrchardCore-")` under `Path.GetTempPath()` and logs a warning with its path. That path changes when the provider is recreated, so configure `Path` when temporary files must survive tenant restarts or be shared by instances.
+- The provider never trusts a predictable tenant directory directly under a shared system temp folder (`/tmp/{TenantName}`, `C:\Windows\Temp`), which another local user could pre-create to read or replace files such as an imported `Recipe.json`.
+- On Unix-like systems, new directories get owner-only permissions (`700`).
 - Why it exists: the OS temporary volume is often small (system disks, ephemeral container disks) and could fill up under concurrent large uploads. A configurable path can also be a shared volume, so an upload started on one instance can be completed on another.
 - Point `Path` at a mounted file share (local disk, SAN/NAS, Azure Files over SMB, AWS EFS/FSx over NFS), never at object storage. Consumers need seekable local files (`Seek`/`SetLength`, `ZipFile.ExtractToDirectory`, `PhysicalFileProvider`).
 - TUS partial uploads go to a `TusUploads` sub-directory of the same location. `MediaOptions.TusTempPath` was removed.
@@ -171,6 +173,7 @@ public sealed class Startup : StartupBase
 - Before: temporary files were written to `Path.GetTempPath()`, and TUS used `MediaOptions.TusTempPath`.
 - After: set `OrchardCore:TempDirectory:Path` once for all consumers and remove any `TusTempPath` configuration. TUS partials move to `{Path}/{TenantName}/TusUploads`.
 - Replace `Path.GetTempPath()` and `Path.GetTempFileName()` calls in custom modules with `ITempDirectoryProvider`.
+- Without `Path`, temporary files no longer go to `Path.GetTempPath()/{TenantName}` but to `{LocalApplicationData}/OrchardCore/Temp/{TenantName}` (or a random system temp subdirectory, with a logged warning). Grant the app identity a loaded user profile, or set `Path`, on hosts such as IIS app pools without a profile.
 
 ### Troubleshooting
 
@@ -180,3 +183,4 @@ public sealed class Startup : StartupBase
 | TUS upload fails when load-balanced | Use a shared `Path`, sticky sessions, or a blob/S3 `ITusTempStore`. |
 | Deployment import fails on a blob-mounted path | Object storage cannot provide seekable files; use Azure Files or EFS/FSx. |
 | Permission denied creating temp files | Grant the app identity write access to the mount. |
+| Warning about a unique temporary directory at startup | Local application data is unavailable to the app identity; set `OrchardCore:TempDirectory:Path`. |

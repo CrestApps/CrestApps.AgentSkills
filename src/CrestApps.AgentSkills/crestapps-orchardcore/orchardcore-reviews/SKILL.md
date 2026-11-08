@@ -36,7 +36,10 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 | Listing seams filled | `IProductSearchDocumentContributor`, `IProductListingEntryProvider` |
 | Background task | `ReviewRequestBackgroundTask` (hourly) |
 | Permissions | `ManageProductReviews` ("Moderate product reviews"; Administrator, Store manager, Marketing), `SubmitProductReviews` ("Review products bought"; Authenticated) |
-| Report | **Product reviews** under Reports > Commerce (with `CrestApps.OrchardCore.Reports`) |
+| Report | **Product reviews** under Reports > Commerce and the **Product Reviews** dashboard widget (with `CrestApps.OrchardCore.Reports`) |
+| Report Builder | **Reviews** data source (`Reviews`) with `ProductReviews` (`ManageProductReviews`; review text and photos never exposed); recipe `ReviewsReportBuilderReports` adds editable copies to the **Store** group |
+| Structured data | With Advanced SEO, a product with approved reviews gets a schema.org `aggregateRating` (see [orchardcore-advanced-seo](../orchardcore-advanced-seo/SKILL.md)) |
+| Personal data | `ReviewPersonalDataContributor`: an erasure replaces the author name and scrubs the title and body; the rating stays. It does not take part in guest retention expiry |
 
 ## Model and Settings
 
@@ -83,7 +86,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 
 ## Review Requests
 
-`ReviewRequestService.SendDueAsync` reads paid orders from the last 60 days placed at least `ReviewRequestDelayDays` ago without `Order.ReviewRequestSentUtc`, up to 200 a run, and emails each buyer once with links to each product's reviews, only when the customer accepts marketing. Every due order is marked, so a buyer who does not accept marketing is not asked later.
+`ReviewRequestService.SendDueAsync` reads paid orders from the last 60 days placed at least `ReviewRequestDelayDays` ago without `Order.ReviewRequestSentUtc`, up to 200 a run, and emails each buyer once with links to each product's reviews (the store's `review-request` email template), only when the customer accepts marketing. Every due order is marked, so a buyer who does not accept marketing is not asked later.
 
 ## Moderation
 

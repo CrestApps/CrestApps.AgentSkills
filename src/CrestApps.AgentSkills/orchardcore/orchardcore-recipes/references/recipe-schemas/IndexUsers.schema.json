@@ -17,9 +17,8 @@
         "integer"
       ],
       "minimum": 1,
-      "maximum": 1000,
       "default": 250,
-      "description": "How many users are saved per batch. Defaults to 250; values over 1000 are capped at 1000."
+      "description": "How many users are re-saved per batch so their indexes are rebuilt. Defaults to 250; values over 1000 are capped at 1000."
     }
   },
   "required": [

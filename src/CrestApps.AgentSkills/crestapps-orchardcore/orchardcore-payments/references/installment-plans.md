@@ -110,7 +110,7 @@ Validation: down payment zero or more and below the total; 1 to 120 later paymen
 ## Lifecycle
 
 - Plan status: `Draft`, `Active`, `PastDue`, `Completed`, `Canceled`. Payment status: `Scheduled`, `Due`, `Paid`, `Failed`, `Canceled`. History events: `Created`, `Activated`, `PaymentReceived`, `ChargeFailed`, `PaymentDue`, `Completed`, `Canceled`, `Note`.
-- When the first payment's transaction settles, `InstallmentPlanTransactionPaymentHandler` (an `ITransactionPaymentHandler`) activates the plan: reads the kept card back, creates a `Pending` transaction per scheduled payment (with `TransactionAutoCollection` for auto-charge), moves the plan to `Active`. If no card was kept, the plan switches to invoicing and says why in its history.
+- When the first payment's transaction settles, `InstallmentPlanTransactionPaymentHandler` (an `ITransactionPaymentHandler`) activates the plan: reads the kept card back (the down-payment checkout also adds it to the customer's kept payment methods, but the plan keeps charging its own copy even if the customer removes it there), creates a `Pending` transaction per scheduled payment (with `TransactionAutoCollection` for auto-charge), moves the plan to `Active`. If no card was kept, the plan switches to invoicing and says why in its history.
 - On each due date: auto-charge plans charge the card off-session through a new checkout session (`CheckoutPaymentDataKeys.ForOffSessionCharge(plan.PaymentMethod)`); invoice plans make the transaction `Outstanding` (invoice number, pay link reminders).
 - Declines: an unreachable gateway retries an hour later without using a retry; a declined card marks the payment and its transaction `Failed` and schedules the next `RetryDays` try; after the last retry the transaction becomes `Outstanding` with no automatic collection. An early **Charge now** that is declined leaves the payment `Scheduled`.
 - Double-charge protection: succeeded attempts not yet applied are applied through `ITransactionSettlementService` before any new charge; a session still `AwaitingProvider` or `PaymentPending` is completed instead of replaced.
@@ -153,6 +153,7 @@ Only the option id is posted (never `full`, at most 64 characters) and it is mat
 - Transactions: source `installment-plan`, `ReferenceType` `InstallmentPlan`, `ReferenceId` the plan id, `ObligationId` the payment number (`0` is the down payment), `ParentReferenceType` / `ParentReferenceId` the record the plan pays for, plus a copy of `Properties`.
 - Find a record's payments with `ITransactionStore.GetByParentReferenceAsync("Registration", id)`; react to each with `ITransactionPaymentHandler` filtered on `ReferenceType == "InstallmentPlan"`.
 - Computed members (`DownPayment`, `FirstPayment`, `AmountPaid`, `AmountOutstanding`, `NextPayment`) are `[JsonIgnore]`; keep any derived property you add out of the document too, or its lists double on every save.
+- Report Builder: with **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) on, the feature adds the `InstallmentPlans` and `Installments` data sets (permission `ManageInstallmentPlans`) to the **Subscriptions** data source (`Subscriptions`), registering the source itself when the Subscriptions feature is off. The saved card, notes and decline messages are not exposed.
 
 ## Troubleshooting
 

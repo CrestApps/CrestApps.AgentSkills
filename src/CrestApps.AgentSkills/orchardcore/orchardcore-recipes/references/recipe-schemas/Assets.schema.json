@@ -1,0 +1,432 @@
+{
+  "type": "object",
+  "description": "Creates or updates asset types, then assets. Records are matched by ItemId only; an existing record takes only the members given. List parent assets before their children.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Assets",
+      "description": "Recipe step discriminator. Must be \u0027Assets\u0027."
+    },
+    "Types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An asset type.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The asset type\u0027s id. When it matches a stored asset type, that asset type is updated with the members given here; otherwise a new asset type is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The type name."
+          },
+          "Category": {
+            "type": "string",
+            "enum": [
+              "Equipment",
+              "Vehicle",
+              "Tool",
+              "CustomerUnit",
+              "Component",
+              "Facility"
+            ],
+            "description": "What kind of asset it is."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the type is."
+          },
+          "Attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "An attribute every asset of the type has.",
+              "properties": {
+                "Name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The attribute name."
+                },
+                "Kind": {
+                  "type": "string",
+                  "enum": [
+                    "Text",
+                    "Number",
+                    "Date",
+                    "YesNo"
+                  ],
+                  "description": "The kind of value."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The attributes its assets have."
+          },
+          "Meters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A meter assets of the type are read on, such as hours or miles.",
+              "properties": {
+                "Name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The meter name."
+                },
+                "Unit": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The unit of a reading."
+                },
+                "Cumulative": {
+                  "type": "boolean",
+                  "description": "Whether readings only go up, like an odometer. Defaults to true."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The meters its assets are read on."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The asset types."
+    },
+    "Assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An asset: a piece of equipment, vehicle, tool, customer unit, component or facility.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The asset\u0027s id. When it matches a stored asset, that asset is updated with the members given here; otherwise a new asset is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The asset number."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The asset name."
+          },
+          "AssetTypeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ItemId of its asset type."
+          },
+          "ProductId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The content item id of the product it is."
+          },
+          "SerialNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The serial number."
+          },
+          "Manufacturer": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The manufacturer."
+          },
+          "Model": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The model."
+          },
+          "OwnerKind": {
+            "type": "string",
+            "enum": [
+              "Internal",
+              "Customer",
+              "Account",
+              "Contact"
+            ],
+            "description": "Who owns it. The owner itself (OwnerId) is not carried by this step: deployment plans leave it out and an import ignores it."
+          },
+          "Location": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Where it is.",
+            "properties": {
+              "Name": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The name of the person or place."
+              },
+              "Company": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The company name."
+              },
+              "AddressLine1": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The first street line."
+              },
+              "AddressLine2": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The second street line."
+              },
+              "DependentLocality": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The neighborhood or dependent locality, where the country uses one."
+              },
+              "SortingCode": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The sorting code, where the country uses one."
+              },
+              "Country": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The two-letter ISO country code."
+              },
+              "Region": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The state, province or region."
+              },
+              "County": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The county."
+              },
+              "City": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The city."
+              },
+              "District": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The district."
+              },
+              "PostalCode": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The postal code."
+              },
+              "Phone": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The phone number at the address."
+              },
+              "Latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The latitude, in degrees, when geocoded."
+              },
+              "Longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The longitude, in degrees, when geocoded."
+              }
+            },
+            "additionalProperties": true
+          },
+          "ParentAssetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ItemId of the asset it is part of."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "InService",
+              "OutOfService",
+              "Retired"
+            ],
+            "description": "Where the asset is in its life."
+          },
+          "InstallDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "When it was installed."
+          },
+          "Warranty": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Its warranty.",
+            "properties": {
+              "StartDate": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date",
+                "description": "When the warranty starts."
+              },
+              "EndDate": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date",
+                "description": "When the warranty ends."
+              },
+              "Provider": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Who gives the warranty."
+              },
+              "Terms": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "Its terms."
+              }
+            },
+            "additionalProperties": true
+          },
+          "Attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "description": "The values of its type\u0027s attributes, by attribute name."
+          },
+          "Documents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The paths of its documents in the media library."
+          },
+          "Fleet": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Its fleet data, for vehicles, equipment and tools the business owns.",
+            "properties": {
+              "Schedulable": {
+                "type": "boolean",
+                "description": "Whether it is booked for visits, with its own Equipment calendar that refuses double-booking."
+              },
+              "CalendarId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The id of its Equipment calendar."
+              },
+              "Plate": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The registration plate."
+              },
+              "Vin": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The vehicle identification number."
+              },
+              "Capacity": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "What it can carry or hold."
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The assets, parents first. Their meter readings are never imported."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

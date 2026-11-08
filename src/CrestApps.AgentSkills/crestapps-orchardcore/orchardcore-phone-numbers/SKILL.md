@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-numbers
-description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, display formatting, region lookup, and time-zone lookup services. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers feature, IPhoneNumberService, the canonical PhoneNumber value type with TryParse, FromE164 and TryFromE164, FormatForDisplay, PhoneNumberComparisonKey for matching stored raw values, and how DNC screening, verifications, Omnichannel and the soft phone consume canonical numbers. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, phone number display formatting, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, CrestApps.OrchardCore.PhoneNumbers.Abstractions, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, PhoneNumberComparisonKey, and TryFormatToE164.
+description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, display formatting, region lookup, and time-zone lookup services. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers feature, IPhoneNumberService, the canonical PhoneNumber value type with TryParse, FromE164 and TryFromE164, FormatForDisplay, PhoneNumberComparisonKey for matching stored raw values, lenient PhoneNumberNormalization.ToE164OrTrimmed for free-text fields, and how DNC screening, verifications, Omnichannel and the soft phone consume canonical numbers. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, phone number display formatting, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, CrestApps.OrchardCore.PhoneNumbers.Abstractions, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, PhoneNumberComparisonKey, and TryFormatToE164.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -180,6 +180,21 @@ public sealed class ContactPhoneRecord
 ```
 
 Normalize and validate `NormalizedPhoneNumber` before a record is saved. Do not include a local number and its region in a global unique index because the same digits represent different numbers in different regions.
+
+## Lenient Normalization for Free-Text Fields
+
+For a field that must keep whatever was typed (a customer, order or checkout contact phone), use `PhoneNumberNormalization.ToE164OrTrimmed` (in `CrestApps.OrchardCore.PhoneNumbers.Abstractions`) instead of rejecting invalid input:
+
+```csharp
+// phoneNumberService may be null (for example when the Phone Numbers feature is off); the number is then only trimmed.
+var stored = PhoneNumberNormalization.ToE164OrTrimmed(model.Phone, _phoneNumberService, address?.Country);
+```
+
+- Returns the E.164 form only when it keeps everything that was typed; text with an extension (`x12`, `ext. 12`, `#12`), a second number, a note, or digits E.164 would drop is kept as typed (trimmed). Empty input returns `null`.
+- `regionCode` is the ISO 3166-1 alpha-2 country a number without a country code is read in, such as the country of the record's address; `null` accepts only numbers with a country code.
+- `PhoneCountryCodes.NormalizeCallingCode("1")` returns `+1`, and `PhoneCountryCodes.NormalizeRegionCode("us")` returns `US`.
+
+Commerce uses this for the customer record, the order, the checkout contact step and the store profile.
 
 ## Integrations
 

@@ -304,7 +304,7 @@ public sealed class CatalogSettingsDisplayDriver : SiteDisplayDriver<CatalogSett
 
 ## Workflow Activity Editor
 
-`RestockTask` is a `TaskActivity<RestockTask>` with `Sku` and `Quantity` (`WorkflowExpression<int>`) properties (see `orchardcore-workflows`).
+`RestockTask` is a `TaskActivity<RestockTask>` with `Sku` and `Quantity` (`WorkflowExpression<int>`) properties (see `orchardcore-workflows`). This editor keeps a fixed JavaScript syntax. To let users pick Literal, Liquid or JavaScript per expression, use a `WorkflowExpressionInput` view-model property, the `WorkflowExpressionEditor` shape and `WorkflowExpressionInputValidator` instead, as shown in `orchardcore-workflows`. The workflow designer loads this view into its activity panel, so keep it to plain form fields or follow the designer's editor script contract.
 
 ```csharp
 using OrchardCore.Workflows.Display;

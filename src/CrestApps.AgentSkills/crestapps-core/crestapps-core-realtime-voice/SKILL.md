@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-realtime-voice
-description: Skill for realtime speech-to-speech voice in CrestApps.Core 2.0. Covers the realtime deployment capability and slot, Conversation chat mode with ConversationDeploymentName on profiles and chat interactions, ResolveConversationModeAsync, cascaded realtime deployments with CascadedRealtimeMetadata chaining speech-to-text, chat and text-to-speech legs, the CrestApps.Core.AI.WebRTC server-relay transport registered with AddWebRtcRealtimeTransport and its WebSocket fallback, RealtimeTransportOptions (idle timeout, max duration, semantic turn detection, knowledge grounding, STUN and TURN), coturn and Cloudflare TURN, custom IRealtimeIceServerProvider, IRealtimeOrchestrator and IRealtimeConversation, user transcription, the realtime hub methods and ReceiveRealtimeEvent contract, the CoreAIRealtime browser client, and upgrading from 1.x. Use it when adding voice to a chat surface, configuring TURN, building a cascade, or troubleshooting silent sessions, fallbacks, or missing transcripts.
+description: Skill for realtime speech-to-speech voice in CrestApps.Core 2.0. Covers the realtime deployment capability, Conversation chat mode and ResolveConversationModeAsync, cascaded realtime deployments with CascadedRealtimeMetadata chaining speech-to-text (including Cartesia), chat and text-to-speech legs, profile speech settings in a cascade, the WebRTC server-relay transport (AddWebRtcRealtimeTransport) with WebSocket fallback, RealtimeTransportOptions, TURN and IRealtimeIceServerProvider, IRealtimeOrchestrator and IRealtimeConversation, switching profile during a call with SwitchResourceAsync and UpdateSessionAsync, keypad keys and supervisor notes with AddMessageAsync, voices the deployment does not offer, user transcription, the realtime hub contract, the CoreAIRealtime browser client, and upgrading. Use it when adding voice to a chat surface, configuring TURN, building a cascade, handing a call to another profile, or troubleshooting silent sessions, fallbacks, or missing transcripts.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,11 +15,12 @@ A realtime session is a live, spoken conversation: audio in, audio out, with bar
 
 - Realtime is a model capability, not a chat mode. Declare the `realtime` feature on the deployment; it then fills the `realtime` slot. Never add `textGeneration` to a speech-to-speech-only model.
 - A profile speaks when its chat mode is `Conversation` and a realtime deployment resolves. A chat interaction speaks when `ConversationDeploymentName` is set.
-- Providers with a native realtime client in CrestApps.Core are OpenAI and Azure OpenAI (`gpt-realtime`). For anything else, build a cascaded realtime deployment.
+- Providers with a native speech-to-speech client in CrestApps.Core are OpenAI and Azure OpenAI (`gpt-realtime`). For anything else, build a cascaded realtime deployment. Cartesia's realtime client only transcribes, so it can hear for a cascade but not carry a session.
 - Register `AddWebRtcRealtimeTransport()` for production voice, and configure TURN so users behind strict NATs are not pushed to WebSocket after an 8-second wait.
 - Add a speech-to-text deployment on the realtime deployment's provider (for example `gpt-4o-transcribe`), or the user's turns are not transcribed.
 - Keep a voice profile's tool list short; every tool sits in the model's context on every turn.
-- The chat hubs and UI are covered by `crestapps-core-chat-interactions`, hub options by `crestapps-core-signalr`, and provider configuration by `crestapps-core-openai` and `crestapps-core-azure-openai`.
+- The chat hubs and UI are covered by `crestapps-core-chat-interactions`, hub options by `crestapps-core-signalr`, provider configuration by `crestapps-core-openai` and `crestapps-core-azure-openai`, and ElevenLabs, Cartesia, the voice library and speech markup by `crestapps-core-speech-voices`.
+- Profile speech settings (`AIProfileSpeechSettings`) and typed or list extraction fields are documented with the profile in `crestapps-core-ai-profiles`.
 
 ## Choosing the Model That Carries the Conversation
 
@@ -101,12 +102,62 @@ await deploymentManager.CreateAsync(deployment);
 A configured deployment can carry the same metadata under `Properties`, keyed by type name: `"Features": [ "realtime" ]` plus `"Properties": { "CascadedRealtimeMetadata": { "SpeechToTextDeploymentName": "...", "ChatDeploymentName": "...", "TextToSpeechDeploymentName": "..." } }`.
 
 - `IAIClientFactory.CreateRealtimeClientAsync` composes `CascadedRealtimeClient` whenever the deployment carries a complete `CascadedRealtimeMetadata`; providers never see the cascade. A leg that is itself cascaded, or a leg name that does not exist, throws.
-- **Speech-to-text leg**: must expose a realtime client with a transcription session (an OpenAI or Azure OpenAI transcription deployment). It transcribes with its own model. Azure AI Speech has no realtime client and cannot be this leg.
-- **Chat leg**: built with function invocation, so tools, data sources and the system message work; it must declare `toolCalling` or the tools are stripped. A reply's tool calls and results stay in the cascade's history; an interrupted, unanswered call is left out.
-- **Text-to-speech leg**: must return raw PCM (`audio/L16` or `audio/pcm`) at the session's output rate; the cascade asks for `Pcm<rate>` (for example `Pcm24000`) and refuses MP3 or WAV. OpenAI (resampled from 24 kHz) and Azure AI Speech (`Pcm8000` to `Pcm48000`) both qualify. The voice picker lists this leg's voices.
+- **Speech-to-text leg**: must expose a realtime client with a transcription session: an OpenAI or Azure OpenAI transcription deployment, or a Cartesia deployment on `ink-2` or `ink-preview` (Cartesia's turns endpoint decides where each user turn ends; `ink-whisper` or no model hears with `ink-2`). It transcribes with its own model. Azure AI Speech has no realtime client, and ElevenLabs transcribes whole recordings only (its realtime client throws `NotSupportedException`), so neither can be this leg.
+- **Chat leg**: built with function invocation, so tools, data sources and the system message work; it must declare `toolCalling` or the tools are stripped. A reply's tool calls and results stay in the cascade's history; an interrupted, unanswered call is left out. A tool call ends the line being spoken: the text before the call is finished as a line of its own, and what the model says after the tool's answer is a new line of the same response, as a speech-to-speech provider finishes its message item when the model calls a function.
+- **Text-to-speech leg**: must return raw PCM (`audio/L16` or `audio/pcm`) at the session's output rate; the cascade asks for `Pcm<rate>` (for example `Pcm24000`) and refuses MP3 or WAV. OpenAI (resampled from 24 kHz), Azure AI Speech (`Pcm8000` to `Pcm48000`), ElevenLabs and Cartesia all qualify. The voice picker lists this leg's voices.
 - `SpeechSpeed` is sent as `TextToSpeechOptions.Speed` (OpenAI 0.25 to 4, Azure Speech 0.5 to 2); `SpeakingStyle` as the `TextToSpeechOptionsProperties.Instructions` property (ignored by `tts-1`, `tts-1-hd` and Azure Speech). A listener's speed multiplies on top.
 - Replies are spoken a sentence at a time; a partial transcript while the assistant speaks cancels the turn and flushes client audio. Latency is higher than a native model.
-- `response.create` (`RequestUnpromptedResponseAsync`) is written and spoken by the cascade, so an outbound call can open with a greeting. When grounding is on, utterances join the history and are answered once the host requests a reply.
+- `response.create` (`RequestUnpromptedResponseAsync`) is written and spoken by the cascade, so an outbound call can open with a greeting. When the assistant spoke last (system items added after its line do not count), the chat leg ends the history with a short user turn, because some models (Claude 5.x) refuse to continue an assistant message. Instructions passed with the request replace the session's for that reply only. When grounding is on, utterances join the history and are answered once the host requests a reply.
+
+### Profile Speech Settings in a Cascade
+
+When the session's resource is an `AIProfile` with `AIProfileSpeechSettings`, `DefaultRealtimeOrchestrator` hands the cascade a `CascadedRealtimeProfileOptions` built with `CascadedRealtimeProfileOptions.From(settings, fallbackClient)`:
+
+| Setting | Effect in the cascade |
+|---|---|
+| `SpeakingRate` | Clamped to 0.25 to 4; multiplies `CascadedRealtimeMetadata.SpeechSpeed` |
+| `SpeakingEmotion` | Sent as `TextToSpeechOptionsProperties.Emotion`; Cartesia uses it, other providers ignore it |
+| `PronunciationEntries` | Applied to the text before synthesis, whole words, longest phrase first |
+| `FallbackTextToSpeechDeploymentName` | Speaks when the text-to-speech leg throws before producing audio |
+| `BoostedKeywords` | Added to the transcription request and prompt (`Vocabulary: a, b.`) |
+| `RecognitionLanguages` | The first is the speech language when `RealtimeOrchestrationRequest.SpeechLanguage` is not set |
+| `InterruptionSensitivity` | Words of caller speech that cut the assistant off (`0` never; unset one word); on a native session it sets the VAD threshold |
+| `EnableBackchanneling` / `BackchannelPhrases` | A short spoken "mm-hm" while the caller talks; cascade only, never stored |
+
+An explicit `VadThreshold` or `AllowInterruption = false` on the request wins over the profile.
+
+## Messages That Do Not Come from the Microphone
+
+`IRealtimeConversation.AddMessageAsync(role, text)` adds a user message (keys pressed on a phone keypad) or a system message (a supervisor's note) to the live conversation without asking for a reply. To have it answered now, follow it with `RequestUnpromptedResponseAsync()` with no instructions, once no response is in flight:
+
+```csharp
+await conversation.AddMessageAsync(ChatRole.User, "[Pressed on the keypad: 1234]", cancellationToken);
+await conversation.RequestUnpromptedResponseAsync(cancellationToken: cancellationToken);
+```
+
+Do not pass such a message as a response's instructions: those replace the session's instructions for that response, so the assistant loses its persona and language, and the message is gone by the next turn. Speech-to-speech providers receive a `conversation.item.create`; a cascade adds it to the chat leg's history. The default interface implementation throws `NotSupportedException`; `DefaultRealtimeConversation` and cascaded deployments support it.
+
+## Switching Profile During a Call
+
+```csharp
+// Inside the same AIInvocationScope the call was started in.
+await orchestrator.SwitchResourceAsync(
+    conversation,
+    new RealtimeOrchestrationRequest { Resource = otherProfile },
+    cancellationToken);
+```
+
+`IRealtimeOrchestrator.SwitchResourceAsync` builds the new profile's system message and tools as `StartAsync` does and applies them with `IRealtimeConversation.UpdateSessionAsync(new RealtimeSessionUpdate { Instructions = ..., Tools = ... })`. A host that has its own instructions and tools can call `UpdateSessionAsync` directly; `null` leaves that part unchanged and an empty tool list removes every tool.
+
+- The change applies from the next response; a response in progress finishes as it started. What was said stays in the conversation.
+- Only the new tools run: a call to a tool the previous profile offered is refused.
+- Speech-to-speech providers get a partial `session.update`; a cascade swaps its chat leg's options for the next reply.
+- The voice, realtime deployment and turn detection do not change; the request's `Voice` and `RealtimeDeploymentName` are ignored.
+- `IRealtimeConversation.SupportsSessionUpdate` says whether the conversation can do this; the default implementations of `UpdateSessionAsync` and `SwitchResourceAsync` throw `NotSupportedException`.
+
+## Voice Selection
+
+The voice reaches the provider in the same set-up message as the instructions and tools, and a provider refuses that message whole over one value it does not accept. `DefaultRealtimeOrchestrator` therefore checks the requested voice against `IRealtimeVoiceResolver.GetVoicesAsync(deployment)`: a voice the deployment does not list is dropped with a warning and the session opens with the provider's default voice. A cascaded deployment's voice, and any voice when the list is empty or cannot be read, is passed on unchecked. Keep the profile's voice one of the realtime deployment's voices, or none.
 
 ## Transport Registration
 
@@ -226,6 +277,13 @@ The shared browser client is `realtime-audio.js` (`@crestapps/ai-chat-ui`, globa
 - **Knowledge questions answered as "not available"**: the chat deployment (or cascade chat leg) lacks `toolCalling`, the vector store connection is not configured, or grounding is off. Raise `CrestApps.Core.AI.Services.DefaultRealtimeTurnGrounding` and `CrestApps.Core.AI.Chat.Realtime` to `Debug`.
 - **"resolved N tool(s), above the 30 a session carries well"**: curate the profile's tools or select fewer MCP tools; the session was trimmed to about 20 at open.
 - **Choppy playback**: read `CoreAIRealtime.activeController.getTransportStats()` and the peer's closing log line under `CrestApps.Core.AI.WebRTC`.
+
+## Upgrading Within 2.0 Previews
+
+- `DefaultRealtimeOrchestrator` takes `IRealtimeVoiceResolver` as a new constructor dependency (no change when resolved from the container). A voice the native realtime deployment does not list is now dropped, so a session that used to fail its set-up now opens with the provider's default voice.
+- A cascaded reply that calls a tool now produces two finished assistant lines (before and after the tool call) instead of one. Hosts that read "what was said" from finished lines see a goodbye spoken before an end-call tool as said.
+- Earlier previews described ElevenLabs as a possible cascade speech-to-text leg, which never worked; use Cartesia (`ink-2`), OpenAI or Azure OpenAI for that leg and keep ElevenLabs for speaking.
+- Custom `IRealtimeConversation` implementations inherit throwing defaults for `AddMessageAsync` and `UpdateSessionAsync` (`SupportsSessionUpdate` is `false`); override them to support keypad input and profile switching.
 
 ## Upgrading from 1.x
 

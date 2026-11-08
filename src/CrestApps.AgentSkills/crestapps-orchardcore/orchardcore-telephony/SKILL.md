@@ -19,7 +19,8 @@ In this module, **provider** means the telephony backend adapter (Telnyx, Asteri
 
 - Install `CrestApps.OrchardCore.Telephony` (and any provider package) in the web/startup project.
 - Enable `CrestApps.OrchardCore.Telephony` for the runtime services, the hub, call history, extensions, and the **Settings → Communication → Telephony** screen. There is no separate administration feature in 3.0.
-- The core feature depends on `OrchardCore.Users` and `OrchardCore.SignalR` (the Orchard Core framework SignalR module; see `orchardcore-signalr`).
+- The core feature depends on `OrchardCore.Users` and `OrchardCore.SignalR` (the Orchard Core framework SignalR module; see `orchardcore-signalr`), plus `CrestApps.OrchardCore.Users` and `CrestApps.OrchardCore.Resources` for the searchable user picker in the extension editor.
+- To push to a user's soft phones from another module, inject `ISoftPhoneClientNotifier` (`CallStateChangedAsync`, `IncomingCallAnsweredAsync`, `DialRequestedAsync`, in `CrestApps.OrchardCore.Telephony.Abstractions`) instead of using `TelephonyHub`. `SoftPhoneWidgetSettings` is in the same package.
 - Enable `CrestApps.OrchardCore.Telephony.SoftPhone` only when the floating widget or the front-end **Soft Phone** widget is needed. Enable `CrestApps.OrchardCore.Telephony.SoftPhone.Extension` for the standalone `/softphone` page used by the browser extension and desktop app.
 - Enable a provider feature (`orchardcore-telephony-telnyx`, `orchardcore-telephony-asterisk`, or your own) and select it as the default provider.
 - Call `ITelephonyService` from application code; never call a provider directly, because the service enforces capability, contract, and dial-destination checks.
@@ -164,7 +165,7 @@ With `CrestApps.OrchardCore.Telephony.SoftPhone` enabled, the **Soft Phone** tab
 ```
 
 - The keypad normalizes a valid national number to E.164 using intl-tel-input so outbound compliance screening (`orchardcore-dnc-registry`, `orchardcore-phone-numbers`) sees a canonical number. The **Dial extension** toggle sends `DialRequest.IsExtension` and skips that screening.
-- The Phone Field editor and display expose a `data-phone-dial` placeholder; the soft phone attaches a **Call with the soft phone** button that posts to `softphone/dial`. With the Extension feature, `SoftPhoneExtensionDialerFilter` enables the button on admin pages and the hub sends `DialRequested` to the standalone phone.
+- The Phone Field editor and display expose a `data-phone-dial` placeholder; the soft phone attaches a **Call with the soft phone** button that posts to `softphone/dial`. A call started there is a manual call, screened by the Contact Center Dialer's `IOutboundCallScreener` (do-not-call, unreadable numbers, an optional manual calling window) when Contact Center is enabled. With the Extension feature, `SoftPhoneExtensionDialerFilter` enables the button on admin pages and the hub sends `DialRequested` to the standalone phone.
 - Modules add footer tabs with a `DisplayDriver<SoftPhoneWidget>`; Contact Center adds the **Work** tab this way.
 - Browser audio providers register `window.telephonySoftPhone.mediaAdapters[adapterName]`; the server provider must implement `ITelephonyAudioProvider`, advertise `Browser`, and return the same `BrowserMediaAdapterName`.
 
@@ -209,7 +210,7 @@ Register it with `services.AddScoped<IIncomingCallContextProvider, CustomerIncom
 
 ## Extensions
 
-The tenant-scoped extension registry maps a dialed number to an Orchard user, managed under **Interaction Center → Management → Extensions** with `ManageTelephonyExtensions`. The list is an Orchard Core `AdminList` named `TelephonyExtensions` with `Name`, `Number`, and `User` grid columns, so other modules can add columns through `IAdminListColumnsProvider` (see `orchardcore-admin-lists`). Extensions import through the `TelephonyExtension` recipe step. Details, the provider contract, and the recipe shape are in [references/extension-dialing.md](references/extension-dialing.md).
+The tenant-scoped extension registry maps a dialed number to an Orchard user, managed under **Interaction Center → Management → Extensions** with `ManageTelephonyExtensions`. The editor picks the user with the searchable user picker, which searches on the server instead of listing every user. The list is an Orchard Core `AdminList` named `TelephonyExtensions` with `Name`, `Number`, and `User` grid columns, so other modules can add columns through `IAdminListColumnsProvider` (see `orchardcore-admin-lists`). Extensions import through the `TelephonyExtension` recipe step. Details, the provider contract, and the recipe shape are in [references/extension-dialing.md](references/extension-dialing.md).
 
 ## Recording Storage
 
@@ -259,6 +260,8 @@ Environment variables keep the single underscore, for example `OrchardCore__Cres
 - `IVoiceMediaProvisioner` gains `GetAvailabilityAsync(mediaReference, cancellationToken)` returning `VoiceMediaAvailability`; the default answers `Unknown`, so override it to let a lost provider copy be re-uploaded from the master copy.
 - The CrestApps SignalR module is deprecated in favor of `OrchardCore.SignalR`; replace `HubRouteManager` with `SignalRHubRoutes.GetHubPath<T>()` and `Html.SignalRHubUrl<T>()`.
 - The extension list renders through the Orchard Core `AdminList` shape; whole-row template overrides only apply to the List layout. Use `SummaryAdminGrid` placement for the Grid layout.
+- Modules that pushed to `TelephonyHub` clients directly should call `ISoftPhoneClientNotifier`; read `SoftPhoneWidgetSettings` from `CrestApps.OrchardCore.Telephony.Abstractions` rather than the Telephony module.
+- Admin edit forms render their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`); theme overrides or UI tests that look for the old `ocat-wrapper` button row must update.
 
 ## Troubleshooting
 

@@ -12,7 +12,7 @@
     },
     "ConsumerSecret": {
       "type": "string",
-      "description": "Twitter/X API consumer secret."
+      "description": "Twitter/X API consumer secret. The step stores the value as given, and Orchard Core decrypts it with the tenant\u0027s Data Protection keys, so a clear value does not work. Prefer a secret: create it with the \u0027Secrets\u0027 step and reference it with \u0027ConsumerSecretSecretName\u0027 in the \u0027TwitterSettings\u0027 property of the \u0027Settings\u0027 step."
     },
     "AccessToken": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "AccessTokenSecret": {
       "type": "string",
-      "description": "Twitter/X API access token secret."
+      "description": "Twitter/X API access token secret. The step stores the value as given, and Orchard Core decrypts it with the tenant\u0027s Data Protection keys, so a clear value does not work. Prefer a secret: create it with the \u0027Secrets\u0027 step and reference it with \u0027AccessTokenSecretSecretName\u0027 in the \u0027TwitterSettings\u0027 property of the \u0027Settings\u0027 step."
     }
   },
   "required": [

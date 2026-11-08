@@ -1,0 +1,461 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Calendars",
+      "description": "Recipe step discriminator. Must be \u0027Calendars\u0027."
+    },
+    "Categories": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The category\u0027s id. When it matches a stored category, that category is updated; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The category\u0027s name."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color of its events, such as #2f9e44."
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user it belongs to, or null for a category everyone can use."
+          },
+          "createdUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was made."
+          }
+        }
+      },
+      "description": "The categories to create or update, before the calendars."
+    },
+    "Calendars": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The calendar\u0027s id. When it matches a stored calendar, that calendar is updated; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The calendar type, such as General, Personal, Team, Room, Equipment or Office; the feature that registers it must be on."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The description."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color of its events."
+          },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its IANA time zone."
+          },
+          "ownerKind": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "What owns it. One of: None, User, Role, Resource (or its number)."
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user id or role name that owns it."
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Who can see it. One of: Private, Shared, Public (or its number)."
+          },
+          "shares": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "principalKind": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "Who it is shared with. One of: User, Role (or its number)."
+                },
+                "principalId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The user id or role name."
+                },
+                "displayName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The name shown."
+                },
+                "access": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "What they can do. One of: None, FreeBusy, Read, Write, Manage (or its number)."
+                }
+              }
+            },
+            "description": "Who else can use it."
+          },
+          "conflictPolicy": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Whether events may overlap. One of: AllowOverlaps, LimitConcurrent (or its number)."
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "With LimitConcurrent: how many events may overlap."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is in use."
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The feature that manages it, or null."
+          },
+          "sourceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The record of that feature it belongs to."
+          },
+          "properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features keep on the calendar."
+          },
+          "Events": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "itemId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The event\u0027s id. When it matches a stored event, that event is updated; otherwise a new one is made under this id, so references to it keep working."
+                },
+                "eventType": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The kind of event, one of the calendar type\u0027s event types."
+                },
+                "title": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The title."
+                },
+                "description": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The description."
+                },
+                "location": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Where it is."
+                },
+                "allDay": {
+                  "type": "boolean",
+                  "description": "Whether it lasts whole days; end is then the day after the last one."
+                },
+                "start": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it starts, as a wall-clock time in timeZoneId (no offset), such as 2026-11-03T09:00:00."
+                },
+                "end": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it ends, as a wall-clock time in timeZoneId."
+                },
+                "timeZoneId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The IANA time zone of start and end, such as America/New_York."
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "The status. One of: Confirmed, Tentative, Cancelled (or its number)."
+                },
+                "transparency": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "Whether it takes the time. One of: Busy, Free (or its number)."
+                },
+                "visibility": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "Who sees its details. One of: Default, Public, Private (or its number)."
+                },
+                "color": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Its own color, or null for its category\u0027s, kind\u0027s or calendar\u0027s."
+                },
+                "categoryId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of its category (see Categories), or null."
+                },
+                "reminderMinutes": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "Minutes before the start its people are reminded: 0, 5, 10, 15, 30, 60, 120 or 1440."
+                },
+                "attendees": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                      "userId": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "A user of the site."
+                      },
+                      "email": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "An email address, for a guest."
+                      },
+                      "name": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "The attendee\u0027s name."
+                      },
+                      "resourceCalendarId": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "A room or equipment calendar booked for the event."
+                      },
+                      "role": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ],
+                        "description": "The attendee\u0027s role. One of: Required, Optional, Organizer, Resource (or its number)."
+                      },
+                      "response": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ],
+                        "description": "The attendee\u0027s answer. One of: NeedsAction, Accepted, Tentative, Declined (or its number)."
+                      }
+                    }
+                  },
+                  "description": "The people, guests, rooms and equipment invited."
+                },
+                "recurrence": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "rule": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "An iCalendar RRULE, such as FREQ=WEEKLY;BYDAY=TU,WE,TH,FR,SA;UNTIL=20261130T235959Z."
+                    },
+                    "exceptionDates": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Wall-clock starts of occurrences that are skipped."
+                    }
+                  }
+                },
+                "seriesId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "For a changed occurrence of a repeating event: the series it belongs to."
+                },
+                "originalStartUtc": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time",
+                  "description": "For a changed occurrence: the UTC start it replaces."
+                },
+                "source": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The feature that manages the event, such as Scheduling, or null."
+                },
+                "sourceId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The record of that feature the event belongs to."
+                },
+                "editable": {
+                  "type": "boolean",
+                  "description": "Whether it can be changed on the calendar."
+                },
+                "uid": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Its iCalendar UID."
+                },
+                "properties": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "additionalProperties": true,
+                  "description": "Extension data other features keep on the event."
+                }
+              }
+            },
+            "description": "Its events (when the deployment step included them). Unlike the other members, this one is read with a capital E."
+          }
+        }
+      },
+      "description": "The calendars to create or update, each with its events."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

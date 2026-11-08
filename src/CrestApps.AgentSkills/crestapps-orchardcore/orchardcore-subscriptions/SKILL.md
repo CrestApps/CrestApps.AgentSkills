@@ -126,7 +126,7 @@ Steps: a concealed plan step carrying the recurring line and setup fee, **Conten
 | `ExpireAsync(id, reason)` | Ends the agreement |
 | `SyncFromProviderAsync(id, context)` | Adopts the gateway's period and status; never revives a local cancellation or undoes a local pause |
 
-`SubscriptionLifecycleBackgroundTask` (every 30 minutes) expires agreements past their grace window and closes those that billed every cycle; it never charges. Gateways (Stripe) bill renewals and report them by webhook; offline agreements (Pay Later) are advanced by the sweep and invoiced by the Pay Later renewal task. `SubscriptionSettings` (**Settings > Subscriptions**, group `subscriptions`): `Currency`, `AllowGuestSignup`, `DunningGraceDays` (7).
+`SubscriptionLifecycleBackgroundTask` (every 30 minutes) expires agreements past their grace window and closes those that billed every cycle; it never charges. Gateways (Stripe) bill renewals and report them by webhook; offline agreements (Pay Later) are advanced by the sweep and invoiced by the Pay Later renewal task. `SubscriptionSettings` (**Settings > Subscriptions**, group `subscriptions`): `Currency`, `AllowGuestSignup`, and `DunningGraceDays` (7), which the settings page does not show (set it with the `Settings` recipe step).
 
 React to every change with `ISubscriptionLifecycleHandler` (`SubscriptionLifecycleHandlerBase`), whose `SubscriptionLifecycleContext` has `Subscription`, `PreviousStatus`, `Source` and `StatusChanged`.
 
@@ -149,7 +149,7 @@ public sealed class PremiumContentGate
 }
 ```
 
-`HasEntitlementAsync(userId, kind, value)` (no value matches any of the kind), `GetEntitlementsAsync(userId)`, `GetCurrentSubscriptionsAsync(userId)`. Built-in kinds: `Role` and `Tenant` (`SubscriptionConstants.EntitlementKinds`). Roles from the plan's `SubscriptionEntitlementPart` are copied onto the agreement at creation and applied while it is current by `RoleSubscriptionEntitlementApplier`.
+`HasEntitlementAsync(userId, kind, value)` (no value matches any of the kind), `GetEntitlementsAsync(userId)`, `GetCurrentSubscriptionsAsync(userId)`. Built-in kinds: `Role` and `Tenant` (`SubscriptionConstants.EntitlementKinds`). Roles from the plan's `SubscriptionEntitlementPart` are copied onto the agreement at creation and applied while it is current by `RoleSubscriptionEntitlementApplier`, through `IRoleGrantService` (source `Subscription`, keyed by the subscription id). When the subscription ends the role is removed only when nothing else (such as an active membership) still grants it, and never when the user had it before; `SubscriptionRoleGrantSource` reports grants of subscriptions made before grants were recorded.
 
 A custom kind: put a `SubscriptionEntitlement { Kind, Value, Data }` on the agreement (the Sites feature adds its `Tenant` entitlement from its checkout handler and saves through `ISubscriptionManager`), and register an applier:
 
@@ -192,7 +192,9 @@ With `OrchardCore.Workflows`: **Subscription Started** (`SubscriptionStartedEven
 
 - **Agreements** (admin, `ManageSubscriptions`): filter by status, cancel now or at period end, pause, resume; every action is in the agreement's history. **My Plans** and the storefront `account/subscriptions` let the owner cancel (`ManageOwnSubscriptions`), defaulting to the end of the paid period.
 - Payments and refunds live in Transactions; a plan bought by card is on the payment ledger, not a transaction.
-- With Reports: **Reports > Commerce** revenue, dashboard, expiring, new trend, tax collected and product performance, read from the payment ledger and agreements, per currency (`ManageSubscriptions`).
+- With Reports: **Reports > Commerce** revenue, dashboard, expiring, new trend, tax collected and product performance, read from the payment ledger and agreements, per currency (`ManageSubscriptions`). With Admin Dashboard, ready-made widgets (Subscriptions Overview, Subscription Revenue, Expiring Subscriptions, New Subscriptions Trend, Subscription Products); the **Subscription Summary** widget (`SubscriptionSummaryPart`) has **Keep for (minutes)** (30 by default, 0 recounts every visit).
+- With **Data Pipelines Core** on (Report Builder), the **Subscriptions** data source (`Subscriptions`) has `Subscriptions` and `SubscriptionLines` (`ManageSubscriptions`), and Installment Plans adds `InstallmentPlans` and `Installments` (`ManageInstallmentPlans`). Join subscriptions to customers on the user. The `SubscriptionsReportBuilderReports` recipe adds editable **New subscriptions** and **Expiring subscriptions** reports to the **Store** group. See `orchardcore-report-builder`.
+- A renewal charged to a kept card can use `ITransactionCommandService.ChargeSavedPaymentMethodAsync` with a fallback to the invoice (see `orchardcore-transactions`).
 - Permissions: `ManageSubscriptionSettings`, `ManageSubscriptions`, `ManageOwnSubscriptions`, `ManageInstallmentPlans`.
 - Rate-limit groups `checkout` and `checkout-payment` (owned by Checkout) cover signup and payment.
 

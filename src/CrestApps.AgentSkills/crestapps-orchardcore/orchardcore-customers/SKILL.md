@@ -1,6 +1,6 @@
 ---
 name: orchardcore-customers
-description: Skill for the CrestApps Orchard Core Customers module (CrestApps.OrchardCore.Customers, CrestApps.OrchardCore.Customers.CheckoutDetails, CrestApps.OrchardCore.Customers.StoreCredit, CrestApps.OrchardCore.Customers.Loyalty, CrestApps.OrchardCore.Customers.Referrals, CrestApps.OrchardCore.Customers.Api) and the buyer identity foundation in CrestApps.OrchardCore.Customers.Abstractions. Covers the Customer record linked to a user or a guest, CustomerOwner and CustomerOwnerKind, ICustomerContactResolver and ICustomerOwnerNotifier, ICustomerService, the address book, the checkout Contact step, Checkout details fields, store credit, loyalty points and referrals as tenders, merging verified guests, privacy erase and export with ICustomerPrivacyHandler and ICommercePersonalDataService, the Customers recipe step and the Customers API. Use it when requests mention commerce customers, guest buyers, address books, store credit, rewards points, referral links, personal data requests, or the checkout contact step.
+description: Skill for the CrestApps Orchard Core Customers module (CrestApps.OrchardCore.Customers, Customers.CheckoutDetails, Customers.StoreCredit, Customers.Loyalty, Customers.Referrals, Customers.Api) and the Customers.Abstractions buyer identity foundation. Covers the Customer record linked to a user or a guest, CustomerOwner and CustomerOwnerKind, ICustomerContactResolver, ICustomerService, the address book and IShippingAddressBook, the checkout Contact step, Checkout details fields, store credit, loyalty points and referrals as tenders, merging verified guests, privacy erase, export and retention with ICustomerPrivacyHandler and the site-wide IPersonalDataService, the Customers, StoreCreditAccounts, LoyaltyAccounts and ReferralProfiles recipe and deployment steps, the Report Builder data source and the Customers API. Use it when requests mention commerce customers, guest buyers, address books, store credit, rewards points, referral links, personal data requests, or the checkout contact step.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 A customer is everyone who buys: a person or a business, with an account or as a guest. A customer is not a user; sign-in, registration and passwords stay with Orchard Core Users, and `Customer.UserId` links the two. Orders, transactions and subscriptions point at one customer whatever later happens to the account.
 
-Related skills: `orchardcore-checkout` (steps, tenders), `orchardcore-orders` (orders, gift cards), `orchardcore-addresses` (the `Address` value and editor), `orchardcore-transactions` (guest transactions, reminders), `orchardcore-companies` (business buyers), `orchardcore-commerce` (personal data requests, API conventions, webhooks), `orchardcore-taxation` (tax-exempt customers).
+Related skills: `orchardcore-checkout` (steps, tenders), `orchardcore-orders` (orders, gift cards), `orchardcore-addresses` (the `Address` value and editor), `orchardcore-transactions` (guest transactions, reminders), `orchardcore-commerce` (personal data requests, API conventions, webhooks), `orchardcore-taxation` (tax-exempt customers).
 
 ## Features
 
@@ -49,7 +49,8 @@ Constants: `CustomersConstants.Features`, `ContactStepKey` (`Contact`), `Checkou
 
 - `CustomerOwner` (`CustomerOwner.ForUser(userId)`, `CustomerOwner.ForGuest(guestCustomerId)`) and `CustomerOwnerKind` (`Authenticated`, `Guest`), in `CrestApps.OrchardCore.Customers.Models`. Transactions and subscriptions store `OwnerId` plus `OwnerKind`.
 - `ICustomerContactResolver.ResolveAsync(owner, guestContact)` and `ICustomerOwnerNotifier.NotifyAsync(owner, guestContact, message)`: a user through `INotificationService`, a guest by email. `AddCustomersCore()` registers the defaults; the Customers feature replaces the resolver with `CustomerRecordContactResolver` (name from the customer record, email from the account).
-- `ICommercePersonalDataService` (`ExportAsync`, `AnonymizeAsync` by owner and email) with `ICommercePersonalDataContributor` per feature (`IdentifyAsync`, `ExportAsync`, `AnonymizeAsync`).
+- `ICommercePersonalDataService` (`ExportAsync`, `AnonymizeAsync`, `ExpireAsync` by owner and email) with `ICommercePersonalDataContributor` per feature (`IdentifyAsync`, `ExportAsync`, `AnonymizeAsync`, `TakesPartInRetentionExpiry`, `true` by default and `false` for Fundraising, Memberships, Marketplace and Reviews). It is one contributor (`CommercePersonalDataContributor`) of the site-wide `IPersonalDataService` (`CrestApps.OrchardCore.PersonalData.Abstractions`, namespace `CrestApps.OrchardCore.PersonalData`), which also reaches the CRM, Workforce, Scheduling and other modules. A new module implements `IPersonalDataContributor` and registers it with `services.AddPersonalDataContributor<T>()`; use `ICommercePersonalDataContributor` only when it needs the commerce subject (guest owners, checkout sessions, payment-provider customers).
+- `IShippingAddressBook` (`CrestApps.OrchardCore.Addresses.Abstractions`) is how Shipping reads and saves the buyer's address book; the Customers feature implements it on the customer record (`CustomerShippingAddressBook`), so Shipping never references Customers.
 
 ## The customer record
 
@@ -101,8 +102,9 @@ Details, settings JSON and the account pages are in [references/store-credit-loy
 ## Merging guests, privacy and retention
 
 - `ICustomerMergeService.MergeVerifiedGuestsAsync` runs on sign-in, registration and email confirmation, only for a confirmed email: each active guest with that email is merged through every `ICustomerMergeHandler` (Orders moves orders and their guest transactions), addresses are copied, and the guest is marked `Merged`. Resolve the merge service lazily in user event handlers (it depends on the user service).
-- `EraseAsync(customer, by)` runs every `ICustomerPrivacyHandler.ErasingAsync` (lower `Order` first; `CommercePersonalDataCustomerPrivacyHandler` is `-100`), then `Customer.Anonymize`. Orders anonymizes orders and their checkout sessions (`ICheckoutSessionAnonymizer`); the commerce personal data handler covers sessions, transactions, subscriptions, installment plans, coupon redemptions and Stripe customers. `ExportAsync` returns a `JsonObject` with each handler's section. Each action is logged on `Customer.PrivacyLog`.
-- `CustomerRetentionBackgroundTask` (daily 03:30): `CustomerPrivacySettings.InactiveGuestMonths` (24) expires inactive guests; `GuestOrderMonths` (12) anonymizes old paid or canceled guest orders; zero turns a window off; 500 of each per run.
+- `EraseAsync(customer, by)` runs every `ICustomerPrivacyHandler.ErasingAsync` (lower `Order` first; `PersonalDataCustomerPrivacyHandler` is `-100`), then `Customer.Anonymize`. The Orders module's `OrderCustomerPrivacyHandler` anonymizes orders and their checkout sessions (`ICheckoutSessionAnonymizer`); `PersonalDataCustomerPrivacyHandler` (formerly `CommercePersonalDataCustomerPrivacyHandler`) identifies the customer by account, email and phone and calls `IPersonalDataService`, so an erasure reaches every module with a contributor (commerce, CRM, Workforce, Scheduling, Bookings, Marketing and more). `ExportAsync` returns a `JsonObject` with each handler's section; the personal data section is now `personalData` (each record with `kind`, `title`, `fields`) instead of `commerce`. Each action is logged on `Customer.PrivacyLog`.
+- Handlers read `CustomerPrivacyContext.Action` (`CustomerPrivacyAction`: `Exported`, `Erased`, `Expired`) to tell an admin erasure from the retention expiry. On `Expired`, `IPersonalDataService.ExpireAsync` runs only contributors whose `TakesPartInRetentionExpiry` is `true` (the commerce records and stock alerts), so a guest's CRM, Workforce and Scheduling records are left alone; only an explicit erasure reaches them.
+- `CustomerRetentionBackgroundTask` (daily 03:30): `CustomerPrivacySettings.InactiveGuestMonths` (24) expires inactive guests; `GuestOrderMonths` (12) anonymizes old guest records through each module's `IGuestRetentionHandler` (Orders implements it as `OrderGuestRetentionHandler`: paid or canceled guest orders with their checkout sessions); zero turns a window off; 500 of each per run.
 - Admin `POST customers/{customerId}/erase` and `GET customers/{customerId}/export` need `ManageCustomers`.
 
 ```csharp
@@ -129,7 +131,15 @@ public sealed class RegistrationPrivacyHandler : ICustomerPrivacyHandler
 
 ## Recipes
 
-The `Customers` step adds or updates guest and business customers (matched by `ItemId`, then by a guest's email; account customers come from their user). There is no deployment step: customers are personal data.
+The `Customers` step adds or updates guest and business customers (matched by `ItemId`, then by a guest's email; account customers come from their user). The **Customers** deployment step (`CustomersDeploymentStep`) writes guest and business customers in the same shape; it is personal data, so an administrator must add it to a plan, and customers with a user account or that were erased or merged are left out.
+
+Store credit, loyalty points and referral codes have their own steps, each with a deployment step (**Store credit**, **Loyalty points**, **Referral codes**). Records are matched by `ItemId`, then by customer (and currency for store credit), and carry their balance or points and activity. Import customers first.
+
+| Feature | Recipe step | Array | Matched by |
+| --- | --- | --- | --- |
+| Store Credit | `StoreCreditAccounts` | `Accounts` | `ItemId`, then `CustomerId` and `Currency` |
+| Loyalty Points | `LoyaltyAccounts` | `Accounts` | `ItemId`, then `CustomerId` |
+| Referrals | `ReferralProfiles` | `Profiles` | `ItemId`, then `CustomerId`; a `Code` another customer uses is refused |
 
 ```json
 {
@@ -155,6 +165,12 @@ The `Customers` step adds or updates guest and business customers (matched by `I
       ]
     },
     {
+      "name": "StoreCreditAccounts",
+      "Accounts": [
+        { "CustomerId": "4cs00000000000000000000001", "Currency": "USD", "Balance": 25, "Activity": [] }
+      ]
+    },
+    {
       "name": "Settings",
       "CustomerCheckoutSettings": { "BillingAddress": 2 },
       "CustomerPrivacySettings": { "InactiveGuestMonths": 24, "GuestOrderMonths": 12 }
@@ -162,6 +178,17 @@ The `Customers` step adds or updates guest and business customers (matched by `I
   ]
 }
 ```
+
+## Report Builder data source
+
+With **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) enabled, as the Report Builder does, Customers registers the **Customers** data source (`Customers`). Each data set is listed only while its feature is on. Tax ids, street lines, the privacy log and referral codes are never exposed; join the Orders data source on **Customer ID** for what customers bought. See `orchardcore-report-builder`.
+
+| Data set | Feature | Permission |
+| --- | --- | --- |
+| `Customers` | Customers | `ViewCustomers` |
+| `LoyaltyAccounts`, `LoyaltyActivity` | Loyalty Points | `ViewCustomers` |
+| `StoreCreditAccounts`, `StoreCreditActivity` | Store Credit | `ViewCustomers` |
+| `Referrals`, `ReferralRewards` | Referrals | `ManageCustomers` |
 
 ## API
 
@@ -180,3 +207,7 @@ Customers API (`api/commerce/v1`): `me` and `me/addresses` (`ManageOwnCustomerPr
 ## Upgrading from 2.x
 
 New in 3.0. Transactions moved from a null owner to `CustomerOwner` with `OwnerKind`; a guest transaction is never shown to an account sharing its id.
+
+- `CommercePersonalDataCustomerPrivacyHandler` is now `PersonalDataCustomerPrivacyHandler` over the site-wide `IPersonalDataService`; the export section is `personalData`, not `commerce`.
+- `OrderCustomerMergeHandler`, `OrderCustomerPrivacyHandler` and `OrderGuestRetentionHandler` live in the Orders module (registered when Customers is on).
+- `PhoneNumberNormalization.ToE164OrTrimmed`, used by the customer store, the Contact step and the store profile, now stores the E.164 form only when it keeps everything typed; a number with an extension (`x12`, `ext. 12`, `#12`), a second number or a note is kept as typed.

@@ -22,6 +22,7 @@ You are an Orchard Core expert. Generate configuration, recipes, and code that l
 - Memory is for preferences, projects, recurring topics, and stable background. Never store passwords, keys, tokens, card or Social Security numbers, private keys, or connection strings; the save tool rejects obvious sensitive patterns.
 - Read the options through `IOptionsMonitor<AIMemoryOptions>` and `IOptionsMonitor<ChatInteractionMemoryOptions>`; saving the Memory settings no longer releases the tenant.
 - Install packages in the web/startup project.
+- User memory is not **contact memory**. A note the AI keeps about a CRM contact across calls, texts and chats (`AIContactMemory`, the profile's **Contact memory** card with `UseMemory` and `SaveMemory`) is part of AI Services, needs no memory index, and works for anonymous callers. See `orchardcore-ai-conversations`.
 
 ### Features
 

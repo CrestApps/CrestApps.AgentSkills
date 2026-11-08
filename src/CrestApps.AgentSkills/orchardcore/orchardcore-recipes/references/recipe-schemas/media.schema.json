@@ -13,7 +13,7 @@
         "properties": {
           "TargetPath": {
             "type": "string",
-            "description": "Media library path where the file will be stored."
+            "description": "Media library path where the file will be stored, for example \u0027images/logo.png\u0027. It must be a relative file path without \u0027..\u0027 segments, and its extension must be allowed by the media options; otherwise the file is rejected."
           },
           "Path": {
             "type": "string",

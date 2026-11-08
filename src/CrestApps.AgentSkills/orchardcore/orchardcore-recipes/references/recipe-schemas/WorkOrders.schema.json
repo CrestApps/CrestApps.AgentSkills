@@ -1,0 +1,864 @@
+{
+  "type": "object",
+  "description": "Creates or updates work order checklists, service levels, sub-statuses and types, and service agreements when the agreements feature is on. Records are matched by ItemId only; an existing record takes only the members given. The sections are imported in this order, so a type can point at a checklist or service level of the same step by ItemId.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkOrders",
+      "description": "Recipe step discriminator. Must be \u0027WorkOrders\u0027."
+    },
+    "Checklists": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A checklist to fill in on a job, such as an inspection.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The checklist\u0027s id. When it matches a stored checklist, that checklist is updated with the members given here; otherwise a new checklist is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The checklist name."
+          },
+          "Questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A question on the checklist.",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The question\u0027s id within the checklist, which ShowWhen refers to."
+                },
+                "Section": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The section the question is in."
+                },
+                "Text": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The question."
+                },
+                "Kind": {
+                  "type": "string",
+                  "enum": [
+                    "YesNo",
+                    "PassFailNA",
+                    "Text",
+                    "Number",
+                    "Choice",
+                    "MultiChoice",
+                    "Photo",
+                    "Signature",
+                    "MeterReading",
+                    "Date"
+                  ],
+                  "description": "The kind of answer."
+                },
+                "Required": {
+                  "type": "boolean",
+                  "description": "Whether it must be answered."
+                },
+                "Help": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Help text."
+                },
+                "Min": {
+                  "type": [
+                    "null",
+                    "number"
+                  ],
+                  "description": "The lowest number accepted."
+                },
+                "Max": {
+                  "type": [
+                    "null",
+                    "number"
+                  ],
+                  "description": "The highest number accepted."
+                },
+                "Unit": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The unit of a number."
+                },
+                "Choices": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The choices of a Choice or MultiChoice question."
+                },
+                "MinPhotos": {
+                  "type": "integer",
+                  "description": "How many photos a Photo question needs."
+                },
+                "Meter": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The asset meter a MeterReading question records."
+                },
+                "ShowWhen": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "description": "Shows the question only after another was answered a certain way; null for always.",
+                  "properties": {
+                    "QuestionId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The id of the question it depends on."
+                    },
+                    "EqualsValue": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The answer that shows it."
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The questions, in order."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The checklist templates."
+    },
+    "ServiceLevels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A service level policy: how fast work orders must be answered and resolved, by priority.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The service level policy\u0027s id. When it matches a stored service level policy, that service level policy is updated with the members given here; otherwise a new service level policy is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy name."
+          },
+          "Targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The targets of one priority.",
+              "properties": {
+                "Priority": {
+                  "type": "string",
+                  "enum": [
+                    "Low",
+                    "Normal",
+                    "High",
+                    "Urgent"
+                  ],
+                  "description": "The priority."
+                },
+                "ResponseMinutes": {
+                  "type": "integer",
+                  "description": "The minutes to the first response; 0 for none."
+                },
+                "ResolveMinutes": {
+                  "type": "integer",
+                  "description": "The minutes to resolution; 0 for none."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The targets, by priority."
+          },
+          "HoursCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The business hours calendar the clock runs in; null for around the clock or WeeklyHours."
+          },
+          "WeeklyHours": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The same opening hours every week the clock runs in; null for none.",
+            "properties": {
+              "Days": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday"
+                  ]
+                },
+                "description": "The days open."
+              },
+              "Opens": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9]([.][0-9]\u002B)?)?$",
+                "description": "When they open. Defaults to 09:00."
+              },
+              "Closes": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9]([.][0-9]\u002B)?)?$",
+                "description": "When they close. Defaults to 17:00."
+              }
+            },
+            "additionalProperties": true
+          },
+          "TimeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The IANA time zone of the business hours."
+          },
+          "PauseStatuses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "New",
+                "Ready",
+                "Scheduled",
+                "InProgress",
+                "OnHold",
+                "Completed",
+                "Closed",
+                "Canceled"
+              ]
+            },
+            "description": "The statuses the clock stops in."
+          },
+          "WarningPercent": {
+            "type": "integer",
+            "description": "How far through a target, in percent, the warning is raised. Defaults to 80."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The service level policies."
+    },
+    "SubStatuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A finer status inside one, such as Waiting for parts inside On hold.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The sub-status\u0027s id. When it matches a stored sub-status, that sub-status is updated with the members given here; otherwise a new sub-status is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The sub-status name."
+          },
+          "ParentStatus": {
+            "type": "string",
+            "enum": [
+              "New",
+              "Ready",
+              "Scheduled",
+              "InProgress",
+              "OnHold",
+              "Completed",
+              "Closed",
+              "Canceled"
+            ],
+            "description": "The status it belongs to."
+          },
+          "Color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "PausesSla": {
+            "type": "boolean",
+            "description": "Whether the service level clock stops in it."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The sub-statuses."
+    },
+    "Types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A kind of job, with the defaults a new work order of it takes.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The work order type\u0027s id. When it matches a stored work order type, that work order type is updated with the members given here; otherwise a new work order type is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The type name."
+          },
+          "Color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "DefaultDurationMinutes": {
+            "type": "integer",
+            "description": "How long the job usually takes, in minutes. Defaults to 60."
+          },
+          "RequiredSkills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A skill the job needs.",
+              "properties": {
+                "SkillId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The skill\u0027s id."
+                },
+                "MinProficiency": {
+                  "type": "integer",
+                  "description": "The lowest proficiency, from 1. Defaults to 1."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The skills it needs."
+          },
+          "RequiredCertificationIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the certifications it needs."
+          },
+          "CrewSize": {
+            "type": "integer",
+            "description": "How many people it needs. Defaults to 1."
+          },
+          "RequiredEquipmentTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the asset types of equipment it needs."
+          },
+          "ChecklistTemplateIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the checklists it comes with."
+          },
+          "DefaultLines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A line a new work order of the type comes with.",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The line\u0027s id."
+                },
+                "Kind": {
+                  "type": "string",
+                  "enum": [
+                    "Product",
+                    "Service",
+                    "Labor",
+                    "Expense"
+                  ],
+                  "description": "What the line is."
+                },
+                "ProductId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The product\u0027s content item id, for a product or service line."
+                },
+                "StockItemId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The stock item\u0027s id, for a product taken from stock."
+                },
+                "Description": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The line\u0027s description."
+                },
+                "QuantityEstimated": {
+                  "type": "number",
+                  "description": "The quantity expected."
+                },
+                "QuantityUsed": {
+                  "type": "number",
+                  "description": "The quantity used."
+                },
+                "UnitPrice": {
+                  "type": "number",
+                  "description": "The price of one."
+                },
+                "LocationId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The stock location the product comes from."
+                },
+                "Billable": {
+                  "type": "boolean",
+                  "description": "Whether the line is billed. Defaults to true."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The lines it comes with."
+          },
+          "ServiceLevelPolicyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of its service level policy."
+          },
+          "BillingMode": {
+            "type": "string",
+            "enum": [
+              "NotBillable",
+              "FixedPrice",
+              "TimeAndMaterials"
+            ],
+            "description": "How it is billed."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ISO currency code its prices are in. Defaults to USD."
+          },
+          "FixedPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The fixed price, when billed at one."
+          },
+          "DefaultPriority": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Normal",
+              "High",
+              "Urgent"
+            ],
+            "description": "The priority of a new work order. Defaults to Normal."
+          },
+          "RequiresSignature": {
+            "type": "boolean",
+            "description": "Whether it can\u0027t be completed without the customer\u0027s signature."
+          },
+          "AppointmentTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the Scheduling appointment types whose bookings make a work order of this type."
+          },
+          "RequiredPhotos": {
+            "type": "integer",
+            "description": "How many photos it can\u0027t be completed without."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The work order types."
+    },
+    "Agreements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A service agreement: recurring visits, such as preventive maintenance, for a customer over a period.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The service agreement\u0027s id. When it matches a stored service agreement, that service agreement is updated with the members given here; otherwise a new service agreement is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The number, such as SA-00001."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The agreement name."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Active",
+              "Expired",
+              "Canceled"
+            ],
+            "description": "Where the agreement is."
+          },
+          "CustomerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer: the Orchard Core user id."
+          },
+          "AccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The CRM account (the company) the agreement is with."
+          },
+          "Contact": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The person to contact.",
+            "properties": {
+              "Name": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The contact\u0027s name."
+              },
+              "Phone": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The contact\u0027s phone number."
+              },
+              "Email": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The contact\u0027s email address."
+              }
+            },
+            "additionalProperties": true
+          },
+          "ServiceAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Where the visits are.",
+            "properties": {
+              "Name": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The name of the person or place."
+              },
+              "Company": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The company name."
+              },
+              "AddressLine1": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The first street line."
+              },
+              "AddressLine2": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The second street line."
+              },
+              "DependentLocality": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The neighborhood or dependent locality, where the country uses one."
+              },
+              "SortingCode": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The sorting code, where the country uses one."
+              },
+              "Country": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The two-letter ISO country code."
+              },
+              "Region": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The state, province or region."
+              },
+              "County": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The county."
+              },
+              "City": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The city."
+              },
+              "District": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The district."
+              },
+              "PostalCode": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The postal code."
+              },
+              "Phone": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The phone number at the address."
+              },
+              "Latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The latitude, in degrees, when geocoded."
+              },
+              "Longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The longitude, in degrees, when geocoded."
+              }
+            },
+            "additionalProperties": true
+          },
+          "AccessNotes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How to get in."
+          },
+          "AssetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the assets it covers."
+          },
+          "StartDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day it is in force, where the schedules start."
+          },
+          "EndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The last day it is in force; null when it doesn\u0027t end."
+          },
+          "TimeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The IANA time zone its days are in."
+          },
+          "Schedules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A recurring visit, such as a boiler service every six months.",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The schedule\u0027s id, part of each work order\u0027s source."
+                },
+                "Name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The schedule name, such as Annual inspection."
+                },
+                "TypeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of the type of the work orders it makes."
+                },
+                "Rule": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it repeats, as an RFC 5545 rule such as FREQ=MONTHLY;INTERVAL=6, from the agreement\u0027s start date."
+                },
+                "LeadDays": {
+                  "type": "integer",
+                  "description": "How many days ahead of a visit its work order is made. Defaults to 14."
+                },
+                "AssetIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The assets it covers; empty for every asset of the agreement."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The recurring visits."
+          },
+          "Pricing": {
+            "type": "string",
+            "enum": [
+              "Included",
+              "PerVisit"
+            ],
+            "description": "How the visits are paid for."
+          },
+          "PricePerVisit": {
+            "type": "number",
+            "description": "The price of a visit, when each is invoiced."
+          },
+          "ExpiringNoticeDays": {
+            "type": "integer",
+            "description": "How many days before the end date the expiring event starts. Defaults to 30."
+          },
+          "ExpiringNotifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the expiring event started, so it starts once."
+          },
+          "Notes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The service agreements. Read only when the service agreements feature is on; their customers, accounts and assets must be on the site too."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

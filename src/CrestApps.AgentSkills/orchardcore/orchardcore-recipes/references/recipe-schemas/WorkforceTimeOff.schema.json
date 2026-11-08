@@ -1,0 +1,462 @@
+{
+  "type": "object",
+  "description": "Creates or updates time-off types, policies, allotments and blackout periods, each matched by itemId then name. A record that is updated takes every member of the entry, so a member left out goes back to its default. Types are imported first, so the other records can name a type of the same step; teams named must exist.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceTimeOff",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceTimeOff\u0027."
+    },
+    "Types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A time-off type, such as vacation or sick leave.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The type\u0027s id. When it matches a stored type, that type is updated; otherwise the type is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The type name, unique."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the type is for."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "Days",
+              "Hours"
+            ],
+            "description": "Whether balances are kept in hours or days. Defaults to Hours."
+          },
+          "hoursPerDay": {
+            "type": "number",
+            "description": "The hours a day of time off counts as. Defaults to 8."
+          },
+          "isPaid": {
+            "type": "boolean",
+            "description": "Whether the time off is paid. Defaults to true."
+          },
+          "requiresBalance": {
+            "type": "boolean",
+            "description": "Whether a request needs enough balance. Defaults to true."
+          },
+          "allowPartialDay": {
+            "type": "boolean",
+            "description": "Whether part of a day can be asked for. Defaults to true."
+          },
+          "requiresReason": {
+            "type": "boolean",
+            "description": "Whether a request needs a reason."
+          },
+          "countsAgainstAllotment": {
+            "type": "boolean",
+            "description": "Whether the time off takes a place in the team\u0027s allotment. Defaults to true."
+          },
+          "payCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay code the time off is paid under."
+          },
+          "visibleToWorkers": {
+            "type": "boolean",
+            "description": "Whether workers can ask for it themselves. Defaults to true."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the type can be used. Defaults to true."
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the Time Tracker stage approved time off of this type is kept in, when Time Tracker is on."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The time-off types to create or update."
+    },
+    "Policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An accrual policy: how a balance of a type grows.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy\u0027s id. When it matches a stored policy, that policy is updated; otherwise the policy is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy name, unique."
+          },
+          "typeName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time-off type, by name. Wins over typeId."
+          },
+          "typeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time-off type, by id."
+          },
+          "accrualMethod": {
+            "type": "string",
+            "enum": [
+              "None",
+              "PerPeriod",
+              "PerHourWorked",
+              "AnnualLumpSum"
+            ],
+            "description": "How the balance grows. Defaults to PerPeriod."
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "Weekly",
+              "Biweekly",
+              "SemiMonthly",
+              "Monthly"
+            ],
+            "description": "How often a per-period accrual is added. Defaults to Monthly."
+          },
+          "anchorDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "A date the accrual periods count from."
+          },
+          "rate": {
+            "type": "number",
+            "description": "The amount added each period, each hour worked, or each year, in the type\u0027s unit."
+          },
+          "tenureTiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A rate that applies from a length of service.",
+              "properties": {
+                "fromMonths": {
+                  "type": "integer",
+                  "description": "The months of service the rate starts at."
+                },
+                "rate": {
+                  "type": "number",
+                  "description": "The accrual rate from then."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "Higher rates after a length of service."
+          },
+          "waitingPeriodDays": {
+            "type": "integer",
+            "description": "The days after hire before the balance grows."
+          },
+          "maxBalance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The largest balance; null for no cap."
+          },
+          "carryoverMax": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most that carries over at the reset; null for all of it."
+          },
+          "resetMonth": {
+            "type": "integer",
+            "description": "The month the balance resets, 1 to 12. Defaults to 1."
+          },
+          "resetDay": {
+            "type": "integer",
+            "description": "The day of the month the balance resets. Defaults to 1."
+          },
+          "negativeBalanceLimit": {
+            "type": "number",
+            "description": "How far below zero the balance may go."
+          },
+          "teamNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams the policy applies to, by name; each is added to assignments."
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Who the policy applies to.",
+              "properties": {
+                "teamId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The team\u0027s id."
+                },
+                "workerId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "A worker\u0027s id, for a policy of one worker."
+                },
+                "effectiveFrom": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date",
+                  "description": "The first day it applies."
+                },
+                "effectiveTo": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date",
+                  "description": "The last day it applies."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The teams or workers the policy applies to."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the policy is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The accrual policies to create or update."
+    },
+    "Allotments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An allotment: how many people of a team may be off each day.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The allotment\u0027s id. When it matches a stored allotment, that allotment is updated; otherwise the allotment is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The allotment name, unique."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by name. Wins over teamId."
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by id."
+          },
+          "typeNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The time-off types it counts, by name; added to typeIds."
+          },
+          "typeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The time-off types it counts, by id; empty for every type that counts against allotments."
+          },
+          "weekdaySlots": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "How many people may be off on each weekday: seven numbers, Monday first."
+          },
+          "dates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The places on one date, instead of the weekday\u0027s.",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "The date."
+                },
+                "slots": {
+                  "type": "integer",
+                  "description": "How many people may be off that day."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "Dates with their own number of places."
+          },
+          "autoApprove": {
+            "type": "boolean",
+            "description": "Whether a request is approved while there are places. Defaults to true."
+          },
+          "whenFull": {
+            "type": "string",
+            "enum": [
+              "Waitlist",
+              "Pending"
+            ],
+            "description": "What happens to a request when the day is full. Defaults to Waitlist."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the allotment is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The allotments (how many people may be off a day) to create or update."
+    },
+    "BlackoutPeriods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A blackout period: dates when time off can\u0027t be asked for.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The blackout period\u0027s id. When it matches a stored blackout period, that blackout period is updated; otherwise the blackout period is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The blackout name, unique."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by name. Wins over teamId."
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by id; null for every team."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day."
+          },
+          "typeNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The time-off types it blocks, by name; added to typeIds."
+          },
+          "typeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The time-off types it blocks, by id; empty for every type."
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What a worker who asks is told."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the blackout is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The blackout periods (when time off can\u0027t be asked for) to create or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

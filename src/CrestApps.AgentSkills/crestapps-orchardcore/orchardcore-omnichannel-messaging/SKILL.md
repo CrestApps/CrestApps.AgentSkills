@@ -1,6 +1,6 @@
 ---
 name: orchardcore-omnichannel-messaging
-description: Skill for the CrestApps Omnichannel Messaging Workspace in Orchard Core, a human-operated inbox for every non-voice channel, and its SMS Messaging Channel. Covers CrestApps.OrchardCore.Omnichannel.Messaging, Messaging.Sms and Messaging.RoutedDistribution, SMS setup with per-number providers through ISmsDispatcher, text entry points, STOP START HELP keywords, quiet hours, retries, MMS pictures, AI handoff, templates, broadcasts, the OmnichannelMessageTemplate recipe step, MessagingWorkspaceOptions, the messaging permissions including ViewOwnMessagingConversations and ViewQueueMessagingConversations, AuthorizeConversationAsync, the MessagingHub, and building a channel with IMessagingChannel. Use this skill when requests mention the messaging workspace, messaging inbox, two-way SMS for agents, messaging permissions, adding a channel to the inbox, or upgrading from the SMS Portal. Strong matches include IMessagingChannel, IMessagingInboundProcessor, SmsMessagingChannel, and MessagingConstants.
+description: Skill for the CrestApps Omnichannel Messaging Workspace in Orchard Core, a human-operated inbox for every non-voice channel, and its SMS Messaging Channel. Covers CrestApps.OrchardCore.Omnichannel.Messaging, Messaging.Sms, Messaging.RoutedDistribution and Messaging.Azure, SMS setup with per-number providers, STOP START HELP keywords, quiet hours, retries, MMS pictures and their Azure Blob storage, the unread-only filter, AI handoff, templates, broadcasts, the OmnichannelMessageTemplate and MessagingBroadcasts recipe steps, MessagingWorkspaceOptions, the messaging permissions, AuthorizeConversationAsync, the MessagingHub, and building a channel with IMessagingChannel. Use this skill when requests mention the messaging workspace, messaging inbox, two-way SMS for agents, messaging permissions, adding a channel to the inbox, or upgrading from the SMS Portal. Strong matches include IMessagingChannel, IMessagingInboundProcessor, SmsMessagingChannel, and MessagingConstants.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -35,9 +35,10 @@ instead of changing the workspace.
 
 | Feature | ID | Depends on |
 |---|---|---|
-| Omnichannel Messaging Workspace | `CrestApps.OrchardCore.Omnichannel.Messaging` | `CrestApps.OrchardCore.Omnichannel.ChannelEndpoints`, `CrestApps.OrchardCore.ContactCenter.AgentServices`, `CrestApps.OrchardCore.ContactCenter.EntryPoints`, `OrchardCore.SignalR` |
-| SMS Messaging Channel | `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` | the workspace, `CrestApps.OrchardCore.ContactCenter.ProviderInbox`, `OrchardCore.Sms` |
+| Omnichannel Messaging Workspace | `CrestApps.OrchardCore.Omnichannel.Messaging` | `CrestApps.OrchardCore.Omnichannel.ChannelEndpoints`, `CrestApps.OrchardCore.ContactCenter.AgentServices`, `CrestApps.OrchardCore.ContactCenter.EntryPoints`, `OrchardCore.SignalR`, `CrestApps.OrchardCore.Outreach` (sends broadcasts) |
+| SMS Messaging Channel | `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` | the workspace, `CrestApps.OrchardCore.ContactCenter.ProviderInbox` (the **Provider Webhook Inbox** of the Webhooks module), `OrchardCore.Sms` |
 | Omnichannel Messaging Routed Distribution | `CrestApps.OrchardCore.Omnichannel.Messaging.RoutedDistribution` | the workspace, `CrestApps.OrchardCore.ContactCenter.Queues` |
+| Omnichannel Messaging - Azure Blob Storage | `CrestApps.OrchardCore.Omnichannel.Messaging.Azure` | the workspace. Keeps pictures in Azure Blob Storage (see Pictures below) |
 
 All are in the **Contact Center** category; the admin menu is **Messaging**
 (**Inbox**, **Broadcasts**, **Templates**).
@@ -81,8 +82,10 @@ queues.
    (`orchardcore-omnichannel-event-grid`).
 6. Open **Messaging > Inbox**.
 
-Inbound deliveries are committed to the Contact Center provider webhook inbox
-before processing, so retries are de-duplicated. Outbound SMS goes through the
+Inbound deliveries are committed to the durable provider webhook inbox (keyed on
+the provider's message id, handler `sms-inbound`) before the provider is
+answered, so retries are de-duplicated on every node and a restart loses
+nothing; a text that cannot be stored gets `503` so the provider resends it. Outbound SMS goes through the
 per-number `ISmsDispatcher` (`SendAsync`, `ResolveProviderNameAsync`), so
 different numbers can use different carriers. A **Send SMS** button appears
 beside phone-number fields on admin pages.
@@ -94,6 +97,15 @@ beside phone-number fields on admin pages.
 | `STOP` | STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT | Closes the conversation, sets **Do not SMS**, sends one confirmation. |
 | `START` | UNSTOP, YES | Reverses an opt-out (ignored when not opted out). |
 | `HELP` | INFO | Sends the help reply. |
+
+The message is trimmed, trailing `. ! ? , ; :` removed, and compared without
+case (`SmsKeywordPolicy.Classify`). An opt-out wins when the message is an
+opt-out keyword or starts with one followed by a space or punctuation ("STOP",
+"stop." and "STOP please" opt out; "stopping by" and "please stop" do not).
+HELP and START must be the whole message. SMS automation uses the same rule
+(`OmnichannelSmsComplianceHelper.IsOptOutRequest`). A STOP from a number no
+contact holds is recorded against the number (`ContactAddressOptOut`), and every
+SMS send path refuses it until it texts START.
 
 A keyword suppresses the entry point's auto-reply for that message. Customize
 replies with `SmsKeywordReplySettings`:
@@ -130,6 +142,27 @@ replies with `SmsKeywordReplySettings`:
   messages. Providers download pictures from signed links built from **Base
   URL**, so set it to the public address. Inbound pictures are copied into the
   tenant's `App_Data` (`MessagingAttachments`), encrypted with data protection.
+  On hosts whose file system is replaced on deployment, enable
+  `CrestApps.OrchardCore.Omnichannel.Messaging.Azure` and configure
+  `CrestApps:Omnichannel:Messaging:AzureAttachments` (`ConnectionString`,
+  `ContainerName` and `BasePath`, both Liquid such as `{{ ShellSettings.Name }}`,
+  and `CreateContainer`). Pictures stay encrypted before they reach Azure, so
+  persist the data protection keys too; incomplete settings log an error and
+  keep the local store; existing local files are not moved.
+
+## The Inbox
+
+- The list is customer-centric and filters by **All**, **Mine**, **Favorites**
+  or **Unassigned**, and by channel. The **Unread only** toggle (route value
+  `unread=true`, `MessagingWorkspaceBuilder.BuildInboxAsync(..., unreadOnly, ...)`)
+  narrows any filter and its counts to conversations whose `IsRead` is off, the
+  same rule as the **Messaging** menu badge; the open customer keeps their row.
+- The thread header shows the customer and their number; when the conversation
+  is linked to a contact or a lead, the name opens it with a **Contact** or
+  **Lead** badge, and **Our number** shows the service address. The **Customer**
+  card lists every matching contact and lead (**View account**, **View lead**);
+  the **AI summary** appears only after an AI hand-off.
+- Agents are notified when a conversation is assigned or transferred to them.
 
 ## Hand-off From AI
 
@@ -177,10 +210,20 @@ if (!await _authorizationService.AuthorizeConversationAsync(User, conversation, 
 
 - **Templates** (`ManageMessaging`) are canned responses with a **Name** and
   **Body**, exported by the **Messaging Templates** deployment step.
-- **Broadcasts** (`SendGroupMessages`) send one message to many recipients as
+- **Broadcasts** (`SendGroupMessages`) send one message to many recipients
+  (contacts and leads reachable on the channel, plus typed addresses) as
   individual 1:1 threads from one sending address, in the background, on any
-  channel whose capabilities allow broadcasts. They cannot be cancelled once
-  queued and do not travel in deployments.
+  channel whose capabilities allow broadcasts. The Outreach engine sends them,
+  50 recipients per batch (`OutreachRunId` tracks the run); opted-out
+  recipients are skipped (`SkippedCount`), a refused send counts as failed (it
+  is not retried), a batch that throws is retried with back-off from 1 minute
+  doubling to 30 (five attempts) and then stops the run, and a number listed
+  twice gets one message. They cannot be
+  cancelled once queued.
+- Broadcasts travel as drafts through the **Messaging broadcasts** deployment
+  step and the `MessagingBroadcasts` recipe step: delivery state is never
+  exported, an import never queues a message, and a queued or sent broadcast on
+  the target is left alone. Recipients are personal data.
 - With `OrchardCore.Workflows`, the SMS channel adds the **Send Text Message**
   task (`SendTextMessageTask`: `From`, `To`, `Body`, optional `UserName`;
   outcomes **Done** and **Failed**), which sends into the customer's conversation.
@@ -197,6 +240,19 @@ if (!await _authorizationService.AuthorizeConversationAsync(User, conversation, 
           "ItemId": "2hb7c4x9m1q6z3v8k5r0t2n7y",
           "Name": "Opening hours",
           "Body": "We are open Monday to Friday, 8am to 6pm."
+        }
+      ]
+    },
+    {
+      "name": "MessagingBroadcasts",
+      "Broadcasts": [
+        {
+          "ItemId": "4bc00000000000000000000001",
+          "Name": "Holiday hours",
+          "Channel": "sms",
+          "ServiceAddress": "+12025550100",
+          "Body": "We close at noon on Friday.",
+          "Recipients": [ "+12025550101", "+12025550102" ]
         }
       ]
     }

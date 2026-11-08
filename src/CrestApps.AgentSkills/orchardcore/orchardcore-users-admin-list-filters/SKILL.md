@@ -157,6 +157,7 @@ If you also override the dialog's grid container (`UserIndexOptions.Thumbnail.cs
 - Before (3.x), cards used `ocat-wrapper`, an `<h4 class="card-title ocat-label">`, the token in a `<pre>`, and the icons in a trailing `<div class="d-block text-end">`.
 - After (4.0), put the title and capability icons on the first line, the token in a `<code>` line, and the description last, as shown in [The card template](#the-card-template).
 - A theme or module that overrides the users list page must render the `List` context of its view model with the `<admin-list>` tag helper (see `orchardcore-admin-lists`); the `Users` collection of the view model now holds raw `User` records instead of rendered row shapes.
+- `YesSql.Filters.Abstractions` and `YesSql.Filters.Query` move to 6.1.0 on Parlot 2. `QueryEngineBuilder`, `WithNamedTerm`, `WithDefaultTerm`, `OneCondition` and `ManyCondition` providers are unchanged. Only hand-written Parlot parsers break: `ZeroOrOne(parser)` now returns a list (use `parser.Else(fallback)` for a single value with a default) and `Parser<T>.Compile()` no longer exists (remove the call).
 
 ## Troubleshooting
 

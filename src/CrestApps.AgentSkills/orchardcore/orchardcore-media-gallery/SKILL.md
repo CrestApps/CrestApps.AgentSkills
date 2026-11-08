@@ -227,7 +227,7 @@ public sealed class TusStoreStartup : StartupBase
 
 - `OrchardCore.SignalR.Redis` reuses `OrchardCore:Redis:Configuration` and isolates each tenant on its own channel prefix.
 - `OrchardCore.SignalR.Azure` reads `OrchardCore:SignalR:Azure`. `ApplicationName` is optional (default `OrchardCore`), must start with a letter and contain only letters, numbers and underscores; set a unique value when several deployments share one service. A tenant identifier is appended automatically.
-- Enable only one backplane per tenant; enabling both fails tenant startup. A missing connection string logs a warning and falls back to in-memory.
+- Enable only one backplane per tenant. When both the Azure and Redis backplanes are enabled and configured, the Azure one is used and an error is logged for Redis (the tenant keeps running). A missing connection string logs a warning and falls back to in-memory.
 - Your own hubs depend on `OrchardCore.SignalR`, use `routes.MapHub<T>()` and `HubOptions<T>`; server-rendered pages load `<script asp-name="signalr" at="Foot"></script>`.
 
 ## Multi-instance Deployment

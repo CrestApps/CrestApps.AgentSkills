@@ -253,7 +253,7 @@ Two sources connected to the same **Create a file** step write two worksheets, i
 }
 ```
 
-`.xlsx` is accepted by the media library by default; `.csv`, `.json`, `.jsonl` and `.zip` must be added to `OrchardCore:Media:AllowedFileExtensions` first.
+`.xlsx` and `.csv` are accepted by the media library by default; `.json`, `.jsonl` and `.zip` must be added to `OrchardCore:Media:AllowedFileExtensions` first.
 
 ## Troubleshooting
 

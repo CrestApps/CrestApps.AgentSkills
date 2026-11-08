@@ -72,6 +72,10 @@
             "type": "integer",
             "description": "Seconds a Power, Progressive or Predictive call rings before it is given up as unanswered, from 15 to 120 (0 for the default of 30). Automated calls never ring for less than 15 seconds."
           },
+          "PreviewOfferTimeoutSeconds": {
+            "type": "integer",
+            "description": "Seconds a preview record stays reserved for the agent it is offered to before it goes back to the queue. Zero uses the default."
+          },
           "PreviewExtensionSeconds": {
             "type": "integer",
             "description": "Seconds each extension adds when a preview agent asks for more time to review a record before it is dialed."

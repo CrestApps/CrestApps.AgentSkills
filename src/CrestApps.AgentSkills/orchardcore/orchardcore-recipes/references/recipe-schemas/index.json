@@ -1,10 +1,14 @@
 {
-  "GeneratedUtc": "2026-10-21T17:06:19.7732638+00:00",
+  "GeneratedUtc": "2026-11-08T18:32:55.972132+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
       "Name": "A2AConnection",
       "File": "A2AConnection.schema.json"
+    },
+    {
+      "Name": "Accounts",
+      "File": "Accounts.schema.json"
     },
     {
       "Name": "AdminMenu",
@@ -47,6 +51,10 @@
       "File": "AIToolInstances.schema.json"
     },
     {
+      "Name": "Assets",
+      "File": "Assets.schema.json"
+    },
+    {
       "Name": "AsteriskSettings",
       "File": "AsteriskSettings.schema.json"
     },
@@ -67,8 +75,20 @@
       "File": "azureai-index-reset.schema.json"
     },
     {
+      "Name": "BookingDates",
+      "File": "BookingDates.schema.json"
+    },
+    {
+      "Name": "Calendars",
+      "File": "Calendars.schema.json"
+    },
+    {
       "Name": "command",
       "File": "command.schema.json"
+    },
+    {
+      "Name": "ConnectedDataSet",
+      "File": "ConnectedDataSet.schema.json"
     },
     {
       "Name": "ContactCenterAgentEntitlement",
@@ -111,12 +131,20 @@
       "File": "ContentDefinition.schema.json"
     },
     {
+      "Name": "Coupons",
+      "File": "Coupons.schema.json"
+    },
+    {
       "Name": "CreateAIProfileFromTemplate",
       "File": "CreateAIProfileFromTemplate.schema.json"
     },
     {
       "Name": "CreateOrUpdateIndexProfile",
       "File": "CreateOrUpdateIndexProfile.schema.json"
+    },
+    {
+      "Name": "CreateOrUpdateRateLimitPolicies",
+      "File": "CreateOrUpdateRateLimitPolicies.schema.json"
     },
     {
       "Name": "Currencies",
@@ -135,6 +163,14 @@
       "File": "Customers.schema.json"
     },
     {
+      "Name": "DataConnection",
+      "File": "DataConnection.schema.json"
+    },
+    {
+      "Name": "DataPipelines",
+      "File": "DataPipelines.schema.json"
+    },
+    {
       "Name": "DeleteAIDeployments",
       "File": "DeleteAIDeployments.schema.json"
     },
@@ -145,6 +181,10 @@
     {
       "Name": "deployment",
       "File": "deployment.schema.json"
+    },
+    {
+      "Name": "DigitalFiles",
+      "File": "DigitalFiles.schema.json"
     },
     {
       "Name": "DynamicDataTranslations",
@@ -163,6 +203,10 @@
       "File": "ElasticIndexSettings.schema.json"
     },
     {
+      "Name": "ExemptionCertificate",
+      "File": "ExemptionCertificate.schema.json"
+    },
+    {
       "Name": "FacebookCoreSettings",
       "File": "FacebookCoreSettings.schema.json"
     },
@@ -179,6 +223,14 @@
       "File": "FeatureProfiles.schema.json"
     },
     {
+      "Name": "FileSources",
+      "File": "FileSources.schema.json"
+    },
+    {
+      "Name": "Geo",
+      "File": "Geo.schema.json"
+    },
+    {
       "Name": "GitHubAuthenticationSettings",
       "File": "GitHubAuthenticationSettings.schema.json"
     },
@@ -191,6 +243,14 @@
       "File": "Layers.schema.json"
     },
     {
+      "Name": "LocalDncLists",
+      "File": "LocalDncLists.schema.json"
+    },
+    {
+      "Name": "LoyaltyAccounts",
+      "File": "LoyaltyAccounts.schema.json"
+    },
+    {
       "Name": "lucene-index",
       "File": "lucene-index.schema.json"
     },
@@ -201,6 +261,18 @@
     {
       "Name": "lucene-index-reset",
       "File": "lucene-index-reset.schema.json"
+    },
+    {
+      "Name": "MarketingCampaigns",
+      "File": "MarketingCampaigns.schema.json"
+    },
+    {
+      "Name": "MarketingSegments",
+      "File": "MarketingSegments.schema.json"
+    },
+    {
+      "Name": "Markets",
+      "File": "Markets.schema.json"
     },
     {
       "Name": "McpConnection",
@@ -221,6 +293,18 @@
     {
       "Name": "MediaProfiles",
       "File": "MediaProfiles.schema.json"
+    },
+    {
+      "Name": "Memberships",
+      "File": "Memberships.schema.json"
+    },
+    {
+      "Name": "MerchantTaxRegistration",
+      "File": "MerchantTaxRegistration.schema.json"
+    },
+    {
+      "Name": "MessagingBroadcasts",
+      "File": "MessagingBroadcasts.schema.json"
     },
     {
       "Name": "MicrosoftAccountSettings",
@@ -291,6 +375,10 @@
       "File": "Placements.schema.json"
     },
     {
+      "Name": "PriceLists",
+      "File": "PriceLists.schema.json"
+    },
+    {
       "Name": "Queries",
       "File": "Queries.schema.json"
     },
@@ -303,8 +391,24 @@
       "File": "recipes.schema.json"
     },
     {
+      "Name": "ReferralProfiles",
+      "File": "ReferralProfiles.schema.json"
+    },
+    {
+      "Name": "Registers",
+      "File": "Registers.schema.json"
+    },
+    {
+      "Name": "ReloadTenant",
+      "File": "ReloadTenant.schema.json"
+    },
+    {
       "Name": "ReplaceContentDefinition",
       "File": "ReplaceContentDefinition.schema.json"
+    },
+    {
+      "Name": "ReportDesigns",
+      "File": "ReportDesigns.schema.json"
     },
     {
       "Name": "ResetIndex",
@@ -315,8 +419,20 @@
       "File": "Roles.schema.json"
     },
     {
+      "Name": "Scheduling",
+      "File": "Scheduling.schema.json"
+    },
+    {
+      "Name": "Secrets",
+      "File": "Secrets.schema.json"
+    },
+    {
       "Name": "settings",
       "File": "settings.schema.json"
+    },
+    {
+      "Name": "ShippingZones",
+      "File": "ShippingZones.schema.json"
     },
     {
       "Name": "ShortcodeTemplates",
@@ -327,12 +443,48 @@
       "File": "Sitemaps.schema.json"
     },
     {
+      "Name": "Skills",
+      "File": "Skills.schema.json"
+    },
+    {
       "Name": "Stock",
       "File": "Stock.schema.json"
     },
     {
+      "Name": "StockLocations",
+      "File": "StockLocations.schema.json"
+    },
+    {
+      "Name": "StoreCreditAccounts",
+      "File": "StoreCreditAccounts.schema.json"
+    },
+    {
       "Name": "StripeSettings",
       "File": "StripeSettings.schema.json"
+    },
+    {
+      "Name": "TaxCategory",
+      "File": "TaxCategory.schema.json"
+    },
+    {
+      "Name": "TaxJurisdiction",
+      "File": "TaxJurisdiction.schema.json"
+    },
+    {
+      "Name": "TaxRule",
+      "File": "TaxRule.schema.json"
+    },
+    {
+      "Name": "TaxTable",
+      "File": "TaxTable.schema.json"
+    },
+    {
+      "Name": "TaxType",
+      "File": "TaxType.schema.json"
+    },
+    {
+      "Name": "Teams",
+      "File": "Teams.schema.json"
     },
     {
       "Name": "TelephonyExtension",
@@ -351,8 +503,16 @@
       "File": "Templates.schema.json"
     },
     {
+      "Name": "TenantHierarchyAccessGrants",
+      "File": "TenantHierarchyAccessGrants.schema.json"
+    },
+    {
       "Name": "themes",
       "File": "themes.schema.json"
+    },
+    {
+      "Name": "TimeTracker",
+      "File": "TimeTracker.schema.json"
     },
     {
       "Name": "TimeZoneMaps",
@@ -375,8 +535,52 @@
       "File": "Users.schema.json"
     },
     {
+      "Name": "Vendors",
+      "File": "Vendors.schema.json"
+    },
+    {
+      "Name": "WebCrawlers",
+      "File": "WebCrawlers.schema.json"
+    },
+    {
+      "Name": "WebhookSubscriptions",
+      "File": "WebhookSubscriptions.schema.json"
+    },
+    {
       "Name": "WorkflowType",
       "File": "WorkflowType.schema.json"
+    },
+    {
+      "Name": "Workforce",
+      "File": "Workforce.schema.json"
+    },
+    {
+      "Name": "WorkforceAdherence",
+      "File": "WorkforceAdherence.schema.json"
+    },
+    {
+      "Name": "WorkforceForecasting",
+      "File": "WorkforceForecasting.schema.json"
+    },
+    {
+      "Name": "WorkforceLaborRules",
+      "File": "WorkforceLaborRules.schema.json"
+    },
+    {
+      "Name": "WorkforceShiftPlanning",
+      "File": "WorkforceShiftPlanning.schema.json"
+    },
+    {
+      "Name": "WorkforceTimeClock",
+      "File": "WorkforceTimeClock.schema.json"
+    },
+    {
+      "Name": "WorkforceTimeOff",
+      "File": "WorkforceTimeOff.schema.json"
+    },
+    {
+      "Name": "WorkOrders",
+      "File": "WorkOrders.schema.json"
     }
   ]
 }

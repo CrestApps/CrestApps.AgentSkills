@@ -130,7 +130,11 @@ builder.Services.Configure<DefaultOrchestratorSettings>(settings =>
 });
 ```
 
-The tool-calling loop iteration cap comes from `DefaultAIOptions.MaximumIterationsPerRequest` (default 10, absolute cap 100), which a site can override through `GeneralAIOptions`.
+The tool-calling loop iteration cap comes from `DefaultAIOptions.MaximumIterationsPerRequest` (default 30, absolute cap `AbsoluteMaximumIterationsPerRequest` 100), which a site can override through `GeneralAIOptions` (`OverrideMaximumIterationsPerRequest`, `MaximumIterationsPerRequest`, also default 30).
+
+`DefaultAIOptions.TopP`, `FrequencyPenalty` and `PresencePenalty` default to `null`, like `Temperature` and `MaxOutputTokens`; a `null` value is not sent, so the model uses its own default. A profile's past-messages count keeps that many of the most recent messages; blank, 0 or negative keeps them all. With session memory on, the messages that fall out are summarized instead of dropped (see `crestapps-core-ai-memory`).
+
+Site-wide `DefaultOrchestratorSettings.EnablePreemptiveRag = false` hands data-source and document retrieval to the search tools, but preemptive memory retrieval follows its own `GeneralAIOptions.EnablePreemptiveMemoryRetrieval` switch. An `IPreemptiveRagHandler` with its own switch returns `true` from `RunsWhenPreemptiveRagIsDisabled`. Data-source search instructions are no longer added to a prompt with no data source or document to search.
 
 ## Custom Orchestrator
 
@@ -201,6 +205,13 @@ The completion context already carries the system message the handlers built, so
 | `OperationCanceledException` | Always rethrown |
 | Provider error after retries | Propagates to the caller |
 | Tool error | Returned to the model as the tool result |
+
+## Upgrading Within 2.0 Previews
+
+- `TopP`, `FrequencyPenalty` and `PresencePenalty` no longer default to `1`, `0` and `0`. Reasoning models (gpt-5.x and later) rejected a saved `TopP = 1` with HTTP 400. A host that set `"TopP": null` in configuration to work around it can remove that.
+- `MaximumIterationsPerRequest` defaults to 30 (was 10) in `DefaultAIOptions`, `GeneralAIOptions` and `GeneralAISettings`.
+- A past-messages count of 1 now keeps one message; it used to send the whole conversation, like a blank count.
+- Turning off site-wide preemptive RAG no longer turns off preemptive memory retrieval.
 
 ## Upgrading from 1.x
 

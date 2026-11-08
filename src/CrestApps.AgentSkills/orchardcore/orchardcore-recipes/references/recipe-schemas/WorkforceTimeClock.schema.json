@@ -1,0 +1,485 @@
+{
+  "type": "object",
+  "description": "Creates or updates the time clock settings: pay periods, policies and kiosks matched by itemId then name, and pay codes matched by itemId then code. Pay periods, pay codes and policies that are updated take every member of the entry, so a member left out goes back to its default.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceTimeClock",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceTimeClock\u0027."
+    },
+    "PayPeriods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A pay period calendar.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay period calendar\u0027s id. When it matches a stored pay period calendar, that pay period calendar is updated; otherwise the pay period calendar is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The calendar name, unique."
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "Weekly",
+              "Biweekly",
+              "SemiMonthly",
+              "Monthly"
+            ],
+            "description": "How often a pay period starts. Defaults to Biweekly."
+          },
+          "anchorDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day of any one pay period, which the others count from."
+          },
+          "weekStart": {
+            "type": "string",
+            "enum": [
+              "Sunday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday"
+            ],
+            "description": "The first day of the week, for weekly overtime. Defaults to Sunday."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the calendar is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The pay period calendars to create or update."
+    },
+    "PayCodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A pay code hours are paid under.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay code\u0027s id. When it matches a stored pay code, that pay code is updated; otherwise it is matched by code, and a new one keeps this id."
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code, unique."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay code name."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Regular",
+              "Overtime",
+              "DoubleTime",
+              "Holiday",
+              "PaidTimeOff",
+              "PredictabilityPay",
+              "CallBack",
+              "ShiftDifferential",
+              "Unpaid",
+              "Weekend"
+            ],
+            "description": "What the hours are. Defaults to Regular."
+          },
+          "multiplier": {
+            "type": "number",
+            "description": "The pay rate multiplier, such as 1.5 for overtime. Defaults to 1."
+          },
+          "premiumPerHour": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "For a shift differential: the amount added per hour."
+          },
+          "windowStart": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+            "description": "For a shift differential: when the window starts."
+          },
+          "windowEnd": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+            "description": "For a shift differential: when the window ends."
+          },
+          "weekdays": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday"
+              ]
+            },
+            "description": "For a shift differential: the days it applies; empty for every day."
+          },
+          "exportCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code written in the payroll export, when not the code."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the pay code is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "code"
+        ]
+      },
+      "description": "The pay codes to create or update."
+    },
+    "Policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A time clock policy: how punches become paid hours.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy\u0027s id. When it matches a stored policy, that policy is updated; otherwise the policy is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy name, unique."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the policy is for."
+          },
+          "payPeriodsName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay period calendar, by name. Wins over payPeriodCalendarId."
+          },
+          "payPeriodCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay period calendar, by id."
+          },
+          "teamNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams that follow the policy, by name; each team\u0027s time clock policy is set to it."
+          },
+          "roundingMinutes": {
+            "type": "integer",
+            "description": "The minutes punches are rounded to; 0 for none."
+          },
+          "roundingDirection": {
+            "type": "string",
+            "enum": [
+              "Nearest",
+              "FavorWorker"
+            ],
+            "description": "How punches are rounded. Defaults to Nearest."
+          },
+          "earlyGraceMinutes": {
+            "type": "integer",
+            "description": "The minutes before the shift a punch-in counts as on time. Defaults to 5."
+          },
+          "lateGraceMinutes": {
+            "type": "integer",
+            "description": "The minutes after the shift starts a punch-in counts as on time. Defaults to 5."
+          },
+          "blockEarlyPunchInMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Refuses a punch-in more than these minutes before the shift; null to allow it."
+          },
+          "autoMealAfterHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Takes a meal off a day longer than these hours that has none; null for never."
+          },
+          "autoMealMinutes": {
+            "type": "integer",
+            "description": "The length of that meal in minutes. Defaults to 30."
+          },
+          "longMealMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "A meal longer than these minutes is an exception; null for never."
+          },
+          "allowedSources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Web",
+                "Mobile",
+                "Kiosk",
+                "Api",
+                "Manager"
+              ]
+            },
+            "description": "Where workers may punch from; empty for anywhere. A manager can always punch for a worker."
+          },
+          "requireGeofence": {
+            "type": "boolean",
+            "description": "Whether a mobile punch must be near the team\u0027s location."
+          },
+          "geofenceRadiusMeters": {
+            "type": "integer",
+            "description": "How near, in meters. Defaults to 200."
+          },
+          "missedPunchHandling": {
+            "type": "string",
+            "enum": [
+              "Flag",
+              "CloseAtScheduledEnd"
+            ],
+            "description": "What happens to a shift with no punch-out. Defaults to Flag."
+          },
+          "dailyOvertimeHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Hours a day after which time is overtime; null for none."
+          },
+          "dailyDoubleTimeHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Hours a day after which time is double time; null for none."
+          },
+          "weeklyOvertimeHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Hours a week after which time is overtime; null for none. Defaults to 40."
+          },
+          "seventhDayOvertime": {
+            "type": "boolean",
+            "description": "Whether the seventh day in a row worked is overtime."
+          },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "The paid holidays."
+          },
+          "weekendDays": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday"
+              ]
+            },
+            "description": "The days paid as weekend."
+          },
+          "attendancePoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The attendance points an exception adds.",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "Late",
+                    "EarlyOut",
+                    "MissedPunch",
+                    "NoShow",
+                    "UnscheduledAbsence",
+                    "LongMeal",
+                    "OutsideGeofence"
+                  ],
+                  "description": "The kind of exception."
+                },
+                "points": {
+                  "type": "number",
+                  "description": "The points it adds."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The points each kind of exception adds."
+          },
+          "pointsWindowDays": {
+            "type": "integer",
+            "description": "The days points count for. Defaults to 365."
+          },
+          "pointsThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The points that raise the threshold event; null for none."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the policy is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The time clock policies to create or update. Pay periods are imported first, so a policy can name one of the same step."
+    },
+    "Kiosks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A shared device workers punch on.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The kiosk\u0027s id. When it matches a stored kiosk, that kiosk is updated; otherwise the kiosk is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The kiosk name, unique."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team whose workers punch on it, by name; null for every team."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the kiosk accepts punches. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The time clock kiosks to create or update. Only the configuration is imported: a kiosk\u0027s token is never exported or imported, so issue a new address on the kiosk\u0027s page."
+    },
+    "PayrollCsv": {
+      "type": "object",
+      "description": "The payroll CSV file layout. When present, its columns replace the stored ones.",
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "A column of the payroll CSV file.",
+            "properties": {
+              "header": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The column header. A column without one is dropped."
+              },
+              "field": {
+                "type": "string",
+                "enum": [
+                  "WorkerExternalId",
+                  "EmployeeNumber",
+                  "WorkerName",
+                  "PayCode",
+                  "Date",
+                  "Hours",
+                  "Rate",
+                  "Amount",
+                  "PeriodStart",
+                  "PeriodEnd",
+                  "ActivityCode",
+                  "Job"
+                ],
+                "description": "What the column holds."
+              }
+            },
+            "additionalProperties": true
+          },
+          "description": "The columns, in order."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

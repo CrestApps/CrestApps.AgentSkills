@@ -200,3 +200,4 @@ The writer is only used when `ShowDetails` is `true`; compact mode keeps the ASP
 
 - Rename the `OrchardCore_HealthChecks` section to `OrchardCore:HealthChecks` (environment variable `OrchardCore__HealthChecks__Url`). The old name still works but is deprecated.
 - In a tenant `App_Data/Sites/{TenantName}/appsettings.json`, use a root `HealthChecks` section.
+- `RedisHealthCheck` now takes an `IRedisService` instead of an `IServiceProvider`. Register it with `AddRedisCheck()` rather than constructing it. When the Redis configuration is missing or invalid, the check reports `Unhealthy` ("Couldn't connect to the Redis server…") instead of saying `IRedisService` isn't registered.

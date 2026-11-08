@@ -108,6 +108,25 @@ Field defaults for the content index: Elasticsearch uses key `ContentItemId`, ti
 
 The `AIDataSource` deployment step (**Artificial Intelligence** category) exports all or selected data sources (`IncludeAll`, `SourceIds`).
 
+### Use a data connection
+
+With the **Data Connectors** feature on, the `Elasticsearch` and `AzureAISearch` source editors offer a
+**Data connection** picker to people who may manage data connections and their credentials. The choice is
+stored as `Properties.DataConnectionReference.ConnectionId` and the data source then reads its endpoint and
+credentials from the connection, where the secrets stay protected and are never written to the data source or
+a deployment plan:
+
+- `Elasticsearch` takes an **Elasticsearch** connection (URL, none, Basic, header API key or bearer token
+  authentication, extra headers, timeout); everything but the index name comes from it. OAuth 2.0, OpenID
+  Connect and query-string API keys are refused.
+- `AzureAISearch` takes an **HTTP API** connection whose URL is `https://<service>.search.windows.net` with
+  **API key** authentication; a connection without authentication uses the default Azure credential.
+- The data source's own endpoint and credentials stay stored, unused, so switching back loses nothing, and
+  the deployment step leaves the stored `ApiKey`, `Password` and `Base64ApiKey` out while a connection is used.
+- People who cannot pick connections keep the stored choice when they save.
+
+See `orchardcore-data-connectors` for connections.
+
 ### Attach a data source to an AI profile
 
 The profile stores the selection in `DataSourceMetadata` and the retrieval settings in `AIDataSourceRagMetadata`:

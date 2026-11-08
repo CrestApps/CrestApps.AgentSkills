@@ -1,0 +1,71 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Teams",
+      "description": "Recipe step discriminator. Must be \u0027Teams\u0027."
+    },
+    "Teams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The team id; omit to match by name."
+          },
+          "name": {
+            "type": "string",
+            "description": "The team name."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Organization",
+              "Region",
+              "Site",
+              "Department",
+              "Team",
+              "Crew"
+            ],
+            "description": "The level of the team in the organization chart. Team when omitted."
+          },
+          "parentName": {
+            "type": "string",
+            "description": "The name of the team it belongs to, which may be listed after it."
+          },
+          "parentId": {
+            "type": "string",
+            "description": "The id of the team it belongs to."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the team does."
+          },
+          "linkedRoleName": {
+            "type": "string",
+            "description": "A role whose members are treated as part of the team."
+          },
+          "timeZoneId": {
+            "type": "string",
+            "description": "The team\u0027s IANA time zone."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the team is in use."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The teams to create, or update by id or name, in any order."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

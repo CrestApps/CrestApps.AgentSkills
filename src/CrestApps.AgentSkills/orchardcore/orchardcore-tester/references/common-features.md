@@ -58,7 +58,7 @@ playwright-cli snapshot
 
 ### Content Item UI Elements
 - List layout: List or Grid (`?layout=Grid` when users may choose); in Grid each field is a column
-- Row actions: buttons, or an ellipsis dropdown when **List actions layout** is `Menu`
+- Row actions: buttons, or an ellipsis dropdown when **Actions layout** is `Menu`
 - New button: Creates new content
 - Content type selector: Modal/dropdown after clicking New
 - Title field: Usually first prominent text input

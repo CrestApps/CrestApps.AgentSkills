@@ -102,7 +102,7 @@ An upgrade product item then carries `"ClassifiedUpgradePart": { "Kind": 0, "Day
 |---|---|
 | `PostAsync` | New listing waits for approval, or is approved and published when the type does not require approval |
 | `ChangedAsync` | An owner's edit. With approval required, the listing is taken down until approved again |
-| `ApproveAsync` / `RejectAsync` | Publishes for its term, or unpublishes with a reason. Both email the owner |
+| `ApproveAsync` / `RejectAsync` | Publishes for its term, or unpublishes with a reason. Both email the owner (the store's `classified-listing` email template) |
 | `RenewAsync` | Adds a term from the current end, or starts a new term for an expired listing, and publishes |
 | `UpgradeAsync` | Features for the upgrade's days (extending an existing feature) or bumps to the top |
 | `ExpireDueAsync` | Unpublishes listings past their end and emails owners |

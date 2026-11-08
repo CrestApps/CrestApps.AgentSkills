@@ -1,0 +1,154 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "DataPipelines",
+      "description": "Recipe step discriminator. Must be \u0027DataPipelines\u0027."
+    },
+    "Pipelines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "PipelineId": {
+            "type": "string",
+            "maxLength": 26,
+            "description": "The identifier of the pipeline, at most 26 characters. An existing pipeline with this identifier gets the imported definition as its draft; otherwise a pipeline is created, with a new identifier when none is given."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name of the pipeline."
+          },
+          "Description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The description of the pipeline."
+          },
+          "IsEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the pipeline can run."
+          },
+          "Definition": {
+            "type": "object",
+            "properties": {
+              "Steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "StepId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The identifier of the step in the pipeline, referenced by the connections."
+                    },
+                    "Type": {
+                      "type": "string",
+                      "examples": [
+                        "Aggregate",
+                        "CalculatedFields",
+                        "ConvertTimeZone",
+                        "CreateFile",
+                        "DataSource",
+                        "Distinct",
+                        "Filter",
+                        "Join",
+                        "Limit",
+                        "ReadMediaFile",
+                        "SaveContentItems",
+                        "SaveToMedia",
+                        "SelectFields",
+                        "SendByEmail",
+                        "SendToWebApi",
+                        "ShareDownloadLink",
+                        "Sort",
+                        "Union",
+                        "UploadToFtp",
+                        "UploadToSftp",
+                        "ZipFiles"
+                      ],
+                      "description": "The type of the step, for example \u0027DataSource\u0027 or \u0027CreateFile\u0027."
+                    },
+                    "Title": {
+                      "type": "string",
+                      "description": "The title of the step shown in the designer."
+                    },
+                    "X": {
+                      "type": "integer",
+                      "description": "The horizontal position of the step in the designer."
+                    },
+                    "Y": {
+                      "type": "integer",
+                      "description": "The vertical position of the step in the designer."
+                    },
+                    "Properties": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "The settings of the step, under the name of their type, for example { \u0022DataSourceStepSettings\u0022: { \u0022Source\u0022: \u0022Contents\u0022, \u0022DataSet\u0022: \u0022BlogPost\u0022 } }. Settings whose names start with \u0027Protected\u0027 hold secrets, which are not exported: enter them again before publishing."
+                    }
+                  },
+                  "required": [
+                    "StepId",
+                    "Type"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "The steps of the pipeline."
+              },
+              "Connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "SourceStepId": {
+                      "type": "string",
+                      "description": "The identifier of the step whose output is connected."
+                    },
+                    "SourcePort": {
+                      "type": "string",
+                      "description": "The output port of the source step, for example \u0027Output\u0027."
+                    },
+                    "TargetStepId": {
+                      "type": "string",
+                      "description": "The identifier of the step that receives the rows."
+                    },
+                    "TargetPort": {
+                      "type": "string",
+                      "description": "The input port of the target step, for example \u0027Input\u0027."
+                    }
+                  },
+                  "required": [
+                    "SourceStepId",
+                    "TargetStepId"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "The connections between the ports of the steps."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The steps and connections of the pipeline. The definition is imported as a draft and runs only once a user publishes it."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The data pipelines to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Pipelines"
+  ],
+  "additionalProperties": true
+}

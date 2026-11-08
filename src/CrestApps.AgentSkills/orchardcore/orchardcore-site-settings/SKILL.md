@@ -46,15 +46,15 @@ You are an Orchard Core expert. Generate code and configuration for reading site
 |----------|------|-------------|
 | `SiteName` | `string` | Display name of the site. |
 | `PageTitleFormat` | `string` | Liquid format of the page `<title>`. |
-| `BaseUrl` | `string` | Absolute base URL used when an absolute URL must be generated. |
+| `BaseUrl` | `string` | Absolute `http`/`https` base URL used when an absolute URL must be generated; no query string or fragment. Stored as a `Uri`, so it reads back normalized (`https://example.com` becomes `https://example.com/`) and setting a non-absolute value throws `UriFormatException`. |
 | `TimeZoneId` | `string` | Default time zone identifier (e.g. `America/New_York`). |
 | `Calendar` | `string` | Default calendar system. |
 | `PageSize` | `int` | Default number of items per page. |
 | `MaxPageSize` | `int` | Maximum page size a client can request. |
-| `MaxPagedCount` | `int` | Maximum number of items that can be paged through. |
+| `MaxPagedCount` | `int` | Maximum number of items that can be paged through; lists report it as the total instead of counting (unless the current page isn't full). When `0`, `OrchardCore:Navigation:PagerOptions:MaxPagedCount` from configuration is used. |
 | `AllowPageSizeSelection` | `bool` | Shows an **Items per page** selector next to pagers (4.0). |
 | `PageSizeOptions` | `int[]` | Allowed page sizes, default `10, 25, 50, 100` (4.0). |
-| `UseCdn` / `CdnBaseUrl` | `bool` / `string` | Serve framework assets from a CDN. |
+| `UseCdn` / `CdnBaseUrl` | `bool` / `string` | Serve framework assets from a CDN. `CdnBaseUrl` must be an absolute URL (any scheme) without query string or fragment, and is normalized the same way. |
 | `ResourceDebugMode` | `ResourceDebugMode` | Serve non-minified resources. |
 | `AppendVersion` | `bool` | Append a version token to static asset URLs. |
 | `CacheMode` | `CacheMode` | Default resource caching behavior. |
@@ -561,8 +561,9 @@ Use the **Site Settings** deployment step to export the built-in settings, and `
 - `OrchardCore.Settings.Permissions.ManageSettings` / `ManageGroupSettings` were removed; use `OrchardCore.Settings.SettingsPermissions.ManageSettings` / `ManageGroupSettings`. Built-in groups now use `ManageGeneralSettings` and `ManageDebuggingSettings`.
 - Register each custom group with `AddSiteSettingsPermission(groupId, permission)` so it no longer requires `ManageSettings`.
 - Options built from site settings: replace `IOptions<T>` with `IOptionsMonitor<T>.CurrentValue`, and replace `IShellReleaseManager.RequestRelease()` with `AddSignalOptionsChangeTokenSource<T>()` + `IOptionsUpdateNotifier.RequestUpdate<T>()` when only options depend on the settings.
-- Permission descriptions: `new Permission("Name", "Description")` still compiles, but prefer `LocalizationSource.Create("Description", typeof(DeclaringType))` so the roles editor shows PO translations.
+- Permission descriptions: `new Permission("Name", "Description")` is `[Obsolete]`; use `LocalizationSource.Create("Description", typeof(DeclaringType))` so the roles editor shows PO translations.
 - Liquid: the site salt was removed from Liquid output, so `{{ Site.SiteSalt }}` now only returns `[REDACTED]`, and `{{ Site.Properties.X }}` is empty until `X` is listed in `OrchardCore:Liquid:PermittedSiteProperties`.
 - `site.As<T>()` is obsolete; use `TryGet<T>()` or `GetOrCreate<T>()`.
+- `BaseUrl` and `CdnBaseUrl` are validated: the editor rejects relative URLs, a `BaseUrl` that isn't `http`/`https`, and any query string or fragment. Both are normalized through `Uri.AbsoluteUri`, so a host-only value gains a trailing `/`; build URLs with `new Uri(new Uri(site.BaseUrl), path)` or trim the slash instead of concatenating `site.BaseUrl + "/path"`. A recipe or code that sets a non-absolute value now throws.
 
 See `references/site-settings-examples.md` for complete examples.
