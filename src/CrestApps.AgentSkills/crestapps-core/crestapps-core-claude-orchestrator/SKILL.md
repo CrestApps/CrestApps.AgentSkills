@@ -82,7 +82,7 @@ Or resolve it directly: `var orchestrator = resolver.Resolve(ClaudeOrchestrator.
 
 1. The model is `ClaudeSessionMetadata.ClaudeModel`, else `ClaudeOptions.DefaultModel`.
 2. Tools come from `IToolRegistry.GetAllAsync(context.CompletionContext)`, the same scoped registry the default orchestrator uses, and are materialized into `ChatOptions.Tools` through `IToolMaterializer`. For a Chat Interaction the listable tools are re-checked against the current user (`IUserAccessor`) and denied ones are left out with a warning; AI sessions run the profile's tools as configured. `DisableTools` sends none.
-3. The Anthropic chat client is wrapped with `AIUsageMetering.Meter(..., AIUsagePurposes.Conversation)` before `UseFunctionInvocation`, so every round trip is a usage record with client name `anthropic`.
+3. The Anthropic chat client is wrapped with `AIUsageMetering.Meter(..., AIUsagePurposes.Conversation)` before `UseFunctionInvocation`, so every round trip is a usage record with client name `anthropic`. With `DefaultAIOptions.EnableOpenTelemetry` on, `UseOpenTelemetry` sits below the tool loop, so every round trip also gets a `gen_ai` span (see `crestapps-core-observability`).
 4. Temperature, top-p, penalties and max tokens come from the completion context (a `null` value is not sent); the iteration cap from `DefaultAIOptions.MaximumIterationsPerRequest` (default 30).
 5. A provider failure ends the stream with "An unexpected error occurred while communicating with Anthropic. Please try again." and is logged.
 
@@ -105,6 +105,7 @@ With `ClaudeOptions.EnablePromptCaching` on (the default), each request marks ep
 
 - The orchestrator now sends the scoped tools, so profile, interaction, system and MCP tools are called on Claude. `ClaudeOrchestrator` takes `IToolMaterializer` and `IUserAccessor` as new constructor parameters; code that constructs it directly passes them.
 - Prompt caching is on by default. Set `EnablePromptCaching` to `false` to restore uncached requests.
+- `ClaudeOrchestrator` takes the scoped `DefaultAIOptions` instead of `IOptions<DefaultAIOptions>`, so a site's **Enable OpenTelemetry** setting reaches it. Code that constructs it directly passes a `DefaultAIOptions`.
 
 ## Upgrading from 1.x
 
