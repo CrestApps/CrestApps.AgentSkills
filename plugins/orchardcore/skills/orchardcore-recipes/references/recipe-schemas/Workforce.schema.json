@@ -1,0 +1,557 @@
+{
+  "type": "object",
+  "description": "Creates or updates activity codes, teams and workers. Activity codes and teams are matched by itemId, then by name; workers by itemId, then employee number, then user. An activity code or a worker that is updated takes every member of the entry, so a member left out goes back to its default.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Workforce",
+      "description": "Recipe step discriminator. Must be \u0027Workforce\u0027."
+    },
+    "ActivityCodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An activity code: a kind of time on a schedule.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The activity code\u0027s id. When it matches a stored activity code, that activity code is updated; otherwise the activity code is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The activity name, unique."
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A short code shown on schedules."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Work",
+              "Break",
+              "Meal",
+              "Meeting",
+              "Training",
+              "Coaching",
+              "OfflineWork",
+              "Travel",
+              "OnCall",
+              "TimeOff",
+              "Other"
+            ],
+            "description": "What kind of time it is. Defaults to Work."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "isPaid": {
+            "type": "boolean",
+            "description": "Whether the time is paid. Defaults to true."
+          },
+          "countsAsWork": {
+            "type": "boolean",
+            "description": "Whether the time counts toward hours rules. Defaults to true."
+          },
+          "countsTowardCoverage": {
+            "type": "boolean",
+            "description": "Whether the worker counts toward staffing during it. Defaults to true."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the code can be scheduled. Defaults to true."
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the Time Tracker stage time clocked in this activity is kept in, when the time clock keeps time in Time Tracker."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The activity codes to create or update."
+    },
+    "Teams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A team with its Workforce settings. The generic members are those of the Teams step; the Workforce settings sit beside them. The team\u0027s calendar is never imported.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team\u0027s id. When it matches a stored team, that team is updated; otherwise the team is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team name, unique."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Organization",
+              "Region",
+              "Site",
+              "Department",
+              "Team",
+              "Crew"
+            ],
+            "description": "What the team is in the organization."
+          },
+          "parentName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the team it belongs to, which may be listed after it. Wins over parentId."
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the team it belongs to."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the team does."
+          },
+          "linkedRoleName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A role whose members can read the team\u0027s calendar."
+          },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team\u0027s IANA time zone, such as America/Chicago."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the team is in use."
+          },
+          "location": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Where the team works from.",
+            "properties": {
+              "address": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The address as one line."
+              },
+              "latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The latitude, in degrees."
+              },
+              "longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The longitude, in degrees."
+              }
+            },
+            "additionalProperties": true
+          },
+          "leadWorkerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the worker who leads the crew."
+          },
+          "openShiftClaimPolicy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ManagerApproves",
+                  "FirstCome",
+                  "BySeniority"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the team\u0027s open shifts are given out; null uses the parent team\u0027s policy."
+          },
+          "shiftTradesNeedApproval": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether a manager approves shift trades once a colleague accepts; null uses the parent team\u0027s choice."
+          },
+          "timeOffShiftHandling": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Flag",
+                  "Remove"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What happens to a worker\u0027s published shifts when their time off is approved; null uses the parent team\u0027s choice."
+          },
+          "timeClockPolicyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the time clock policy the team follows."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The teams to create or update, in any order: a team may name a parent listed after it."
+    },
+    "Workers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A worker profile.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The worker\u0027s id. When it matches a stored worker, that worker is updated; otherwise the worker is matched by employee number, then by user, and a new one keeps this id."
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The worker\u0027s name."
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the user the worker signs in as."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The email address."
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The phone number."
+          },
+          "employeeNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The employee number, unique when set."
+          },
+          "externalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The worker\u0027s id in a payroll or HR system."
+          },
+          "jobTitle": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The job title."
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "FullTime",
+              "PartTime",
+              "Seasonal",
+              "Temporary",
+              "Contractor",
+              "Subcontractor"
+            ],
+            "description": "The kind of employment. Defaults to FullTime."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "OnLeave",
+              "Suspended",
+              "Terminated"
+            ],
+            "description": "The employment status. Defaults to Active."
+          },
+          "hireDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The hire date."
+          },
+          "seniorityDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The date seniority counts from, when not the hire date."
+          },
+          "terminationDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The last day of employment."
+          },
+          "dateOfBirth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The date of birth, used by the minor labor rules."
+          },
+          "managerWorkerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the worker this worker reports to."
+          },
+          "primaryTeamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the worker\u0027s main team."
+          },
+          "teamMemberships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A team the worker belongs to.",
+              "properties": {
+                "teamName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The team, by name. Wins over teamId."
+                },
+                "teamId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The team, by id."
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "Member",
+                    "Lead",
+                    "Scheduler",
+                    "Manager"
+                  ],
+                  "description": "The worker\u0027s role in the team. Defaults to Member."
+                },
+                "effectiveFrom": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date",
+                  "description": "The first day of the membership; null for always."
+                },
+                "effectiveTo": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date",
+                  "description": "The last day of the membership; null for open-ended."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The teams the worker belongs to."
+          },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The worker\u0027s IANA time zone, when not the team\u0027s."
+          },
+          "homeBase": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Where the worker starts and ends the day.",
+            "properties": {
+              "address": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The address as one line."
+              },
+              "latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The latitude, in degrees."
+              },
+              "longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The longitude, in degrees."
+              }
+            },
+            "additionalProperties": true
+          },
+          "contractedHoursPerWeek": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The hours a week the worker is contracted for."
+          },
+          "minHoursPerWeek": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The fewest hours a week the worker should be scheduled."
+          },
+          "maxHoursPerWeek": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most hours a week the worker may be scheduled."
+          },
+          "maxHoursPerDay": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most hours a day the worker may be scheduled."
+          },
+          "availability": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A weekly window of availability.",
+              "properties": {
+                "day": {
+                  "type": "string",
+                  "enum": [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday"
+                  ],
+                  "description": "The day of the week."
+                },
+                "start": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+                  "description": "When the window starts."
+                },
+                "end": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+                  "description": "When the window ends."
+                },
+                "preference": {
+                  "type": "string",
+                  "enum": [
+                    "Unavailable",
+                    "Available",
+                    "Preferred"
+                  ],
+                  "description": "Whether the worker is unavailable, available or prefers to work then. Defaults to Available."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The worker\u0027s weekly availability."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "displayName"
+        ]
+      },
+      "description": "The workers to create or update. Their teams must exist or be listed in Teams."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

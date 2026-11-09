@@ -80,6 +80,17 @@ Environment variable example: `OrchardCore__Search__AzureAISearch__Credential__K
 | `DisableUIConfiguration` | When `true`, disables per-tenant UI configuration and forces all tenants to use appsettings values. |
 | `Credential.Key` | The API key for the Azure AI Search service. Required for `ApiKey` authentication. |
 
+In 4.0 a configured `Credential:Key` logs a `LegacySecretConfiguration`
+warning (event `8100`); it still works. To keep the key in the Secrets module,
+use the admin settings (with `DisableUIConfiguration` left `false`), check
+**Use custom Azure Search AI settings** (`UseCustomConfiguration`) and choose
+`ApiKey` authentication, then **Use a secret**
+in the API key editor (suggested name `AzureAISearch.ApiKey`). It sets
+`AzureAISearchDefaultSettings.ApiKeySecretName`, which takes precedence over
+the protected `ApiKey`. A saved key can be moved without retyping it from
+**Tools → Security → Migrate Secrets**. Configuration-only credentials have no
+secret reference. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
+
 ### Reading the Connection Options in Code
 
 ```csharp
@@ -428,3 +439,4 @@ When `OrchardCore.Search` is enabled alongside Azure AI Search:
 - Replace `IOptions<AzureAISearchDefaultOptions>` with `IOptionsMonitor<AzureAISearchDefaultOptions>` and read `CurrentValue`; settings changes no longer release the shell.
 - The 3.x permission `AzureAISearchPermissions.ManageAzureAISearchISettings` (stored name `ManageAzureAISearchISettings`) is now `ManageAzureAISearchSettings`, for both the member and the stored name. Re-grant **Manage Azure AI Search Settings** to non-administrator roles that had it.
 - `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `IndexingPermissions.QuerySearchIndex`.
+- Saved API keys keep working. `AzureAISearchDefaultSettings` gains `ApiKeySecretName`; code reading `ApiKey` directly must honor it, or read `IOptionsMonitor<AzureAISearchDefaultOptions>`.

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-azure-key-vault
-description: Skill for loading Orchard Core app configuration and secrets from Azure Key Vault. Covers the AddOrchardCoreAzureKeyVault configuration extension for IHostBuilder, IWebHostBuilder and ConfigurationManager, DefaultAzureCredential and custom TokenCredential authentication, the OrchardCore KeyVault Azure configuration section, KeyVaultName, VaultURI and ReloadInterval, AzureKeyVaultSecretManager secret name translation, and Orchard Core 4 secret names for the renamed configuration sections such as Media Azure, DataProtection Azure, Redis and Email Smtp. Use this skill when requests mention Orchard Core Azure Key Vault, secret management, connection string secrets, Managed Identity configuration, OrchardCore.Configuration.KeyVault, upgrading from the OrchardCore_KeyVault_Azure section, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+description: Skill for loading Orchard Core app configuration and secrets from Azure Key Vault. Covers the AddOrchardCoreAzureKeyVault configuration extension for IHostBuilder, IWebHostBuilder and ConfigurationManager, DefaultAzureCredential and custom TokenCredential authentication, the OrchardCore KeyVault Azure configuration section, KeyVaultName, VaultURI and ReloadInterval, AzureKeyVaultSecretManager secret name translation, and Orchard Core 4 secret names for the renamed configuration sections such as Media Azure, DataProtection Azure, Redis and Email Smtp, and how it differs from the OrchardCore.Secrets.AzureKeyVault secret store. Use this skill when requests mention Orchard Core Azure Key Vault, secret management, connection string secrets, Managed Identity configuration, OrchardCore.Configuration.KeyVault, upgrading from the OrchardCore_KeyVault_Azure section, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -115,6 +115,27 @@ Rules applied by `AzureKeyVaultSecretManager`:
 - Store the shells/database connection string, SMTP credentials, OpenID signing secrets, and external provider API keys in Key Vault, then reference them through normal configuration keys elsewhere in the app.
 - Combine with `OrchardCore.DataProtection.Azure` (data-protection key storage) for a fully externalized secret and key management setup.
 
+### Configuration Provider vs. the Secrets Module Store
+
+Orchard Core 4.0 also ships `OrchardCore.Secrets.AzureKeyVault`, a tenant
+feature that makes Key Vault a store of the Secrets module (store name
+`AzureKeyVault`, configured under `OrchardCore:Secrets:AzureKeyVault` with a
+host-registered keyed `SecretClient`). The two are independent:
+
+| | `OrchardCore.Configuration.KeyVault` | `OrchardCore.Secrets.AzureKeyVault` |
+|---|---|---|
+| Kind | Host configuration provider | Tenant feature (store of `OrchardCore.Secrets`) |
+| Consumers | Any configuration key | Settings that reference a secret by `*SecretName`, and `ISecretManager` |
+| Entry names | `--`/`---` encoded configuration keys | Prefix, tenant, and name with a hash, plus ownership tags |
+| Managed in | Azure only | Orchard admin (**Tools → Security → Secrets**) |
+
+Credentials supplied through configuration (including this provider), such as
+`OrchardCore--Email--Smtp--Password`, still work in 4.0 but log a
+`LegacySecretConfiguration` warning (event `8100`) for the integrations that
+support secrets. To retire them, create the secret in the Secrets module (in the
+`AzureKeyVault` or `Database` store), select it in the integration's settings,
+then delete the configuration entry. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
+
 ### Notes
 
 - Because Key Vault is a host-level configuration provider, its values are available to every tenant through the shared host configuration.
@@ -124,3 +145,4 @@ Rules applied by `AzureKeyVaultSecretManager`:
 
 - Rename the `OrchardCore:OrchardCore_KeyVault_Azure` section to `OrchardCore:KeyVault:Azure` (env var `OrchardCore__KeyVault__Azure__KeyVaultName`). The old name is deprecated but still read.
 - Rename secrets that target renamed sections, for example `OrchardCore--OrchardCore---Media---Azure--ConnectionString` to `OrchardCore--Media--Azure--ConnectionString` and `OrchardCore--OrchardCore---Redis--Configuration` to `OrchardCore--Redis--Configuration`. Old section names still bind, and the new name wins when both are present.
+- Configuration credentials of integrations that support the Secrets module (SMTP, Azure email and SMS, Azure AI Search, Facebook, GitHub, Google, Microsoft Account, X) now log `LegacySecretConfiguration`; plan to move them to secrets.

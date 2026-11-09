@@ -210,7 +210,7 @@ public sealed class Migrations : DataMigration
 
 ### Adding a SQL Index to an Existing Table
 
-Create the index in a shared helper, call it from `CreateAsync()` for new tenants and from a new `UpdateFromXAsync()` for existing ones, and bump the returned version in both. Orchard Core 4.0 added `IDX_ContentItemIndex_ContentItemId` to `ContentItemIndex` exactly this way (version 6 to 7). Lead the index with the column you filter on; creating an index on a large table takes time during the upgrade.
+Create the index in a shared helper, call it from `CreateAsync()` for new tenants and from a new `UpdateFromXAsync()` for existing ones, and bump the returned version in both. Orchard Core 4.0 changed `ContentItemIndex` exactly this way: `IDX_ContentItemIndex_ContentItemId` (version 6 to 7), then indexes led by `ContentType`, `Owner` and `ContentItemVersionId` while dropping the `DocumentId`-led ones (version 7 to 8), so that new and upgraded tenants end with the same indexes. Lead the index with the column you filter on; creating an index on a large table takes time during the upgrade.
 
 ```csharp
 public sealed class Migrations : DataMigration

@@ -22,7 +22,7 @@ You are an Orchard Core expert. Generate HTML sanitization configurations and cu
 - Use the `@Orchard.SanitizeHtml()` Razor helper, the `sanitize_html` Liquid filter, or `IHtmlSanitizerService.Sanitize()` in code.
 - Orchard Core customizes the default HtmlSanitizer by allowing the `class` attribute, allowing `mailto` and `tel` schemes, and removing the `form` tag.
 - Configure the sanitizer using `ConfigureHtmlSanitizer` during service registration; multiple calls are combined.
-- Sanitizer configuration actions must be deterministic, because results are cached per tenant (see below).
+- Sanitizer configuration actions must be deterministic, because results are cached and reused by the same tenant (see below).
 - The sanitizer is based on the [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer) library.
 - Always seal classes.
 
@@ -62,8 +62,10 @@ Orchard Core modifies the base HtmlSanitizer defaults:
 ### Sanitized Result Cache
 
 Content is sanitized each time it is displayed. `HtmlSanitizerService` caches
-the sanitized result of fragments up to 64K characters per tenant (bounded to a
-few MB of text), so repeated displays skip parsing. Consequently, actions
+the sanitized result of fragments up to 64K characters, reused only by the same
+tenant, so repeated displays skip parsing. The cache is shared by all tenants,
+so its size (about 8 MB at most) doesn't grow with the number of tenants, and
+entries not read for 10 minutes are evicted. Consequently, actions
 registered with `ConfigureHtmlSanitizer()`, including sanitizer event handlers
 such as `PostProcessNode`, must return the same result for the same input;
 do not make them depend on the current user, request, or time.
@@ -197,4 +199,4 @@ Only do this when every editor of the content type is trusted.
   sanitized. Templates or APIs that output the stored `Html` directly must now
   sanitize it themselves.
 - Sanitizer configuration actions must be deterministic because of the new
-  per-tenant result cache.
+  sanitized result cache.

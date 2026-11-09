@@ -1,0 +1,302 @@
+{
+  "type": "object",
+  "description": "Creates or updates contact center forecasting settings: planning groups, forecast events and capacity plans, each matched by itemId then name. A record that is updated takes every member of the entry, so a member left out goes back to its default. Planning groups are imported first, so events and plans can name one of the same step.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceForecasting",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceForecasting\u0027."
+    },
+    "PlanningGroups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A planning group: queues forecast and staffed together.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The planning group\u0027s id. When it matches a stored planning group, that planning group is updated; otherwise the planning group is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The planning group name, unique."
+          },
+          "queueNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The queues it forecasts, by name; added to queueIds. Queues named must exist."
+          },
+          "queueIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The queues it forecasts, by id."
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Voice",
+                  "Sms",
+                  "Email",
+                  "Chat"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The channel it forecasts; null for every channel of its queues."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team that staffs it, by name. Wins over teamId."
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team that staffs it, by id."
+          },
+          "serviceLevelPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The share of contacts to answer within serviceLevelSeconds, in percent; null to plan by average speed of answer. Defaults to 80."
+          },
+          "serviceLevelSeconds": {
+            "type": "integer",
+            "description": "The service level time, in seconds. Defaults to 20."
+          },
+          "averageSpeedOfAnswerSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The average speed of answer to plan for, in seconds, when there is no service level."
+          },
+          "maxOccupancyPercent": {
+            "type": "number",
+            "description": "The highest share of time agents should be busy, in percent. Defaults to 85."
+          },
+          "concurrency": {
+            "type": "integer",
+            "description": "How many contacts an agent handles at once. Defaults to 1."
+          },
+          "patienceSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How long contacts wait before they give up, in seconds, to plan for abandons."
+          },
+          "shrinkagePercent": {
+            "type": "number",
+            "description": "The share of paid time agents are not available, in percent. Defaults to 30."
+          },
+          "historyWeeks": {
+            "type": "integer",
+            "description": "How many weeks of history the forecast reads. Defaults to 8."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The planning groups to create or update."
+    },
+    "ForecastEvents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A forecast event: days whose volume differs from the usual.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The forecast event\u0027s id. When it matches a stored forecast event, that forecast event is updated; otherwise the forecast event is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The event name, unique."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Holiday",
+              "Closure",
+              "Promotion",
+              "Outage",
+              "Custom"
+            ],
+            "description": "What the event is."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day."
+          },
+          "volumeMultiplier": {
+            "type": "number",
+            "description": "How the usual volume is multiplied on those days, such as 0 for a closure or 1.5 for a promotion. Defaults to 1."
+          },
+          "recursYearly": {
+            "type": "boolean",
+            "description": "Whether the event comes back on the same dates every year."
+          },
+          "planningGroupNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The planning groups it affects, by name; added to planningGroupIds. Empty for every planning group."
+          },
+          "planningGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The planning groups it affects, by id."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The forecast events to create or update."
+    },
+    "CapacityPlans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A long-term capacity plan.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The capacity plan\u0027s id. When it matches a stored capacity plan, that capacity plan is updated; otherwise the capacity plan is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The plan name, unique."
+          },
+          "planningGroupName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The planning group it plans for, by name. Wins over planningGroupId."
+          },
+          "planningGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The planning group it plans for, by id."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The first week of the plan; moved back to its Monday."
+          },
+          "weeks": {
+            "type": "integer",
+            "description": "How many weeks the plan covers. Defaults to 26."
+          },
+          "weeklyWorkloadHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The weekly workload to plan for, in hours; null to use the planning group\u0027s forecast."
+          },
+          "growthPercentPerYear": {
+            "type": "number",
+            "description": "How much the workload grows a year, in percent."
+          },
+          "hoursPerFte": {
+            "type": "number",
+            "description": "The weekly hours of one full-time agent. Defaults to 37.5."
+          },
+          "currentFte": {
+            "type": "number",
+            "description": "The full-time agents staffed now."
+          },
+          "attritionPercentPerMonth": {
+            "type": "number",
+            "description": "The share of agents who leave each month, in percent. Defaults to 2."
+          },
+          "hiringClasses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A class of new hires.",
+              "properties": {
+                "startDate": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "The day the class starts."
+                },
+                "size": {
+                  "type": "number",
+                  "description": "How many people join."
+                },
+                "trainingWeeks": {
+                  "type": "integer",
+                  "description": "The weeks of training before they take contacts. Defaults to 4."
+                },
+                "rampWeeks": {
+                  "type": "integer",
+                  "description": "The weeks until they are fully productive. Defaults to 4."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The planned classes of new hires."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The capacity plans to create or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

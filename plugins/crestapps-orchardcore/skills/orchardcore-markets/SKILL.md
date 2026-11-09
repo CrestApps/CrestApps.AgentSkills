@@ -34,7 +34,7 @@ Markets (new in CrestApps.OrchardCore 3.0) sells to several countries on their o
 - Install `CrestApps.OrchardCore.Markets` in the web/startup project.
 - Set the store currency under **Settings > Commerce > Checkout** before adding markets.
 - Code that shows or charges money resolves `IShopperCurrency`; never convert with your own rates.
-- Markets have no recipe or deployment step; create them in the admin.
+- Move markets with the `Markets` recipe step and **Markets** deployment step (see below).
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -167,6 +167,23 @@ Register with `services.AddScoped<IProductSaleRestriction, AgeRestrictedSaleRest
 ## The market picker
 
 `MarketNavbarDisplayDriver` adds the `MarketPicker` shape (`MarketPickerViewModel`: `Markets`, `Current`, `StoreCurrency`, `ReturnUrl`) to the front-end `Navbar` before the cart link. It posts `marketId` and `returnUrl` to `POST /market`, which sets the `orchard-market` cookie (one year, `HttpOnly`, `SameSite=Lax`, essential) and the culture cookie when the market has a supported culture. Override `MarketPicker.cshtml` or a Liquid template to restyle, or an empty template to hide it.
+
+## Recipes and deployment
+
+The `Markets` step creates or updates markets, matched by `ItemId`, then by name, so running it twice changes nothing. Each market is validated like the admin screen (a name, two-letter countries no other market has, a three-letter currency, an exchange rate above zero); a market that fails is a recipe error. The **Markets** deployment step (*Commerce*) writes every market in this shape.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Markets",
+      "Markets": [
+        { "ItemId": "4mk00000000000000000000001", "Name": "Europe", "Countries": [ "DE", "AT" ], "Currency": "EUR", "ExchangeRate": 0.92, "Rounding": "EndIn99", "PricesIncludeTax": true, "IsEnabled": true }
+      ]
+    }
+  ]
+}
+```
 
 ## Troubleshooting
 

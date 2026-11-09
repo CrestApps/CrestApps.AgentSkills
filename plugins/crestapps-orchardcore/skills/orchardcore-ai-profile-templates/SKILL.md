@@ -85,6 +85,14 @@ You help customers with order status and shipping questions. Never promise deliv
 | `RequiresFeatures` | Comma-separated feature IDs that must be enabled |
 | `ProfileDescription` | The agent's own description (what other agents read), separate from the card text |
 | `InitialPrompt` | The **Opening message**; turns on **Start the conversation automatically**. May use Liquid |
+| `AgentAvailability` | `OnDemand` or `AlwaysAvailable`, copied to the agent profile's **Availability** |
+| `AllowToolInvocation` | `true` turns on **Let this agent use its tools** (`AgentMetadata.AllowToolInvocation`); without it an agent runs with no tools when another assistant calls it. Also a box in the template editor |
+| `ToolNames`, `AgentNames` | Comma-separated tool names and agent profile names ticked on the profile's **Capabilities** tab |
+
+The AI Agent module ships **Content Agent**, **Workflow Agent** and **AI Operations Agent** templates
+(category **Site management**), each `ProfileType: Agent`, `AgentAvailability: OnDemand`,
+`AllowToolInvocation: true`, with its tools in `ToolNames`; a tool whose feature is off is skipped when the
+agent runs. See `orchardcore-ai-agent`.
 
 `Featured`, `Icon`, `Order` and `RequiresFeatures` are stored as `ProfileScenarioMetadata` on the template
 and never copied to a profile; a value that does not parse is ignored. A value that starts with a Liquid tag

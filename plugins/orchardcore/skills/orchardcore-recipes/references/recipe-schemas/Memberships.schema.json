@@ -1,0 +1,87 @@
+{
+  "type": "object",
+  "description": "Creates or updates memberships, matched by ItemId, then by member, product and start. The member is named by UserName and must exist on the site. An active membership grants its roles.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Memberships",
+      "description": "Recipe step discriminator. Must be \u0027Memberships\u0027."
+    },
+    "Memberships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A member\u0027s membership from a membership product.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the record. When it matches a stored record, that record is updated. Otherwise a new record is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The member\u0027s user name. The user must exist on the site."
+          },
+          "ContentItemId": {
+            "type": "string",
+            "description": "The content item id of the membership product."
+          },
+          "Title": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The membership\u0027s title, such as the product\u0027s."
+          },
+          "RoleNames": {
+            "type": "array",
+            "description": "The roles the membership gives its member while it is active."
+          },
+          "OrderIds": {
+            "type": "array",
+            "description": "The orders that bought or renewed the membership."
+          },
+          "StartsUtc": {
+            "type": "string",
+            "description": "When the membership starts."
+          },
+          "EndsUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the membership ends, or none for one that doesn\u0027t."
+          },
+          "Status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "The membership\u0027s status: Active, Expired or Revoked (or 0, 1, 2)."
+          },
+          "EndedReason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the membership ended early, such as the order being refunded."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "UserName",
+          "ContentItemId",
+          "StartsUtc"
+        ]
+      },
+      "description": "The records to create, or to update when their ItemId matches a stored record."
+    }
+  },
+  "required": [
+    "name",
+    "Memberships"
+  ],
+  "additionalProperties": true
+}

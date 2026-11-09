@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "description": "Adds dates to booking products, such as a tour\u0027s departures.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "BookingDates",
+      "description": "Recipe step discriminator. Must be \u0027BookingDates\u0027."
+    },
+    "Dates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A date of a booking product. A date the product has already is left as it is.",
+        "properties": {
+          "ContentItemId": {
+            "type": "string",
+            "description": "The content item id of the booking product."
+          },
+          "Date": {
+            "type": "string",
+            "description": "The date, as yyyy-MM-dd. Give Date or DaysFromToday."
+          },
+          "DaysFromToday": {
+            "type": "integer",
+            "description": "The date as a number of days from today, so a sample\u0027s dates stay ahead."
+          },
+          "Time": {
+            "type": "string",
+            "description": "The start time of a time slot, as HH:mm. Leave it out for a whole day."
+          },
+          "Capacity": {
+            "type": "integer",
+            "description": "The places the date has. 10 when left out."
+          },
+          "Price": {
+            "type": "number",
+            "description": "The date\u0027s own price, or leave it out for the product\u0027s."
+          }
+        },
+        "required": [
+          "ContentItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The dates to add."
+    }
+  },
+  "required": [
+    "name",
+    "Dates"
+  ],
+  "additionalProperties": true
+}

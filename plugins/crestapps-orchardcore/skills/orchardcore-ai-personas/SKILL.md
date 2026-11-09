@@ -104,7 +104,10 @@ Business rules come last, so they win any conflict with the persona's personalit
 
 - Voice names belong to one provider. The persona remembers `VoiceDeploymentName` and its voice is used only on deployments of the same provider; elsewhere the deployment default is used and the log says why.
 - A persona `Language` sets the listening language of a spoken conversation when nothing else does, and turn-based calls speak and listen in it (`es-MX` listens for `es`). If the provider refuses the voice or language, the line is spoken again without the persona.
-- On the profile editor, an empty **Voice** shows **Use persona voice (...)** when the persona has one.
+- A live speech-to-speech call also takes the persona `Language`: the caller is transcribed in its language part and the model is told to keep to it (`RealtimeOrchestrationRequest.SpeechLanguage`). Without a language the model hears and answers in whatever language the caller speaks.
+- The conclusion and handoff-summary prompts of AI calls (`voice-conclusion-analysis`, `voice-handoff-summary`) take a `Language` variable, the English name of the persona's language, so summaries and agent briefings are written in the call's language.
+- On the profile editor, an empty **Voice** shows **Use persona voice (...)** when the persona has one. ElevenLabs and Cartesia voice ids can be copied from **Artificial Intelligence > Voice library**.
+- Privacy redaction keeps the persona's `AssistantName` (the persona the conversation started with and the one its profile links now) through `AIPersonaNamePrivacyHandler`.
 
 See `orchardcore-ai-realtime-voice` and `orchardcore-telephony` for the call side.
 

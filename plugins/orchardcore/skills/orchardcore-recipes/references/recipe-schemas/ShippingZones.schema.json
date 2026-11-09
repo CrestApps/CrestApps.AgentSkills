@@ -1,0 +1,278 @@
+{
+  "type": "object",
+  "description": "Creates or updates shipping zones, matched by ItemId, then by name. Only the members given are changed.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ShippingZones",
+      "description": "Recipe step discriminator. Must be \u0027ShippingZones\u0027."
+    },
+    "Zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A shipping zone: the countries and regions it covers and the shipping methods it offers there.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the record. When it matches a stored record, that record is updated. Otherwise a new record is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The zone\u0027s unique name, such as Domestic. A zone without a matching ItemId is matched by this name."
+          },
+          "Position": {
+            "type": "integer",
+            "description": "The zone\u0027s place in the list, smallest first."
+          },
+          "Countries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The two-letter country codes the zone covers. Stored upper case."
+          },
+          "Regions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The region codes the zone covers, such as US-CA (country code, hyphen, region). When the zone lists regions of a country, only those regions of it are covered. Stored upper case."
+          },
+          "RestOfWorld": {
+            "type": "boolean",
+            "description": "Whether the zone covers every address no other zone covers."
+          },
+          "Methods": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A way to ship the zone offers, priced by a rate provider.",
+              "properties": {
+                "MethodId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The method\u0027s identifier, which orders refer to. Generated when omitted."
+                },
+                "Name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The name buyers see, such as Standard."
+                },
+                "Description": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "What buyers see under the name, such as 3 to 5 business days."
+                },
+                "ProviderName": {
+                  "type": "string",
+                  "examples": [
+                    "Flat",
+                    "Table",
+                    "Free",
+                    "LocalDelivery",
+                    "Carrier"
+                  ],
+                  "description": "The rate provider that prices the method. Other modules can register more."
+                },
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "Whether buyers are offered the method. Defaults to true."
+                },
+                "Position": {
+                  "type": "integer",
+                  "description": "The method\u0027s place in the zone\u0027s list, smallest first."
+                },
+                "Currency": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The three-letter currency the method\u0027s amounts are in. The method only offers rates for orders in that currency."
+                },
+                "TaxCategoryCode": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The tax category of the shipping charge, or null for the store\u0027s default."
+                },
+                "ClassSurcharges": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "number"
+                  },
+                  "description": "What each unit of a product in a shipping class (the key) adds to the rate."
+                },
+                "Properties": {
+                  "type": "object",
+                  "description": "The provider\u0027s settings, keyed by the name of their type.",
+                  "properties": {
+                    "FlatRateSettings": {
+                      "type": "object",
+                      "properties": {
+                        "Amount": {
+                          "type": "number",
+                          "description": "The amount per order."
+                        },
+                        "PerItemAmount": {
+                          "type": "number",
+                          "description": "The amount added for each item."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Settings of the Flat provider."
+                    },
+                    "TableRateSettings": {
+                      "type": "object",
+                      "properties": {
+                        "Basis": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "Weight",
+                                "Subtotal",
+                                "Quantity"
+                              ]
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ],
+                          "description": "What the table looks the order up by: Weight, Subtotal or Quantity."
+                        },
+                        "Rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "From": {
+                                "type": "number",
+                                "description": "The value the row starts at."
+                              },
+                              "Amount": {
+                                "type": "number",
+                                "description": "The amount charged from that value."
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "description": "The rows of the table."
+                        },
+                        "Maximum": {
+                          "type": [
+                            "null",
+                            "number"
+                          ],
+                          "description": "The most the method charges, or null for no cap."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Settings of the Table provider."
+                    },
+                    "FreeShippingSettings": {
+                      "type": "object",
+                      "properties": {
+                        "MinimumSubtotal": {
+                          "type": "number",
+                          "description": "The order subtotal from which shipping is free."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Settings of the Free provider."
+                    },
+                    "LocalDeliverySettings": {
+                      "type": "object",
+                      "properties": {
+                        "PostalCodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "The postal codes delivered to; a code ending in * matches every code that starts with it."
+                        },
+                        "Amount": {
+                          "type": "number",
+                          "description": "The delivery charge."
+                        },
+                        "FreeFromSubtotal": {
+                          "type": [
+                            "null",
+                            "number"
+                          ],
+                          "description": "The order subtotal from which delivery is free."
+                        },
+                        "MinimumSubtotal": {
+                          "type": "number",
+                          "description": "The order subtotal needed for local delivery."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Settings of the LocalDelivery provider."
+                    },
+                    "CarrierRateSettings": {
+                      "type": "object",
+                      "properties": {
+                        "Carriers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "The carriers whose quotes are offered. Empty offers every carrier."
+                        },
+                        "MaxRates": {
+                          "type": "integer",
+                          "description": "The most quotes offered. Defaults to 3."
+                        },
+                        "MarkupPercent": {
+                          "type": "number",
+                          "description": "The percentage added to each quote."
+                        },
+                        "MarkupAmount": {
+                          "type": "number",
+                          "description": "The amount added to each quote."
+                        },
+                        "FallbackAmount": {
+                          "type": [
+                            "null",
+                            "number"
+                          ],
+                          "description": "The amount charged when no carrier quotes, or null to offer nothing."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "Settings of the Carrier provider."
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The shipping methods the zone offers. When given, the list replaces the stored one."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "Name"
+        ]
+      },
+      "description": "The records to create, or to update when their ItemId matches a stored record."
+    }
+  },
+  "required": [
+    "name",
+    "Zones"
+  ],
+  "additionalProperties": true
+}

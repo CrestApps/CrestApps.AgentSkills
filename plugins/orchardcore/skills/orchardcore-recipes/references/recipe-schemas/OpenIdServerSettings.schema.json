@@ -12,6 +12,7 @@
         "DataProtection",
         "JsonWebToken"
       ],
+      "default": "DataProtection",
       "description": "Format used when issuing access tokens."
     },
     "Authority": {
@@ -141,7 +142,7 @@
     "RequireEndSessionConfirmation": {
       "type": "boolean",
       "default": true,
-      "description": "Whether users must confirm sign-out at the end session endpoint. Defaults to true when omitted."
+      "description": "Whether the logout endpoint asks the user to confirm the sign-out. Defaults to true when omitted."
     },
     "UseReferenceAccessTokens": {
       "type": "boolean",

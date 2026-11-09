@@ -156,6 +156,6 @@ using (MiniProfiler.Current?.Step("Load recommendations"))
 
 ### Notes
 
-- For production-style, always-on measurements of shape rendering, prefer the `OrchardCore.DisplayManagement` activity source and meter with OpenTelemetry (see `orchardcore-display-management`) over MiniProfiler.
+- For production-style, always-on measurements of shape rendering, prefer the `OrchardCore.DisplayManagement` activity source and meter with OpenTelemetry (see `orchardcore-opentelemetry` and `orchardcore-display-management`) over MiniProfiler.
 - Use it together with `orchardcore-diagnostics` and `orchardcore-logging-serilog` when investigating performance and failures.
 - Repeated identical SQL (the **Duplicate** badge) usually indicates an N+1 pattern that a batched YesSql query, an index, or a cache would fix.

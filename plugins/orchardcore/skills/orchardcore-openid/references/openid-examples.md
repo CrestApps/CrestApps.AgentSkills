@@ -218,7 +218,7 @@ public sealed class OrchardApiClient
 }
 ```
 
-Cache the token until it expires. With Rate Limits enabled, `/connect/token` allows 10 requests per minute per IP, and a `429` means the token is being requested too often.
+Cache the token until it expires. With Rate Limits enabled, only password-grant requests to `/connect/token` are rate limited (100 per minute per IP, shared with the login form); a rejected request gets an OAuth 2.0 `slow_down` error with a `Retry-After` header. Client credentials requests are not limited.
 
 ## Example 3: Public SPA with PKCE and Silent Renew
 

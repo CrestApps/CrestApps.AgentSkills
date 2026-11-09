@@ -1,6 +1,6 @@
 ---
 name: orchardcore-memberships
-description: Skill for the CrestApps Orchard Core Memberships module (CrestApps.OrchardCore.Memberships), which sells access as a product. Covers the MembershipPart (RoleNames, DurationDays) that makes a product a membership, the Membership record and MembershipStatus (Active, Expired, Revoked), IMembershipStore and MembershipService (GrantAsync, RevokeOrderAsync, EndAsync, ExpireAsync), MembershipPeriods.Extend, MembershipOrderEventHandler built on OrderGrantHandlerBase, MembershipCartLineHandler refusing guests, the hourly MembershipsBackgroundTask, gating content with Content Access Control and RolePickerPart, the Memberships sample recipe, Commerce > Memberships with ManageMemberships, and the storefront account/memberships page. Use it when requests mention selling memberships, paid roles, members-only content bought as a product, or granting something when an order is paid.
+description: Skill for the CrestApps Orchard Core Memberships module (CrestApps.OrchardCore.Memberships), which sells access as a product. Covers the MembershipPart (RoleNames, DurationDays) that makes a product a membership, the Membership record and MembershipStatus (Active, Expired, Revoked), IMembershipStore and MembershipService (GrantAsync, RevokeOrderAsync, EndAsync, ExpireAsync), MembershipPeriods.Extend, MembershipOrderEventHandler built on OrderLineGrantHandlerBase, role grants through IRoleGrantService, the Memberships recipe and deployment step, MembershipCartLineHandler refusing guests, the hourly MembershipsBackgroundTask, gating content with Content Access Control and RolePickerPart, the Memberships sample recipe, Commerce > Memberships with ManageMemberships, and the storefront account/memberships page. Use it when requests mention selling memberships, paid roles, members-only content bought as a product, or granting something when an order is paid.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -81,13 +81,30 @@ Install `CrestApps.OrchardCore.Memberships` in the web project. The **Membership
 
 ## How it works
 
-- **Paid.** `MembershipOrderEventHandler.GrantAsync` calls `MembershipService.GrantAsync(order)`: for each membership line it creates a `Membership` or extends the member's active one for that product with `MembershipPeriods.Extend(now, currentEnd, DurationDays, quantity)` (from the current end while it has not passed, else from now; `null` end for an unlimited part). It adds the roles the member was not already in (`AddedRoleNames`). When the buyer is the signed-in user on the request, their sign-in is refreshed so the roles apply at once; paid by webhook, the sign-in catches up later. A guest's order grants nothing.
+- **Paid.** `MembershipOrderEventHandler.GrantAsync` calls `MembershipService.GrantAsync(order)`: for each membership line it creates a `Membership` or extends the member's active one for that product with `MembershipPeriods.Extend(now, currentEnd, DurationDays, quantity)` (from the current end while it has not passed, else from now; `null` end for an unlimited part). It grants the roles through `IRoleGrantService` (`CrestApps.OrchardCore.Users.Abstractions`, `services.AddRoleGrants()` from Users.Core), which records each grant on the user by source (`Membership`) and source id (the membership); new memberships leave `AddedRoleNames` empty. Line roles and length are read from the product version the order bought. When the buyer is the signed-in user on the request, their sign-in is refreshed so the roles apply at once; paid by webhook, the sign-in catches up later. A guest's order grants nothing.
 - **Canceled** order: `RevokeOrderAsync` ends the memberships it bought. **Refunded**: only when the order is refunded in full (`OrderRefundStatus.Refunded`).
-- **Ending** (`EndAsync(membership, status, reason)`): removes the added roles no other active membership of the member still gives, and updates the security stamp so an existing sign-in is re-validated.
+- **Ending** (`EndAsync(membership, status, reason)`): revokes the membership's role grants; the member leaves a role only when the membership put them in it and nothing else (another membership, a subscription) still grants it. The security stamp is then updated so an existing sign-in is re-validated. `MembershipRoleGrantSource` reports the roles of memberships made before grants were recorded (from `AddedRoleNames`), so they are kept and removed as before.
 - **Expiry**: `MembershipsBackgroundTask` (*Membership end dates*, `15 * * * *`) calls `ExpireAsync`.
 - **Cart**: `MembershipCartLineHandler` refuses a membership line to a guest (*Sign in to buy ...*).
 
 `Membership` (collection `Memberships`, `MembershipIndex`): `UserId`, `UserName`, `ContentItemId`, `Title`, `RoleNames`, `AddedRoleNames`, `OrderIds`, `StartsUtc`, `EndsUtc`, `Status`, `EndedReason`. `IMembershipStore`: `ListByUserAsync`, `ListByOrderAsync(userId, orderId)`, `ListEndedAsync`, `PageAsync(search, status, skip, take)`.
+
+## Recipes and deployment
+
+The `Memberships` step creates or updates memberships. The member is named by `UserName` (must exist on the site); a membership is matched by `ItemId`, then by member, product (`ContentItemId`) and `StartsUtc`. An active imported membership grants its `RoleNames` through role grants. The **Memberships** deployment step (*Commerce*) writes every membership without the member's user id or `AddedRoleNames`.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Memberships",
+      "Memberships": [
+        { "ItemId": "4ms00000000000000000000001", "UserName": "ana", "ContentItemId": "4gold0000000000000000000001", "Title": "Gold", "RoleNames": [ "Member" ], "StartsUtc": "2026-01-01T00:00:00Z", "EndsUtc": "2027-01-01T00:00:00Z", "Status": "Active" }
+      ]
+    }
+  ]
+}
+```
 
 ## Gating content
 
@@ -95,7 +112,7 @@ Attach `RolePickerPart` with `RolePickerPartContentAccessControlSettings.IsConte
 
 ## Granting something else when an order is paid
 
-The same pattern serves any "paid order grants X" module. Derive from `OrderGrantHandlerBase` (`CrestApps.OrchardCore.Orders.Core.Services`), which routes paid orders to `GrantAsync` and canceled or fully refunded orders to `RevokeAsync`:
+The same pattern serves any "paid order grants X" module. Derive from `OrderGrantHandlerBase` (`CrestApps.OrchardCore.Orders.Core.Services`), which routes paid orders to `GrantAsync` and canceled or fully refunded orders to `RevokeAsync`. When the grant comes from a part on the product, `OrderLineGrantHandlerBase<TPart>` (as Memberships and Downloads use) reads each line's purchased product version and skips lines already granted:
 
 ```csharp
 using CrestApps.OrchardCore.Orders.Core.Models;

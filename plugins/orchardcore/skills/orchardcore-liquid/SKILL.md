@@ -1,6 +1,6 @@
 ---
 name: orchardcore-liquid
-description: Skill for using Liquid templates in Orchard Core. Covers Liquid syntax, global objects, zones, render_section, shape rendering, alias handles, content access, Orchard Core tags and filters, LiquidPart and the new LiquidField, the ManageLiquidTemplates permission, Site property redaction with PermittedSiteProperties, Liquid parser options, ILiquidTemplateManager, Liquid shape templates, and Liquid best practices. Use this skill when requests mention Orchard Core Liquid, Write Liquid Templates, Global Objects, Content Item Access, LiquidPart, LiquidField, ManageLiquidTemplates, SettingsLiquidOptions, Site.Properties, RenderLiquid migration, slugify, transliterate, Orchard Core Liquid Tags, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+description: Skill for using Liquid templates in Orchard Core. Covers Liquid syntax, global objects, zones, render_section, shape rendering, alias handles, content access, Orchard Core tags and filters, LiquidPart and LiquidField, the ManageLiquidTemplates permission, Site property redaction with PermittedSiteProperties, Liquid parser options, ILiquidTemplateManager, Liquid shape templates, extending Liquid from a module with Fluid 3 (TemplateOptionsBuilder, custom filters, tags writing to IFluidOutput, FluidValue factories), upgrading Liquid extensions from Fluid 2, and best practices. Use this skill when requests mention Orchard Core Liquid, writing Liquid templates, global objects, content item access, LiquidPart, LiquidField, ManageLiquidTemplates, Site.Properties, slugify, transliterate, custom Liquid filters or tags, TemplateOptionsBuilder, the Fluid 3 upgrade, or closely related Orchard Core implementation or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -270,7 +270,7 @@ public sealed class SnippetRenderer
             template,
             _htmlEncoder,
             contentItem,
-            new Dictionary<string, FluidValue> { ["ContentItem"] = new ObjectValue(contentItem) });
+            new Dictionary<string, FluidValue> { ["ContentItem"] = ObjectValue.Create(contentItem) });
     }
 }
 ```
@@ -297,11 +297,13 @@ public sealed class ReadingTimeFilter : ILiquidFilter
         FilterArguments arguments,
         LiquidTemplateContext context)
     {
-        var wordCount = input.ToStringValue()
+        // Fluid 3: conversions take the template context.
+        var wordCount = input.ToStringValue(context)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Length;
 
-        return ValueTask.FromResult<FluidValue>(new StringValue($"{Math.Max(1, wordCount / 200)} min read"));
+        // Fluid 3: built-in values are created with factories, not constructors.
+        return ValueTask.FromResult<FluidValue>(StringValue.Create($"{Math.Max(1, wordCount / 200)} min read"));
     }
 }
 ```
@@ -309,6 +311,107 @@ public sealed class ReadingTimeFilter : ILiquidFilter
 ```csharp
 services.AddLiquidFilter<ReadingTimeFilter>("reading_time");
 ```
+
+`AddLiquidFilter<T>()` registers the filter as a scoped service, so it can take
+dependencies. `StringValue.Create(null)` returns `NilValue.Instance` (falsy in a
+template); pass `text ?? string.Empty` when an empty string matters.
+
+## Extending Liquid from a Module
+
+Orchard Core 4.0 uses Fluid 3 (built on Parlot 2). A tenant's `TemplateOptions`
+are immutable: they are built once from `TemplateOptionsBuilder`, which is what
+a module configures, and are still read from `IOptions<TemplateOptions>`.
+
+```csharp
+using Fluid;
+using Fluid.Values;
+using OrchardCore.Liquid;
+
+public sealed class Startup : StartupBase
+{
+    public override void ConfigureServices(IServiceCollection services)
+    {
+        services.Configure<TemplateOptionsBuilder>(options =>
+        {
+            // A filter without dependencies (use ILiquidFilter and AddLiquidFilter<T>() when it needs services).
+            options.AddFilter("shout", (input, arguments, context) =>
+                StringValue.Create(input.ToStringValue(context).ToUpperInvariant()));
+
+            // A value available in every template.
+            options.WithGlobalValue("Store", ObjectValue.Create(new StoreAccessor()));
+
+            // Converts a CLR object to a Liquid value.
+            options.AddValueConverter(x => x is Money money ? NumberValue.Create(money.Amount) : null);
+
+            // A member computed on demand.
+            options.ConfigureMemberAccess(strategy =>
+                strategy.Register<StoreAccessor, Product>("Featured", (obj, context) => GetFeaturedProduct(context)));
+        });
+    }
+}
+```
+
+- A class that needs services implements `IConfigureOptions<TemplateOptionsBuilder>`.
+- `services.Configure<TemplateOptions>()` or `IConfigureOptions<TemplateOptions>`
+  is never applied and throws an `InvalidOperationException` the first time the
+  options are resolved.
+- Types no longer need to be registered: templates read the public properties
+  and fields (including static ones) of any object reachable from their model,
+  matching member names case-insensitively. Never put a service or a secret in a
+  shape model. To restrict a type the way `User` and `Site` are restricted,
+  register an accessor for all its members:
+
+```csharp
+options.ConfigureMemberAccess(strategy => strategy.Register<Account, FluidValue>((account, name, context) => name switch
+{
+    nameof(Account.DisplayName) => StringValue.Create(account.DisplayName),
+    _ => NilValue.Instance,
+}));
+```
+
+- Liquid files are located through `LiquidViewOptions.FileProviders`:
+  `services.Configure<LiquidViewOptions>(o => o.FileProviders.Add(provider))`.
+- `FluidParserOptions` is immutable and only set from the `OrchardCore:Liquid`
+  section; it can no longer be changed with `services.Configure<FluidParserOptions>()`.
+
+### Custom Tags and Blocks
+
+Register tags on the `LiquidViewParser` with
+`LiquidViewOptions.LiquidViewParserConfiguration`. Tags, blocks and `Statement`s
+write to an `IFluidOutput` instead of a `TextWriter`:
+
+```csharp
+services.Configure<LiquidViewOptions>(options => options.LiquidViewParserConfiguration.Add(parser =>
+{
+    parser.RegisterParserTag("product_link", parser.ArgumentsListParser, ProductLinkTag.WriteToAsync);
+}));
+
+public static class ProductLinkTag
+{
+    public static async ValueTask<Completion> WriteToAsync(
+        IReadOnlyList<FilterArgument> arguments,
+        IFluidOutput output,
+        TextEncoder encoder,
+        TemplateContext context)
+    {
+        var name = (await arguments[0].Expression.EvaluateAsync(context)).ToStringValue(context);
+
+        output.Write(encoder.Encode(name));
+        output.Write(new HtmlString("<hr />"), (HtmlEncoder)encoder); // OrchardCore.Liquid extension.
+
+        // For components that render to a TextWriter, such as IResourceManager.RenderLocalScript().
+        var writer = output.AsTextWriter(); // OrchardCore.Liquid extension.
+
+        return Completion.Normal;
+    }
+}
+```
+
+`Write(IHtmlContent, HtmlEncoder)` and `AsTextWriter()` are extension methods of
+`OrchardCore.Liquid.FluidOutputHtmlExtensions`. `ViewBufferTextWriterContent` is
+also an `IFluidOutput`, so a block can render its statements into it, and its
+`ToString()` returns the content. A custom `FluidValue` must override
+`WriteToAsync(IFluidOutput, TextEncoder, TemplateContext)` or it renders nothing.
 
 ## Upgrading from 3.x
 
@@ -323,6 +426,33 @@ services.AddLiquidFilter<ReadingTimeFilter>("reading_time");
 - `slugify: transliterate: true` is no longer supported; use
   `transliterate | slugify`.
 - Rename the `OrchardCore_Liquid` configuration section to `OrchardCore:Liquid`.
+- Existing templates keep working under Fluid 3 (string literals still accept
+  escape sequences), but module code extending Liquid must be updated:
+
+| 3.x (Fluid 2) | 4.0 (Fluid 3) |
+| --- | --- |
+| `services.Configure<TemplateOptions>(o => ...)` | `services.Configure<TemplateOptionsBuilder>(o => ...)` |
+| `IConfigureOptions<TemplateOptions>` | `IConfigureOptions<TemplateOptionsBuilder>` |
+| `o.MemberAccessStrategy.Register<T>()` | Remove it; every public member is readable |
+| `o.MemberAccessStrategy.Register<T, TValue>(...)` | `o.ConfigureMemberAccess(strategy => strategy.Register<T, TValue>(...))` |
+| `o.Filters.AddFilter("name", filter)` | `o.AddFilter("name", filter)` |
+| `o.ValueConverters.Add(converter)` | `o.AddValueConverter(converter)` |
+| `o.Scope.SetValue("name", value)` | `o.WithGlobalValue("name", value)` |
+| `o.FileProvider = provider` | `services.Configure<LiquidViewOptions>(o => o.FileProviders.Add(provider))` |
+| `new TemplateOptions()` | `new TemplateOptionsBuilder().Build()` or `TemplateOptions.Default` |
+| Tag `WriteToAsync(..., TextWriter writer, ...)` | `WriteToAsync(..., IFluidOutput output, ...)`, writing with `output.Write(...)` and `output.AsTextWriter()` |
+| `value.ToStringValue()`, `ToNumberValue()`, `ToBooleanValue()`, `ToObjectValue()` | The same methods with the `TemplateContext`, for example `value.ToStringValue(context)` |
+| `value.Enumerate(context)` | `await foreach (var item in value.EnumerateAsync(context))` |
+| `value.Contains(item)` | `await value.ContainsAsync(item, context)` |
+| `new StringValue(text)` / `new StringValue(text, false)` | `StringValue.Create(text)` / `StringValue.Create(text, encode: false)` |
+| `new ObjectValue(x)`, `new ArrayValue(x)`, `new FunctionValue(...)` | `ObjectValue.Create(x)`, `ArrayValue.Create(x)`, `FunctionValue.Create(...)` |
+| `context.EnterChildScope()` then `context.ReleaseScope()` | `using var scope = context.EnterScope();` |
+| `LiquidTagHelperActivator.Create(...)`, `LiquidTagHelperFactory.CreateTagHelper(...)` | Pass the `TemplateContext` too |
+| Parlot 1 `ZeroOrOne(parser)` returning a single value | Parlot 2 `ZeroOrOne` returns a list; use `parser.Else(fallback)` |
+| `Parser<T>.Compile()` | Remove the call |
+
+- Review what your shape models expose: members that were hidden because their
+  type was not registered are now readable from templates.
 
 See [references/liquid-examples.md](references/liquid-examples.md) for layout,
 content, and zone examples.

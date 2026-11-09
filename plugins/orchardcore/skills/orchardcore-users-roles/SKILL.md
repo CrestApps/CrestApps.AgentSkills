@@ -140,7 +140,7 @@ public sealed class MyController : Controller
 }
 ```
 
-Role-specific user permissions are created from `UsersPermissions`, for example `UsersPermissions.CreateAssignRoleToUsersPermission("Editor")`, `CreateEditUsersInRolePermission`, `CreateDeleteUsersInRolePermission`, `CreateListUsersInRolePermission`, and `CreatePermissionForManageUsersInRole`.
+Role-specific user permissions are created from `UsersPermissions`, for example `UsersPermissions.CreateAssignRoleToUsersPermission("Editor")`, `CreateEditUsersInRolePermission`, `CreateDeleteUsersInRolePermission`, `CreateListUsersInRolePermission`, and `CreatePermissionForManageUsersInRole`. They are built from internal `PermissionTemplate`s, so their descriptions ("Edit users in Editor role") are context-free and translated through Data Localization.
 
 ### Checking Permissions in Liquid
 
@@ -209,13 +209,15 @@ The `Administrator` role does not receive permission claims during login. Use `h
 }
 ```
 
-With `OrchardCore.Deployment` enabled, Login, Registration, Reset Password, Change Email, External login, and External registration settings each have a deployment step.
+With `OrchardCore.Deployment` enabled, Login, Registration, Reset Password, Change Email, External login, and External registration settings each have a deployment step. The **Change Email settings** step exports `ChangeEmailSettings`; in 3.x it exported the wrong type, so plans exported with it did not carry the Change Email settings.
 
 The **Generate username** script receives `context` with `userName`, `loginProvider`, and `externalClaims`; set `context.userName`. The **Sync properties** script receives `context` and fills `rolesToAdd`, `rolesToRemove`, claims, and properties. Orchard passes the per-login data through the scoped `externalLoginContext()` global, so write scripts against `context` and never build script text from user data.
 
 ### Email Confirmation
 
-When `UsersMustValidateEmail` is enabled, an unconfirmed user who signs in with a valid password lands on a page with **Send confirmation email**. The action is offered for about 10 minutes in the same browser (a short-lived cookie, not a sign-in), at most once per minute per user, and, with Rate Limits enabled, 2 requests per minute per IP on the `ResendEmailConfirmation` route (`email-confirmation` policy).
+When `UsersMustValidateEmail` is enabled, an unconfirmed user who signs in with a valid password lands on a page with **Send confirmation email**. The action is offered for about 10 minutes in the same browser (a short-lived cookie, not a sign-in), at most once per minute per user, and, with Rate Limits enabled, 2 requests per minute on the `ResendEmailConfirmation` route (`email-confirmation` policy), counted against the user who passed the password check, not the IP address.
+
+A user also receives at most one password reset email per minute; further requests during that minute show the same confirmation page without sending an email, so the page does not reveal whether the account exists. Linking an external login to an existing account with its password counts a failed password check toward the account lockout, like the login page.
 
 ### Login, Logout, and Registration Events
 
@@ -271,7 +273,18 @@ public sealed class RegistrationGate
 
 ### Rate-Limited User Endpoints
 
-When `OrchardCore.RateLimits` is enabled, Users registers per-IP route limits: login (POST, 10, sliding window), registration and external registration (3), link external login (10), forgot and reset password (5), and resend confirmation (2 per minute). See `orchardcore-rate-limits` to tune them.
+When `OrchardCore.RateLimits` is enabled, Users registers these route limits (per minute). The anonymous endpoints are counted per IP address and sized for users who share a network; account lockout and the one-email-per-minute rules protect each account.
+
+| Endpoint (POST) | Limit | Counted against |
+|---|---|---|
+| Login, link external login (`password-authentication` policy, shared with the OpenID password grant) | 100, sliding window | IP address |
+| Registration, external registration | 20 | IP address |
+| Forgot password, reset password | 20 | IP address |
+| Resend confirmation email | 2 | User who passed the password check |
+| Two-factor code / recovery code | 5 / 3 | User who passed the password check |
+| Email or SMS authenticator send code | 2 | User who passed the password check |
+
+See `orchardcore-rate-limits` to tune them.
 
 ### Configuration Sections
 
@@ -353,6 +366,10 @@ await _userService.DisableAsync(user);
 
 Use the `CustomUserSettings` stereotype for per-user fields. See `orchardcore-custom-user-settings`.
 
+### User Editor Password Generator
+
+The **Generate password** button of the user editor uses the `generatePassword` default export of `@orchardcore/bloom/helpers/passwordGenerator`, which draws characters with `crypto.getRandomValues()` (a cryptographically secure RNG) instead of `Math.random()`. The `password-generator` script resource (`window.passwordManager`) is still registered but deprecated and will be removed in a future major version; custom editors should import the Bloom helper instead.
+
 ### Upgrading from 3.x
 
 - `OrchardCore.Users.CommonPermissions` was removed; use `OrchardCore.Users.UsersPermissions` (same member names).
@@ -361,3 +378,5 @@ Use the `CustomUserSettings` stereotype for per-user fields. See `orchardcore-cu
 - `Permission.Description` is a `LocalizationSource`; use `.Value` or `IStringLocalizerFactory.Localize(permission.Description)`.
 - `IOptions<RegistrationOptions>` and `IOptions<ExternalLoginOptions>` become `IOptionsMonitor<T>` with `CurrentValue`.
 - Rename configuration sections `OrchardCore_Users` to `OrchardCore:Users` and `OrchardCore_Roles` to `OrchardCore:Roles` (old names still work but are deprecated).
+- Rate limits of the user endpoints were raised (login 10 to 100, registration 3 to 20, password recovery 5 to 20 per minute) and the confirmation-email and two-factor limits are counted per user instead of per IP. Re-check tenant policies that relied on the old values.
+- Stop depending on the `password-generator` script resource; use the Bloom `generatePassword` helper.

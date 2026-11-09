@@ -17,7 +17,8 @@ All sections live under `CrestApps:ContactCenter`. In the host `appsettings.json
 | `Compliance:ManualDialing` | `ManualDialingComplianceOptions` | Dialer | `RespectDoNotCall` (true), `EnforceCallingWindow`, `CallingCalendarId`, `DefaultRegionCode` |
 | `DialerPacing` | `ContactCenterDialerPacingOptions` | Paced Dialing | `Debounce` (300 ms), `LockExpiration` (30 s), `LockRetryDelay` (1 s), `StalledAfter` (5 min) |
 | `PredictiveDialing` | `ContactCenterPredictiveDialingOptions` | Paced Dialing | Over-dial timings (`PacingInterval`, `MaxDialsPerCycle`, `AgentLegAnswerTimeout`, `ComplianceWindowDays`, `DiscountAgentsWithWaitingInbound`, and more) |
-| `WebhookIngress` | `ProviderWebhookIngressOptions` | Voice | Per-node `ConcurrencyPermitLimit` (8), `RatePermitLimit` (120), `RatePeriodSeconds` (60), `MaximumDeliveryAgeSeconds` (900), `MaximumFutureSkewSeconds` (120) |
+| `IntervalStatistics` | `IntervalStatisticsOptions` | Interval Statistics | `RetentionDays` (760), `BackfillDays` (400), `ShortAbandonSeconds` (5), `SettleDelay` (02:00:00), `CurrentDayRefresh` (00:15:00), `MaxDaysPerRun` (5) |
+| `WebhookIngress` | `ProviderWebhookIngressOptions` (now in the Webhooks module) | Voice | Per-node `ConcurrencyPermitLimit` (8), `RatePermitLimit` (120), `RatePeriodSeconds` (60), `MaximumDeliveryAgeSeconds` (900), `MaximumFutureSkewSeconds` (120) |
 | `BaseVoiceVerification` | `BaseVoiceVerificationOptions` | Voice | `AudioVerificationAcknowledged`, `AudioVerificationEvidenceReference` (required when acknowledged) |
 
 Related sections owned by other modules: `CrestApps_Telephony:Commands:Timeout` (PBX mutation deadline, default 10 s) and `CrestApps_Telephony:Coordination` (see `orchardcore-telephony`).
@@ -256,7 +257,7 @@ Import rules:
 }
 ```
 
-`OpenMinute` and `CloseMinute` are minutes after midnight; equal values mean a 24-hour day and windows may cross midnight. IVR action kinds are `RouteToQueue`, `RouteToAgent`, `SubMenu`, `Voicemail`, `ExternalTransfer` (target is an external destination id) and `Repeat`. A `null` `FallbackAction` routes to the entry point's own target. Predictive profiles add `PredictivePacingModel` (`ReservedPerCall` or `OverDial`) and the over-dial properties described in [routing-and-dialer.md](routing-and-dialer.md).
+`OpenMinute` and `CloseMinute` are minutes after midnight; equal values mean a 24-hour day and windows may cross midnight. IVR action kinds are `RouteToQueue`, `RouteToAgent`, `SubMenu`, `Voicemail`, `ExternalTransfer` (target is an external destination id) and `Repeat`. A `null` `FallbackAction` routes to the entry point's own target. Preview profiles take `PreviewOfferTimeoutSeconds` (default 180, 15 to 3600; 0 uses the default) for how long a record stays reserved for its agent. Predictive profiles add `PredictivePacingModel` (`ReservedPerCall` or `OverDial`) and the over-dial properties described in [routing-and-dialer.md](routing-and-dialer.md).
 
 ## Feature-Only Recipes
 

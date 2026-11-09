@@ -1,6 +1,6 @@
 ---
 name: orchardcore-tenant-hierarchy
-description: Skill for the CrestApps Orchard Core Tenant Hierarchy module, where the Default tenant makes tenants parents that create, manage and open their own child tenants. Covers the Platform, Parent and Child features, the AddTenantHierarchy host guards in Program.cs, the TenantHierarchy configuration section, parent policies, delegated access with a one-time code and PKCE, linked users, access grants, the tenant switcher, isolation guards such as GuardedShellHost and the egress guard, audit trail activity, database strategies and custom IChildTenantDatabaseProvisioner implementations. Use this skill when requests mention Orchard Core tenant hierarchy, parent and child tenants, agency multi-tenancy, entering a child tenant without signing in, or a database per tenant. Strong matches include CrestApps.OrchardCore.TenantHierarchy, ITenantHierarchyBroker, TenantHierarchyAccessDeniedException, ParentTenantPolicy, ChildDatabaseStrategy, DatabasePoolOptions, ManageTenantHierarchy and EnterChildTenants.
+description: Skill for the CrestApps Orchard Core Tenant Hierarchy module, where the Default tenant makes tenants parents that create, manage and open their own child tenants. Covers the Platform, Parent and Child features, the AddTenantHierarchy host guards in Program.cs, the TenantHierarchy configuration section, parent policies, delegated access with a one-time code and PKCE, linked users, access grants and the TenantHierarchyAccessGrants recipe step, the tenant switcher, isolation guards such as GuardedShellHost and the egress guard, audit trail activity, database strategies and custom IChildTenantDatabaseProvisioner implementations. Use this skill when requests mention Orchard Core tenant hierarchy, parent and child tenants, agency multi-tenancy, entering a child tenant without signing in, or a database per tenant. Strong matches include CrestApps.OrchardCore.TenantHierarchy, ITenantHierarchyBroker, ParentTenantPolicy, ChildDatabaseStrategy, ManageTenantHierarchy and EnterChildTenants.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -133,6 +133,28 @@ The guard filters what can be enabled; it does not turn off a feature already on
 | `EnterChildTenants` | Base gate for opening a child; a grant is still needed |
 
 When a tenant becomes a parent, a parent-wide grant gives the parent's **Administrator** role the child role **Administrator** in every child. Activity needs the audit trail's `ViewAuditTrail` (`/Admin/AuditTrail?q=category:TenantHierarchy`).
+
+## Access Grants Recipe and Deployment Step
+
+In a parent tenant (Parent Tenant feature), access grants travel with the `TenantHierarchyAccessGrants` recipe step (`TenantHierarchyConstants.Recipes.AccessGrants`) and the **Child tenant access** deployment step, both with CrestApps Recipes schemas. Each grant goes through the access grant manager as on the admin screen: a user is found by user name or email, the role must exist, and a grant for the same principal and child is updated instead of duplicated. A grant without a child covers every child; name a child by `ChildEntryId`, or by `ChildSlug` when the entry id is not known on this site. Grants carry no secret.
+
+```json
+{
+  "steps": [
+    {
+      "name": "TenantHierarchyAccessGrants",
+      "Grants": [
+        { "PrincipalType": "Role", "Principal": "Administrator", "ChildRoles": [ "Administrator" ] },
+        { "PrincipalType": "User", "Principal": "ana", "ChildSlug": "north", "ChildRoles": [ "Editor" ] }
+      ]
+    }
+  ]
+}
+```
+
+Expired delegated sign-in codes are purged by `DelegatedAccessCodeRetentionPolicy`, a policy on the shared retention building block (`DocumentRetentionPolicyBase`, `AddRetentionPolicy<T>()` in `CrestApps.OrchardCore.YesSql.Core`), five minutes after they expire.
+
+The child tenant create, edit and remove pages and the platform's parent editor put their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`); a theme override of those views must render its buttons there too.
 
 ## Custom Database Provisioner
 

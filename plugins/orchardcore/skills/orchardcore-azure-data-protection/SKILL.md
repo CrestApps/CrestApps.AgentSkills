@@ -98,7 +98,7 @@ dataprotection/Sites/{tenant}/DataProtectionKeys.xml
 
 - Users are randomly logged out when requests reach a different instance.
 - Antiforgery validation errors on form posts and Media API uploads.
-- Encrypted settings (for example SMTP passwords) cannot be decrypted by other instances.
+- Encrypted settings (for example SMTP passwords) and secrets of the Secrets module `Database` store cannot be decrypted by other instances.
 - OpenID access tokens rejected with `401` by other instances.
 
 ### Recommended Production Configuration
@@ -126,3 +126,4 @@ or a Key Vault secret.
 - Environment variable `OrchardCore__OrchardCore_DataProtection_Azure__ConnectionString` becomes `OrchardCore__DataProtection__Azure__ConnectionString`.
 - Key Vault secret `OrchardCore--OrchardCore---DataProtection---Azure--ConnectionString` becomes `OrchardCore--DataProtection--Azure--ConnectionString`.
 - The old names are deprecated but still read; the new name wins when both are set.
+- Back up the key ring (and keep the Data Protection application identity) before upgrading. The 4.0 Secrets module's **Migrate Secrets** screen decrypts saved credentials with their original keys, and the `Database` secret store encrypts with the same key ring; a database backup alone can't restore them. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).

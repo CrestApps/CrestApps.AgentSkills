@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TaxType",
+      "description": "Recipe step discriminator. Must be \u0027TaxType\u0027."
+    },
+    "TaxTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The stable identifier of the tax type. Preserved across environments."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name of the tax type (for example \u0027SalesTax\u0027 or \u0027VAT\u0027). Stored on tax lines."
+          },
+          "Description": {
+            "type": "string",
+            "description": "An optional description of the tax type."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The tax types to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "TaxTypes"
+  ],
+  "additionalProperties": true
+}

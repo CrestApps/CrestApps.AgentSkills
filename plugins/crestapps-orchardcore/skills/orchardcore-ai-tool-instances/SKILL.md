@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-tool-instances
-description: Skill for CrestApps Orchard Core AI Tool Instances (CrestApps.OrchardCore.AI.ToolInstances), administrator-created functions built from registered sources. Covers the sources http-api-request (HttpApiRequestToolSettings, authentication types, declared parameters), sitemap-documentation, search-index-documentation, algolia-documentation, website-search (live site search API) and data-source-search (vector search over an AI data source), assigning instances to profiles, templates, chat interactions, post-session processing and the direct-config workflow task, exposing instances to MCP clients, the ManageAIToolInstances and AccessAITool_{functionName} permissions, the AIToolInstances recipe and deployment steps, IAIToolInstanceHandler secret stripping, and custom sources with AddAIToolInstanceSource and AIToolInstancesDisplayDriverBase. Use this skill when requests mention AI tool instances, HTTP API tools, documentation or website search tools, data source search tools, or docs for MCP clients.
+description: Skill for CrestApps Orchard Core AI Tool Instances (CrestApps.OrchardCore.AI.ToolInstances), administrator-created functions built from registered sources. Covers the sources http-api-request (HttpApiRequestToolSettings, authentication types, declared parameters), sitemap-documentation, search-index-documentation, algolia-documentation, website-search, data-source-search and Workflow (a workflow started by the AI Tool Called event), assigning instances to profiles, templates, chat interactions, workflow tasks, MCP and WebMCP, the ManageAIToolInstances and AccessAITool_{functionName} permissions, the AIToolInstances recipe and deployment steps, IAIToolInstanceHandler secret stripping, and custom sources with AddAIToolInstanceSource and AIToolInstancesDisplayDriverBase with IAIToolInstanceAccessor. Use this skill when requests mention AI tool instances, HTTP API tools, documentation or website search tools, data source search tools, workflow tools, or docs for MCP clients.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -35,6 +35,7 @@ An AI tool instance is a function an administrator creates from a developer-regi
 | `algolia-documentation` | Always | `AlgoliaDocumentationToolSettings` |
 | `website-search` | Always | `WebsiteSearchToolSettings` |
 | `data-source-search` | `CrestApps.OrchardCore.AI.DataSources` is enabled | `DataSourceSearchToolSettings` |
+| `Workflow` | `OrchardCore.Workflows` is enabled | `WorkflowToolSettings` (`WorkflowTypeId`, `TimeoutSeconds`) |
 
 The documentation, website, and data source sources sit in the **Knowledgebase** category.
 
@@ -64,6 +65,15 @@ Use `Context` fill for anything identifying the caller so the model cannot imper
 
 The sitemap and search index sources crawl or download once, cache the corpus, and reuse it until the instance settings change. Website search keeps no corpus and queries the site live, so there is no cold start and the site does the ranking. Never use an Algolia write key.
 
+### Workflow
+
+Runs a workflow type that starts with the **AI Tool Called** event and returns its `Output` as JSON
+(`{"status":"accepted"}` when it halts on a blocking activity, `{"status":"error","message":...}` when it
+faults). Declared parameters are bound by the AI, a fixed value or a conversation key such as
+`conversation.customer_address` or `variables.<name>`; without parameters the tool takes one `request`
+string. **Time limit on calls** (`TimeoutSeconds`) caps how long a phone call waits (8 seconds when empty, `0`
+for no limit). Details are in `orchardcore-ai-conversations`.
+
 ### Data source search (vector)
 
 Turns one existing AI data source into a callable vector search, so the model searches a knowledge base only when it decides to (unlike a data source attached to a profile, which retrieves on every turn).
@@ -83,6 +93,7 @@ Turns one existing AI data source into a callable vector search, so the model se
 | Post-session processing | **Data Processing & Metrics → Capabilities** | Separate from the live selection |
 | AI Completion using Direct Config task | **Capabilities** tab (needs Chat Interactions and Workflows) | The task's embedded interaction |
 | MCP Server | **Settings → Artificial Intelligence → MCP Server**, **Tool instances** | `McpServerOptions.Tools` |
+| WebMCP | **Settings → Artificial Intelligence → WebMCP**, or a content item's **WebMCP tools** part | See [orchardcore-ai-webmcp](../orchardcore-ai-webmcp/SKILL.md) |
 
 Selectors list only the instances the editing user may access. To expose documentation sites to external AI agents, select their instances on the MCP Server card (`orchardcore-ai-mcp-server`).
 
@@ -216,7 +227,7 @@ If the source stores credentials, add an `IAIToolInstanceHandler` (namespace `Cr
 
 ## Add the selector to another model
 
-Derive from `AIToolInstancesDisplayDriverBase<TModel>` to add the instance picker to any `ExtensibleEntity`. Override `EditorShapeType` (default `EditToolInstances_Edit`), `EditorLocation` (default `Content:7#Capabilities;9`), `CanHandle`, and `GetSelectedInstanceNames` / `SetSelectedInstanceNames` (default storage `AIToolInstanceMetadata`) only when needed, and register the driver from a startup gated on `AIConstants.Feature.ToolInstances`.
+Derive from `AIToolInstancesDisplayDriverBase<TModel>` (`CrestApps.OrchardCore.AI.Core.Drivers`, package `CrestApps.OrchardCore.AI.Core`; never reference the AI module project) to add the instance picker to any `ExtensibleEntity`. Its constructor takes only an `IAIToolInstanceAccessor` (`CrestApps.OrchardCore.AI.Core.Services`), which lists the instances the current user may access; the old `(ISourceCatalog<AIToolInstance>, IAIToolAccessEvaluator, IHttpContextAccessor)` constructor is gone. Override `EditorShapeType` (default `EditToolInstances_Edit`), `EditorLocation` (default `Content:7#Capabilities;9`), `CanHandle`, and `GetSelectedInstanceNames` / `SetSelectedInstanceNames` (default storage `AIToolInstanceMetadata`) only when needed, and register the driver from a startup gated on `AIConstants.Feature.ToolInstances`.
 
 ## Admin list
 

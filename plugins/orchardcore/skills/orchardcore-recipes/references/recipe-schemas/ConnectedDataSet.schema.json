@@ -1,0 +1,279 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ConnectedDataSet",
+      "description": "Recipe step discriminator. Must be \u0027ConnectedDataSet\u0027."
+    },
+    "DataSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional identifier of the data set. When it matches a stored data set, that data set is updated; otherwise the data set is matched by Name. A new data set keeps this identifier when it is up to 26 letters, digits, dashes and underscores, and gets a generated one otherwise."
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,127}$",
+            "description": "Technical name of the data set, which reports, pipelines and its read permission store. A data set without a matching ItemId is matched by this name. It can\u0027t change once created. Made from DisplayText when omitted."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Name of the data set shown in the admin UI and in data source pickers."
+          },
+          "Description": {
+            "type": "string",
+            "description": "Optional description of the data set."
+          },
+          "ConnectionId": {
+            "type": "string",
+            "description": "Identifier of the connection the data set reads."
+          },
+          "ConnectionName": {
+            "type": "string",
+            "description": "Technical name of the connection the data set reads, used when no connection has ConnectionId."
+          },
+          "Resource": {
+            "type": "string",
+            "description": "What the data set reads at the connection: a table or view, an index, an API path, or a media file."
+          },
+          "AccessMode": {
+            "type": "string",
+            "enum": [
+              "Live",
+              "Imported"
+            ],
+            "description": "Live reads the source on every read; Imported copies the rows into the site on a schedule. Defaults to Live when the connector can read live."
+          },
+          "IsEnabled": {
+            "type": "boolean",
+            "description": "Whether the data set is offered to reports and pipelines and refreshed. Defaults to true."
+          },
+          "Fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]{0,127}$",
+                  "description": "Name reports and pipelines read the field by. Made from SourceName when omitted."
+                },
+                "SourceName": {
+                  "type": "string",
+                  "description": "Name of the column, property or member at the source."
+                },
+                "DisplayName": {
+                  "type": "string",
+                  "description": "Label of the field. Defaults to Name."
+                },
+                "Description": {
+                  "type": "string"
+                },
+                "Type": {
+                  "type": "string",
+                  "enum": [
+                    "Text",
+                    "Integer",
+                    "Decimal",
+                    "Boolean",
+                    "Date",
+                    "DateTime"
+                  ],
+                  "description": "Type the field is read as."
+                },
+                "SourceType": {
+                  "type": "string",
+                  "enum": [
+                    "Text",
+                    "Integer",
+                    "Decimal",
+                    "Boolean",
+                    "Date",
+                    "DateTime"
+                  ],
+                  "description": "Type the source described."
+                },
+                "IsIdentifier": {
+                  "type": "boolean",
+                  "description": "Whether the field identifies a row. An incremental refresh needs at least one."
+                },
+                "IsIncluded": {
+                  "type": "boolean",
+                  "description": "Whether reports and pipelines see the field. Defaults to true."
+                }
+              },
+              "anyOf": [
+                {
+                  "required": [
+                    "SourceName"
+                  ]
+                },
+                {
+                  "required": [
+                    "Name"
+                  ]
+                }
+              ],
+              "additionalProperties": true
+            },
+            "description": "The fields of the data set. When omitted on a new data set, they are read from the source if it can be reached, and otherwise at the first refresh."
+          },
+          "DefaultDateField": {
+            "type": "string",
+            "description": "Name of an included date field that reports filter by default."
+          },
+          "Refresh": {
+            "type": "object",
+            "properties": {
+              "Mode": {
+                "type": "string",
+                "enum": [
+                  "Full",
+                  "Incremental"
+                ],
+                "description": "Whether a refresh reads every row, or only the rows changed since the last one."
+              },
+              "IncrementalField": {
+                "type": "string",
+                "description": "For an incremental refresh: the date or number field that grows when a row changes."
+              },
+              "IntervalMinutes": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "minimum": 1,
+                "maximum": 525600,
+                "description": "Minutes between scheduled refreshes. Null refreshes only on demand."
+              },
+              "SchemaChangePolicy": {
+                "type": "string",
+                "enum": [
+                  "Accept",
+                  "Fail"
+                ],
+                "description": "Whether a refresh accepts a change of the source\u0027s fields, or fails and keeps the rows it has."
+              }
+            },
+            "additionalProperties": true,
+            "description": "How an imported data set is refreshed."
+          },
+          "Properties": {
+            "type": "object",
+            "properties": {
+              "RelationalDataSetSettings": {
+                "type": "object",
+                "properties": {
+                  "Query": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "Optional SELECT statement read instead of the table or view named by Resource."
+                  },
+                  "CommandTimeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 300,
+                    "description": "Seconds a read may run."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "The settings of a data set of a SqlServer (relational) connection."
+              },
+              "HttpApiDataSetSettings": {
+                "type": "object",
+                "properties": {
+                  "Method": {
+                    "type": "string",
+                    "default": "GET",
+                    "description": "The HTTP method."
+                  },
+                  "Body": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "The request body."
+                  },
+                  "RecordsPath": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "The path to the array of records in the response."
+                  },
+                  "Format": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "The response format."
+                  },
+                  "Pagination": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "How pages are requested: Type, PageParameter, FirstPage, OffsetParameter, SizeParameter, PageSize, CursorParameter, NextPath and MaxPages."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "The settings of a data set of an HttpApi connection."
+              },
+              "ElasticsearchDataSetSettings": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "The settings of a data set of an Elasticsearch connection."
+              },
+              "MediaFileDataSetSettings": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "The settings of a data set of a MediaFiles connection."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The connector\u0027s settings of the data set, keyed by the name of their type. Each settings object given replaces the stored one; settings not given are kept. Enumerations travel as their names."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve when importing exported records."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve when importing exported records."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the data set."
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "Name"
+            ]
+          },
+          {
+            "required": [
+              "DisplayText"
+            ]
+          }
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The connected data sets to create or update. Imported data sets that hold no rows yet are queued for their first import."
+    }
+  },
+  "required": [
+    "name",
+    "DataSets"
+  ],
+  "additionalProperties": true
+}

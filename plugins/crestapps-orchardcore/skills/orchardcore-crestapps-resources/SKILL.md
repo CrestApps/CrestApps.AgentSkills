@@ -72,8 +72,16 @@ All names are registered in `ResourceManagementOptionsConfiguration`, added thro
 | `intl-tel-input` | Script and style | - | intl-tel-input 29.5.3 with utils, jsDelivr fallback |
 | `sip.js` | Script | - | sip.js 0.21.2 bundled to `window.SIP`, local only |
 | `telnyx-webrtc` | Script | - | Telnyx WebRTC SDK bundled to `window.TelnyxWebRTC`, local only |
+| `fullcalendar` | Script and style | - | FullCalendar 7.1.3 global build (script) and its skeleton CSS (style), jsDelivr fallback |
+| `fullcalendar-locales` | Script | `fullcalendar` | FullCalendar locales |
+| `fullcalendar-theme` | Script and style | `fullcalendar` | The classic theme plugin and theme CSS; FullCalendar 7 draws nothing without a theme |
+| `fullcalendar-palette` | Style | `fullcalendar-theme` | The classic theme palette |
+| `leaflet` | Script and style | - | Leaflet 1.9.4, jsDelivr fallback with SRI |
+| `leaflet-markercluster`, `leaflet-markercluster-default` | Script and styles | `leaflet` | Leaflet.markercluster 1.5.3 |
+| `leaflet-geoman` | Script and style | `leaflet` | Geoman free 2.20.4 drawing tools |
+| `crestapps-map` | Script | `leaflet` | Map wrapper that reads the site's tile settings from the map element, local only |
 
-The AI chat resources come from the `@crestapps/ai-chat-ui` package (`2.0.0-preview.226` at the time of writing); local copies, CDN URLs, versions and SRI hashes are updated together. The `AIChatApp` and `ChatInteractionApp` scripts declare dependencies on `chat-markers`, `chat-image-carousel`, `realtime-audio` and `medium-zoom`, so pages that require those apps need no change.
+The AI chat resources come from the `@crestapps/ai-chat-ui` package. Their CDN URLs are built from the shared `AIChatUiCdn.DistUrl` constant (`CrestApps.OrchardCore.Abstractions`, `2.0.0-preview.246` at the time of writing), so one constant moves every chat UI resource; local copies and SRI hashes are updated with it. The `AIChatApp` and `ChatInteractionApp` scripts declare dependencies on `chat-markers`, `chat-image-carousel`, `realtime-audio` and `medium-zoom`, so pages that require those apps need no change.
 
 ## Register resources in Razor
 
@@ -107,7 +115,7 @@ Request `chart.js` by name rather than a `cdn.jsdelivr.net` URL so environments 
 
 ## Date range picker
 
-`date-range-picker` enhances two machine-formatted inputs (from and to) with one Bootstrap dropdown offering presets grouped into Relative days (Today, Yesterday, Last 7/30/90 Days), Calendar periods (This/Last Week, Month, Quarter, Year), Rolling months (Last 3/6/12 Months), a Custom Range, and single **On or before** / **On or after** bounds. The toggle always shows the current selection as text. It is purely client-side and general purpose (the Reports module uses it).
+`date-range-picker` enhances two machine-formatted inputs (from and to) with one Bootstrap dropdown offering presets grouped into Relative days (Last 24 Hours, Today, Yesterday, Last 7/30/90 Days), Calendar periods (This/Last Week, Month, Quarter, Year), Rolling months (Last 3/6/12 Months), a Custom Range, and single **On or before** / **On or after** bounds. The toggle always shows the current selection as text. It is purely client-side and general purpose (the Reports module uses it).
 
 Defaults: when a user opens an empty custom or single-bound panel, the picker seeds it with today's local date. Lower-bound inputs default to `00:00`, upper-bound inputs to `23:59`. Presets are computed in the browser with the culture's first day of week.
 
@@ -140,6 +148,7 @@ Defaults: when a user opens an empty custom or single-bound panel, the picker se
 | `placeholder` | Toggle text when nothing is selected; defaults to "Select range". |
 | `wrapperCssClass` | Root classes; defaults to `col p-1`. |
 | `toggleCssClass` | Toggle classes; defaults to `form-select`. Use `form-select form-select-sm` in dense filter forms. |
+| `allowAllTime` | Offer **All Time** (key `all`), which clears both bounds; only for a form that accepts a range with neither bound. Defaults to `false`. |
 
 Bind the bounds to `DateTime?` and the preset key to a `string`. Without `selectedRangeName` the picker falls back to Custom Range whenever initial values exist. For paginated list filters, also add the key to the driver's route values next to the bounds. Named presets keep the stored range and are not recomputed on reload.
 
@@ -152,7 +161,7 @@ Require `flatpickr` (style and script), `flatpickr-culture` and `date-range-pick
 | `[data-date-range-picker]` | Root; reads `data-week-start` (0 = Sunday), `data-date-pattern`, `data-time-pattern`, `data-drp-initial`, and localized `data-prior-label`, `data-after-label`, `data-from-word`, `data-to-word` |
 | `[data-drp-toggle]` / `[data-drp-label]` | Dropdown toggle and its text; `data-placeholder` shows when empty |
 | `[data-drp-selected]` | Optional hidden input receiving the preset key |
-| `input[type=radio][data-drp-range]` | One per option; values `today`, `yesterday`, `last7`, `last30`, `last90`, `thisWeek`, `lastWeek`, `thisMonth`, `lastMonth`, `last3Months`, `last6Months`, `last12Months`, `thisQuarter`, `lastQuarter`, `thisYear`, `lastYear`, `custom`, `prior`, `after` |
+| `input[type=radio][data-drp-range]` | One per option; values `last24Hours`, `today`, `yesterday`, `last7`, `last30`, `last90`, `thisWeek`, `lastWeek`, `thisMonth`, `lastMonth`, `last3Months`, `last6Months`, `last12Months`, `thisQuarter`, `lastQuarter`, `thisYear`, `lastYear`, `custom`, `prior`, `after`, and `all` when All Time is offered |
 | `[data-drp-panel="custom"]` | Holds the real submit inputs `[data-drp-from]` and `[data-drp-to]` |
 | `[data-drp-panel="prior"]` | `[data-drp-prior-date]` sets only the to bound |
 | `[data-drp-panel="after"]` | `[data-drp-after-date]` sets only the from bound |
@@ -178,7 +187,7 @@ The module's `Views/Shared/Components/DateRangePicker/Default.cshtml` is the com
 })
 ```
 
-- `id`, `inputName` and `endpoint` are required. Other options include `multiple`, `enableSelectAll`, `searchDelay` (default 300 ms) and `smallButton`.
+- `id`, `inputName` and `endpoint` are required. Other options include `multiple`, `enableSelectAll`, `searchDelay` (default 300 ms), `smallButton` and `required` (a required single selector hides its empty choice).
 - The endpoint answers `GET ?query=<text>` with a JSON array of `{ "value", "text", "secondaryText", "isEnabled" }`.
 - `initialItemsJson` lists the saved values in the same shape; each item is selected unless it sets `"selected": false`.
 - Selected items are real `<option>` elements, so they post with the form under `inputName`.

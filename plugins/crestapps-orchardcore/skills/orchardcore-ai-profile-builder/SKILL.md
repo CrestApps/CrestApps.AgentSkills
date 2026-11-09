@@ -66,6 +66,15 @@ Because every request includes the whole history, a fix found on a later attempt
 
 Feedback is grouped by situation (the same user message at the same point in a conversation). Up to 20 of the most recent situations are answered again with the current settings, and the `profile-builder-replay-judge` template marks each **Pass**, **Fail** or **Unknown** (shown as **Unclear**). Tools are not offered during a replay, so nothing is sent or booked twice.
 
+### Simulated Customers
+
+The **Simulate** tab lets models play the customer instead: up to five **Customers to play** (separated by a blank line), **What every conversation must achieve** (one criterion per line), a **Customer model** and a **Judge model**, **Turns**, **Rounds** and **Passing score**, and **Rewrite the instructions when a conversation fails**.
+
+- `ProfileBuilderSimulator.RunRoundAsync` runs one round of the session's `SimulationSettings`: each scenario through `AIConversationSimulator` (customer on `CustomerDeploymentName`, the assistant on a profile built from the session with `ProfileBuilderProfileMapper.CopyToProfile`, so linked knowledge and tools take part), judged by `IAIConversationEvaluator` on `JudgeDeploymentName`. The latest 60 results are kept in `ProfileBuilderSession.Simulations`.
+- When a conversation fails and `Improve` is on, the lowest-scoring one becomes a `ProfileBuilderFeedback` listing every failure; the coach rewrites the settings as a revision with the source `Simulation`, which **Revisions** and **Replay** then see.
+- Each round is one request (`POST Simulate?runId=`); the page posts again until the response says `finished` (all passed, rounds ran out, the coach could not rewrite, or **Stop after this round**).
+- Tools run as in a real conversation with `Workflow.Input.Simulation` set, so tool workflows that act on the outside world should return test data. See `orchardcore-ai-conversations`.
+
 ### Voice Role-Play
 
 With a conversation deployment, role-play can be spoken and spoken replies can receive feedback. They cannot be regenerated, because they were already heard. A realtime session keeps the instructions it started with; end and restart it to use new ones. See `orchardcore-ai-realtime-voice`.

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-number-verifications
-description: Skill for verifying and revalidating phone numbers on Orchard Core content items with pluggable providers. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers.Verifications feature and its AbstractApi, Veriphone and Twilio provider features, provider configuration and permissions, PhoneNumberVerificationPart, provider results, resilient provider HTTP clients that never replay unsafe requests, background revalidation, SQL indexing, the Phone Verifications Queue admin list, the shared Reports integration, and Omnichannel contact integration through IContactMethodsAccessor. Use this skill when requests mention Orchard Core phone verification, phone validation APIs, verification queues, or revalidating contact numbers. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers.Verifications, IPhoneNumberVerificationManager, IPhoneNumberVerificationProvider, PhoneNumberVerificationPart, PhoneNumberVerificationResult, and PhoneNumberRevalidationBackgroundTask.
+description: Skill for verifying and revalidating phone numbers on Orchard Core content items with pluggable providers. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers.Verifications feature and its AbstractApi, Veriphone and Twilio provider features, provider configuration and permissions, PhoneNumberVerificationPart, provider results, resilient provider HTTP clients that never replay unsafe requests, background revalidation, SQL indexing, the Phone Verifications Queue admin list, the Reports integration and PhoneNumberVerifications data source, and Omnichannel contact integration through IContactMethodsAccessor. Use this skill when requests mention Orchard Core phone verification, phone validation APIs, verification queues or revalidation. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers.Verifications, IPhoneNumberVerificationManager, IPhoneNumberVerificationProvider, PhoneNumberVerificationPart, PhoneNumberVerificationResult, and PhoneNumberRevalidationBackgroundTask.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -185,6 +185,19 @@ The queue renders through Orchard Core's `AdminList` shape (list name `PhoneNumb
 ## Reporting
 
 With `CrestApps.OrchardCore.Reports` enabled, the **Phone Number Verifications** report appears under **Reports → General** for users with `RunPhoneNumberVerificationsReport`. It reads `PhoneNumberVerificationPartIndex` and uses the shared report renderer and CSV and Excel exports. See `orchardcore-reports`.
+
+### Report Builder data source
+
+When **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) is enabled, the records are also an Orchard Core data source, **Phone number verifications** (`PhoneNumberVerifications`), readable by the Report Builder and data pipelines with `RunPhoneNumberVerificationsReport`. Its one data set, `Verifications`, has a row per content item with a `PhoneNumberVerificationPart` (latest version):
+
+| Group | Fields |
+| --- | --- |
+| Record | `ContentItemId` (identifier), `DisplayText`, `ContentType` |
+| Phone number | `PhoneNumber`, `NormalizedPhoneNumber` (E.164), `CountryCode` |
+| Verification | `VerificationStatus`, `IsVerified`, `VerificationProvider`, `LastVerifiedUtc`, `LastAttemptUtc`, `NextVerificationDueUtc`, `VerificationAttemptCount`, `FailedAttemptCount`, `IsExhausted`, `LastError` |
+| Line | `LineType`, `IsMobile`, `IsLandline`, `IsVoip`, `Carrier`, `LineStatus`, `MinimumAge` |
+
+The raw provider response, provider reference and triggering user are not exposed, and the data set has no main date. See `orchardcore-report-builder`.
 
 ## Omnichannel Contacts
 

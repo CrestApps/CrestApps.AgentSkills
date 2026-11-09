@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "description": "Adds or updates who in the parent tenant may sign in to child tenants, and with which roles.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TenantHierarchyAccessGrants",
+      "description": "Recipe step discriminator. Must be \u0027TenantHierarchyAccessGrants\u0027."
+    },
+    "Grants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Who in the parent tenant may sign in to child tenants, and with which roles there. A grant for the same user or role and child tenant is updated.",
+        "properties": {
+          "PrincipalType": {
+            "type": "string",
+            "enum": [
+              "User",
+              "Role"
+            ],
+            "description": "Whether the grant is for a user or a role of the parent tenant."
+          },
+          "Principal": {
+            "type": "string",
+            "description": "The user\u0027s name or email, or the role\u0027s name. It must exist in the parent tenant."
+          },
+          "ChildEntryId": {
+            "type": "string",
+            "description": "The registry entry id of the child tenant. Leave it and ChildSlug out for every child tenant."
+          },
+          "ChildSlug": {
+            "type": "string",
+            "description": "The slug of the child tenant, used when its entry id isn\u0027t known on the site."
+          },
+          "ChildRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles the user or role gets in the child tenant."
+          }
+        },
+        "required": [
+          "PrincipalType",
+          "Principal",
+          "ChildRoles"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The access grants."
+    }
+  },
+  "required": [
+    "name",
+    "Grants"
+  ],
+  "additionalProperties": true
+}

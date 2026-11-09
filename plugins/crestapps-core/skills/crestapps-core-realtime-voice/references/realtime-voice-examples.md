@@ -220,6 +220,60 @@ The hub runner (`RealtimeChatSessionRunner`) adds what this sketch leaves out: t
 
 To leave a voicemail, call `conversation.RequestStandaloneMessageAsync(instructions)` when no response is in flight. It runs out of band, with a single system item as context and tools off; include the call's language and anything the message must say in the instructions.
 
+## Keypad Keys, Supervisor Notes and a Profile Handoff
+
+A telephony bridge can feed the conversation what never arrives as speech, and hand the call to another profile without hanging up. Call these from inside the same `AIInvocationScope` that `RunAsync` above opened, while the conversation is live.
+
+```csharp
+using CrestApps.Core.AI.Profiles;
+using CrestApps.Core.AI.Realtime;
+using Microsoft.Extensions.AI;
+
+namespace MyApp.Realtime;
+
+public sealed class CallControls
+{
+    private readonly IAIProfileManager _profileManager;
+    private readonly IRealtimeOrchestrator _orchestrator;
+
+    public CallControls(IAIProfileManager profileManager, IRealtimeOrchestrator orchestrator)
+    {
+        _profileManager = profileManager;
+        _orchestrator = orchestrator;
+    }
+
+    // DTMF digits from the carrier: kept in the conversation, then answered with the session's own instructions.
+    public async Task KeysPressedAsync(IRealtimeConversation conversation, string digits, CancellationToken cancellationToken)
+    {
+        await conversation.AddMessageAsync(ChatRole.User, $"[Pressed on the keypad: {digits}]", cancellationToken);
+        await conversation.RequestUnpromptedResponseAsync(cancellationToken: cancellationToken);
+    }
+
+    // A supervisor's whisper: guides the next replies without being answered on its own.
+    public Task SupervisorNoteAsync(IRealtimeConversation conversation, string note, CancellationToken cancellationToken)
+        => conversation.AddMessageAsync(ChatRole.System, note, cancellationToken);
+
+    // Move the call to another profile's instructions and tools; the voice stays the same.
+    public async Task TransferAsync(IRealtimeConversation conversation, string profileName, CancellationToken cancellationToken)
+    {
+        if (!conversation.SupportsSessionUpdate)
+        {
+            throw new InvalidOperationException("This conversation cannot switch profile while it runs.");
+        }
+
+        var profile = await _profileManager.FindByNameAsync(profileName, cancellationToken)
+            ?? throw new InvalidOperationException($"Profile '{profileName}' was not found.");
+
+        await _orchestrator.SwitchResourceAsync(
+            conversation,
+            new RealtimeOrchestrationRequest { Resource = profile },
+            cancellationToken);
+    }
+}
+```
+
+Only call `RequestUnpromptedResponseAsync` when no response is in flight; while the assistant is speaking, add the message and let the next turn pick it up.
+
 ## Wiring the Browser Client
 
 The bundled chat scripts already call `CoreAIRealtime.attach`. A custom chat interaction page wires it to its own hub connection:

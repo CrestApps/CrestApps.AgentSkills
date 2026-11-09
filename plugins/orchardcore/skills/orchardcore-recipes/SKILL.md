@@ -75,13 +75,13 @@ A string value of the form `[prefix: script]` is evaluated before the step runs.
 | `[js: uuid()]` | A new unique id (use for `ContentItemId`, `WorkflowTypeId` and similar). |
 | `[js: variables('name')]` | A value from the recipe `variables` object. |
 | `[js: parameters('AdminUsername')]` | A recipe environment value. The built-in providers supply `SiteName`, `AdminUsername` and `AdminUserId` (from setup or the site settings). |
-| `[js: configuration('OrchardCore:Admin:AdminUrlPrefix', 'Admin')]` | A configuration value with a default. Environment variables reach recipes this way, through the configuration sources. |
+| `[js: configuration('Admin:AdminUrlPrefix', 'Admin')]` | A tenant configuration value with a default. Keys are relative to the `OrchardCore` section (this reads `OrchardCore:Admin:AdminUrlPrefix`). Environment variables reach recipes only when they are under that section, for example `OrchardCore__MY_SETTING` read with `configuration('MY_SETTING')`; a root-level `MY_SETTING` is not exposed. |
 | `[js: base64('...')]`, `[js: gzip('...')]`, `[js: html('...')]` | Decode base64, gzip plus base64, or HTML-encoded text. |
 | `[file:text('Snippets/home.liquid')]` | The text of a file, relative to the recipe file. |
 | `[file:base64('Assets/logo.png')]` | A file's bytes as base64 (for the `media` step `Base64` property). |
 
 - Each variable is evaluated the first time it is used and the result is cached, so `"homeId": "[js: uuid()]"` yields the same id in every step that reads it. Using an undefined variable fails the recipe with a validation error.
-- Some docs show `[env:...]`, `[appsettings:...]` and `[localization:...]` prefixes. No scripting engine is registered for them in Orchard Core 4.0; use `configuration()` instead.
+- Never use `[env:...]`, `[appsettings:...]`, `[localization:...]`, `[uuid:...]` or `[base64:...]` prefixes: older docs listed them, but no scripting engine exists for them. An expression with an unknown prefix is not evaluated and is stored as a literal string without its brackets. Use `[js: configuration(...)]`, `[js: uuid()]` and `[js: base64(...)]` instead; `uuid`, `base64`, `html`, `gzip` and `configuration` are JavaScript methods, not prefixes.
 
 ```json
 {
@@ -314,7 +314,9 @@ Some settings are cached at tenant start (for example CORS policies written by `
 }
 ```
 
-`DataPipelines` (Orchard Core 4.0, `OrchardCore.DataPipelines` feature) imports data pipeline definitions under a `Pipelines` array. It has no schema file here; export the pipelines with the **Data Pipelines** deployment step and reuse that payload (see `orchardcore-data-pipelines`).
+`DataPipelines` (Orchard Core 4.0, `OrchardCore.DataPipelines` feature) imports data pipeline definitions under a `Pipelines` array. Validate it against `references/recipe-schemas/DataPipelines.schema.json`; for anything beyond a simple pipeline, export the pipelines with the **Data Pipelines** deployment step and reuse that payload (see `orchardcore-data-pipelines`).
+
+`Secrets` (Orchard Core 4.0, `OrchardCore.Secrets` feature) creates or updates secrets. Use `references/recipe-schemas/Secrets.schema.json`: it accepts an array of `{ "Name", "Store", "Value" }` entries or the encrypted object an export produces. Settings then reference a secret through their `*SecretName` properties, which only the generic `Settings` step accepts (see `orchardcore-secrets`).
 
 ### Built-in recipes worth knowing
 
@@ -334,7 +336,7 @@ The PKCE recipes contain a `https://localhost:5001` origin in `RedirectUris`/`Po
 
 ## Define workflow types and deployment plans
 
-`WorkflowType` imports serialized workflow definitions. Create workflows in the admin editor, export them through the workflow deployment step, and use that exported `data` payload instead of hand-authoring activity IDs and transitions.
+`WorkflowType` imports serialized workflow definitions. Create workflows in the workflow designer, export them through the workflow deployment step, and use that exported `data` payload instead of hand-authoring activity IDs and transitions. Importing a `WorkflowTypeId` that already exists updates it as its next version (its instances are kept and its designer draft is discarded) instead of deleting and recreating it. See `orchardcore-workflows` for variables, expression syntaxes and the other properties.
 
 ```json
 {

@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-templates
-description: Skill for the general-purpose Liquid template engine in CrestApps.Core.Templates. Covers AddTemplating and TemplateOptions (code templates, discovery paths), AddTemplatesFromAssembly for embedded templates, the Templates and Templates/Prompts folder conventions and the Kind front matter, Markdown front matter fields including Parameters, ITemplateService (ListAsync, GetAsync with aliases, RenderAsync, MergeAsync, GetByKindAsync), ITemplateEngine and FluidTemplateEngine behavior (deny-by-default member access, whitespace normalization, TryValidate), the include_prompt filter and render_ai_template tag, TemplateBuilder composition, and custom ITemplateProvider and IDynamicTemplateProvider sources for templates stored in a database. Use it when registering, rendering, composing, or storing Liquid templates; use crestapps-core-ai-templates for AI prompt and profile templates.
+description: Skill for the general-purpose Liquid template engine in CrestApps.Core.Templates. Covers AddTemplating and TemplateOptions (code templates, discovery paths), AddTemplatesFromAssembly for embedded templates, the Templates and Templates/Prompts folder conventions and the Kind front matter, Markdown front matter fields including Parameters, ITemplateService (ListAsync, GetAsync with aliases, RenderAsync, MergeAsync, GetByKindAsync), ITemplateEngine and FluidTemplateEngine behavior (Fluid 3 TemplateOptionsBuilder with ConfigureFilters and ConfigureMemberAccess, open member access, whitespace normalization, TryValidate), the include_prompt filter and render_ai_template tag, TemplateBuilder composition, and custom ITemplateProvider and IDynamicTemplateProvider sources for templates stored in a database. Use it when registering, rendering, composing, or storing Liquid templates; use crestapps-core-ai-templates for AI prompt and profile templates.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,16 @@ You are a CrestApps.Core expert. Generate code for `CrestApps.Core.Templates` di
 - `CrestApps.Core.Templates` is standalone. `services.AddTemplating(...)` registers `ITemplateEngine` (`FluidTemplateEngine`, singleton), `ITemplateService` (`DefaultTemplateService`, scoped), the Markdown `ITemplateParser`, and the code, file-system and prompt file-system providers. It also adds the `include_prompt` Liquid filter.
 - `CrestApps.Core.AI` already calls `AddTemplating()` through `AddCoreAITemplating()`, which adds AI template sources and the system-prompt profile template provider. Use `crestapps-core-ai-templates` for that layer.
 - `ITemplateService.RenderAsync(id, arguments)` renders a registered template; `ITemplateEngine.RenderAsync(text, arguments)` renders an in-memory Liquid string.
-- `FluidTemplateEngine` uses Fluid's deny-by-default member access. Register every POCO a template reads: `services.Configure<Fluid.TemplateOptions>(o => o.MemberAccessStrategy.Register<Customer>())`. Dictionaries and primitives need no registration.
+- `FluidTemplateEngine` runs on Fluid 3 and takes `IOptions<Fluid.TemplateOptionsBuilder>`. Templates can read every public member of the objects passed to them, so no type registration is needed; pass only data a template may read, especially when users write templates.
+- Add custom filters or member accessors on the builder:
+
+```csharp
+builder.Services.Configure<Fluid.TemplateOptionsBuilder>(options => options
+    .ConfigureFilters(filters => filters.AddFilter("shout", (input, arguments, context) =>
+        Fluid.Values.StringValue.Create(input.ToStringValue(context).ToUpperInvariant()))));
+```
+
+Use `ConfigureMemberAccess(strategy => ...)` only for custom member accessors.
 - Rendering trims each line and collapses runs of blank lines. A template that fails to parse is logged as a warning and returned unrendered; check templates with `TryValidate` before saving them.
 - Template identifiers are case-insensitive. When two providers return the same `Id`, the first one read wins.
 - `ITemplateService`, `ITemplateEngine` and `ITemplateProvider` members take an optional `CancellationToken`; pass it through custom providers.
@@ -154,6 +163,12 @@ builder.Services.AddScoped<ITemplateProvider, StoredTemplateProvider>();
 ```
 
 `StoredTemplate` is any `CatalogItem` with `Name` and `Markdown` properties registered through a store package. Register dynamic providers as scoped, since `ITemplateService` is scoped and reads them in every scope. A custom template service that caches for longer than a scope should override `GetStaticTemplatesAsync` and cache only what it returns.
+
+## Upgrading Within 2.0 Previews
+
+- **Fluid 3.** `Fluid.TemplateOptions` is immutable with no public constructor, so `services.Configure<Fluid.TemplateOptions>(...)` no longer has any effect. Configure filters and accessors on `Fluid.TemplateOptionsBuilder` with `ConfigureFilters` and `ConfigureMemberAccess`.
+- Remove `MemberAccessStrategy.Register<MyType>()` calls: the one-argument overload is gone and registration is no longer needed.
+- Custom filters and tags written against Fluid 2 need Fluid 3 calls such as `FluidValue.ToStringValue(context)` and `StringValue.Create(...)`.
 
 ## Upgrading from 1.x
 

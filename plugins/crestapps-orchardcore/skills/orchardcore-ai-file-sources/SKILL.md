@@ -128,7 +128,41 @@ The section binds to `FileSourceOptions` through `IShellConfiguration`. `Allowed
 
 **Artificial Intelligence > File Sources** is an `AdminList` named `AIFileSources` with the grid columns `Name`, `Connector`, `LastRun`, `Modified`, and `Actions`; rows are the `FileSource` shape in `SummaryAdmin` and `SummaryAdminGrid` (see `orchardcore-admin-lists`). Every screen, including **Read now**, requires `ManageFileSources` (**Manage file sources**, Administrator by default). Citations of an ingested figure or chart link to a figure download endpoint guarded by `OrchardKnowledgeFigureAuthorizationHandler`.
 
-File sources have no recipe or deployment step; create them in the admin or in code through `ISourceCatalogManager<FileSource>`.
+### Recipes and deployment
+
+The `FileSources` recipe step creates or updates file sources, matched by `ItemId`, then by `DisplayText`
+within the same connector. `Source` must be an enabled connector and `AIDataSourceId` must name an AI data
+source, so import data sources first.
+
+```json
+{
+  "steps": [
+    {
+      "name": "FileSources",
+      "Sources": [
+        {
+          "ItemId": "4fs00000000000000000000001",
+          "Source": "Sftp",
+          "DisplayText": "Policies",
+          "AIDataSourceId": "4ds00000000000000000000001",
+          "Enabled": true,
+          "ReindexIntervalMinutes": 60,
+          "Properties": {
+            "SftpConnectionMetadata": { "Host": "sftp.example.com", "Username": "reader" },
+            "RemoteFileSourceMetadata": { "RootPath": "/policies", "Recursive": true }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+The **File sources** deployment step (**Artificial Intelligence** category) exports every file source without
+passwords, private keys, passphrases or tokens, which are protected with the keys of the site that stored
+them. An update that leaves a secret out keeps the stored one; after importing a new FTP or SFTP source,
+open it and enter its password or key. With **AI Chat WebAPI**, file sources are also managed through
+`/api/ai/v1/file-sources`. Code can still use `ISourceCatalogManager<FileSource>`.
 
 ### Add a custom connector
 

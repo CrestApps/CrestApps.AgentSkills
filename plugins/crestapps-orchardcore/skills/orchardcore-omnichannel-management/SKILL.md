@@ -1,6 +1,6 @@
 ---
 name: orchardcore-omnichannel-management
-description: Skill for the CrestApps Omnichannel Management (CRM) module in Orchard Core. Covers CrestApps.OrchardCore.Omnichannel.Activities, ChannelEndpoints, Managements and Crm features; contacts with OmnichannelContactPart, IContactMethodsAccessor, IContactMethodsProvider and IContactMethodsWriter, OmnichannelContactPhoneNumberIndex and IOmnichannelContactPhoneLookup; omnichannel addresses and capabilities; subjects, dispositions, campaigns, subject actions, activity loads, cadences, leads, accounts and opportunities; the automated activity processor, DispositionedBy, CRM reports, permissions, admin lists and the Omnichannel recipe steps. Use this skill when requests mention Omnichannel Management, Interaction Center, CRM contacts, subject flows, activity loads, dispositions, cadences, leads or omnichannel addresses. Strong matches include OmnichannelActivity, OmnichannelActivityBatch, ISubjectActionHandler, IActivityBatchLoader, ILeadConversionService, and AddContactMethodsProvider.
+description: Skill for the CrestApps Omnichannel Management (CRM) module in Orchard Core. Covers CrestApps.OrchardCore.Omnichannel.Activities, ChannelEndpoints, Managements and Crm features; contacts with OmnichannelContactPart, IContactMethodsAccessor, IContactMethodsProvider and IContactMethodsWriter, OmnichannelContactPhoneNumberIndex and IOmnichannelContactPhoneLookup; addresses; subjects, dispositions, campaigns, subject actions, activity loads, cadences, leads and opportunities; the automated activity processor, DispositionedBy, the Update Contact workflow task, IConsentService, CRM reports and Report Builder data sets, permissions and the Omnichannel recipe steps. Use this skill when requests mention Omnichannel Management, Interaction Center, CRM contacts, subject flows, activity loads, dispositions, cadences, leads or omnichannel addresses. Strong matches include OmnichannelActivity, OmnichannelActivityBatch, ISubjectActionHandler, IActivityBatchLoader, ILeadConversionService, and AddContactMethodsProvider.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -40,7 +40,7 @@ routing, agents and the dialer belong to the Contact Center
 | Omnichannel Activities | `CrestApps.OrchardCore.Omnichannel.Activities` | Headless: catalogs, stores, managers, parts, indexes, migrations, permissions, recipe and deployment steps, `api/omnichannel/subject-disposition-actions`. |
 | Omnichannel Channel Endpoints | `CrestApps.OrchardCore.Omnichannel.ChannelEndpoints` | Dependency only. **Interaction Center > Management > Omnichannel Addresses**. Enabled by Management, Messaging Workspace, Contact Center Voice and Inbound Entry Points. |
 | Omnichannel Management | `CrestApps.OrchardCore.Omnichannel.Managements` | Admin screens, display drivers, menus, reports. |
-| Omnichannel CRM | `CrestApps.OrchardCore.Omnichannel.Crm` | Leads, accounts, opportunities. See [references/crm.md](references/crm.md). |
+| Omnichannel CRM | `CrestApps.OrchardCore.Omnichannel.Crm` | Leads, opportunities, and contacts and opportunities inside accounts. The `Account` type, `AccountPart` and the account picker now come from the Accounts feature (`CrestApps.OrchardCore.Accounts`), which the CRM depends on. See [references/crm.md](references/crm.md). |
 
 ```json
 {
@@ -165,7 +165,38 @@ lookups also read the first Cell and Home numbers.
 The `phone:`, `phone-exact:`, `phone-starts:` and `phone-ends:` terms and the
 activity phone filters search the primary Cell and Home numbers. On
 contact-only content lists the search box also matches a number that begins
-with the digits typed (at least three digits, no letters).
+with the digits typed (at least three digits, no letters), and
+`OmnichannelContactListFilterParser` (replacing `IContentsAdminListFilterParser`)
+reads free words as one phrase (`John Smith`, `702 555 0104`); named terms and
+explicit search syntax are parsed as typed.
+
+A request not to be reached, recorded on one record, stops every record holding
+the same number. A STOP from a number no record holds is recorded against the
+address (`ContactAddressOptOutIndex`, read with
+`IContactOptOutResolver.HasAddressOptedOutAsync(channel, address)`), so it also
+stops a record created for that number later.
+
+### Consent
+
+`IConsentService` (namespace `CrestApps.OrchardCore.Consent`, package
+`CrestApps.OrchardCore.Consent.Abstractions`; register with
+`services.AddConsent()` from `CrestApps.OrchardCore.Consent.Core`) is the one
+API for whether a person may be contacted on `ConsentChannels.Phone`, `Sms` or
+`Email`:
+
+- `GetAsync(channel, address, contactId)` or `GetAsync(ConsentQuery)` returns a
+  `ConsentStatus` (`HasOptedOut`, `Source`); sources are asked in registration
+  order until one says the person opted out.
+- `RecordAsync(channel, address, ConsentChange)` records an opt-out or opt-in
+  with every source that keeps that channel.
+- Sources are `IConsentSource` implementations added with
+  `services.AddConsentSource<T>()`. Shipped: `contact-preferences` (contact flags
+  and address opt-outs), `do-not-call-lists` (local DNC lists, read only) and
+  `customer-marketing` (commerce customers' e-mail marketing consent).
+
+SMS STOP and START, campaign unsubscribe links, the SMS channel's opt-out check,
+automated SMS and the dialer's do-not-call check go through it. Consent to
+record a call is not kept here.
 
 ## Omnichannel Addresses
 
@@ -213,6 +244,11 @@ services.AddOmnichannelAddressCapability(OmnichannelAddressTypes.PhoneNumber, "W
 - Dispositions have unique, fixed names and an optional `Outcome`
   (`DispositionOutcome`) used when a call ends without a choice (`NotInService`,
   `NoAnswer`, `Busy`, `AnsweringMachine`, `Rejected`, `Failed`, `Disconnected`).
+- With the CRM feature, a disposition can **Set lead status**
+  (`SetLeadStatusActionMetadata` on the disposition, edited by
+  `LeadDispositionDisplayDriver`; converted statuses are not offered). Completing
+  a lead's activity with it, in any subject, moves the lead to that status; a
+  subject action that sets its own lead status wins. Contacts are unaffected.
 - Campaigns and campaign groups are grouping and reporting records only; they
   cannot be deleted.
 
@@ -224,6 +260,15 @@ Each can set `SetDoNotCall`, `SetDoNotSms`, `SetDoNotEmail`, and carries
 `DispositionGuidance` that the AI reads when it dispositions.
 `DefaultSubjectActionExecutor` runs every action matching the completed
 activity's subject and disposition, ordered by the handler's `Order`.
+
+- Actions wait until the activity has a contact. On an automated activity (a
+  call or text the AI concluded) **New Activity** actions run anyway, carrying
+  the caller's number and the unmatched contact to the owner; other actions
+  still wait.
+- On an automated activity with no preparation notes, the new activity takes
+  the AI's call summary as its instructions.
+- `SubjectActionExecutionContext.CreatedActivities` maps each action id to the
+  follow-up it created.
 
 Add an action type:
 
@@ -278,6 +323,68 @@ services.Configure<SubjectActionOptions>(options =>
   registered when AI is enabled) sets `ProcessorBatchSize` (100),
   `MaxActivitiesPerInvocation` (1,000), `MaxProcessingAttempts` (5) and
   `RetryDelayMinutes` (5).
+- A load's **Schedule at** (`ScheduleAt`) is stored in UTC and shown in local
+  time. Dialer loads skip contacts with no number
+  (`TotalSkippedForNoDestination`). An outbound subject holds no AI profile, so
+  an outbound **Automatic** load must name one.
+- `IActivityOfferKeepAlive` lets the Complete screen keep a pending offer alive
+  without knowing who offered it (Contact Center extends preview offers).
+
+### Workflows
+
+With `OrchardCore.Workflows`, Omnichannel Activities registers **Update
+Contact** (`UpdateContactTask`, category **Omnichannel CRM**; outcomes **Done**
+and **Failed**). `ContactContentItemId` is Liquid resolving the contact or lead,
+`ContentProperties` is Liquid that renders the JSON merged into it, and
+`Publish` (default `true`) publishes a draft. Unlike **Update Content Item** it
+does not validate the record, so it works on contacts loaded without required
+fields:
+
+```json
+{
+  "steps": [
+    {
+      "name": "WorkflowType",
+      "data": [
+        {
+          "WorkflowTypeId": "crm-flag-no-answer-text",
+          "Name": "Flag the no-answer text",
+          "IsEnabled": true,
+          "Activities": [
+            {
+              "ActivityId": "evt",
+              "Name": "ContactCenterEvent",
+              "X": 0,
+              "Y": 0,
+              "IsStart": true,
+              "Properties": { "EventType": "ActivityDispositionApplied" }
+            },
+            {
+              "ActivityId": "update",
+              "Name": "UpdateContactTask",
+              "X": 300,
+              "Y": 0,
+              "IsStart": false,
+              "Properties": {
+                "ContactContentItemId": "{{ Workflow.Input.Data.ContactContentItemId }}",
+                "ContentProperties": "{% assign contact = Workflow.Input.Data.ContactContentItemId | content_item_id %}{ \"{{ contact.ContentType }}\": { \"NoAnswerTextSent\": { \"Value\": true } } }",
+                "Publish": true
+              }
+            }
+          ],
+          "Transitions": [
+            { "SourceActivityId": "evt", "SourceOutcomeName": "Matched", "DestinationActivityId": "update" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+The `ContactCenterEvent` start needs the Contact Center (see
+`orchardcore-contact-center`); in practice add an **If/Else** on the
+disposition outcome before the update. The CRM adds **Convert Lead**.
 
 ### Extend Loads, Sources and Channels
 
@@ -305,13 +412,19 @@ and Channel filters; only sources with `CanBeSetManually` are offered by
 
 ## Reports
 
-With `CrestApps.OrchardCore.Reports` enabled, the module contributes CRM
-reports (Operations, Queue and Routing, Agent Performance, CRM and Campaigns,
-Compliance and Audit, Technical and IT), gated by `ViewOmnichannelReports`
-(implied by `ManageActivities`, granted to Administrator and Supervisor).
+With `CrestApps.OrchardCore.Reports` enabled, the module contributes 26
+reports and the CRM feature three more (**Lead funnel**, **Lead conversion by
+source and list**, **Opportunity pipeline**), grouped as Operations, Queue and
+Routing, Agent Performance, CRM and Campaigns, Compliance and Audit, Technical
+and IT, gated by `ViewOmnichannelReports` (implied by `ManageActivities`,
+granted to Administrator and Supervisor). They export to CSV, to Excel with
+Reports (OpenXml) and to PDF with Reports (PDF).
 
-- Every report filters by campaign group, campaign, channel, source, status and
-  several dispositions (`OmnichannelReportCriteria.DispositionIds`).
+- Every activity report filters by campaign group, campaign, channel, source,
+  status and several dispositions (`OmnichannelReportCriteria.DispositionIds`,
+  `null` for all); the three CRM reports take the date range only. The **Dialer**
+  source matches every dialer mode (`PreviewDial`, `PowerDial`,
+  `ProgressiveDial`, `PredictiveDial`).
 - **Dialer call detail** (`omnichannel-dialer-call-detail`,
   `DialerCallDetailReportProvider`) lists one row per dialed activity, pages 100
   rows in SQL on screen and streams exports in batches of 500. It presets
@@ -319,6 +432,21 @@ Compliance and Audit, Technical and IT), gated by `ViewOmnichannelReports`
 - A report that needs the page picker names
   `OmnichannelReportFilterDisplayDriver.PageFilterName` in
   `IReportFilterMetadata.FilterNames`. See `orchardcore-reports`.
+
+### Report Builder Data Sets
+
+With `OrchardCore.DataPipelines.Core`, Omnichannel Activities registers the
+`Omnichannel` data source (each data set needs `ViewOmnichannelReports`):
+`Activities` (with `DispositionId`, `Disposition`, `DispositionedBy`,
+`TerminalReasonCode`, `AiEscalated`, `HandoffSummaryUtc`, `CampaignId`,
+`DialerProfileId`, `AISessionId`, `ConvertedFromLeadItemId` and more),
+`Dispositions`, `Campaigns`, `CampaignGroups` and `ActivityBatches` (with the
+skipped counts). Ids join each other, Orchard Core **Users**, the Contact Center
+**Dialer profiles** and AI **Chat sessions**. Contacts, leads, accounts and
+opportunities are read through Orchard Core's **Content items** data source;
+join `ContactContentItemId` or `ConvertedFromLeadItemId` to the content type's
+`ContentItemId`. Messaging conversations come from the **Messaging** data source
+(`orchardcore-omnichannel-messaging`).
 
 ## Permissions
 
@@ -389,8 +517,14 @@ groups, then campaigns, then subject actions.
 
 Message bodies and customer and service addresses are stored unencrypted in the
 tenant database (and addresses in `OmnichannelMessageIndex`). **Purge** marks an
-activity `Purged` but deletes no message or contact data. There is no automated
-per-contact erasure; handle erasure requests with audited database operations.
+activity `Purged` but deletes no message or contact data. Access and erasure
+requests go through the shared `IPersonalDataService`
+(`CrestApps.OrchardCore.PersonalData`): the module registers
+`CrmContactPersonalDataContributor` and `CrmActivityPersonalDataContributor`.
+Erasing a contact clears only its known personal-data fields (display text,
+names, contact-method emails and numbers, the AI memory note) and never rewrites
+the ids it references. The nightly guest-retention expiry does not reach CRM
+records.
 
 ## Upgrading from 2.x
 
@@ -418,6 +552,17 @@ per-contact erasure; handle erasure requests with audited database operations.
   per-channel duplicates and keeps the old ids in `MergedItemIds`, and old
   recipes still import.
 - `crestapps-bootstrap-select` is gone; use Orchard Core's `bootstrap-select`.
+- `AccountPart` and `AccountPartSettings` moved to `CrestApps.OrchardCore.Accounts.Models`
+  (package `CrestApps.OrchardCore.Accounts.Abstractions`); use `AccountsConstants`
+  instead of `OmnichannelConstants.ContentParts.Account` and
+  `OmnichannelConstants.ContentTypes.Account`. The account search moved to
+  `Admin/api/crestapps/accounts/search`. A migration enables the Accounts feature
+  and keeps existing accounts.
+- Admin create and edit forms render their buttons in Orchard Core's sticky
+  bottom action bar (`<div class="action-bar-bottom">`) instead of an
+  `ocat-wrapper` row; update theme overrides and UI tests.
+- SMS automation no longer enables Contact Center Business Hours; enable it to
+  define the calendars that loads and cadences use.
 - Migration fixes: the contact index migration no longer stalls on PostgreSQL,
   and a repair step restores missing `Source` and `CreatedUtc` columns on
   `OmnichannelActivityBatchIndex`.

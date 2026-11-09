@@ -29,7 +29,24 @@ With `OrderSettings.AllowQuoteRequests`, `QuoteCartActionProvider` adds **Reques
 
 ## Email templates
 
-`LiquidOrderEmailTemplates` reads `OrderEmailTemplateSettings` (**Settings > Commerce > Emails**, group `order-emails`): a `Layout` with `{{ Content }}` and `Templates` by kind (`IsEnabled`, `Subject`, `Body`). The Liquid gets `Content`, `Subject`, `StoreName`, `Order`, and the email's values (`OrderUrl`, `PayUrl`, `TrackingUrl`, `Carrier`, `ShipmentNumber`, `ReturnNumber`, `ReturnStatus`, `Code`, `Amount`, `RecipientName`, `Message`, `RecoveryUrl`). Unparseable Liquid is refused on save; a template that throws falls back to the built email. Kinds: Orders `order-confirmation`, `order-invoice`, `order-quote`, `checkout-recovery`; Returns `order-return`; Gift Cards `gift-card`; Shipping `order-shipped`; Bookings `booking`.
+`LiquidCommerceEmailTemplates` (Commerce.Core, `ICommerceEmailTemplates`; formerly `LiquidOrderEmailTemplates`) reads `OrderEmailTemplateSettings` (**Settings > Commerce > Emails**, group `order-emails`; the names are kept so existing templates, recipes and plans keep working): a `Layout` with `{{ Content }}` around every email with a kind and an HTML body, and `Templates` by kind (`IsEnabled`, `Subject`, `Body`). The Liquid gets `Content`, `Subject`, `StoreName`, each of the email's `Models` by name (such as `Order`, `Transaction`, `StockItem`), and the email's values (`OrderUrl`, `PayUrl`, `TrackingUrl`, `Carrier`, `ShipmentNumber`, `ReturnNumber`, `ReturnStatus`, `Code`, `Amount`, `RecipientName`, `Message`, `RecoveryUrl`, `ProductUrl`, `Url`). Unparseable Liquid is refused on save; a template that throws falls back to the built email; without the Liquid feature every email goes as built.
+
+| Kind | Feature | Records |
+| --- | --- | --- |
+| `order-confirmation`, `order-invoice`, `order-quote`, `checkout-recovery` (`OrderEmailKinds`) | Orders | `Order` |
+| `order-return` | Returns | `Order` |
+| `gift-card` | Gift Cards | `Order` |
+| `order-shipped` | Shipping | `Order` |
+| `booking` | Bookings | `Order` |
+| `b2b-approval-requested`, `b2b-approval-decided` | Accounts B2B | `Order` |
+| `stock-alert` | Inventory stock alerts | `StockItem` |
+| `review-request` | Reviews | `Order` |
+| `payment-reminder` | Transaction Reminders | `Transaction` |
+| `payment-receipt`, `payment-refund` (`TransactionEmailKinds`) | Send Payment Receipts | `Transaction` |
+| `installment-plan-notice` | Installment plans | `InstallmentPlan` |
+| `donation-receipt` | Fundraising | `Donation` |
+| `classified-listing` | Classifieds | none |
+| `pos-receipt` | Point of Sale | `Order` |
 
 ## Recovery emails
 
@@ -50,7 +67,7 @@ Feature `CrestApps.OrchardCore.Orders.GiftCards`.
 
 Feature `CrestApps.OrchardCore.Orders.Returns`.
 
-- `OrderReturn` (`OrderReturnIndex`): `Number` (such as `R-261019-K3QZ`), `Lines` (`OrderReturnLine`), `Resolution` (`Refund` or `Exchange`), `Comment`, `StoreMessage`, `RefundedAmount`, `RestockLocationId`, `Status` (`Requested`, `Approved`, `Received`, `Completed`, `Rejected`, `Canceled`).
+- `OrderReturn` (`OrderReturnIndex`): `Number` (such as `RMA-261019-K3QZ7`, from the `Orders.Return` series of the shared `INumberSequence`; returns made before 3.0 used `R-261019-K3QZ`), `Lines` (`OrderReturnLine`), `Resolution` (`Refund` or `Exchange`), `Comment`, `StoreMessage`, `RefundedAmount`, `RestockLocationId`, `Status` (`Requested`, `Approved`, `Received`, `Completed`, `Rejected`, `Canceled`).
 - `OrderReturnPolicy.GetReturnable` and `IsOpen` (within `ReturnSettings.WindowDays` of payment).
 - Buyer: `account/orders/{orderId}/return`, `orders/view/{token}/return`; `OrderReturns_Detail` and `OrderReturns_DetailAdmin` shapes.
 - Store: `Admin/returns` (`ManageOrders`) through `OrderReturnService`: approve, reject, receive (restock lines at a location, raising `ReturnedAsync`), refund (through `OrderOperationsService.RefundAsync`), exchanged.
@@ -58,7 +75,9 @@ Feature `CrestApps.OrchardCore.Orders.Returns`.
 
 ## Reports
 
-With Reports on (see `orchardcore-reports`), **Reports > Commerce** (`ManageOrders`) gains Sales, Sales by product, Sales by category, Customers, Cohorts and retention, Checkouts, Sales by country, Tax on orders, VAT one-stop shop (OSS), Discounts on orders, Refunds, Disputes and Orders to ship. Amounts stay in their own currency. With Orchard Core's Admin Dashboard, the **Sales Summary** widget (`SalesSummaryWidget`) shows recent sales.
+With Reports on (see `orchardcore-reports`), **Reports > Commerce** (`ManageOrders`) gains Sales, Sales by product, Sales by category, Customers, Cohorts and retention, Checkouts, Sales by country, Tax on orders, VAT one-stop shop (OSS), Discounts on orders, Refunds, Disputes and Orders to ship. Amounts stay in their own currency.
+
+With Orchard Core's Admin Dashboard, the **Sales Summary** widget (`SalesSummaryWidget`, `SalesSummaryPart`) shows sales net of refunds today and over two windows of days (7 and 30 by default), the orders counted (all channels, online, point of sale or staff-made) and **Keep for (minutes)** (30 by default, 0 recounts on every visit). With Reports on too, ready-made report widgets (Sales Overview, Sales Trend, Top Selling Products, Sales by Category, Sales by Country, Orders to Ship, Customer Insights, Checkout Conversion, Refunds, Payment Disputes, Discount Codes Used, Tax Collected) put any period on the dashboard; see `orchardcore-reports`.
 
 ## Workflow events and automation recipes
 

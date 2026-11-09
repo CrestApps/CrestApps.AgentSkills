@@ -386,3 +386,9 @@ YourTheme/Views/OrchardCore.Users/Account/Login.cshtml
 - Output stored HTML through the part or field shape (or `sanitize_html`)
   instead of `{{ ... .Html | raw }}`: HTML and Markdown source is no longer
   sanitized on save.
+- Templates are rendered by Fluid 3. Existing templates keep working, and
+  they can now read every public property and field reachable from the shape
+  model (member names are case-insensitive) without a member-access
+  registration; `User` and `Site` still expose only their fixed members. Module
+  code that registers filters, tags or values must move to
+  `TemplateOptionsBuilder` (see `orchardcore-liquid`).

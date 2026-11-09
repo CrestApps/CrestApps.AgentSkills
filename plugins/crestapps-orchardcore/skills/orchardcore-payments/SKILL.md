@@ -20,7 +20,7 @@ Related skills: `orchardcore-checkout` (the engine, steps, test provider), `orch
 | `CrestApps.OrchardCore.Stripe` | Stripe (Payment Providers) | `CrestApps.OrchardCore.Users` | With Checkout enabled it registers the card provider (key `Stripe`) automatically; with Workflows it adds Stripe events; with Point of Sale it adds `stripe-terminal` |
 | `CrestApps.OrchardCore.Subscriptions.Installments` | Subscriptions - Installment Plans | Transactions, Checkout, `OrchardCore.Users` | Does not need the Subscriptions feature or Products; see [references/installment-plans.md](references/installment-plans.md) |
 
-`CrestApps.OrchardCore.Payments.Abstractions` is a contracts package (namespace `CrestApps.OrchardCore.Payments`): `Money`, `CurrencyScale`, `GatewayMode` (`Live`, `Testing`), `IPaymentEvent`, `PaymentEventBase`, the event contexts and `RemoteSubscriptionStatus`. Provider contracts are in `CrestApps.OrchardCore.Checkout.Abstractions` (`CrestApps.OrchardCore.Checkout.Services`). Install `CrestApps.OrchardCore.Stripe` in the web/startup project.
+`CrestApps.OrchardCore.Payments.Abstractions` is a contracts package (namespace `CrestApps.OrchardCore.Payments`): `Money`, `GatewayMode` (`Live`, `Testing`), `IPaymentEvent`, `PaymentEventBase`, the event contexts and `RemoteSubscriptionStatus`. Provider contracts are in `CrestApps.OrchardCore.Checkout.Abstractions` (`CrestApps.OrchardCore.Checkout.Services`). Install `CrestApps.OrchardCore.Stripe` in the web/startup project.
 
 ```json
 {
@@ -39,7 +39,7 @@ Related skills: `orchardcore-checkout` (the engine, steps, test provider), `orch
 
 ## Guidelines
 
-- Amounts are `decimal` everywhere. Compare with `Money.AreEqual` and `Money.IsGreaterThan`, round with `Money.Round(amount, currency)`, and convert to minor units only at the gateway boundary (`Money.ToMinorUnits`, `StripeCurrency`). `CurrencyScale.GetDecimalPlaces` knows JPY (0) and KWD (3).
+- Amounts are `decimal` everywhere. Compare with `Money.AreEqual` and `Money.IsGreaterThan`, round with `Money.Round(amount, currency)`, and convert to minor units only at the gateway boundary (`Money.ToMinorUnits`, `StripeCurrency`). `CurrencyScale.GetDecimalPlaces` knows JPY (0) and KWD (3); `CurrencyScale` now lives in `CrestApps.OrchardCore.Abstractions` (namespace `CrestApps.OrchardCore.Currencies`) so the catalog and taxation round without referencing payments.
 - Providers are tax-agnostic: they charge the amount the checkout gives them (tax included) and report the net and tax split back in `PaymentVerificationResult`.
 - Never record a payment from a webhook alone. A webhook is a hint; the engine verifies through `VerifyAsync` against the gateway's API.
 - Never refund by calling a gateway. Use `ICheckoutRefundService` so the refund is recorded first, capped at what remains, taxed from the original snapshot and locked against concurrent refunds.
@@ -152,6 +152,8 @@ Configured values show read-only on the page and are never written to the databa
 - Card payments use Stripe Elements on the payment step: `BeginAsync` creates an unconfirmed PaymentIntent for the attempt's gross amount and returns its client secret; `VerifyAsync` reads the PaymentIntent (with Radar risk) from Stripe. The hosted-checkout mode is gone.
 - Recurring obligations become real Stripe subscriptions with inline prices (`StripeRecurringPaymentProvider`); one Stripe customer is resolved per checkout so a setup fee and a plan share the card. Cancel, pause (`pause_collection`) and resume reach Stripe.
 - Saved cards: `savePaymentMethod` (installments) and `offSession` charges; buyer wallets through `IStripeWalletService` with `savedCardId` and `rememberCard` provider data, listed at `account/payment-methods`.
+- A card the bank wants the cardholder to approve off-session (`authentication_required`) is reported with `PaymentBeginResult.AuthenticationRequired(...)` (a decline that also sets `RequiresAuthentication`), surfaced as `PaymentBeginOutcome.RequiresAuthentication`.
+- A card kept at checkout is added to the customer's kept payment methods (`ISavedPaymentMethodStore`, see `orchardcore-checkout`), and any module can charge it later with `ITransactionCommandService.ChargeSavedPaymentMethodAsync` (see `orchardcore-transactions`). With Checkout on, `account/payment-methods` lists those first under **Cards for automatic payments**, with **Make default** (`account/payment-methods/kept/{id}/default`) and **Remove** (`account/payment-methods/kept/{id}/remove`); `AccountPaymentMethodsViewModel.KeptPaymentMethods` carries them.
 - Apple Pay and Google Pay through the Express Checkout Element when the device has a wallet, the domain is registered and the page is HTTPS.
 - Webhook `POST /stripe/webhook`: signature verified first, one distributed lock and a processed-event record per event, handler writes committed with the marker; `500` asks Stripe to retry, `409` on lock contention. Events mapped: `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.created|updated|deleted`, `payment_intent.succeeded|payment_failed|canceled`, `charge.refunded`, `refund.created|updated|failed`, `charge.refund.updated`, `charge.dispute.created|updated|closed`.
 - Workflow events (category **Stripe**, with `OrchardCore.Workflows`): `StripePaymentReceivedEvent`, `StripeSubscriptionCreatedEvent`, `StripePaymentIntentSucceededEvent`, `StripePaymentFailedEvent`, `StripePaymentCanceledEvent`, `StripePaymentRefundedEvent`, `StripeDisputeCreatedEvent`, `StripeRequestFailedEvent` (401, 403 or no connection; throttled to once per five minutes per tenant).
@@ -185,3 +187,5 @@ Paste the printed `whsec_` into **Test Webhook Signing Secret** (Advanced) or se
 | Card form missing | Publishable key not set for the active mode |
 | Wallet buttons missing | Domain not registered, not HTTPS, or nothing due now |
 | *payment_method belongs to the Customer* | Fixed in 3.0: one customer per checkout |
+| *The card could not be saved for later payments* when retrying a checkout with another card | Fixed in 3.0 (#1055): the Stripe customer for a card-keeping checkout is keyed by the checkout and its payment method |
+| Off-session charge declined with `authentication_required` | Expected: reported as `RequiresAuthentication`; ask the customer to pay the invoice themselves |

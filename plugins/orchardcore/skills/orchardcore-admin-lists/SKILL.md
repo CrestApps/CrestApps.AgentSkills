@@ -16,7 +16,7 @@ Every Orchard Core 4.0 admin page that lists items (content items, users, featur
 | Enum | Values | Description |
 |---|---|---|
 | `AdminListLayout` | `List` (default), `Grid` | `List` renders each item's `SummaryAdmin` shape as a whole row. `Grid` renders the item's `SummaryAdminGrid` shape, one cell per declared `AdminListColumn`, on a CSS grid whose header always lines up; below 48rem of list width (container query) it stacks like a `List` row instead of scrolling. |
-| `AdminListActionsLayout` | `Buttons` (default), `Menu` | `Buttons` renders the `Actions` zone as buttons plus an "Actions" dropdown for `ActionsMenu`. `Menu` renders everything in one ellipsis dropdown. |
+| `AdminListActionsLayout` | `Buttons` (default), `Menu` | `Buttons` renders the `Actions` zone as buttons plus an "Actions" dropdown for `ActionsMenu`. `Menu` renders everything in one ellipsis dropdown (a `btn-sm btn-outline-secondary` toggle, not wrapped in a `btn-group`). |
 
 Exactly these values exist; templates can restyle them but cannot register more layouts.
 
@@ -287,7 +287,7 @@ Shipped defaults come from `AdminListOptions`, bound per tenant from `OrchardCor
 }
 ```
 
-**Configuration → Settings → Admin** overrides them with **List layout**, **List actions layout** (each with **Use configuration default**), and **Let users choose the layout of a list**, stored on `AdminSettings`:
+**Configuration → Settings → Admin** overrides them with **List layout**, **Actions layout** (each with **Use configuration default**; the actions layout also drives the edit page action bar, see `orchardcore-admin-edit-views`), and **Let users choose the layout of a list**, stored on `AdminSettings`:
 
 ```json
 {
@@ -296,7 +296,7 @@ Shipped defaults come from `AdminListOptions`, bound per tenant from `OrchardCor
       "name": "settings",
       "AdminSettings": {
         "ListLayout": "Grid",
-        "ListActionsLayout": "Menu",
+        "ActionsLayout": "Menu",
         "AllowUserListLayoutSelection": true
       }
     }
@@ -350,6 +350,7 @@ Check every list page in both layouts and both actions layouts (Buttons and Menu
 - Before, controllers built row shapes (`BuildDisplayAsync(item, updater, "SummaryAdmin")`) and views looped over them. Now controllers assign raw records to `AdminListContext<TModel>.Source` and the list builds rows.
 - Built-in listing collections (`ListContentsViewModel.ContentItems`, `Users`, `Queries`, ...) now hold raw records, not row shapes or model/shape pairs; custom templates reading them must adapt. `ContentsAdminList.cshtml` renders through `ListContentsViewModel.List`.
 - Add `SummaryAdminGrid` locations to existing row drivers, or their content is missing from the grid.
+- `AdminSettings.ListActionsLayout` (4.0 previews) is now `AdminSettings.ActionsLayout`, labelled **Actions layout**, and also controls the edit page action bar. Update recipes and tests; the old stored value is not migrated.
 - Audit trail rows now have `Event`, `Category`, `Details`, and `Actions` columns; `AuditTrailEventTags_SummaryAdmin` was replaced by `AuditTrailEventName_SummaryAdmin` (`EventName` zone) and `AuditTrailEventCategory_SummaryAdmin` (`EventCategory` zone).
 
 ## Related Skills

@@ -485,7 +485,7 @@ Link it from the **Settings** group with `.Action("Index", "Admin", new { area =
         "ShowBreadcrumb": true,
         "MenuBehavior": "Persistent",
         "ListLayout": "Grid",
-        "ListActionsLayout": "Menu",
+        "ActionsLayout": "Menu",
         "AllowUserListLayoutSelection": true
       },
       "ContentQuickNavigationSettings": {
@@ -506,7 +506,7 @@ Link it from the **Settings** group with `.Action("Index", "Admin", new { area =
 | `ShowBreadcrumb` | `true` | Admin breadcrumb trails (see `orchardcore-breadcrumbs`). |
 | `MenuBehavior` | `Focused` | `Focused` or `Persistent` menu sections. |
 | `ListLayout` | `null` | `List` or `Grid`; `null` uses `AdminListOptions.DefaultLayout` (see `orchardcore-admin-lists`). |
-| `ListActionsLayout` | `null` | `Buttons` or `Menu`; `null` uses `AdminListOptions.DefaultActionsLayout`. |
+| `ActionsLayout` | `null` | `Buttons` or `Menu` for admin list row actions and the secondary actions of the edit page action bar; `null` uses `AdminListOptions.DefaultActionsLayout`. Named `ListActionsLayout` in 4.0 previews; a value saved under the old name is not migrated. |
 | `AllowUserListLayoutSelection` | `false` | Per-user List/Grid selector on every list. |
 
 ## Admin Filters
@@ -558,5 +558,7 @@ The same pattern can require an admin stylesheet defined in a resource manifest 
 - Re-check overrides of the admin menu templates and custom menu CSS against the new markup and color variables; require `bootstrap-select` styles explicitly.
 - Overridden list views must render `<admin-list>` (see `orchardcore-admin-lists`).
 - Use `OrchardCore:Admin` instead of `OrchardCore_Admin` in configuration.
+- Admin edit pages put their submit buttons in a bottom action bar: replace button rows (and top `position-sticky action-bar` cards) in custom edit views with `<div class="action-bar-bottom">` and mark secondary actions with `action-bar-secondary` (see `orchardcore-admin-edit-views`).
+- Admin menu items render an extra `oc-navigation-{navigationName}-{parents}-{label}` class built from the untranslated labels (for example `oc-navigation-admin-content-content_items`); use it as a culture-independent hook in CSS or UI tests (see `orchardcore-navigation`).
 
 For practical end-to-end examples, see `references/admin-examples.md`.

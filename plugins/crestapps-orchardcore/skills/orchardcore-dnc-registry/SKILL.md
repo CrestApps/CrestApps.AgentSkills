@@ -1,6 +1,6 @@
 ---
 name: orchardcore-dnc-registry
-description: Skill for configuring national and local do-not-call registry checks in CrestApps Orchard Core, including Azure Blob Storage for uploaded local lists. Covers the DncRegistry, UsaFtc, CanadaDncl and Local features and the DncRegistry.Azure module, global import enforcement, dialer screening that fails closed with DoNotCallScreeningException, canonical PhoneNumber input, background-imported local CSV lists, tenant-aware Azure containers, and custom INationalDoNotCallRegistry providers. Use this skill when requests mention Orchard Core do-not-call, DNC, telemarketing compliance, FTC or LNNTE-DNCL registries, local DNC CSV files, DNC screening failures, or DNC Azure Blob Storage. Strong matches include CrestApps.OrchardCore.DncRegistry, INationalDoNotCallRegistry, DoNotCallScreeningException, NumberSearchContext, LocalDncRegistry, ILocalDncListManager, DncRegistrySettings, UsaFtcDncRegistrySettings, CanadaDnclRegistrySettings, and DncRegistryBlobStorageOptions.
+description: Skill for configuring national and local do-not-call registry checks in CrestApps Orchard Core, including Azure Blob Storage for uploaded local lists. Covers the DncRegistry, UsaFtc, CanadaDncl and Local features and the DncRegistry.Azure module, global import enforcement, dialer screening that fails closed with DoNotCallScreeningException, canonical PhoneNumber input, background-imported local CSV lists, the LocalDncLists recipe and deployment step, the DncRegistry Report Builder data source, the do-not-call consent source, tenant Azure containers, and custom INationalDoNotCallRegistry providers. Use this skill when requests mention Orchard Core do-not-call, DNC, telemarketing compliance, FTC or LNNTE-DNCL registries, local DNC lists, DNC screening failures, or DNC Azure Blob Storage. Strong matches include CrestApps.OrchardCore.DncRegistry, INationalDoNotCallRegistry, DoNotCallScreeningException, LocalDncRegistry, ILocalDncListManager, DncRegistrySettings and DoNotCallListConsentSource.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -111,6 +111,42 @@ CSV files hold one phone number per row in a single column. The importer skips b
 5559876543
 ```
 
+### Consent source
+
+The Local feature registers `DoNotCallListConsentSource`, an `IConsentSource` named `ConsentSourceNames.DoNotCallLists` registered with `services.AddConsentSource<T>()` (the shared consent building block in `CrestApps.OrchardCore.Consent.Abstractions`). For the `Phone` channel it reports an E.164 number as opted out when it is on a completed local list, so modules that ask `IConsentService` honor local lists without referencing this module.
+
+### Recipes and deployment
+
+The **Local DNC lists** deployment step (Do Not Call category) exports every **Completed** list with its phone numbers (personal data: export only to a site you trust). The `LocalDncLists` recipe step queues each list for the same background import an upload uses; a list whose name and country already exist is skipped, so a recipe can run twice. Both have CrestApps Recipes JSON schemas.
+
+```json
+{
+  "steps": [
+    {
+      "name": "LocalDncLists",
+      "Lists": [
+        { "Name": "Opted out", "CountryCode": "US", "PhoneNumbers": [ "+12025550101", "+12025550102" ] }
+      ]
+    }
+  ]
+}
+```
+
+`ILocalDncListManager.GetPhoneNumbersAsync(listId)` returns a list's numbers.
+
+### Report Builder data source
+
+With **Data Pipelines Core** (`OrchardCore.DataPipelines.Core`) and the Local feature enabled, the **DNC registry** data source (`DncRegistry`) is readable with `ManageDncRegistrySettings`:
+
+| Data set | Rows | Main date | Fields |
+| --- | --- | --- | --- |
+| `DncLists` | One per local list | `CreatedUtc` | `ListId` (identifier), `Name`, `UploadedFileName`, `CountryCode`, `PhoneNumberCount`, `CreatedUtc`, `Status`, `TotalRecords`, `TotalProcessed`, `ImportedCount`, `ErrorCount`, `FailedAttempts`, `Error`, `ProcessSaveUtc`, `CompletedUtc` |
+| `DncEntries` | One per imported number | None | `EntryId` (identifier), `ListId` (references `DncLists.ListId`), `CountryCode` |
+
+The phone numbers themselves are not exposed. Only entries of **Completed** lists screen numbers, so join `DncLists` and filter `Status` to report on numbers in use. The USA FTC and Canada registries store nothing to report on.
+
+`DncRegistrySettings` and `DncRegistryConstants` live in `CrestApps.OrchardCore.DncRegistry.Abstractions`, so modules such as the Omnichannel Management contact import read enforcement settings without referencing the module.
+
 ### Admin list
 
 The **Local DNC Registry** page renders through Orchard Core's `AdminList` shape (list name `LocalDncLists`, row model `LocalDncList`, grid columns `Name`, `Status` and `Actions`). Customize rows with `LocalDncList_SummaryAdmin` placement for the List layout and `SummaryAdminGrid` placement for the Grid layout, or add columns with an `IAdminListColumnsProvider` for `LocalDncLists`. See `orchardcore-admin-lists`.
@@ -147,7 +183,7 @@ Configure `CrestApps:DncRegistry:AzureBlobStorage` under `OrchardCore` in the ro
 | `RemoveContainer` | Delete the container when the tenant is removed. Do not use on a shared container. |
 | `RemoveFilesFromBasePath` | Delete only `BasePath` content on tenant removal. Use with a shared container. |
 
-`DncRegistryBlobStorageOptions` derives from `MediaBlobStorageOptionsBase`. When `ConnectionString` or `ContainerName` is missing, the feature logs an error and the local file store keeps serving files. Azure stores only uploaded source files; the entry indexes stay in the database.
+The Azure module registers the store with the shared `services.AddTenantFileStore<ILocalDncFileStore>("DncRegistry", "CrestApps:DncRegistry:AzureBlobStorage", ..., removeOnTenantRemoval: true)` building block (`CrestApps.OrchardCore.FileStorage.Core`), which binds `TenantStoreBlobStorageOptions<ILocalDncFileStore>`, expands the Liquid in the container name and base path, and creates or removes the container with the tenant. The former `DncRegistryBlobStorageOptions` class and its tenant events are gone; the configuration keys are unchanged. When `ConnectionString` or `ContainerName` is missing, the local file store keeps serving files. Azure stores only uploaded source files; the entry indexes stay in the database.
 
 ## Add a Registry Provider
 

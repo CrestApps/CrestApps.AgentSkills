@@ -12,13 +12,18 @@ Soft Phone Core is dependency-only; enable `CrestApps.OrchardCore.Telephony.Soft
 
 The docked bar holds its own hub connection, so offers reach the agent even when the soft phone runs in another window or the extension. It pops the matched activity's **Complete activity** page (unless the current page has unsaved form changes) and shows **Accept**/**Decline** (or **Dial**/**Skip** for preview). It is not injected on `/softphone`, on front-end pages, or on non-view responses.
 
+- The bar also opens for every call with an activity, a dialer call included: once when the agent is connected and again when the call ends, so **Complete activity** is in view.
+- While the agent is reserved, busy or wrapping up and no offer, call or dial shows their work, the state carries `HeldActivity`, the newest open work assigned to them; the bar shows it under **Activity to complete** until it is completed.
+- When the agent is signed in and `phoneOpen` is `false`, the bar warns that no phone is open, links **Open the phone** to `/softphone` (Soft Phone Extension), and polls every 12 seconds until a phone registers.
+
 ## Workspace Behavior
 
 - The workspace loads a state snapshot (`GET Admin/contact-center/workspace/state`) and stays current from hub events, re-reading authoritative state after each action.
 - Sign-in, sign-out and reconnect run a self-healing pass that reclaims half-cleared offers and stale reservations, then offer any queued voice work waiting for the agent.
 - **Accept** posts `Admin/contact-center/voice/offer/accept`; **Decline** posts `.../offer/decline`; sending a ringing call to voicemail posts `.../offer/voicemail`.
 - Dialer work (Preview, Power, Progressive) opens the shared Omnichannel **Complete activity** page; inbound work shows the ringing offer first.
-- Paced dials keep the agent `Reserved`; the snapshot's `pendingDial` carries `DialAttemptPhase` (`Dialing`, `Screening`, `Connecting`) and `showsProgress`; `activeInteraction` appears once the agent joins.
+- Paced dials keep the agent `Reserved`; the snapshot's `pendingDial` carries `DialAttemptPhase` (`Dialing`, `Screening`, `Connecting`) and `showsProgress`; `activeInteraction` appears once the agent joins, with `autoOpenActivity` set for an automatic dial so a page that missed the join push still opens the record.
+- The snapshot carries `DialHoldReservationId`, so the soft phone answers the held dial's leg by itself after a reload or reconnect. On connect the hub reads the agent profile once to join groups; the browser then asks for the snapshot.
 - Completion goes through `IActivityDispositionService`; a subject flow that requires a disposition blocks completion. An already finished activity cannot be completed twice.
 - Presence changes (`POST Admin/contact-center/workspace/presence`) and queued-call recovery run separately, so presence never waits on voice routing.
 - Recording controls: `.../workspace/recording/pause`, `.../recording/resume`, `.../recording/disclosed`. Secure capture: `.../workspace/secure-capture/begin` and `.../cancel`.
@@ -56,8 +61,13 @@ Hub conventions: work that changes durable state or group membership runs under 
 | **End call…**, **Transfer…** (needs `CallTransfer`), **Start/Stop recording** (needs `Recording`) | `ContactCenterInterveneInCalls` |
 | **Set Available**, **Set Not ready**, **Set Break**, **Sign out of queues** | `ContactCenterInterveneInCalls` |
 | **Free agent** (stale Busy or Reserved) | `ContactCenterInterveneInCalls`; never ends a call the provider confirms alive |
+| **Open activity** (agent reserved, busy or wrapping up) | **Complete activity** for other users' activities. Opens the activity of their live call, or else the newest work routing or the dialer gave them, on its Complete screen and returns to the dashboard; completing it ends the agent's work |
 
 Provider actions run first and the audited event is published only after the provider confirms. Audit events: `SupervisorTookOver`, `SupervisorEndedCall`, `SupervisorTransferredCall`, `SupervisorChangedRecording`, `SupervisorSetAgentState`, `SupervisorMessagedAgent`, `SupervisorMonitorModeChanged`, `SupervisorFreedAgent`. The supervisor hears the call on their own soft phone, which auto-answers the announced leg. Stale-work detection is `IStaleAgentWorkService` (registered by Supervision).
+
+### Live AI calls
+
+The **Live AI calls** panel lists every phone call an AI voice agent is on (customer, AI profile, direction, duration) from `GET Admin/contact-center/dashboard/ai-calls`. **Follow** streams the transcript (`.../ai-calls/{activityId}/transcript`) and **Listen** rings the supervisor's soft phone with a listen-only leg (`.../listen`), both with `MonitorContactCenter`. **Message the AI** (`.../note`), **Take over** (`.../take-over`, the supervisor needs an agent profile) and **End call** (`.../end`) need `ContactCenterInterveneInCalls`. They run through `IAIVoiceCallSupervision` from Automated Voice (see `orchardcore-omnichannel-voice`). A live session runs on the node that answered it; on several nodes enable `OrchardCore.Redis` so commands are relayed to that node. The same actions are offered to API clients at `api/ai/v1/live-calls` (AI API keys).
 
 ## Extending the UI
 

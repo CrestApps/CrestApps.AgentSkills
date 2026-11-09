@@ -48,6 +48,7 @@ defines contracts. It sends nothing, places no calls and has no admin screens.
 | Human messaging inbox | `CrestApps.OrchardCore.Omnichannel.Messaging` | `orchardcore-omnichannel-messaging` |
 | SMS channel of the inbox | `CrestApps.OrchardCore.Omnichannel.Messaging.Sms` | `orchardcore-omnichannel-messaging` |
 | Push routing for the inbox | `CrestApps.OrchardCore.Omnichannel.Messaging.RoutedDistribution` | `orchardcore-omnichannel-messaging` |
+| Messaging pictures in Azure Blob Storage | `CrestApps.OrchardCore.Omnichannel.Messaging.Azure` | `orchardcore-omnichannel-messaging` |
 | Azure Event Grid inbound webhook | `CrestApps.OrchardCore.Omnichannel.EventGrid` | `orchardcore-omnichannel-event-grid` |
 
 Related skills owned elsewhere: `orchardcore-contact-center` (queues, entry
@@ -120,7 +121,16 @@ After enabling it:
 
 Every SMS receiver raises the same `OmnichannelConstants.Events.SmsReceived`
 event on the `SMS` channel, so SMS Automation and the SMS Messaging Channel act
-on Twilio, Telnyx and ACS texts identically.
+on Twilio, Telnyx and ACS texts identically. Both SMS features depend on the
+dependency-only **Provider Webhook Inbox**
+(`CrestApps.OrchardCore.ContactCenter.ProviderInbox`, shipped by the
+`CrestApps.OrchardCore.Webhooks` module): each receiver commits the text to it,
+keyed on the provider message id, before answering the provider, so a restart
+loses nothing and redeliveries are absorbed on every node.
+
+Whether a person may be contacted on a channel is answered by the shared
+`IConsentService` (`CrestApps.OrchardCore.Consent`); see
+`orchardcore-omnichannel-management`.
 
 ## Shared Contracts
 
@@ -134,6 +144,7 @@ All types are in `CrestApps.OrchardCore.Omnichannel.Core` (models in
 | `IOmnichannelEventHandler` | Receives every inbound `OmnichannelEvent` (`HandleAsync(event, cancellationToken)`). |
 | `OmnichannelEvent` | `Id`, `EventType`, `Subject`, `Message`, `Data` (`BinaryData`) and `GetDataFromJson<T>()`. |
 | `OmnichannelMessage` | Stored message: `Channel`, `CustomerAddress`, `ServiceAddress`, `Content`, `IsInbound`, `ConversationId`, `ProviderMessageId`, `DeliveryStatus`, `MediaReferences`, `ErrorCode`. |
+| `IOmnichannelHandoffAvailability` | Optional companion of `IOmnichannelHandoffService`: `GetAvailabilityAsync(queueId)` returns `HandoffAvailability` (`Open`, `CallbackOnly`, `Unavailable`) so an automated conversation is offered a transfer only when someone can take it. Contact Center implements it. |
 | `ISmsProviderRouter` | Resolves the SMS provider that owns a sending number (`ResolveProviderNameAsync`, `GetProviderAsync`, `SendAsync`), falling back to the tenant default. |
 | `OmnichannelConstants.Channels` | `Phone`, `SMS`, `Email`. |
 | `OmnichannelConstants.SmsErrorCodes` | Provider-neutral refusals such as `recipient_opted_out` and `media_not_supported`. |

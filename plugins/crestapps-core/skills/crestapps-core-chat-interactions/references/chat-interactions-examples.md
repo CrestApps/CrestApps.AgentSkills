@@ -40,6 +40,19 @@ public sealed class AIChatHub : AIChatHubCore<IAIChatHubClient>
         return Task.FromResult(Context.User?.Identity?.IsAuthenticated == true);
     }
 
+    // Only the session's owner gets in by default; also let administrators review conversations.
+    protected override async Task<bool> AuthorizeSessionAsync(IServiceProvider services, AIChatSession chatSession)
+    {
+        if (await base.AuthorizeSessionAsync(services, chatSession))
+        {
+            return true;
+        }
+
+        var authorizationService = services.GetRequiredService<IAuthorizationService>();
+
+        return (await authorizationService.AuthorizeAsync(Context.User, "Admin")).Succeeded;
+    }
+
     protected override string GetRateLimitedMessage(PromptSecurityResult result)
         => "You are sending messages too quickly. Please wait a moment and try again.";
 

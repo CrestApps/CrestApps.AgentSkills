@@ -34,10 +34,11 @@ Other event families include interactions, offers (`OfferAccepted`), agents (`Ag
 Text inputs accept Liquid, for example `{{ Workflow.Input.InteractionId }}` or `{{ Workflow.Input.Data.ActivityItemId }}`.
 
 - **Indeterminate** means the provider may have changed recording state but the outcome could not be observed; branch to reconciliation or alerting.
-- **Already Started** prevents a duplicate call when a workflow fires twice or races the periodic automated-activities pass; only `NotStated` or `Scheduled` activities start.
+- **Already Started** prevents a duplicate call when a workflow fires twice or races the periodic automated-activities pass; only `NotStated` or `Scheduled` activities start. **Place Call or Send Message** skips the checks the automatic pass runs first (opt-out, numbers not in service, do-not-call lists, calling window), so use it only for contacts already cleared.
 - **Hand Off to Live Agent** escalates an automated (AI) conversation through `IOmnichannelHandoffService`; without a queue it uses the subject flow's handoff queue. It never touches a call a human is on.
 - **Schedule Dialer Retry** queues the next attempt in the same campaign and profile, honoring max attempts; a shorter delay than the profile's retry delay is raised to it.
-- **Send Text Message** belongs to the SMS messaging feature (`CrestApps.OrchardCore.Omnichannel.Messaging.Sms`), not Contact Center; see the Omnichannel messaging skills.
+- **Send Text Message** belongs to the SMS messaging feature (`CrestApps.OrchardCore.Omnichannel.Messaging.Sms`), not Contact Center, though the designer lists it in the **Contact Center** category; see the Omnichannel messaging skills.
+- To set a field on the contact after a call (for example a "texted once" flag), use **Update Contact** (`UpdateContactTask`, category **Omnichannel CRM**, see `orchardcore-omnichannel-management`) rather than Orchard Core's **Update Content Item**, which validates required fields and fails on contacts loaded without them.
 
 ## Deliberately Excluded
 

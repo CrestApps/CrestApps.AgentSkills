@@ -17,7 +17,7 @@
 | Recommendations (`CrestApps.OrchardCore.Products.Recommendations`) | `ProductRecommendationsPart` with `UpsellIds` and `CrossSellIds`; `ProductUpsells`, `ProductRelated`, `ProductRecentlyViewed` shapes on the product page; `CartRecommendations` on the cart and confirmation; cards from `ProductListingService.BuildCardsAsync` and `products/cards` |
 | Comparison (`CrestApps.OrchardCore.Products.Comparison`) | `ProductCompareToggle` in the `ProductAction` display, a bar of up to four products, and `products/compare` |
 | Grouped Products (`CrestApps.OrchardCore.Products.Grouped`) | `ProductGroupPart.ProductIds` (up to 20); Carts renders `GroupedProducts` posting to `cart/add-many` |
-| Bundles (`CrestApps.OrchardCore.Products.Bundles`) | `ProductBundlePart.Items` (up to 10, `ProductBundleIndex`); stock from parts via Inventory; `OrderLine.BundleItems`; `ProductBundleContents` shape |
+| Bundles (`CrestApps.OrchardCore.Products.Bundles`) | `ProductBundlePart.Items` (up to 10, `ProductBundleIndex`; an empty quantity on the editor means 1); stock from parts via Inventory; `OrderLine.BundleItems`; `ProductBundleContents` shape |
 
 ## Product Feeds
 

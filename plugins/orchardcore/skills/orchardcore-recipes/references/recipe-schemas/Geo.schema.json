@@ -1,0 +1,109 @@
+{
+  "type": "object",
+  "description": "Creates or updates service territories. Territories are matched by ItemId only; an existing territory takes only the members given. List parent territories before their children.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Geo",
+      "description": "Recipe step discriminator. Must be \u0027Geo\u0027."
+    },
+    "Territories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A service territory: an area served together, drawn as a shape, listed as postal codes, or both.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The territory\u0027s id. When it matches a stored territory, that territory is updated with the members given here; otherwise a new territory is created, keeping this id when it is a valid id so other records that point at it still do."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The territory name."
+          },
+          "ParentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ItemId of the territory it is part of."
+          },
+          "Shape": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The shape, as GeoJSON text: a Polygon or MultiPolygon geometry, Feature or FeatureCollection."
+          },
+          "PostalCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The postal codes; one ending with * matches every code that starts with the rest."
+          },
+          "TimeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The IANA time zone; null for the site\u0027s."
+          },
+          "TravelSpeedKmh": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The average travel speed in km/h; null for the site\u0027s."
+          },
+          "Members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A team or person that serves the territory.",
+              "properties": {
+                "Kind": {
+                  "type": "string",
+                  "examples": [
+                    "Team",
+                    "Worker"
+                  ],
+                  "description": "The kind of member, by the module that owns it, such as Team or Worker."
+                },
+                "Id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The member\u0027s identifier in the module that owns it."
+                },
+                "Role": {
+                  "type": "string",
+                  "enum": [
+                    "Primary",
+                    "Secondary"
+                  ],
+                  "description": "Whether the territory is theirs first or as a backup."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The people and teams that serve it."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The service territories, parents first."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -198,7 +198,9 @@ For agent profiles, profile types and tools, see `orchardcore-ai`, `orchardcore-
 
 ### Profile Editor Layout
 
-- The first tab holds the **General**, **Deployments & Interactions**, **Instructions**, **Parameters** and **Prompt Security** cards. **Knowledge**, **Capabilities** and **Data Processing & Metrics** tabs come from enabled features.
+- The first tab holds the **General**, **Deployments & Interactions**, **Instructions**, **Parameters** and **Prompt Security** cards (plus **Speaking Style** and **Guardrails**). **Knowledge**, **Capabilities** and **Data Processing & Metrics** tabs come from enabled features; **Data Processing & Metrics** also holds **Contact memory** and **Data Privacy** (see `orchardcore-ai-conversations`).
+- Every save of a profile is kept as a version (**Versions** in the row menu: compare and restore).
+- With the WebMCP module, the **Capabilities** tab has **Allow page tools** and **Allow consequential page tools** (`WebMcpProfileSettings`): the chat discovers and runs the WebMCP tools of the page the user has open, through the hub's `SetPageTools` and `ClearPageTools`. See [orchardcore-ai-webmcp](../orchardcore-ai-webmcp/SKILL.md).
 - **Deployments & Interactions** reads in one pass: chat deployment, its model parameters, **Chat mode**, **Conversation deployment**, **Voice**, **Enable text-to-speech playback**, then the utility deployment and its parameters.
 - **Start the conversation automatically** (formerly **Add initial prompt**) with its **Opening message** (formerly **Initial prompt**) still stores `AIProfileMetadata.InitialPrompt`. The session is created lazily: it is persisted only when the visitor sends the first message, and the opening message is inserted ahead of it.
 - A **Welcome Message** is placeholder text for new sessions and is never added to the model history.
@@ -302,7 +304,7 @@ Both are sections of **Settings → Artificial Intelligence** (permission `Manag
 
 - Tiers apply to anonymous callers only and take precedence over the single-window values. Lowering `MaxAnonymousSessionsPerWindow` has no effect while tiers are set; clear the tier list or lower a tier instead.
 - The default for **Maximum anonymous sessions per window** is now `20`.
-- A profile can override every throttle value on its **Prompt Security** tab, or opt out of tiers with **Do not use tiered ... limits for this profile**. Injection detection, output filtering and prompt length stay site-wide.
+- A profile can override every throttle value on its **Prompt Security** card (first tab of the profile editor), or opt out of tiers with **Do not use tiered ... limits for this profile**. Injection detection, output filtering and prompt length stay site-wide.
 - A throttled session start is sent to the client as `ReceiveSessionStartRejected` with a generic, localizable message.
 - Turn on `AllowCrossSiteEmbedding` only when the chat runs in a frame on another site. It writes the cookie `SameSite=None; Secure` (HTTPS requests only) and `UsePartitionedCookie` adds `Partitioned`.
 - `RemoteAddressMode` values are `Disabled`, `Hashed` (recommended), `PlainText` and `Encrypted`. Configure forwarded headers behind a reverse proxy.
@@ -312,6 +314,7 @@ Both are sections of **Settings → Artificial Intelligence** (permission `Manag
 - Enable `CrestApps.OrchardCore.AI.Documents.ChatSessions` and turn on **Allow session document uploads** and **Allow session image uploads** per profile (`AIProfileSessionDocumentsMetadata`). Image uploads also need a vision deployment. See `orchardcore-ai-documents`.
 - `[doc:N]` markers render as superscript citations with a linked reference list in the admin chat, the admin widget and the frontend widget.
 - Pictures returned together, such as document previews, stack into the `chat-image-carousel`.
+- Deleting a chat session deletes its uploaded files from the document file store, not only their rows and chunks.
 
 ### AIChatHub Methods
 
@@ -329,6 +332,7 @@ The hub is mapped with `SignalRHubRoutes.GetHubPath<AIChatHub>()`, and `Configur
 | `SynthesizeSpeech` | Read an answer aloud |
 | `RateMessage` | Thumbs up or down |
 | `HandleNotificationAction` | Run a notification action, see `orchardcore-ai-chat-notifications` |
+| `SetPageTools` / `ClearPageTools` | Register or clear the WebMCP tools of the user's current page (WebMCP bridge) |
 
 ### Resources
 

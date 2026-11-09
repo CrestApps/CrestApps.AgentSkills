@@ -168,7 +168,7 @@ public sealed class StaffDiscountProvider : ICheckoutDiscountProvider
 
 ## Tenders: balances that pay after tax
 
-A tender pays part of the total, tax included, from a balance the buyer holds: gift cards (Orders, key `gift-card`), store credit (`store-credit`) and loyalty points (`loyalty-points`) from Customers, company terms (`company-terms`) from Companies. It is not a discount.
+A tender pays part of the total, tax included, from a balance the buyer holds: gift cards (Orders, key `gift-card`), store credit (`store-credit`) and loyalty points (`loyalty-points`) from Customers, business account terms (`account-terms`) from Accounts B2B (formerly `company-terms` from Companies). A tender that bills an invoice owed later can derive from `DeferredBalanceTenderProviderBase` (Checkout.Core). It is not a discount.
 
 | Type | Role |
 | --- | --- |
@@ -188,7 +188,7 @@ To add a kind of balance:
 
 ## Payment gates
 
-`ICheckoutPaymentGate.BeginningAsync(CheckoutPaymentBeginningContext)` runs inside the session lock before a payment begins and before a nothing-to-pay checkout completes. Call `context.Refuse(message)` to stop it; set `context.InvoiceChanged = true` after rebuilding the invoice so the payment script reloads the page with the new total. `CompanyApprovalPaymentGate` (an order that needs approval) and the inventory hold are other examples.
+`ICheckoutPaymentGate.BeginningAsync(CheckoutPaymentBeginningContext)` runs inside the session lock before a payment begins and before a nothing-to-pay checkout completes. Call `context.Refuse(message)` to stop it; set `context.InvoiceChanged = true` after rebuilding the invoice so the payment script reloads the page with the new total. `B2BApprovalPaymentGate` (Accounts B2B, an order that needs approval) and the inventory hold are other examples.
 
 ```csharp
 public sealed class RegistrationOpenPaymentGate : ICheckoutPaymentGate

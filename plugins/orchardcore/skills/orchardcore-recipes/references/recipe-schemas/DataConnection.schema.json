@@ -1,0 +1,190 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "DataConnection",
+      "description": "Recipe step discriminator. Must be \u0027DataConnection\u0027."
+    },
+    "Connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional identifier of the connection. When it matches a stored connection, that connection is updated; otherwise the connection is matched by Name. A new connection keeps this identifier when it is up to 26 letters, digits, dashes and underscores, and gets a generated one otherwise."
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,127}$",
+            "description": "Technical name of the connection: a letter, then letters, digits and underscores. A connection without a matching ItemId is matched by this name. Made from DisplayText when omitted."
+          },
+          "DisplayText": {
+            "type": "string",
+            "description": "Name of the connection shown in the admin UI."
+          },
+          "Description": {
+            "type": "string",
+            "description": "Optional description of the connection."
+          },
+          "Connector": {
+            "type": "string",
+            "examples": [
+              "Elasticsearch",
+              "HttpApi",
+              "MediaFiles",
+              "SqlServer"
+            ],
+            "description": "The connector the connection uses. Its feature must be enabled. An existing connection\u0027s connector can\u0027t change."
+          },
+          "Properties": {
+            "type": "object",
+            "properties": {
+              "SqlServerConnectionSettings": {
+                "type": "object",
+                "properties": {
+                  "Server": {
+                    "type": "string",
+                    "description": "The server name or address, with an optional instance or port."
+                  },
+                  "Database": {
+                    "type": "string",
+                    "description": "The database to read."
+                  },
+                  "Authentication": {
+                    "enum": [
+                      "SqlLogin",
+                      "Integrated",
+                      "EntraServicePrincipal",
+                      "EntraManagedIdentity",
+                      "EntraDefault",
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ],
+                    "description": "How the site signs in, by name or by position from 0: SqlLogin, Integrated, EntraServicePrincipal, EntraManagedIdentity or EntraDefault. SqlLogin and EntraServicePrincipal take their password or client secret from the \u0027Password\u0027 secret."
+                  },
+                  "UserName": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "The login name, the client id of a service principal, or the client id of a user-assigned managed identity."
+                  },
+                  "Encrypt": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the connection is encrypted."
+                  },
+                  "TrustServerCertificate": {
+                    "type": "boolean",
+                    "description": "Whether the server\u0027s certificate is trusted without validation."
+                  },
+                  "ReadOnlyIntent": {
+                    "type": "boolean",
+                    "description": "Whether the connection declares read-only intent, so it can be routed to a readable secondary."
+                  },
+                  "ConnectTimeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 15,
+                    "description": "Seconds to wait for a connection."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "The settings of a SqlServer connection."
+              },
+              "HttpConnectionSettings": {
+                "type": "object",
+                "properties": {
+                  "BaseUrl": {
+                    "type": "string",
+                    "description": "The base address the data sets\u0027 paths are resolved against."
+                  },
+                  "Authentication": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "How requests authenticate. Its secrets (such as Password, ApiKey, BearerToken or ClientSecret) travel in Secrets."
+                  },
+                  "Headers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "description": "Extra request headers."
+                  },
+                  "TimeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 100,
+                    "description": "Seconds to wait for a response."
+                  }
+                },
+                "additionalProperties": true,
+                "description": "The settings of an HttpApi connection."
+              },
+              "MediaFilesConnectionSettings": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "The settings of a MediaFiles connection."
+              },
+              "ElasticsearchDataConnectionSettings": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "The settings of an Elasticsearch connection."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The connector\u0027s settings, keyed by the name of their type, as a deployment plan exports them. Each settings object given replaces the stored one; settings not given are kept. Enumerations travel as their names."
+          },
+          "Secrets": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The connection\u0027s secrets in clear text, keyed by name (for example Password, ApiKey, BearerToken or ClientSecret). They are encrypted when stored. A deployment plan never exports them; an empty or missing secret keeps the one already stored."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "description": "Optional creation timestamp to preserve when importing exported records."
+          },
+          "ModifiedUtc": {
+            "type": "string",
+            "description": "Optional last-modified timestamp to preserve when importing exported records."
+          },
+          "Author": {
+            "type": "string",
+            "description": "Optional author name recorded with the connection."
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "Name"
+            ]
+          },
+          {
+            "required": [
+              "DisplayText"
+            ]
+          }
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The data connections to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Connections"
+  ],
+  "additionalProperties": true
+}

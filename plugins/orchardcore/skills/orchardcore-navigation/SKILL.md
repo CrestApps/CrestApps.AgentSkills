@@ -73,6 +73,7 @@ public sealed class AdminMenu : AdminNavigationProvider
 - Top-level admin groups are **Content**, **Design**, **Search**, **Settings**, **Tools**, and **Access Control**. `NavigationConstants` keeps `AdminMenuContentPosition` (`1`), `AdminMenuDesignPosition` (`2`), `AdminMenuSearchPosition` (`6`), and `AdminMenuAccessControlPosition` (`7`), plus `AdminId` (`admin`), `AdminMenuId`, and `CssClassPrefix` (`icon-class-`).
 - `Permission(...)` (chainable, any-of) and `Resource(...)` hide items from unauthorized users; an unauthorized item's children are removed with it.
 - Add an icon with `.Id("myid")` plus a `Views/NavigationItemText-myid.Id.cshtml` template, not `AddClass` with Font Awesome classes.
+- `NavigationManager` adds a class to every item of every `INavigationProvider` menu, built from the menu name and the untranslated labels of the item and its parents: `oc-navigation-{navigationName}-{parents}-{label}`, each segment HTML-classified with `_` as the word separator. For example **Content → Content Items** gets `oc-navigation-admin-content-content_items`. It is culture independent, so use it in UI tests or CSS instead of matching translated text; classes added with `AddClass` are kept.
 
 ### Front-End Navigation Provider
 
@@ -175,7 +176,21 @@ Opt custom listings into the same validation:
 
 The selector is the `Pager_PageSizeSelector` shape. `OrchardCore.Navigation` renders it by default as unstyled `<div class="pager-page-size">` markup with a `<label>` and `<select>`; TheAdmin and TheTheme style it with Bootstrap. Override `Views/Pager_PageSizeSelector.cshtml` in a theme to restyle it. The shape receives `PageSizes` (`List<SelectListItem>`, `Text` = size, `Value` = URL, `Selected` = current) and `CurrentPageSize`; do not read `Model.Items`, which holds child shapes.
 
-Pager defaults can also be set per tenant in `appsettings.json` under `OrchardCore:Navigation:PagerOptions` (`OrchardCore_Navigation` is deprecated), but the General settings override them.
+Pager defaults can also be set per tenant in `appsettings.json` under `OrchardCore:Navigation:PagerOptions` (`OrchardCore_Navigation` is deprecated), but the General settings override them. `MaxPagedCount` is the exception when the site leaves it at `0`: the configured value is kept.
+
+`MaxPagedCount` caps the total the content items admin list reports instead of running an expensive count query on large tables (`0` counts every item). When set, the list reports the cap as its total, unless the current page is not full, in which case the total is where the list actually ends:
+
+```json
+{
+  "OrchardCore": {
+    "Navigation": {
+      "PagerOptions": {
+        "MaxPagedCount": 1000
+      }
+    }
+  }
+}
+```
 
 ### SEO
 
@@ -240,6 +255,8 @@ Add `rel="nofollow"` to pager links with `Model.Pager.Attributes["rel"] = "nofol
 - `NavigationHelper.PopulateMenuAsync` and `PopulateMenuLevelAsync` now take `IShapeFactory` and `IShape` instead of `dynamic` arguments.
 - Replace manual `if (name != "admin")` checks in `INavigationProvider` implementations with `AdminNavigationProvider` or `NamedNavigationProvider`.
 - Use `new Pager(pagerParameters, pagerOptions)` instead of `new Pager(pagerParameters, siteSettings.PageSize)` so page size selection works.
+- `NavigationManager`'s constructor no longer takes `ShellSettings`; subclasses and tests constructing it must drop that argument.
+- Menu items render the extra `oc-navigation-...` classes; CSS selectors that assumed only builder classes may need review.
 
 ## Related skills
 
