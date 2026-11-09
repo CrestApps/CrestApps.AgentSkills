@@ -156,7 +156,7 @@ The **Artificial Intelligence Chat** widget follows the settings of the profile 
 ### Storage and cleanup
 
 - Files go through `IDocumentFileStore`, by default `wwwroot/<tenant>/AIDocuments`.
-- Deleting a chat interaction removes its chunks and `AIDocument` records; deleting a chat session removes its documents in a deferred task (`AIChatSessionDocumentCleanupHandler`); removing a profile document cleans its chunks on save.
+- Deleting a chat interaction removes its chunks and `AIDocument` records; deleting a chat session removes its documents in a deferred task (`AIChatSessionDocumentCleanupHandler`), which hands the session to `IConversationDocumentCleanupService` so the stored files in `IDocumentFileStore` (for example Azure blobs), tabular artifacts, chunks, rows and the PDF, Word and PowerPoint workspaces are deleted too, even when no document rows are left (earlier releases left the stored files orphaned); removing a profile document cleans its chunks on save.
 - Download endpoints are mapped by the base feature. An answer that cites a figure writes `[fig:N]`, which chat surfaces render as an image served by the figure endpoint; the same rule as the document download decides who can see it.
 
 ### Document agents

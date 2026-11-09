@@ -1,6 +1,6 @@
 ---
 name: orchardcore-facebook
-description: Skill for configuring Facebook and Meta integrations in Orchard Core. Covers Meta App core components, Meta Login authentication, Social Plugins widgets and their ManageLiquidTemplates protection, Meta Pixel tracking, the Meta Conversions API and its workflow task, FacebookCoreSettings, FacebookLoginSettings, and FacebookPixelSettings recipes, and ConfigureFacebookSettings with the OrchardCore Facebook configuration section and AppSecret from configuration. Use this skill when requests mention Orchard Core Facebook/Meta Integration, Meta App Settings, Meta Login, Meta Social Plugins Widgets, Meta Pixel, Conversions API, server-side Meta events, or closely related Orchard Core implementation, setup, extension, upgrade, or troubleshooting work. Strong matches include OrchardCore.Facebook, OrchardCore.Facebook.Login, OrchardCore.Facebook.Widgets, OrchardCore.Facebook.Pixel, FacebookSettings, and FacebookPluginPart.
+description: Skill for configuring Facebook and Meta integrations in Orchard Core. Covers Meta App core components, Meta Login authentication, Social Plugins widgets and their ManageLiquidTemplates protection, Meta Pixel tracking, the Meta Conversions API and its workflow task, FacebookCoreSettings, FacebookLoginSettings, and FacebookPixelSettings recipes, ConfigureFacebookSettings with the OrchardCore Facebook configuration section and AppSecret from configuration, and AppSecretSecretName references to the Secrets module. Use this skill when requests mention Orchard Core Facebook/Meta Integration, Meta App Settings, Meta Login, Meta Social Plugins Widgets, Meta Pixel, Conversions API, server-side Meta events, or closely related Orchard Core implementation, setup, extension, upgrade, or troubleshooting work. Strong matches include OrchardCore.Facebook, OrchardCore.Facebook.Login, OrchardCore.Facebook.Widgets, OrchardCore.Facebook.Pixel, FacebookSettings, and FacebookPluginPart.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -55,6 +55,16 @@ and cannot be decrypted, so supply `AppSecret` through the admin page or
 configuration instead. The step replaces all core values, so re-running it
 clears a secret entered earlier.
 
+In 4.0, `FacebookSettings.AppSecretSecretName` can name a `TextSecret` of the
+Secrets module instead; it takes precedence over `AppSecret`. With the
+`OrchardCore.Secrets` feature enabled, the Meta App page offers **Use a
+secret** (suggested name `Facebook.AppSecret`), and a saved secret can be moved
+without retyping it from **Tools → Security → Migrate Secrets**. The generic
+`Settings` step can set `"AppSecretSecretName": "Facebook.AppSecret"` in
+`FacebookSettings` after a `Secrets` step created the secret; `FacebookCoreSettings`
+has no secret-name property. The Pixel `ConversionsApiAccessToken` can't
+reference a secret. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
+
 ## Configuration Overrides
 
 Call `ConfigureFacebookSettings()` on the `OrchardCoreBuilder` to override the
@@ -83,7 +93,9 @@ builder.Services
 
 The configured `AppSecret` is a plain value (for example from the
 `OrchardCore__Facebook__AppSecret` environment variable or a key vault); Orchard
-Core protects it before use.
+Core protects it before use. In 4.0 it logs a `LegacySecretConfiguration`
+warning (event `8100`). The section binds onto `FacebookSettings`, so set
+`AppSecretSecretName` here instead to reference a secret, and remove `AppSecret`.
 
 ## Meta Login
 
@@ -174,6 +186,7 @@ background processes and for events affected by ad blockers.
 ## Upgrading from 3.x
 
 - Rename the `OrchardCore_Facebook` configuration section to `OrchardCore:Facebook` (the old name still works but is deprecated).
-- A plain `AppSecret` from configuration is now honored; in 3.x it had to be an already-protected value and was otherwise ignored.
+- A plain `AppSecret` from configuration is now honored; in 3.x it had to be an already-protected value and was otherwise ignored. It logs `LegacySecretConfiguration`; move it to a secret.
+- Saved app secrets keep working. Code reading `FacebookSettings.AppSecret` directly must also honor `AppSecretSecretName`.
 - Editing `FacebookPluginPart` content now requires `ManageLiquidTemplates`.
 - `Permission.Description` values are `LocalizationSource`; see `orchardcore-permission-providers`.

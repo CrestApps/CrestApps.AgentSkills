@@ -226,7 +226,7 @@ Stores resized images in S3 (`AWSS3ResizedImageCache`, options
 ```
 
 - Environment variable: `OrchardCore__Media__AmazonS3__ImageCache__BucketName`.
-- `BucketName`, `BasePath`, `CreateBucket`, `RemoveBucket` and `Credentials` come from the `ImageCache` section, but the SDK settings (`Region`, `ServiceURL`, `Profile`, `ForcePathStyle`) are bound from `Media:AmazonS3`, so keep the cache bucket in the same region/endpoint as the media bucket.
+- `BucketName`, `BasePath`, `CreateBucket` and `RemoveBucket` come from the `ImageCache` section; `Credentials` too, falling back to the `Media:AmazonS3` credentials when the `ImageCache` section doesn't define them. The SDK settings (`Region`, `ServiceURL`, `Profile`, `ForcePathStyle`) are bound from `Media:AmazonS3`, so keep the cache bucket in the same region/endpoint as the media bucket. The image cache can be active without the media store, which only becomes active once its own `BucketName` is set.
 - Useful with ephemeral containers and slow local disks.
 - Cache files are only removed with the tenant when each tenant has its own bucket.
 
@@ -234,7 +234,8 @@ Stores resized images in S3 (`AWSS3ResizedImageCache`, options
 
 When `OrchardCore.Media.Tus` is also enabled, TUS partial uploads are buffered
 with S3 multipart uploads (`S3TusTempStore`) under a `_tus-uploads` prefix, so
-any instance can continue an upload. See `orchardcore-media-gallery` for TUS,
+any instance can continue an upload. Without a valid S3 configuration, TUS keeps
+using the local temp directory. See `orchardcore-media-gallery` for TUS,
 SignalR and multi-instance guidance.
 
 ## Upgrading from 3.x
@@ -242,3 +243,4 @@ SignalR and multi-instance guidance.
 - Rename `OrchardCore_Media_AmazonS3` to `Media:AmazonS3` and `OrchardCore_Media_AmazonS3_ImageSharp_Cache` to `Media:AmazonS3:ImageCache`, including env vars (`OrchardCore__OrchardCore_Media_AmazonS3__BucketName` → `OrchardCore__Media__AmazonS3__BucketName`). The old names are deprecated but still read; the new name wins when both exist.
 - Use the feature ID `OrchardCore.Media.AmazonS3.ImageCache` in recipes. The obsolete `OrchardCore.Media.AmazonS3.ImageSharpImageCache` ID only enables the new feature.
 - `AwsImageSharpImageCacheOptions` is now `AwsMediaImageCacheOptions`, and resizing uses the built-in NetVips pipeline (no ImageSharp.Web).
+- A malformed value in `Media:AmazonS3` no longer prevents the tenant from starting: a critical error is logged and the tenant keeps using local file storage. If files stored on S3 aren't served after upgrading, check the logs.

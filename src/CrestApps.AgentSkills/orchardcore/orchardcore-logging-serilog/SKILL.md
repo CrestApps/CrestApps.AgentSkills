@@ -26,6 +26,7 @@ You are an Orchard Core expert. Generate configuration and code for Serilog inte
 - Use the `{RequestId}` token to correlate log entries across a single HTTP request.
 - Use `restrictedToMinimumLevel` on individual sinks to control per-sink log verbosity.
 - The Console sink is useful for development; the File sink with rolling intervals is recommended for production.
+- To ship logs (with traces and metrics) to an OTLP backend such as the Aspire dashboard, Grafana or Azure Monitor, add `OrchardCore.OpenTelemetry` (see `orchardcore-opentelemetry`). Its logger runs next to Serilog or NLog and tags tenant log records with `orchardcore.tenant.name`.
 - All C# classes must use the `sealed` modifier.
 
 ### Package Reference

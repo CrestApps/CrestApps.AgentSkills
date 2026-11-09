@@ -211,7 +211,10 @@ Settings live under **Settings → Localization → Content Culture Picker**
 `ContentCulturePickerSettings.SetCookie` (default `true`) writes the
 `CookieRequestCultureProvider` cookie when a culture is picked;
 `ContentRequestCultureProviderSettings.SetCookie` writes it from the culture
-of the content item matching the URL.
+of the content item matching the URL. The cookie (`.AspNetCore.Culture`) is
+`HttpOnly`, and `Secure` when the request is served over HTTPS; client-side
+scripts cannot read it, so read the current culture from the page (for example
+the `lang` attribute of `<html>`).
 
 ### Cookie Lifetime Configuration
 
@@ -288,3 +291,6 @@ The Liquid `Culture` object lists the site cultures:
 - `OrchardCore.ContentLocalization.Permissions.LocalizeContent`,
   `LocalizeOwnContent`, and `ManageContentCulturePicker` were removed; use the
   same members of `OrchardCore.ContentLocalization.ContentLocalizationPermissions`.
+- The culture cookie is now `HttpOnly` (and `Secure` over HTTPS). Scripts that
+  read `.AspNetCore.Culture` through `document.cookie` must read the culture
+  from the rendered page instead.

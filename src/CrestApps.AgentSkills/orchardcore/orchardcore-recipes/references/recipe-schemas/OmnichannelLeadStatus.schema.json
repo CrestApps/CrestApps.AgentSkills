@@ -23,7 +23,7 @@
               "null",
               "string"
             ],
-            "description": "Unique name of the lead status."
+            "description": "Unique name of the lead status. An entry whose ItemId matches no stored status is matched by this name, so a second run updates it."
           },
           "Description": {
             "type": [

@@ -1,0 +1,1418 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ReportDesigns",
+      "description": "Recipe step discriminator. Must be \u0027ReportDesigns\u0027."
+    },
+    "Groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "The identifier of the group: up to 64 letters, digits, dashes and underscores. A group without a valid itemId is refused."
+          },
+          "displayText": {
+            "type": "string",
+            "description": "The name of the group. A group without a name is refused."
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The itemId of the group this group is nested in, or null for a top-level group."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The position of the group among its siblings."
+          },
+          "createdUtc": {
+            "type": "string",
+            "description": "The time the group was created."
+          },
+          "modifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time the group was last changed."
+          }
+        },
+        "required": [
+          "itemId",
+          "displayText"
+        ],
+        "additionalProperties": true,
+        "description": "A report group, which files reports in a tree."
+      },
+      "description": "The report groups, imported before the views and reports. A group is matched by its itemId and replaced, or created under that identifier. A group whose parent is missing once every group is in moves to the top level."
+    },
+    "Views": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "The identifier of the view: up to 64 letters, digits, dashes and underscores. A view without a valid itemId is refused."
+          },
+          "displayText": {
+            "type": "string",
+            "description": "The title of the view. A view without a title is refused."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The description of the view."
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "dataSets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "alias": {
+                      "type": "string",
+                      "description": "The alias fields of this data set are named by, as in \u0027alias.Field\u0027."
+                    },
+                    "source": {
+                      "type": "string",
+                      "examples": [
+                        "Contents",
+                        "Users",
+                        "Queries",
+                        "ReportViews"
+                      ],
+                      "description": "The name of the data source, as registered by the features that provide data (for example Contents, Users, Queries or ReportViews)."
+                    },
+                    "dataSet": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The data set within the source, such as a content type, a query name or the itemId of a view."
+                    },
+                    "displayName": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of the data set in the designer."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The data sets the query reads. The first is the base data set; the others are attached by joins."
+              },
+              "joins": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "alias": {
+                      "type": "string",
+                      "description": "The alias of the data set being joined."
+                    },
+                    "type": {
+                      "type": "string",
+                      "examples": [
+                        "Inner",
+                        "Left",
+                        "Right",
+                        "Full"
+                      ],
+                      "description": "The kind of join."
+                    },
+                    "conditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "leftField": {
+                            "type": "string",
+                            "description": "The field key on the left side, as \u0027alias.Field\u0027."
+                          },
+                          "rightField": {
+                            "type": "string",
+                            "description": "The field key on the right side, as \u0027alias.Field\u0027."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The field pairs that must be equal."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "How the data sets are joined, applied in order."
+              },
+              "calculatedFields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name the field is referred to by."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of the field."
+                    },
+                    "expression": {
+                      "type": "string",
+                      "description": "The formula. A row-level field may refer only to data set fields and to calculated fields listed before it."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The calculated fields."
+              },
+              "filters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The identifier of the filter, unique within the query. Exposed filter values are submitted under it."
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "What the filter applies to: a field key (\u0027alias.Field\u0027 or a calculated field name) for the Rows stage, or a column id for the Result stage."
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "Rows",
+                        "Result"
+                      ],
+                      "description": "Whether the filter applies to rows before grouping or to the result after grouping."
+                    },
+                    "operator": {
+                      "type": "string",
+                      "examples": [
+                        "Equals",
+                        "NotEquals",
+                        "GreaterThan",
+                        "GreaterThanOrEqual",
+                        "LessThan",
+                        "LessThanOrEqual",
+                        "Between",
+                        "In",
+                        "NotIn",
+                        "IsEmpty",
+                        "IsNotEmpty",
+                        "InLastDays",
+                        "InNextDays"
+                      ],
+                      "description": "The comparison operator."
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The comparison values in the invariant culture (dates as yyyy-MM-dd or yyyy-MM-ddTHH:mm in the tenant time zone). For an exposed filter, the default values."
+                    },
+                    "exposed": {
+                      "type": "boolean",
+                      "description": "Whether the filter is rendered for the people who run the report."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of an exposed filter."
+                    },
+                    "control": {
+                      "type": "string",
+                      "enum": [
+                        "Auto",
+                        "Text",
+                        "Select",
+                        "MultiSelect",
+                        "DateRange",
+                        "NumberRange",
+                        "Boolean",
+                        "RelativeDate"
+                      ],
+                      "description": "The control that renders an exposed filter."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "A filter of a query."
+                },
+                "description": "The filters."
+              },
+              "columns": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The identifier of the column, unique within the query, which sorts and visuals refer to."
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "The field key the column reads: \u0027alias.Field\u0027 or a calculated field name."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The header of the column."
+                    },
+                    "aggregate": {
+                      "type": "string",
+                      "examples": [
+                        "None",
+                        "Count",
+                        "CountDistinct",
+                        "Sum",
+                        "Average",
+                        "Min",
+                        "Max",
+                        "Median"
+                      ],
+                      "description": "The aggregate that makes the column a measure, or None for a dimension."
+                    },
+                    "transform": {
+                      "type": "string",
+                      "examples": [
+                        "None",
+                        "Year",
+                        "Quarter",
+                        "Month",
+                        "MonthOfYear",
+                        "Week",
+                        "Day",
+                        "DayOfWeek",
+                        "Hour",
+                        "Lower",
+                        "Upper"
+                      ],
+                      "description": "A transform applied to the field before grouping, such as a date part."
+                    },
+                    "format": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "A .NET format string applied to the values."
+                    },
+                    "hidden": {
+                      "type": "boolean",
+                      "description": "Whether the column is computed but not shown."
+                    },
+                    "shelf": {
+                      "type": "string",
+                      "enum": [
+                        "Columns",
+                        "Rows"
+                      ],
+                      "description": "The shelf a pivot places the column on."
+                    },
+                    "colors": {
+                      "type": [
+                        "null",
+                        "object"
+                      ],
+                      "description": "The colors of the column\u0027s header and cells: headerColor, headerBackgroundColor, color, backgroundColor, a color scale and color rules."
+                    },
+                    "showAs": {
+                      "type": "string",
+                      "enum": [
+                        "Value",
+                        "PercentOfTotal",
+                        "RunningTotal",
+                        "DifferenceFromPrevious",
+                        "PercentDifference",
+                        "Rank"
+                      ],
+                      "description": "How a measure\u0027s values are shown."
+                    },
+                    "showAsDirection": {
+                      "type": "string",
+                      "enum": [
+                        "Down",
+                        "Across",
+                        "Table"
+                      ],
+                      "description": "The direction a showAs calculation runs in a pivot."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "A result column of a query."
+                },
+                "description": "The result columns in display order. When any column is a measure, rows are grouped by the dimension columns."
+              },
+              "sorts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "columnId": {
+                      "type": "string",
+                      "description": "The id of the column to sort by."
+                    },
+                    "descending": {
+                      "type": "boolean",
+                      "description": "Whether the sort is descending."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The sort order of the result."
+              },
+              "limit": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "minimum": 1,
+                "description": "The most rows the result holds, or null for the default limit."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The query the view runs."
+          },
+          "refreshIntervalMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How often the view\u0027s result is computed ahead and stored: 0 runs it live on every read, otherwise at least every 15 minutes (60, 360 and 1440 are offered). Other values are normalized on import."
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user id of the view\u0027s owner, whose access the view runs with. Used when OwnerUserName names no user of the site."
+          },
+          "OwnerUserName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name of the view\u0027s owner, written by a deployment plan so the owner is found on a site where they have another user id. When neither this nor ownerId names an owner, the person who runs the recipe owns the view."
+          },
+          "author": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the person who created the view."
+          },
+          "createdUtc": {
+            "type": "string",
+            "description": "The time the view was created."
+          },
+          "modifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time the view was last changed. Set to the import time."
+          }
+        },
+        "required": [
+          "itemId",
+          "displayText"
+        ],
+        "additionalProperties": true,
+        "description": "A reusable view."
+      },
+      "description": "The reusable views (saved queries that other reports and views read as the \u0027ReportViews\u0027 data source), imported before the reports. A view is matched by its itemId and replaced, or created under that identifier."
+    },
+    "Reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "The identifier of the report: up to 64 letters, digits, dashes and underscores. A report without a valid itemId is refused."
+          },
+          "displayText": {
+            "type": "string",
+            "description": "The title of the report. A report without a title is refused."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The description of the report."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The itemId of the report group the report is in. When no group has this identifier, the group is taken from \u0027group\u0027."
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A path of group names, such as \u0027Sales / Regional\u0027, used when groupId names no group. Missing groups along the path are created."
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Obsolete. A top-level group name written before report groups existed; read only when neither groupId nor group places the report."
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "dataSets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "alias": {
+                      "type": "string",
+                      "description": "The alias fields of this data set are named by, as in \u0027alias.Field\u0027."
+                    },
+                    "source": {
+                      "type": "string",
+                      "examples": [
+                        "Contents",
+                        "Users",
+                        "Queries",
+                        "ReportViews"
+                      ],
+                      "description": "The name of the data source, as registered by the features that provide data (for example Contents, Users, Queries or ReportViews)."
+                    },
+                    "dataSet": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The data set within the source, such as a content type, a query name or the itemId of a view."
+                    },
+                    "displayName": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of the data set in the designer."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The data sets the query reads. The first is the base data set; the others are attached by joins."
+              },
+              "joins": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "alias": {
+                      "type": "string",
+                      "description": "The alias of the data set being joined."
+                    },
+                    "type": {
+                      "type": "string",
+                      "examples": [
+                        "Inner",
+                        "Left",
+                        "Right",
+                        "Full"
+                      ],
+                      "description": "The kind of join."
+                    },
+                    "conditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "leftField": {
+                            "type": "string",
+                            "description": "The field key on the left side, as \u0027alias.Field\u0027."
+                          },
+                          "rightField": {
+                            "type": "string",
+                            "description": "The field key on the right side, as \u0027alias.Field\u0027."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The field pairs that must be equal."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "How the data sets are joined, applied in order."
+              },
+              "calculatedFields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name the field is referred to by."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of the field."
+                    },
+                    "expression": {
+                      "type": "string",
+                      "description": "The formula. A row-level field may refer only to data set fields and to calculated fields listed before it."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The calculated fields."
+              },
+              "filters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The identifier of the filter, unique within the query. Exposed filter values are submitted under it."
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "What the filter applies to: a field key (\u0027alias.Field\u0027 or a calculated field name) for the Rows stage, or a column id for the Result stage."
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "Rows",
+                        "Result"
+                      ],
+                      "description": "Whether the filter applies to rows before grouping or to the result after grouping."
+                    },
+                    "operator": {
+                      "type": "string",
+                      "examples": [
+                        "Equals",
+                        "NotEquals",
+                        "GreaterThan",
+                        "GreaterThanOrEqual",
+                        "LessThan",
+                        "LessThanOrEqual",
+                        "Between",
+                        "In",
+                        "NotIn",
+                        "IsEmpty",
+                        "IsNotEmpty",
+                        "InLastDays",
+                        "InNextDays"
+                      ],
+                      "description": "The comparison operator."
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The comparison values in the invariant culture (dates as yyyy-MM-dd or yyyy-MM-ddTHH:mm in the tenant time zone). For an exposed filter, the default values."
+                    },
+                    "exposed": {
+                      "type": "boolean",
+                      "description": "Whether the filter is rendered for the people who run the report."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The label of an exposed filter."
+                    },
+                    "control": {
+                      "type": "string",
+                      "enum": [
+                        "Auto",
+                        "Text",
+                        "Select",
+                        "MultiSelect",
+                        "DateRange",
+                        "NumberRange",
+                        "Boolean",
+                        "RelativeDate"
+                      ],
+                      "description": "The control that renders an exposed filter."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "A filter of a query."
+                },
+                "description": "The filters."
+              },
+              "columns": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The identifier of the column, unique within the query, which sorts and visuals refer to."
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "The field key the column reads: \u0027alias.Field\u0027 or a calculated field name."
+                    },
+                    "label": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "The header of the column."
+                    },
+                    "aggregate": {
+                      "type": "string",
+                      "examples": [
+                        "None",
+                        "Count",
+                        "CountDistinct",
+                        "Sum",
+                        "Average",
+                        "Min",
+                        "Max",
+                        "Median"
+                      ],
+                      "description": "The aggregate that makes the column a measure, or None for a dimension."
+                    },
+                    "transform": {
+                      "type": "string",
+                      "examples": [
+                        "None",
+                        "Year",
+                        "Quarter",
+                        "Month",
+                        "MonthOfYear",
+                        "Week",
+                        "Day",
+                        "DayOfWeek",
+                        "Hour",
+                        "Lower",
+                        "Upper"
+                      ],
+                      "description": "A transform applied to the field before grouping, such as a date part."
+                    },
+                    "format": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "A .NET format string applied to the values."
+                    },
+                    "hidden": {
+                      "type": "boolean",
+                      "description": "Whether the column is computed but not shown."
+                    },
+                    "shelf": {
+                      "type": "string",
+                      "enum": [
+                        "Columns",
+                        "Rows"
+                      ],
+                      "description": "The shelf a pivot places the column on."
+                    },
+                    "colors": {
+                      "type": [
+                        "null",
+                        "object"
+                      ],
+                      "description": "The colors of the column\u0027s header and cells: headerColor, headerBackgroundColor, color, backgroundColor, a color scale and color rules."
+                    },
+                    "showAs": {
+                      "type": "string",
+                      "enum": [
+                        "Value",
+                        "PercentOfTotal",
+                        "RunningTotal",
+                        "DifferenceFromPrevious",
+                        "PercentDifference",
+                        "Rank"
+                      ],
+                      "description": "How a measure\u0027s values are shown."
+                    },
+                    "showAsDirection": {
+                      "type": "string",
+                      "enum": [
+                        "Down",
+                        "Across",
+                        "Table"
+                      ],
+                      "description": "The direction a showAs calculation runs in a pivot."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "A result column of a query."
+                },
+                "description": "The result columns in display order. When any column is a measure, rows are grouped by the dimension columns."
+              },
+              "sorts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "columnId": {
+                      "type": "string",
+                      "description": "The id of the column to sort by."
+                    },
+                    "descending": {
+                      "type": "boolean",
+                      "description": "Whether the sort is descending."
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "The sort order of the result."
+              },
+              "limit": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "minimum": 1,
+                "description": "The most rows the result holds, or null for the default limit."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The main query of the report."
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The identifier of the query, unique within the report, which visuals name in queryId."
+                },
+                "name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The name the designer shows for the query."
+                },
+                "query": {
+                  "type": "object",
+                  "properties": {
+                    "dataSets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {
+                            "type": "string",
+                            "description": "The alias fields of this data set are named by, as in \u0027alias.Field\u0027."
+                          },
+                          "source": {
+                            "type": "string",
+                            "examples": [
+                              "Contents",
+                              "Users",
+                              "Queries",
+                              "ReportViews"
+                            ],
+                            "description": "The name of the data source, as registered by the features that provide data (for example Contents, Users, Queries or ReportViews)."
+                          },
+                          "dataSet": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The data set within the source, such as a content type, a query name or the itemId of a view."
+                          },
+                          "displayName": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The label of the data set in the designer."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The data sets the query reads. The first is the base data set; the others are attached by joins."
+                    },
+                    "joins": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {
+                            "type": "string",
+                            "description": "The alias of the data set being joined."
+                          },
+                          "type": {
+                            "type": "string",
+                            "examples": [
+                              "Inner",
+                              "Left",
+                              "Right",
+                              "Full"
+                            ],
+                            "description": "The kind of join."
+                          },
+                          "conditions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "leftField": {
+                                  "type": "string",
+                                  "description": "The field key on the left side, as \u0027alias.Field\u0027."
+                                },
+                                "rightField": {
+                                  "type": "string",
+                                  "description": "The field key on the right side, as \u0027alias.Field\u0027."
+                                }
+                              },
+                              "additionalProperties": true
+                            },
+                            "description": "The field pairs that must be equal."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "How the data sets are joined, applied in order."
+                    },
+                    "calculatedFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The name the field is referred to by."
+                          },
+                          "label": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The label of the field."
+                          },
+                          "expression": {
+                            "type": "string",
+                            "description": "The formula. A row-level field may refer only to data set fields and to calculated fields listed before it."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The calculated fields."
+                    },
+                    "filters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The identifier of the filter, unique within the query. Exposed filter values are submitted under it."
+                          },
+                          "field": {
+                            "type": "string",
+                            "description": "What the filter applies to: a field key (\u0027alias.Field\u0027 or a calculated field name) for the Rows stage, or a column id for the Result stage."
+                          },
+                          "stage": {
+                            "type": "string",
+                            "enum": [
+                              "Rows",
+                              "Result"
+                            ],
+                            "description": "Whether the filter applies to rows before grouping or to the result after grouping."
+                          },
+                          "operator": {
+                            "type": "string",
+                            "examples": [
+                              "Equals",
+                              "NotEquals",
+                              "GreaterThan",
+                              "GreaterThanOrEqual",
+                              "LessThan",
+                              "LessThanOrEqual",
+                              "Between",
+                              "In",
+                              "NotIn",
+                              "IsEmpty",
+                              "IsNotEmpty",
+                              "InLastDays",
+                              "InNextDays"
+                            ],
+                            "description": "The comparison operator."
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The comparison values in the invariant culture (dates as yyyy-MM-dd or yyyy-MM-ddTHH:mm in the tenant time zone). For an exposed filter, the default values."
+                          },
+                          "exposed": {
+                            "type": "boolean",
+                            "description": "Whether the filter is rendered for the people who run the report."
+                          },
+                          "label": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The label of an exposed filter."
+                          },
+                          "control": {
+                            "type": "string",
+                            "enum": [
+                              "Auto",
+                              "Text",
+                              "Select",
+                              "MultiSelect",
+                              "DateRange",
+                              "NumberRange",
+                              "Boolean",
+                              "RelativeDate"
+                            ],
+                            "description": "The control that renders an exposed filter."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "A filter of a query."
+                      },
+                      "description": "The filters."
+                    },
+                    "columns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The identifier of the column, unique within the query, which sorts and visuals refer to."
+                          },
+                          "field": {
+                            "type": "string",
+                            "description": "The field key the column reads: \u0027alias.Field\u0027 or a calculated field name."
+                          },
+                          "label": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "The header of the column."
+                          },
+                          "aggregate": {
+                            "type": "string",
+                            "examples": [
+                              "None",
+                              "Count",
+                              "CountDistinct",
+                              "Sum",
+                              "Average",
+                              "Min",
+                              "Max",
+                              "Median"
+                            ],
+                            "description": "The aggregate that makes the column a measure, or None for a dimension."
+                          },
+                          "transform": {
+                            "type": "string",
+                            "examples": [
+                              "None",
+                              "Year",
+                              "Quarter",
+                              "Month",
+                              "MonthOfYear",
+                              "Week",
+                              "Day",
+                              "DayOfWeek",
+                              "Hour",
+                              "Lower",
+                              "Upper"
+                            ],
+                            "description": "A transform applied to the field before grouping, such as a date part."
+                          },
+                          "format": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "A .NET format string applied to the values."
+                          },
+                          "hidden": {
+                            "type": "boolean",
+                            "description": "Whether the column is computed but not shown."
+                          },
+                          "shelf": {
+                            "type": "string",
+                            "enum": [
+                              "Columns",
+                              "Rows"
+                            ],
+                            "description": "The shelf a pivot places the column on."
+                          },
+                          "colors": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "description": "The colors of the column\u0027s header and cells: headerColor, headerBackgroundColor, color, backgroundColor, a color scale and color rules."
+                          },
+                          "showAs": {
+                            "type": "string",
+                            "enum": [
+                              "Value",
+                              "PercentOfTotal",
+                              "RunningTotal",
+                              "DifferenceFromPrevious",
+                              "PercentDifference",
+                              "Rank"
+                            ],
+                            "description": "How a measure\u0027s values are shown."
+                          },
+                          "showAsDirection": {
+                            "type": "string",
+                            "enum": [
+                              "Down",
+                              "Across",
+                              "Table"
+                            ],
+                            "description": "The direction a showAs calculation runs in a pivot."
+                          }
+                        },
+                        "additionalProperties": true,
+                        "description": "A result column of a query."
+                      },
+                      "description": "The result columns in display order. When any column is a measure, rows are grouped by the dimension columns."
+                    },
+                    "sorts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "columnId": {
+                            "type": "string",
+                            "description": "The id of the column to sort by."
+                          },
+                          "descending": {
+                            "type": "boolean",
+                            "description": "Whether the sort is descending."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The sort order of the result."
+                    },
+                    "limit": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "minimum": 1,
+                      "description": "The most rows the result holds, or null for the default limit."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "The query."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": true,
+              "description": "An extra query of a report."
+            },
+            "description": "Extra queries the report runs besides the main query, so visuals can show the data grouped another way."
+          },
+          "visuals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The identifier of the visual, unique within the report."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "Table",
+                    "Chart",
+                    "Metrics",
+                    "Pivot"
+                  ],
+                  "description": "The kind of visual."
+                },
+                "title": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The title shown above the visual."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "default": 12,
+                  "description": "The width of the visual on a twelve-column grid (of its container\u0027s width when it is in one)."
+                },
+                "containerId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of the container that holds the visual, or null when it stands on its own."
+                },
+                "queryId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of the extra query whose columns the visual shows, or null for the main query."
+                },
+                "action": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "description": "What clicking a value does: columnId names the clicked column and targets lists the visuals ({ visualId, field }) filtered by the value."
+                },
+                "chartType": {
+                  "type": "string",
+                  "enum": [
+                    "Line",
+                    "Bar",
+                    "Doughnut",
+                    "Pie",
+                    "Area",
+                    "HorizontalBar"
+                  ],
+                  "description": "The kind of chart."
+                },
+                "categoryColumnId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of the column that labels a chart\u0027s categories."
+                },
+                "seriesColumnId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The id of a dimension column whose values become a chart\u0027s series or a pivot table\u0027s columns."
+                },
+                "valueColumnIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The ids of the measure columns a chart plots, a metrics row shows or a pivot table sums."
+                },
+                "columnIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The ids of the columns a table shows, in order (every visible column when empty), or the row columns of a pivot table."
+                },
+                "showTotals": {
+                  "type": "boolean",
+                  "description": "Whether a table or pivot table ends with a totals row."
+                },
+                "showSubtotals": {
+                  "type": "boolean",
+                  "description": "Whether a table of a grouped report shows subtotal rows after each group of its leading dimensions."
+                },
+                "stacked": {
+                  "type": "boolean",
+                  "description": "Whether a bar or area chart stacks its series."
+                },
+                "showLegend": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether a chart shows its legend."
+                },
+                "referenceLines": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "columnId": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "The id of the value column the line belongs to."
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "Average",
+                          "Median",
+                          "Constant"
+                        ],
+                        "description": "Whether the line marks the column\u0027s average, its median or a constant value."
+                      },
+                      "value": {
+                        "type": [
+                          "null",
+                          "number"
+                        ],
+                        "description": "The value of a Constant line."
+                      },
+                      "label": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "The label of the line."
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "description": "Lines a chart draws across its values."
+                }
+              },
+              "required": [
+                "id",
+                "type"
+              ],
+              "additionalProperties": true,
+              "description": "A visual of a report."
+            },
+            "description": "The tables, charts, metric rows and pivot tables of the report, in display order."
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The identifier of the container, unique within the report, which visuals name in containerId."
+                },
+                "title": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The title shown in the container\u0027s header band."
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "default": 12,
+                  "description": "The width of the container on a twelve-column grid."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The height of the container\u0027s body in pixels, which scrolls when its visuals are taller, or 0 to grow with its visuals."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": true,
+              "description": "A container of a report."
+            },
+            "description": "Framed blocks that hold visuals under one title."
+          },
+          "showInAdminMenu": {
+            "type": "boolean",
+            "description": "Whether the report is listed in the admin menu under Reports."
+          },
+          "sharedUserNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The user names the report is shared with."
+          },
+          "sharedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The role names the report is shared with."
+          },
+          "allowExport": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the people who run the report may export it."
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user id of the report\u0027s owner, whose access the report runs with. Used when OwnerUserName names no user of the site."
+          },
+          "OwnerUserName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name of the report\u0027s owner, written by a deployment plan so the owner is found on a site where they have another user id. When neither this nor ownerId names an owner, the person who runs the recipe owns the report."
+          },
+          "author": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name of the person who created the report."
+          },
+          "createdUtc": {
+            "type": "string",
+            "description": "The time the report was created."
+          },
+          "modifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time the report was last changed. Set to the import time."
+          }
+        },
+        "required": [
+          "itemId",
+          "displayText"
+        ],
+        "additionalProperties": true,
+        "description": "A designed report."
+      },
+      "description": "The designed reports. A report is matched by its itemId and replaced, or created under that identifier. Share links are never imported."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

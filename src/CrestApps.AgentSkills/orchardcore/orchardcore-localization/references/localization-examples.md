@@ -16,6 +16,19 @@ msgstr[0] "{0} élément"
 msgstr[1] "{0} éléments"
 ```
 
+To keep this two-form order regardless of the CLDR 49 French rule (which adds
+`many` at index 2), declare it in the file header; the header always wins for
+the file's own translations:
+
+```po
+msgid ""
+msgstr ""
+"Language: fr
+"
+"Plural-Forms: nplurals=2; plural=(n > 1);
+"
+```
+
 The `msgctxt` values must match the localizer's namespace and class or view
 path exactly. Keep `{0}` in the singular too: French uses the singular form
 for 0 as well as 1.
@@ -134,3 +147,34 @@ msgctxt "Reports"
 msgid "Total"
 msgstr "Total général"
 ```
+
+## Module Project With Checked-In Translation Template
+
+`MyModule.csproj`:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="OrchardCore.Localization.Build" Version="4.*" PrivateAssets="all" />
+</ItemGroup>
+```
+
+```powershell
+dotnet msbuild src/MyModule/MyModule.csproj -restore -t:UpdateLocalizationCatalog
+git status --short -- '*.pot'
+```
+
+The update writes `src/MyModule/MyModule.pot` (or removes it when the project
+has no localizable strings). An extracted entry carries the notes and argument
+names declared in code:
+
+```po
+#. Greeting shown on the dashboard.
+#. Format arguments: {0}: user name
+#, csharp-format
+msgctxt "MyModule.Services.DashboardService"
+msgid "Hello {0}"
+msgstr ""
+```
+
+Commit the `.pot` file with the code change, upload it to the translation
+platform, and ship the translated `Localization/{culture}.po` files.

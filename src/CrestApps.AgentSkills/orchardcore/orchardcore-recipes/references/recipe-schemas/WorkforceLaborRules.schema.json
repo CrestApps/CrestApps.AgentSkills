@@ -1,0 +1,155 @@
+{
+  "type": "object",
+  "description": "Creates or updates labor rule sets, matched by itemId then name. A rule set that is updated takes every member of the entry.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceLaborRules",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceLaborRules\u0027."
+    },
+    "RuleSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A labor rule set.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The set\u0027s id. When it matches a stored set, that set is updated; otherwise it is matched by name."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The set name, unique."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the set is for."
+          },
+          "jurisdiction": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The place or law it follows, as free text."
+          },
+          "teamNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams it applies to (with their sub-teams), by name; added to teamIds. A name that doesn\u0027t match a team refuses the set."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams it applies to, by id."
+          },
+          "workerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The workers it applies to, by id."
+          },
+          "employmentTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FullTime",
+                "PartTime",
+                "Seasonal",
+                "Temporary",
+                "Contractor",
+                "Subcontractor"
+              ]
+            },
+            "description": "The employment types it applies to; empty for all."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the set is in use. Defaults to true."
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A rule of the set.",
+              "properties": {
+                "id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The rule\u0027s id within the set; one is made when omitted."
+                },
+                "ruleKey": {
+                  "type": "string",
+                  "examples": [
+                    "MaxHoursPerDay",
+                    "MaxHoursPerWeek",
+                    "MinHoursPerWeek",
+                    "MinRest",
+                    "MaxConsecutiveDays",
+                    "DaysOffPerWeek",
+                    "MaxShiftLength",
+                    "MinShiftLength",
+                    "Breaks",
+                    "MinorLimits",
+                    "SkillsRequired",
+                    "NoWorkDuringTimeOff",
+                    "ScheduleNotice",
+                    "Overtime",
+                    "PredictabilityPay"
+                  ],
+                  "description": "The rule\u0027s key. These are the built-in rules; other modules add their own."
+                },
+                "enforcement": {
+                  "type": "string",
+                  "enum": [
+                    "Warn",
+                    "Block",
+                    "RequireOverride"
+                  ],
+                  "description": "What happens when a schedule breaks the rule. Defaults to Warn."
+                },
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "The rule\u0027s parameters by name, written invariantly as strings, such as { \u0022Hours\u0022: \u002210\u0022 }."
+                }
+              },
+              "additionalProperties": true,
+              "required": [
+                "ruleKey"
+              ]
+            },
+            "description": "The rules."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The labor rule sets to create or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

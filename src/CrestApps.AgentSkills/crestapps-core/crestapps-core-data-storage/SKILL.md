@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-data-storage
-description: Skill for choosing and registering CrestApps.Core 2.0 persistence. Covers picking Entity Framework Core (CrestApps.Core.Data.EntityCore) or YesSql (CrestApps.Core.Data.YesSql), registering the backing data store on the root builder, per-feature AddEntityCoreStores and AddYesSqlStores calls on the AI suite, personas, chat interactions, document processing, memory, tool instances, A2A, MCP and indexing builders, the service-collection store calls for web crawlers, file sources, knowledge objects and ingestion item state, what the null fallback stores mean, commit boundaries through IStoreCommitter, how configuration and database deployments merge, and writing a custom backend. Use it when a host needs durable profiles, sessions, documents, connections, deployments, or crawler and file-source state.
+description: Skill for choosing and registering CrestApps.Core 2.0 persistence. Covers picking Entity Framework Core (CrestApps.Core.Data.EntityCore) or YesSql (CrestApps.Core.Data.YesSql), registering the backing data store on the root builder, per-feature AddEntityCoreStores and AddYesSqlStores calls on the AI suite, personas, chat interactions, document processing, memory, profile versions, tool instances, A2A, MCP and indexing builders, the service-collection store calls for web crawlers, file sources, knowledge objects and ingestion item state, what the null fallback stores mean, commit boundaries through IStoreCommitter, how configuration and database deployments merge, and writing a custom backend, including the IAIChatSessionStore members custom stores must implement. Use it when a host needs durable profiles, sessions, documents, connections, deployments, or crawler and file-source state.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -97,6 +97,7 @@ YesSql hosts must also create every index table for the stores they registered; 
 |---|---|---|
 | AI suite | `CrestAppsAISuiteBuilder.Add*Stores()` | `IAIProfileStore` and the `AIProfile` catalogs, `AIProfileTemplate` catalog, writable `AIProviderConnection` and `AIDeployment` binding sources, `IAIChatSessionManager`, `IAIChatSessionStore`, `IAIChatSessionPromptStore`, `IAIChatSessionEventStore`, `IAICompletionUsageStore`, `IAIChatSessionExtractedDataStore` |
 | Personas | `CrestAppsAIPersonasBuilder.Add*Stores()` | `AIPersona` named catalog |
+| Profile versions | `CrestAppsAIProfileVersionsBuilder.Add*Stores()` (from `AddProfileVersions(v => v.Add*Stores())`) | `IAIProfileVersionStore` |
 | Chat Interactions | `CrestAppsChatInteractionsBuilder.Add*Stores()` | `ChatInteraction` catalog, `IChatInteractionPromptStore` |
 | Document processing | `CrestAppsDocumentProcessingBuilder.Add*Stores()` | `IAIDocumentStore`, `IAIDocumentChunkStore`, `IAIDataSourceStore` |
 | AI memory | `CrestAppsAIMemoryBuilder.Add*Stores()` | `IAIMemoryStore` |
@@ -121,6 +122,14 @@ YesSql hosts must also create every index table for the stores they registered; 
 ## Custom Backend
 
 Implement the catalog interfaces (`ICatalog<T>` and, where the model supports it, `INamedCatalog<T>`, `ISourceCatalog<T>`, `INamedSourceCatalog<T>`) and the store interfaces the features resolve (for example `IAIChatSessionManager`, `IAIDocumentStore`), register them as scoped, and register a scoped `IStoreCommitter` when writes are staged. Register `AddCatalogManagers()` so managers and handlers run over your catalogs.
+
+A custom `IAIChatSessionStore` must implement `ListByLastActivityAsync(profileId, afterUtc, beforeUtc, count, cancellationToken)` (a profile's sessions with `LastActivityUtc` after the optional time and before the other, oldest first, up to `count`) and `DeleteAsync(sessionId, cancellationToken)` (delete the session and its prompts, leave its documents to the caller, return `false` when it does not exist). Conversation privacy and retention use them for sessions of any user, visitor or system channel. A custom `IAIChatSessionManager.PageAsync` should also honor `AIChatSessionQueryContext.UserId`, which past-conversation memory sets.
+
+## Upgrading Within 2.0 Previews
+
+- `IAIChatSessionStore` gained `ListByLastActivityAsync` and `DeleteAsync`. The YesSql and EntityCore stores implement them; a host with its own store must add both or it no longer compiles.
+- `AIChatSessionQueryContext` gained `UserId`; the built-in session managers filter on it.
+- New opt-in store: AI profile versions (`AddProfileVersions(v => v.AddYesSqlStores())` or `.AddEntityCoreStores()`). It is not part of the `AddEntityCoreStores()` service-collection shortcut.
 
 ## Upgrading from 1.x
 

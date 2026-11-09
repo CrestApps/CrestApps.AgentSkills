@@ -1,0 +1,377 @@
+{
+  "type": "object",
+  "description": "Creates or updates shift templates and rotations, matched by itemId then name, and coverage requirements, matched by itemId then by team and name. A template or rotation that is updated takes every member of the entry, so a member left out goes back to its default. Teams, activities, templates and skills named here must exist.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceShiftPlanning",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceShiftPlanning\u0027."
+    },
+    "Templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A shift template.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The template\u0027s id. When it matches a stored template, that template is updated; otherwise the template is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The template name, unique."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color, such as #2b8a3e."
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+            "description": "When the shift starts."
+          },
+          "lengthMinutes": {
+            "type": "integer",
+            "description": "The shift length in minutes. Defaults to 480."
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A part of the shift spent on another activity, such as a break.",
+              "properties": {
+                "activityName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The activity code, by name. Wins over activityCodeId."
+                },
+                "activityCodeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The activity code, by id."
+                },
+                "offsetMinutes": {
+                  "type": "integer",
+                  "description": "Minutes from the start of the shift."
+                },
+                "lengthMinutes": {
+                  "type": "integer",
+                  "description": "Length in minutes."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The breaks and other activities within the shift."
+          },
+          "teamNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams that use the template, by name; added to teamIds."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams that use the template, by id; empty for every team."
+          },
+          "requiredSkillIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the skills a worker needs for the shift."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the template can be used. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The shift templates to create or update."
+    },
+    "Patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A rotation: a repeating pattern of shifts.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The rotation\u0027s id. When it matches a stored rotation, that rotation is updated; otherwise the rotation is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The rotation name, unique."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by name. Wins over teamId."
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by id."
+          },
+          "weekCount": {
+            "type": "integer",
+            "description": "How many weeks the rotation lasts before it repeats. Defaults to 1."
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A day of the rotation that has a shift.",
+              "properties": {
+                "week": {
+                  "type": "integer",
+                  "description": "The week of the rotation, from 1."
+                },
+                "day": {
+                  "type": "string",
+                  "enum": [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday"
+                  ],
+                  "description": "The day of the week."
+                },
+                "templateName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The shift template, by name. Wins over templateId."
+                },
+                "templateId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The shift template, by id."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The days with a shift."
+          },
+          "workers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A worker on the rotation.",
+              "properties": {
+                "workerId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The worker\u0027s id."
+                },
+                "startDate": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "The day the worker starts week 1 of the rotation."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The workers on the rotation."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the rotation is in use. Defaults to true."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The rotations to create or update. Templates are imported first, so a rotation can name a template of the same step."
+    },
+    "CoverageRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A coverage requirement: the staffing a team needs.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The requirement\u0027s id. When it matches a stored requirement, that requirement is updated; otherwise it is matched by team and name."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The requirement name, unique within the team."
+          },
+          "teamName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by name. Wins over teamId."
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team, by id."
+          },
+          "skillName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The skill the workers need, by name. Wins over skillId."
+          },
+          "skillId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The skill the workers need, by id; null for any worker."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "Manual",
+              "Forecast",
+              "Workload"
+            ],
+            "description": "Where the numbers come from. Defaults to Manual."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "How many workers are needed in a window.",
+              "properties": {
+                "day": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "Sunday",
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The day of the week it applies to; null when date is set."
+                },
+                "date": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date",
+                  "description": "The date it applies to, for a one-off; null for every week."
+                },
+                "start": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+                  "description": "When the window starts."
+                },
+                "end": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d\u002B)?)?$",
+                  "description": "When the window ends."
+                },
+                "minimum": {
+                  "type": "integer",
+                  "description": "The fewest workers needed."
+                },
+                "target": {
+                  "type": "integer",
+                  "description": "The workers wanted."
+                },
+                "maximum": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ],
+                  "description": "The most workers wanted; null for no limit."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The staffing windows."
+          },
+          "effectiveFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The first day it applies; null for always."
+          },
+          "effectiveTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The last day it applies; null for open-ended."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The coverage requirements to create or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

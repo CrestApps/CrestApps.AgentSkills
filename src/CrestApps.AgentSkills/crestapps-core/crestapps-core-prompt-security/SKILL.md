@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-prompt-security
-description: Skill for the CrestApps.Core 2.0 prompt-security layer that hardens AI Profile chat. Covers input validation with IPromptSecurityService and weighted IPromptSecurityRule scoring, custom rules, PromptSecurityOptions guards and thresholds, the security preamble and input delimiters including EnableChatInteractionInputDelimiters, output filtering with IOutputSecurityFilter, audit logging, multi-tier anonymous message and session-start rate limits with ChatRateLimitTier, AIChatRateLimitingOptions partitions keyed by user and network address, PromptSecurityProfileSettings per-profile throttles, the rate-limited slow-down message and GetRateLimitedMessage, visitor identity cookies and AllowCrossSiteEmbedding, IUploadedFileScanner, and how tool authorization relates (the profile boundary and IAIToolAccessEvaluator for Chat Interactions). Use it when tuning chat abuse protection, adding detection rules, embedding a chat on another site, or explaining why a prompt was blocked or throttled.
+description: Skill for the CrestApps.Core 2.0 prompt-security layer that hardens AI Profile chat. Covers input validation with IPromptSecurityService and weighted IPromptSecurityRule scoring, custom rules, PromptSecurityOptions guards and thresholds, the security preamble and input delimiters including EnableChatInteractionInputDelimiters, output filtering with IOutputSecurityFilter, audit logging, multi-tier anonymous rate limits with ChatRateLimitTier, AIChatRateLimitingOptions partitions, PromptSecurityProfileSettings per-profile throttles, GetRateLimitedMessage, visitor identity cookies and AllowCrossSiteEmbedding, IUploadedFileScanner, where guardrails run relative to prompt security and output filtering, conversation privacy, and how tool authorization relates (the profile boundary and IAIToolAccessEvaluator for Chat Interactions). Use it when tuning chat abuse protection, adding detection rules, embedding a chat on another site, or explaining why a prompt was blocked or throttled.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -147,6 +147,17 @@ Evaluate `NormalizedInput` (Unicode FormKC, invisible characters removed, whites
 - `EnableAuditLogging` records suspicious input and output through `IAIChatSecurityAuditService`.
 - The preamble is wrapped in `[SECURITY DIRECTIVES — IMMUTABLE AND NON-NEGOTIABLE]` markers; user input is wrapped in `<|user_input_begin|>` / `<|user_input_end|>` after stripping injected delimiter tokens.
 
+## Guardrails and Redaction
+
+Prompt security is pattern-based and global. For per-profile topic refusal add guardrails (`AddGuardrails()` on the AI suite, `AIProfileGuardrailSettings` on the profile; see `crestapps-core-ai-profiles`). With guardrails registered, `AIChatHubCore` runs, in order:
+
+1. **Customer message**: `ValidatePromptSecurityAsync` runs `IPromptSecurityService` first. If it does not block and `CheckCustomer` is on, `AIGuardrailService.CheckAsync(..., AIGuardrailDirection.Customer, ...)` runs. A refusal becomes a blocked `PromptSecurityResult` whose `DetectionRule` starts with `AIGuardrailService.DetectionRulePrefix` (`"guardrail:"`) and the caller sees the profile's `PlaceholderReply` instead of the generic blocked message.
+2. **Reply**: the protected virtual `ValidateOutputAsync` runs `IOutputSecurityFilter` first, then the reply guardrail when `CheckReplies` is on. It returns the message to show instead of the reply, or `null`; a refused reply is not saved.
+
+Guardrail checks are typed-chat only in the hub. Other channels call `AIGuardrailService.CheckAsync` themselves. When the check cannot run (no utility deployment, model error) the text passes with a warning, so guardrails stay a second line behind prompt security.
+
+Prompt security never redacts stored conversations. To redact personal data, keep only metadata, or enforce retention, use conversation privacy (`AddConversationPrivacy()`, `AIProfileDataPrivacySettings`, `AIConversationPrivacyService`, `AIPersonalDataRedactor`; see `crestapps-core-ai-profiles`).
+
 ## Uploads
 
 Every chat session and chat interaction upload passes `IUploadedFileScanner.ScanAsync(IFormFile, CancellationToken)` before storage. The default `NoOpUploadedFileScanner` returns `Clean`; register your scanner before document processing so `TryAdd` keeps yours. `FileScanResult.Infected(...)` and `FileScanResult.Error(...)` reject the upload (fail closed).
@@ -167,6 +178,14 @@ Every chat session and chat interaction upload passes `IUploadedFileScanner.Scan
 | Throttle keys | `AIChatRateLimitingOptions` |
 | Distributed throttling | Replace `IChatRateLimiter` |
 | Per-user tools in Chat Interactions | Replace `IAIToolAccessEvaluator` |
+| Per-profile refused topics | `AddGuardrails()` and `AIProfileGuardrailSettings` |
+| React to a refused topic | `IAIGuardrailHandler` |
+| Change hub output checks | Override `AIChatHubCore.ValidateOutputAsync` |
+| Redact or expire stored conversations | `AddConversationPrivacy()` |
+
+## Upgrading Within 2.0 Previews
+
+- The hub's reply check moved into the new protected virtual `ValidateOutputAsync(services, profile, sessionId, prompt, output, handlerContext, cancellationToken)`, which runs the output filter and then the reply guardrail. Override it rather than replacing the output filter when a host needs a different reply policy.
 
 ## Upgrading from 1.x
 

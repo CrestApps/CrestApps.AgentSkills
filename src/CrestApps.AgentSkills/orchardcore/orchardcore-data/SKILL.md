@@ -56,6 +56,7 @@ The `DatabaseName` shell setting controls the SQLite file name (`OrchardCore.db`
 | `QueryGatingEnabled` | Coalesces identical concurrent queries and shares the result | `true` |
 | `EnableThreadSafetyChecks` | Helps diagnose concurrent use of a session | `false` |
 | `IsolationLevel` | Default transaction isolation level | `ReadCommitted` |
+| `IncludeQueryTextInTelemetry` | Adds the SQL text (`db.query.text`) to YesSql command spans when the `YesSql` telemetry source is collected (see `orchardcore-opentelemetry`). Raw SQL fragments are included as is and can expose data to the telemetry receiver | `false` |
 
 `IdGenerator`, `IdentifierAccessorFactory`, `VersionAccessorFactory` and `ContentSerializer` can only be set in code.
 
@@ -68,7 +69,8 @@ The `DatabaseName` shell setting controls the SQLite file name (`OrchardCore.db`
       "CommandsPageSize": 1000,
       "QueryGatingEnabled": true,
       "EnableThreadSafetyChecks": false,
-      "IsolationLevel": "ReadCommitted"
+      "IsolationLevel": "ReadCommitted",
+      "IncludeQueryTextInTelemetry": false
     }
   }
 }

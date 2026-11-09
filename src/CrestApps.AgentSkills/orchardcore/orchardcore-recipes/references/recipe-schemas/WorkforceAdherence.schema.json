@@ -1,0 +1,143 @@
+{
+  "type": "object",
+  "description": "Creates or updates adherence rule sets, matched by itemId then name. A rule set that is updated takes every member of the entry.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "WorkforceAdherence",
+      "description": "Recipe step discriminator. Must be \u0027WorkforceAdherence\u0027."
+    },
+    "RuleSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "An adherence rule set.",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The rule set\u0027s id. When it matches a stored rule set, that rule set is updated; otherwise the rule set is matched by name, and a new one keeps this id."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The rule set name, unique."
+          },
+          "teamNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams the rules apply to, by name; added to teamIds. Teams named must exist."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The teams the rules apply to, by id."
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A rule: which agent states count as adherent during an activity.",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "Work",
+                    "Break",
+                    "Meal",
+                    "Meeting",
+                    "Training",
+                    "Coaching",
+                    "OfflineWork",
+                    "Travel",
+                    "OnCall",
+                    "TimeOff",
+                    "Other"
+                  ],
+                  "description": "The kind of scheduled activity the rule is for."
+                },
+                "activityName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The activity code the rule is for, by name. Wins over activityCodeId."
+                },
+                "activityCodeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The activity code the rule is for, by id; null for every code of the kind."
+                },
+                "allowedStatuses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "Offline",
+                      "Available",
+                      "Reserved",
+                      "Busy",
+                      "WrapUp",
+                      "Break",
+                      "RequestBreak",
+                      "Away",
+                      "DoNotDisturb",
+                      "Meeting",
+                      "Training",
+                      "AfterHoursUnavailable"
+                    ]
+                  },
+                  "description": "The agent states that count as adherent."
+                },
+                "allowedReasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The state reasons the agent must have; empty for any reason."
+                },
+                "startGraceMinutes": {
+                  "type": "integer",
+                  "description": "How many minutes after the activity starts the agent may still be in the previous activity. Defaults to 2."
+                },
+                "endGraceMinutes": {
+                  "type": "integer",
+                  "description": "How many minutes before the activity ends the agent may move to the next one. Defaults to 2."
+                },
+                "minimumOutMinutes": {
+                  "type": "integer",
+                  "description": "The shortest time out of adherence that counts, in minutes. Defaults to 1."
+                },
+                "alertAfterMinutes": {
+                  "type": "integer",
+                  "description": "How many minutes out of adherence raise an alert. Defaults to 5."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The rules."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The adherence rule sets to create or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

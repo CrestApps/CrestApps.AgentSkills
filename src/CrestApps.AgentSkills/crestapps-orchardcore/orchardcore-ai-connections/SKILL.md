@@ -37,6 +37,10 @@ deployments and capabilities see `orchardcore-ai` and `orchardcore-ai-model-capa
 | Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | `Azure` | `AzureConnectionMetadata` (`Endpoint`, `AuthenticationType`, `ApiKey`, `IdentityId`) | `Default`, `ManagedIdentity`, `ApiKey` |
 | Azure AI Inference (GitHub Models) | `CrestApps.OrchardCore.AzureAIInference` | `AzureAIInference` | `AzureAIInferenceConnectionMetadata` (same keys as Azure) | `Default`, `ManagedIdentity`, `ApiKey` |
 | Ollama | `CrestApps.OrchardCore.Ollama` | `Ollama` | none; a plain `Endpoint` key | none |
+| Custom LLM (WebSocket) | `CrestApps.OrchardCore.AI.CustomLlm` | `CustomLlm` | none; plain `Endpoint` (`wss://`, or `https://` used as `wss://`) and optional `ApiKey` keys read through `GetEndpoint()` / `GetApiKey()` | optional API key, sent as a bearer token |
+
+ElevenLabs, Cartesia and Azure AI Speech deployments carry their own connection (API key and endpoint on the
+deployment) and need no provider connection; see `orchardcore-ai-providers`.
 
 ```json
 {
@@ -61,6 +65,11 @@ and the List or Grid layout. Configuration-backed connections appear below in a 
 (`AIProviderConnectionsReadOnly`) without select, edit or delete. **Add Connection** asks for the provider
 first, then shows that provider's editor. To add a column or row action, use `IAdminListColumnsProvider` or
 a `SummaryAdminGrid` placement (see `orchardcore-admin-lists`).
+
+A missing API key on an OpenAI connection is reported under **API key** (it used to show under **Endpoint**).
+Each deployment that uses the connection can carry its prices on its **Pricing** card, for estimated costs in
+the usage report (see `orchardcore-ai-usage-analytics`). Editor buttons sit in Orchard Core's sticky bottom
+action bar.
 
 ## Connections by recipe
 

@@ -76,8 +76,11 @@ editor).
 | Search (`OrchardCore.Search`) | `Search` | Search-related text such as the placeholder |
 
 Built-in permission descriptions now carry a PO context, so they are translated
-with PO files and are not listed here; template-based descriptions such as
-"Edit Article" still are.
+with PO files and are not listed here. Descriptions of permissions created by a
+`PermissionTemplate` (such as "Edit Article" from the content type templates, or
+"Manage French (France) translations") are formatted into context-free text by
+`CreateDynamicPermission(...)`, so they still are. Values that still contain
+`{0}` are skipped.
 
 ## Creating a Custom Localization Data Provider
 
@@ -215,5 +218,6 @@ changes.
   Localization are ignored. Move them to PO files under the declaring type's
   context (for example `OrchardCore.Email.EmailPermissions`).
 - `IDataResourceStringProvider` was removed; implement `ILocalizationDataProvider`.
+- Data Localization does not extract strings into POT templates: its values come from data, not code. The `d` filter's arguments now use the Fluid 3 `ToStringValue(context)`/`StringValue.Create(...)` APIs internally; custom filters must do the same (see `orchardcore-liquid`).
 - The Liquid documentation section "Localization Filters" for `d` is now
   "Data Localization Filters".

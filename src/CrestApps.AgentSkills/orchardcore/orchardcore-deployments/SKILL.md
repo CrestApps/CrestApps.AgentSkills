@@ -1,6 +1,6 @@
 ---
 name: orchardcore-deployments
-description: Skill for authoring Orchard Core deployment plans and custom deployment steps. Covers plan creation, plan recipes, package export and import, export targets, remote deployment, built-in step selection, DeploymentPermissions, custom steps with LocalizationSource Category and Title labels, and end-to-end extensibility. Use this skill when requests mention Orchard Core Deployments, Create a Deployment Plan, Deployment Step Types, Export or Import a Deployment Package, Remote Deployment, Deployment Plan Recipe Export, Creating Deployment Steps in Code, deployment step categories or titles, or upgrading custom deployment steps to Orchard Core 4.0. Strong matches include OrchardCore.Deployment, OrchardCore.Deployment.Remote, IDeploymentSource, IDeploymentTargetProvider, IDeploymentTargetHandler, DeploymentStep, DeploymentPermissions, LocalizationSource, AddDeployment, AddDeploymentTargetHandler, DeploymentPlansRecipeStep, and DeploymentPlanResult.
+description: Skill for authoring Orchard Core deployment plans and custom deployment steps. Covers plan creation, plan recipes, package export and import, export targets, remote deployment, built-in step selection, DeploymentPermissions, custom steps overriding Name and the LocalizationSource Category and Title labels with CommonLocalizationSources, deployment file path validation, and end-to-end extensibility. Use this skill when requests mention Orchard Core Deployments, a deployment plan, deployment step types, exporting or importing a deployment package, remote deployment, creating deployment steps in code, step categories or titles, or upgrading custom deployment steps to Orchard Core 4.0. Strong matches include OrchardCore.Deployment, OrchardCore.Deployment.Remote, IDeploymentSource, IDeploymentTargetProvider, IDeploymentTargetHandler, DeploymentStep, DeploymentPermissions, AddDeployment, DeploymentPlansRecipeStep, and DeploymentPlanResult.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,8 @@ Use deployment plans to export configuration or content as a recipe package, the
 5. On the target site, go to **Tools → Deployments** and use **Package Import** (`.zip` package or `.json` recipe) or **JSON Import** (recipe JSON in an editor). Importing executes the recipe immediately.
 
 Order steps deliberately. For example, enable features first, define content types before content, configure indexes before requesting a rebuild, and create workflow definitions only after their activity-providing features are enabled.
+
+The **Custom File** step rejects a file name that is rooted (`/...`), fully qualified (`C:\...`) or that escapes the package folder (`../...`), and `TemporaryFileBuilder.SetFileAsync()` throws `InvalidOperationException` for such paths, so a custom deployment source must pass package-relative paths to `result.FileBuilder`. When a plan fails while exporting to a file, the error is logged and an error notification is shown on the plan page instead of an unhandled exception.
 
 Package export and import extract and build archives in the tenant-scoped temporary directory provided by `ITempDirectoryProvider`, configured with `OrchardCore:TempDirectory:Path` (see `orchardcore-temp-file-storage`). On hosts with a small system temp volume, point it at a larger mounted file share.
 
@@ -128,18 +130,34 @@ Enable `OrchardCore.Deployment.Remote` on the source and target along with `Orch
 
 Implement all three pieces in the module that owns the data.
 
-1. Derive a serializable model from `DeploymentStep`. In its parameterless constructor set a stable `Name`, plus `Category` and `Title` as `LocalizationSource` values created with the step type as context. Add only settings that the editor needs.
+1. Derive a serializable model from `DeploymentStep`. Override the virtual `Name` getter with a stable name, and the read-only virtual `Category` and `Title` properties with shared `LocalizationSource` instances, each marked `[JsonIgnore]`. Add only settings that the editor needs.
 2. Implement `IDeploymentSource`, preferably by deriving from `DeploymentSourceBase<TStep>`, and append valid recipe JSON to `DeploymentPlanResult.Steps` or files through `result.FileBuilder`.
 3. Add a `DisplayDriver<DeploymentStep, TStep>` and the corresponding summary, thumbnail, and edit Razor shapes when the step is configurable.
 4. Register the source, step factory, JSON derived type, and driver with the exact `AddDeployment<TSource, TStep, TDisplayDriver>()` overload.
 5. To add an execution destination (an entry of the **Execute** dialog), implement `IDeploymentTargetProvider`. To change how imported packages are processed, implement `IDeploymentTargetHandler` and register it with `AddDeploymentTargetHandler<TImplementation>()`.
 
-`Category` groups the step in the **Add Step** picker. `Title` is the step's display name and the heading and breadcrumb of its add and edit screens, so the edit view needs no heading of its own. Both are `[JsonIgnore]`, never persisted with the plan, and translated at display time with `IStringLocalizerFactory.Localize()` using the step type as PO context (for example `msgctxt "MyModule.Deployment.MySettingsDeploymentStep"`). Keep them in `static readonly` fields so every step instance shares them.
+`Category` groups the step in the **Add Step** picker. Use a member of `CommonLocalizationSources` (namespace `OrchardCore.Localization`, package `OrchardCore.Abstractions`) when steps of several modules share the category: `Configuration`, `Content`, `ContentManagement`, `Development`, `Infrastructure`, `Search`, `Security` or `Settings`. Declare a module-only category and the `Title` in an `internal static class {Module}LocalizationSources` at the module root. `Title` is the step's display name and the heading and breadcrumb of its add and edit screens, so the edit view needs no heading of its own.
+
+Both are never persisted with the plan, always read from the step's type, and translated at display time with `IStringLocalizerFactory.Localize()`. The PO context is the class that declares the source: `msgctxt "OrchardCore.Localization.CommonLocalizationSources"` for shared categories, `msgctxt "MyModule.MyModuleLocalizationSources"` for the module's own sources. `Name` is persisted; its setter only restores the stored name of a step whose type is unavailable (`UnknownDeploymentStep`).
+
+Always repeat `[JsonIgnore]` on the `Category` and `Title` overrides: `System.Text.Json` does not inherit the base property's attribute, and a `LocalizationSource` cannot be serialized, so saving a plan containing the step fails without it.
 
 Every object added to `DeploymentPlanResult.Steps` is a recipe step consumed on import. Emit an existing recipe step or ship and enable a matching custom `IRecipeStepHandler` on the target tenant. The example emits `MySettings`, so its companion recipe handler must be available there.
 
 ```csharp
+using OrchardCore.Localization;
+
+namespace MyModule;
+
+internal static class MyModuleLocalizationSources
+{
+    public static readonly LocalizationSource MySettings = LocalizationSource.Create("My Settings", typeof(MyModuleLocalizationSources));
+}
+```
+
+```csharp
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using OrchardCore.Deployment;
 using OrchardCore.Localization;
 
@@ -147,15 +165,13 @@ namespace MyModule.Deployment;
 
 public sealed class MySettingsDeploymentStep : DeploymentStep
 {
-    private static readonly LocalizationSource s_category = LocalizationSource.Create<MySettingsDeploymentStep>("Settings");
-    private static readonly LocalizationSource s_title = LocalizationSource.Create<MySettingsDeploymentStep>("My Settings");
+    public override string Name => "MySettings";
 
-    public MySettingsDeploymentStep()
-    {
-        Name = "MySettings";
-        Category = s_category;
-        Title = s_title;
-    }
+    [JsonIgnore]
+    public override LocalizationSource Category => CommonLocalizationSources.Settings;
+
+    [JsonIgnore]
+    public override LocalizationSource Title => MyModuleLocalizationSources.MySettings;
 
     public bool IncludeSecrets { get; set; }
 }
@@ -248,10 +264,13 @@ public sealed class DeploymentStartup : StartupBase
 
 ## Upgrading from 3.x
 
-- `DeploymentStep.Category` and `DeploymentStep.Title` are `LocalizationSource` instead of `LocalizedString`. Assign them in the parameterless constructor:
-  - Before: `public MyStep(IStringLocalizer<MyStep> S) : this() { Category = S["Content"]; }`
-  - After: `Category = LocalizationSource.Create<MyStep>("Content");` in `public MyStep()`.
-- Remove constructors that took an `IStringLocalizer<TStep>` only to set the labels; built-in steps no longer have them. Existing PO translations keep working because the context is still the step type.
+- `DeploymentStep.Category` and `DeploymentStep.Title` are read-only virtual `LocalizationSource` properties instead of settable `LocalizedString` ones, and `Name` is virtual:
+  - Before: `public MyStep(IStringLocalizer<MyStep> S) { Name = "MyStep"; Category = S["Content"]; Title = S["My Step"]; }`
+  - After: `public override string Name => "MyStep";`, `[JsonIgnore] public override LocalizationSource Category => CommonLocalizationSources.Content;` and `[JsonIgnore] public override LocalizationSource Title => MyModuleLocalizationSources.MyStep;`.
+  - Assigning `Category` or `Title` in a constructor no longer compiles.
+- Remove constructors that took an `IStringLocalizer<TStep>` only to set the labels; built-in steps no longer have them.
+- PO contexts of the built-in step labels changed: shared categories such as "Content Management" use `msgctxt "OrchardCore.Localization.CommonLocalizationSources"`, and titles use the module's `*LocalizationSources` class (for example `OrchardCore.Lucene.LuceneLocalizationSources`) instead of the step type. Update the `msgctxt` of PO entries that translated these labels; entries without `msgctxt` still apply.
 - Code that displays `step.Category` or `step.Title` must translate it with `IStringLocalizerFactory.Localize(step.Title)`.
 - `OrchardCore.Deployment.CommonPermissions` and `OrchardCore.Deployment.Remote.Permissions` were removed. Use `DeploymentPermissions.ManageDeploymentPlan`, `Export`, `Import`, `ManageRemoteInstances`, `ManageRemoteClients`, and `ExportRemoteInstances` (replaces `Remote.Permissions.Export`). Stored role permission names are unchanged.
 - Deployment and recipe archives are written under `OrchardCore:TempDirectory:Path` instead of `Path.GetTempPath()`.
+- Custom File step file names and paths passed to `TemporaryFileBuilder.SetFileAsync()` (the `result.FileBuilder` of file exports) that are rooted, drive-qualified or contain `..` segments escaping the package folder are now rejected.

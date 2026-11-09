@@ -77,23 +77,45 @@
                 "PartName": {
                   "type": "string",
                   "examples": [
+                    "AccountLocationsPart",
+                    "AccountMembersPart",
+                    "AccountPart",
+                    "AIProfilePart",
                     "AliasPart",
                     "AuditTrailPart",
                     "AutoroutePart",
                     "BagPart",
+                    "BookingPart",
+                    "CalendarWidgetPart",
                     "CommonPart",
                     "ContainedPart",
                     "FlowPart",
                     "HtmlBodyPart",
                     "HtmlMenuItemPart",
                     "LayerMetadata",
+                    "LeadPart",
+                    "LiquidPart",
                     "ListPart",
                     "MarkdownBodyPart",
+                    "OmnichannelContactPart",
+                    "OpportunityPart",
                     "PreviewPart",
+                    "ProductPart",
                     "PublishLaterPart",
+                    "ReportDesignWidgetPart",
+                    "ReportWidgetPart",
+                    "RolePickerPart",
+                    "SchemaOrgPart",
                     "SeoMetaPart",
+                    "SubscriptionPart",
+                    "SubscriptionSummaryPart",
+                    "TaxationPart",
+                    "TenantOnboardingPart",
                     "TitlePart",
-                    "WidgetsListPart"
+                    "UserFullNamePart",
+                    "WebMcpPart",
+                    "WidgetsListPart",
+                    "WizardPart"
                   ],
                   "description": "Attached part type name. Known part names are surfaced as suggestions, but any custom part name is allowed."
                 },
@@ -143,6 +165,138 @@
               ],
               "additionalProperties": true,
               "allOf": [
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AIProfilePart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AccountLocationsPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AccountMembersPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AccountPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "AccountPartSettings": {
+                                "type": "object",
+                                "description": "The settings of the account part.",
+                                "properties": {
+                                  "OfferedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The record types (such as contacts and opportunities) already added to the account type\u0027s list. The Accounts feature adds every new record type to the list once and records it here, so a type an administrator removes from the list is not added back."
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
                 {
                   "if": {
                     "type": "object",
@@ -357,6 +511,64 @@
                                 "additionalProperties": false
                               }
                             },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "BookingPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "CalendarWidgetPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
                             "additionalProperties": true
                           }
                         ],
@@ -642,6 +854,87 @@
                     "type": "object",
                     "properties": {
                       "PartName": {
+                        "const": "LeadPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "LeadPartSettings": {
+                                "type": "object",
+                                "description": "How a lead of this type is converted.",
+                                "properties": {
+                                  "TargetContactContentType": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The contact content type a lead of this type becomes when it is converted."
+                                  },
+                                  "DefaultOpportunityContentType": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The opportunity content type offered first when a conversion creates an opportunity."
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "LiquidPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
                         "const": "ListPart"
                       }
                     },
@@ -749,6 +1042,111 @@
                     "type": "object",
                     "properties": {
                       "PartName": {
+                        "const": "OmnichannelContactPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "OmnichannelContactPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "RequireTimeZone": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Require a time zone for the contact."
+                                  },
+                                  "AutoDetectTimeZone": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Automatically detect the contact time zone from the contact\u0027s phone number when one was not selected."
+                                  },
+                                  "UseDoNotCall": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Show the Do not call preference."
+                                  },
+                                  "UseDoNotSms": {
+                                    "type": "boolean",
+                                    "description": "Show the Do not SMS preference."
+                                  },
+                                  "UseDoNotEmail": {
+                                    "type": "boolean",
+                                    "description": "Show the Do not email preference."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "OpportunityPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "OpportunityPartSettings": {
+                                "type": "object",
+                                "description": "The pipeline of an opportunity type.",
+                                "properties": {
+                                  "StageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The ItemIds of the stages (see the OmnichannelOpportunityStage step) an opportunity of this type moves through. Empty uses every stage."
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
                         "const": "PreviewPart"
                       }
                     },
@@ -790,6 +1188,83 @@
                     "type": "object",
                     "properties": {
                       "PartName": {
+                        "const": "ProductPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ProductPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Undefined",
+                                      "Good",
+                                      "Service",
+                                      "Digital"
+                                    ],
+                                    "description": "The kind of product the part represents."
+                                  },
+                                  "DefaultCurrency": {
+                                    "type": "string",
+                                    "description": "The ISO-4217 currency code applied to products of this type when an item does not set its own currency."
+                                  },
+                                  "SalesMode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Purchasable",
+                                      "ListingOnly",
+                                      "PerItem"
+                                    ],
+                                    "description": "Whether products of this type can be bought online, are only listed, or decide per item."
+                                  },
+                                  "PriceDisplay": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Show",
+                                      "OnRequest",
+                                      "Hidden"
+                                    ],
+                                    "description": "How the price of products of this type is shown to visitors."
+                                  },
+                                  "OnRequestLabel": {
+                                    "type": "string",
+                                    "description": "The text shown instead of the price when the price is shown on request."
+                                  },
+                                  "AllowPriceDisplayOverride": {
+                                    "type": "boolean",
+                                    "description": "Whether each product may choose how its own price is shown."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
                         "const": "PublishLaterPart"
                       }
                     },
@@ -805,6 +1280,221 @@
                         "allOf": [
                           {
                             "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "ReportDesignWidgetPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "ReportWidgetPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "RolePickerPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "RolePickerPartContentAccessControlSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "IsContentRestricted": {
+                                    "type": "boolean",
+                                    "description": "Whether content that uses this part is restricted to the selected roles."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "RolePickerPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Required": {
+                                    "type": "boolean",
+                                    "description": "Whether at least one role must be picked."
+                                  },
+                                  "AllowSelectMultiple": {
+                                    "type": "boolean",
+                                    "description": "Whether more than one role may be picked."
+                                  },
+                                  "ExcludedRoles": {
+                                    "type": [
+                                      "null",
+                                      "array"
+                                    ],
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The role names that are not offered."
+                                  },
+                                  "Hint": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The hint shown under the picker."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "SchemaOrgPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "SchemaOrgPartSettings": {
+                                "type": "object",
+                                "description": "The schema.org type of the content items and where each of their properties comes from.",
+                                "properties": {
+                                  "SchemaType": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The schema.org type, such as BlogPosting, Article, Event or Product. When empty, a module may choose one (a product is a Product); other items are a WebPage."
+                                  },
+                                  "Properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "Name": {
+                                          "type": "string",
+                                          "description": "The schema.org property, such as headline. A dotted name, such as offers.price, sets a property of a nested object."
+                                        },
+                                        "Source": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Content",
+                                            "Fixed",
+                                            "Editor",
+                                            "Liquid"
+                                          ],
+                                          "description": "Where the value comes from: Content (a field or value of the item), Fixed (the same value for every item), Editor (entered on each item) or Liquid (a template)."
+                                        },
+                                        "Value": {
+                                          "type": [
+                                            "null",
+                                            "string"
+                                          ],
+                                          "description": "What the source needs: for Content the key of a field or value, such as Field:BlogPost.Image or Item:DisplayText; for Fixed the value itself; for Liquid the template; unused for Editor."
+                                        }
+                                      },
+                                      "required": [
+                                        "Name"
+                                      ],
+                                      "additionalProperties": true
+                                    },
+                                    "description": "The properties and where their values come from, in the order they are written."
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
                             "additionalProperties": true
                           }
                         ],
@@ -857,6 +1547,158 @@
                                 "additionalProperties": false
                               }
                             },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "SubscriptionPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "SubscriptionPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The content types for which the subscription flow collects content item data."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "SubscriptionSummaryPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "TaxationPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "TaxationPartSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "DefaultTaxCategoryCode": {
+                                    "type": "string",
+                                    "description": "The default tax category code applied to new content items."
+                                  },
+                                  "DefaultTaxClassificationCode": {
+                                    "type": "string",
+                                    "description": "The default tax classification code applied to new content items."
+                                  },
+                                  "AllowClassificationOverride": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Whether the tax classification fields are shown to editors."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "TenantOnboardingPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
                             "additionalProperties": true
                           }
                         ],
@@ -928,6 +1770,65 @@
                     "type": "object",
                     "properties": {
                       "PartName": {
+                        "const": "UserFullNamePart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "WebMcpPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "description": "The part has no settings of its own.",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
                         "const": "WidgetsListPart"
                       }
                     },
@@ -955,6 +1856,84 @@
                                   }
                                 },
                                 "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "WizardPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "WizardPartSettings": {
+                                "type": "object",
+                                "description": "How the wizard\u0027s steps are authored and how a started wizard behaves.",
+                                "properties": {
+                                  "ContainedContentTypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The content types allowed as steps. Empty allows every type that matches ContainedStereotypes."
+                                  },
+                                  "ContainedStereotypes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "description": "The stereotypes allowed as steps. Empty does not filter by stereotype."
+                                  },
+                                  "DisplayType": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The display type each step is rendered with in the authoring editor."
+                                  },
+                                  "CollapseContainedItems": {
+                                    "type": "boolean",
+                                    "description": "Whether steps are collapsed by default in the authoring editor."
+                                  },
+                                  "RequiresAuthenticatedUser": {
+                                    "type": "boolean",
+                                    "description": "Whether a visitor must be signed in to start the wizard."
+                                  },
+                                  "CompletionPolicy": {
+                                    "enum": [
+                                      0,
+                                      1,
+                                      2,
+                                      "None",
+                                      "Draft",
+                                      "Publish"
+                                    ],
+                                    "description": "What happens to the collected responses when the wizard completes: 0 = None (kept only in the session for a workflow or handler), 1 = Draft (created as drafts), 2 = Publish (created and published, the default)."
+                                  }
+                                },
+                                "additionalProperties": true
                               }
                             },
                             "additionalProperties": true
@@ -1069,6 +2048,90 @@
               ],
               "additionalProperties": true,
               "allOf": [
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
+                        "const": "AddressField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "AddressFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The hint shown under the field in the editor."
+                                  },
+                                  "Required": {
+                                    "type": "boolean",
+                                    "description": "Whether an address must be entered."
+                                  },
+                                  "ShowName": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Whether the editor asks for the recipient\u0027s name."
+                                  },
+                                  "ShowCompany": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Whether the editor asks for a company."
+                                  },
+                                  "ShowPhone": {
+                                    "type": "boolean",
+                                    "description": "Whether the editor asks for a phone number."
+                                  },
+                                  "Countries": {
+                                    "type": [
+                                      "null",
+                                      "array"
+                                    ],
+                                    "items": {
+                                      "type": [
+                                        "null",
+                                        "string"
+                                      ],
+                                      "pattern": "^[A-Za-z]{2}$"
+                                    },
+                                    "description": "The ISO 3166-1 alpha-2 codes of the countries offered; empty or null for every country."
+                                  },
+                                  "DefaultCountry": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "pattern": "^[A-Za-z]{2}$",
+                                    "description": "The country a new address starts in."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
                 {
                   "if": {
                     "type": "object",
@@ -1456,6 +2519,35 @@
                     "type": "object",
                     "properties": {
                       "FieldName": {
+                        "const": "LiquidField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
                         "const": "LocalizationSetContentPickerField"
                       }
                     },
@@ -1754,6 +2846,327 @@
                     "type": "object",
                     "properties": {
                       "FieldName": {
+                        "const": "PhoneField"
+                      }
+                    },
+                    "required": [
+                      "FieldName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "PhoneFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "Hint": {
+                                    "type": [
+                                      "null",
+                                      "string"
+                                    ],
+                                    "description": "The hint shown under the field in the editor."
+                                  },
+                                  "Required": {
+                                    "type": "boolean",
+                                    "description": "Whether a phone number must be entered."
+                                  },
+                                  "InitialCountryMode": {
+                                    "enum": [
+                                      "Globe",
+                                      "CurrentCulture",
+                                      "Specific",
+                                      0,
+                                      1,
+                                      2
+                                    ],
+                                    "description": "The country the editor starts on: Globe (0, none), CurrentCulture (1, the request culture\u0027s country) or Specific (2, SpecificCountryCode)."
+                                  },
+                                  "SpecificCountryCode": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "AD",
+                                          "AE",
+                                          "AF",
+                                          "AG",
+                                          "AI",
+                                          "AL",
+                                          "AM",
+                                          "AO",
+                                          "AQ",
+                                          "AR",
+                                          "AS",
+                                          "AT",
+                                          "AU",
+                                          "AW",
+                                          "AX",
+                                          "AZ",
+                                          "BA",
+                                          "BB",
+                                          "BD",
+                                          "BE",
+                                          "BF",
+                                          "BG",
+                                          "BH",
+                                          "BI",
+                                          "BJ",
+                                          "BL",
+                                          "BM",
+                                          "BN",
+                                          "BO",
+                                          "BQ",
+                                          "BR",
+                                          "BS",
+                                          "BT",
+                                          "BV",
+                                          "BW",
+                                          "BY",
+                                          "BZ",
+                                          "CA",
+                                          "CC",
+                                          "CD",
+                                          "CF",
+                                          "CG",
+                                          "CH",
+                                          "CI",
+                                          "CK",
+                                          "CL",
+                                          "CM",
+                                          "CN",
+                                          "CO",
+                                          "CR",
+                                          "CU",
+                                          "CV",
+                                          "CW",
+                                          "CX",
+                                          "CY",
+                                          "CZ",
+                                          "DE",
+                                          "DJ",
+                                          "DK",
+                                          "DM",
+                                          "DO",
+                                          "DZ",
+                                          "EC",
+                                          "EE",
+                                          "EG",
+                                          "EH",
+                                          "ER",
+                                          "ES",
+                                          "ET",
+                                          "FI",
+                                          "FJ",
+                                          "FK",
+                                          "FM",
+                                          "FO",
+                                          "FR",
+                                          "GA",
+                                          "GB",
+                                          "GD",
+                                          "GE",
+                                          "GF",
+                                          "GG",
+                                          "GH",
+                                          "GI",
+                                          "GL",
+                                          "GM",
+                                          "GN",
+                                          "GP",
+                                          "GQ",
+                                          "GR",
+                                          "GS",
+                                          "GT",
+                                          "GU",
+                                          "GW",
+                                          "GY",
+                                          "HK",
+                                          "HM",
+                                          "HN",
+                                          "HR",
+                                          "HT",
+                                          "HU",
+                                          "ID",
+                                          "IE",
+                                          "IL",
+                                          "IM",
+                                          "IN",
+                                          "IO",
+                                          "IQ",
+                                          "IR",
+                                          "IS",
+                                          "IT",
+                                          "JE",
+                                          "JM",
+                                          "JO",
+                                          "JP",
+                                          "KE",
+                                          "KG",
+                                          "KH",
+                                          "KI",
+                                          "KM",
+                                          "KN",
+                                          "KP",
+                                          "KR",
+                                          "KW",
+                                          "KY",
+                                          "KZ",
+                                          "LA",
+                                          "LB",
+                                          "LC",
+                                          "LI",
+                                          "LK",
+                                          "LR",
+                                          "LS",
+                                          "LT",
+                                          "LU",
+                                          "LV",
+                                          "LY",
+                                          "MA",
+                                          "MC",
+                                          "MD",
+                                          "ME",
+                                          "MF",
+                                          "MG",
+                                          "MH",
+                                          "MK",
+                                          "ML",
+                                          "MM",
+                                          "MN",
+                                          "MO",
+                                          "MP",
+                                          "MQ",
+                                          "MR",
+                                          "MS",
+                                          "MT",
+                                          "MU",
+                                          "MV",
+                                          "MW",
+                                          "MX",
+                                          "MY",
+                                          "MZ",
+                                          "NA",
+                                          "NC",
+                                          "NE",
+                                          "NF",
+                                          "NG",
+                                          "NI",
+                                          "NL",
+                                          "NO",
+                                          "NP",
+                                          "NR",
+                                          "NU",
+                                          "NZ",
+                                          "OM",
+                                          "PA",
+                                          "PE",
+                                          "PF",
+                                          "PG",
+                                          "PH",
+                                          "PK",
+                                          "PL",
+                                          "PM",
+                                          "PN",
+                                          "PR",
+                                          "PS",
+                                          "PT",
+                                          "PW",
+                                          "PY",
+                                          "QA",
+                                          "RE",
+                                          "RO",
+                                          "RS",
+                                          "RU",
+                                          "RW",
+                                          "SA",
+                                          "SB",
+                                          "SC",
+                                          "SD",
+                                          "SE",
+                                          "SG",
+                                          "SH",
+                                          "SI",
+                                          "SJ",
+                                          "SK",
+                                          "SL",
+                                          "SM",
+                                          "SN",
+                                          "SO",
+                                          "SR",
+                                          "SS",
+                                          "ST",
+                                          "SV",
+                                          "SX",
+                                          "SY",
+                                          "SZ",
+                                          "TC",
+                                          "TD",
+                                          "TF",
+                                          "TG",
+                                          "TH",
+                                          "TJ",
+                                          "TK",
+                                          "TL",
+                                          "TM",
+                                          "TN",
+                                          "TO",
+                                          "TR",
+                                          "TT",
+                                          "TV",
+                                          "TW",
+                                          "TZ",
+                                          "UA",
+                                          "UG",
+                                          "UM",
+                                          "US",
+                                          "UY",
+                                          "UZ",
+                                          "VA",
+                                          "VC",
+                                          "VE",
+                                          "VG",
+                                          "VI",
+                                          "VN",
+                                          "VU",
+                                          "WF",
+                                          "WS",
+                                          "YE",
+                                          "YT",
+                                          "ZA",
+                                          "ZM",
+                                          "ZW"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "description": "The ISO 3166-1 alpha-2 country the editor starts on when InitialCountryMode is Specific."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "FieldName": {
                         "const": "TaxonomyField"
                       }
                     },
@@ -1867,12 +3280,12 @@
                                   "MinLength": {
                                     "type": "integer",
                                     "minimum": 0,
-                                    "description": "Minimum text length validated on save. Empty or 0 means no limit."
+                                    "description": "The minimum number of characters allowed. Omit it for no minimum."
                                   },
                                   "MaxLength": {
                                     "type": "integer",
-                                    "minimum": 0,
-                                    "description": "Maximum text length validated on save. Empty or 0 means no limit."
+                                    "minimum": 1,
+                                    "description": "The maximum number of characters allowed. Omit it for no maximum."
                                   }
                                 },
                                 "additionalProperties": false

@@ -9,7 +9,7 @@ metadata:
 
 # CrestApps.Core MCP
 
-`CrestApps.Core.AI.Mcp` provides both sides of MCP: a client that turns remote MCP servers into orchestrator tools, and server handlers that expose CrestApps tools, tool instances, agents, prompts and resources through the official MCP C# SDK. FTP and SFTP resource types are covered in `crestapps-core-mcp-file-resources`.
+`CrestApps.Core.AI.Mcp` provides both sides of MCP: a client that turns remote MCP servers into orchestrator tools, and server handlers that expose CrestApps tools, tool instances, agents, prompts and resources through the official MCP C# SDK. FTP and SFTP resource types are covered in `crestapps-core-mcp-file-resources`; giving tools to AI agents in the browser through `document.modelContext` is covered in `crestapps-core-webmcp`.
 
 ## Client
 

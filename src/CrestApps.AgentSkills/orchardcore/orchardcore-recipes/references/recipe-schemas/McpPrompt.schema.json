@@ -86,6 +86,32 @@
             "additionalProperties": true,
             "description": "The MCP prompt definition to create or update."
           },
+          "Messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "assistant"
+                  ],
+                  "description": "Who says the message: user or assistant."
+                },
+                "Content": {
+                  "type": "string",
+                  "description": "The message text. It may use the prompt\u0027s arguments. Messages without content are skipped."
+                }
+              },
+              "required": [
+                "Role",
+                "Content"
+              ],
+              "additionalProperties": true
+            },
+            "description": "The messages that make up the prompt\u0027s body, returned to the client when it asks for the prompt. When present, they replace the stored messages."
+          },
           "Properties": {
             "type": "object",
             "description": "Additional prompt metadata. No built-in MCP prompt metadata objects are currently exported here, but extra keys are allowed for future extensions.",

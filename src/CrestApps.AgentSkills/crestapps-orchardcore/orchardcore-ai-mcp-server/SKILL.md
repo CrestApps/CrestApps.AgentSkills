@@ -264,7 +264,12 @@ The base class also offers `SanitizePath` (rejects traversal sequences) and `IsT
 
 ## Deployment
 
-With `OrchardCore.Deployment` enabled, the MCP **Prompt** and **Resource** export steps appear under the **Artificial Intelligence** category of the deployment-plan editor.
+With `OrchardCore.Deployment` enabled, the **MCP Prompts** and **MCP Resources** export steps appear under the **Artificial Intelligence** category of the deployment-plan editor. With **CrestApps Recipes** (`CrestApps.OrchardCore.Recipes`) enabled, the `McpPrompt` and `McpResource` recipe steps have JSON schemas.
+
+## Related features
+
+- **WebMCP** (`orchardcore-ai-webmcp`) gives the same selectable tool catalog to AI agents in the signed-in user's browser through `document.modelContext`, with its own **WebMCP** selection card and a per-user **Access AI tool** check. Use it instead of the MCP Server when the agent runs in the browser.
+- **NLWeb** (`orchardcore-nlweb`) adds the `ask` tool, which can be selected on the **MCP Server** card to let MCP clients ask the site natural-language questions.
 
 ## Admin lists
 

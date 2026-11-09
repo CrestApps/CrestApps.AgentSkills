@@ -65,7 +65,7 @@ The Contact Center voice adapter is not a feature: it activates when `CrestApps.
 | `ConnectionId`, `SipConnectionId`, `OutboundVoiceProfileId` | | Written by Connect |
 | `DefaultOutboundCallerId` | | E.164, used when a call carries no caller id of its own |
 | `WebhookPublicKey` | | Ed25519 public key, stored encrypted |
-| `CredentialLifetimeMinutes` | `180` | Browser SIP credential lifetime; renewal waits for a live call to end |
+| `CredentialLifetimeMinutes` | `180` | Browser SIP credential lifetime, at least `30` (a shorter value is refused on save and raised to 30 when stored, imported or bound, `TelnyxCredentialLifetime`). The soft phone renews in the last 10 minutes, never while it holds a call (a parked dialer leg included), and as soon as that call ends |
 | `EchoTestDestination` | | Audio test destination for diagnostics and the health canary |
 | `OrphanedCallHandling` | `Report` | `Report` or `EndCall` for a connected call with no local record |
 | `AnsweringMachineDetection` | `Premium` | `Premium`, `Standard`, or `Disabled` |
@@ -114,12 +114,16 @@ Voice settings export through the **Telnyx Settings** step and import with `Teln
 
 An unknown noise suppression engine imports as off, the region is normalized, and options refresh without a restart. Members the step omits keep their stored values.
 
+### Telnyx Numbers
+
+**Settings → Communication → Telnyx numbers** (`telnyx/numbers`, `ManageTelephonySettings`, part of the Telnyx feature) lists the account's numbers, searches and buys one, sets its caller name, and releases it. Buying and releasing numbers changes the Telnyx account and its billing, so confirm before acting. With the AI Chat WebAPI feature (`CrestApps.OrchardCore.AI.Chat.Api`), the same operations are offered at `api/ai/v1/carrier-numbers` (`GET available`, `POST orders`, `GET`, `PUT {numberId}/caller-name`, `DELETE {numberId}`) to AI API keys with the numbers scope.
+
 ## Webhooks
 
 | Endpoint | Method | Feature | Events |
 |---|---|---|---|
 | `/api/telnyx/webhook/call` | `POST` | Telnyx | Call Control events, committed to the durable provider webhook inbox and normalized into `ProviderVoiceEvent` |
-| `/api/telnyx/webhook/sms` | `POST` | Telnyx SMS | `message.received` onto the Omnichannel `SmsReceived` bus, `message.finalized` delivery receipts |
+| `/api/telnyx/webhook/sms` | `POST` | Telnyx SMS | `message.received` onto the Omnichannel `SmsReceived` bus (committed to the provider webhook inbox first when an SMS feature is on), `message.finalized` delivery receipts |
 | `/api/telnyx/media/stream` | WebSocket `GET` | Contact Center Voice Media adapter | Bidirectional G.711 mu-law (`PCMU`) media stream |
 
 Telnyx signs `{timestamp}|{raw_body}` with Ed25519 and sends `telnyx-signature-ed25519` and `telnyx-timestamp`. The call endpoint rejects unsigned, stale, or bodies over 1 MiB, and answers service-unavailable when a stored public key cannot be decrypted instead of accepting unsigned traffic. Webhook and media endpoints must be reachable at the tenant's public base URL over HTTPS and WSS.
@@ -150,7 +154,7 @@ Choose an engine, which voices to clean, and a strength. Suppression starts on t
 
 ## Contact Center Adapter (Provider Side)
 
-With Contact Center Voice enabled, `TelnyxContactCenterVoiceProvider` advertises `ServerSideAcd` and supports dialer dialing, agent connect (originate `sip:{agent}@sip.telnyx.com`, auto-answered, then `actions/bridge`), blind and consult transfers, supervisor listen, whisper, barge and takeover through Telnyx conferences, and recording. It also registers the inbound router, IVR and queue-treatment providers, the own-number source, and `TelnyxWebhookInboxHandler`. Routing, entry points, queues, supervision, and recording governance are described in `orchardcore-contact-center`.
+With Contact Center Voice enabled, `TelnyxContactCenterVoiceProvider` advertises `ServerSideAcd` and supports dialer dialing, agent connect (originate `sip:{agent}@sip.telnyx.com`, auto-answered, then `actions/bridge`), blind and consult transfers, supervisor listen, whisper, barge and takeover through Telnyx conferences, and recording. It also registers the inbound router, IVR and queue-treatment providers, the own-number source, and `TelnyxWebhookInboxHandler` (an `IProviderWebhookInboxHandler` from the Webhooks module). It answers `IAgentPhoneStatusProvider` from its credentials (a live one registered from a window whose connection is still open), so the agent bar can warn an agent with no phone open, and when an offer's pre-dialed leg is refused as unavailable (SIP 480 or 404) with no other credential to ring, `TelnyxOutboundBridgeOrchestrator` reports it so the offer is handed on at once. Routing, entry points, queues, supervision, and recording governance are described in `orchardcore-contact-center`.
 
 Recording runs `record_start`, `record_pause`, `record_resume`, and `record_stop` under Contact Center governance. On `call.recording.saved` a durable ingest job streams the recording into the encrypted `IRecordingMediaStore` and then deletes the Telnyx-hosted copy; failures retry with backoff and dead-letter. Erased interactions are never re-ingested. Storage location is covered by `orchardcore-telephony`.
 
@@ -158,7 +162,7 @@ Recording runs `record_start`, `record_pause`, `record_resume`, and `record_stop
 
 `CrestApps.OrchardCore.Telnyx.AiVoice` registers the Phone-channel `VoiceOmnichannelProcessor`. An automated Phone activity dials the contact (`POST /v2/calls`, caller id from the activity's channel endpoint when set), speaks a greeting, and runs a speak-and-listen loop with Telnyx text-to-speech and real-time transcription driven by an AI chat profile, then settles the activity with a summary and a disposition chosen from the dispositions the subject's actions are wired to. A call where the customer never spoke takes the *No answer* outcome, and a call handed to a live agent is concluded by that agent. Inbound calls an entry point routes to an AI voice agent are answered by the same conversation.
 
-The AI profile, speech deployments, voice, and reply delay are the automated voice settings on the subject flow (batch, then subject flow, then AI site settings). See `orchardcore-omnichannel-management` and `orchardcore-ai-chat`.
+The AI profile, update permissions and reply delay come from the activity load, or from an inbound subject. The speech-to-text and text-to-speech deployments and the voice are settings of an inbound automated Phone subject only, and Telnyx supplies the speech recognition itself on this path. The voice resolves from the activity or subject, then the AI persona's voice, then the Telnyx default voice (for a realtime conversation, the profile's **Voice** comes before the persona's). With **Contact Center Voice Media** the audio runs over the media-streaming WebSocket; without it each turn is spoken and transcribed with Telnyx commands. **Review AI conversation** and the profile's conversation settings need the **AI Chat** feature. See `orchardcore-omnichannel-voice`, `orchardcore-omnichannel-management` and `orchardcore-ai-chat`.
 
 ## Telnyx SMS
 
@@ -203,3 +207,4 @@ The source reads `OrchardCore_Sms_Telnyx` exactly; it does not use the Orchard C
 | Calls flagged as spam | Use a Telnyx-owned **Default outbound caller id** |
 | Settings change not picked up by custom code | Switch from `IOptions<TelnyxOptions>` to `IOptionsMonitor<TelnyxOptions>` |
 | SMS not received | Check the messaging profile webhook URL, `WebhookPublicKey`, and that the Telnyx SMS provider is enabled |
+| Dialer leg rung again with SIP 480 after a credential renewal | Keep **Credential lifetime (minutes)** at 30 or more; the soft phone defers renewal while it holds any leg |

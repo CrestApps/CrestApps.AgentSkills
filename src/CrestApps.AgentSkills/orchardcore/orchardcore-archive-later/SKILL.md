@@ -138,4 +138,4 @@ var due = await _session
 
 - Archiving here means "unpublish": the latest draft remains editable, only the published version is retracted.
 - Pair with `OrchardCore.PublishLater` when editors need both scheduled publish and scheduled archive on the same content type.
-- The `ArchiveLaterPartDisplayDriver` renders the scheduling editor; the part registers a `TemplateOptions` member-access strategy for `ArchiveLaterPartViewModel` so it can be used from Liquid.
+- The `ArchiveLaterPartDisplayDriver` renders the scheduling editor; since Fluid 3 (Orchard Core 4.0) Liquid reads the public members of `ArchiveLaterPartViewModel` without any member-access registration.

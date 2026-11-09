@@ -161,8 +161,10 @@ Resolution order for a slot is: the explicit deployment name, the slot's site de
 | File sources | `CrestApps.Core.AI.FileSources`, `CrestApps.Core.AI.Ftp`, `CrestApps.Core.AI.Sftp` | `crestapps-core-file-sources`, `crestapps-core-mcp-file-resources` |
 | Web crawlers | `CrestApps.Core.AI.WebCrawlers` | `crestapps-core-web-crawlers` |
 | MCP | `CrestApps.Core.AI.Mcp`, `CrestApps.Core.AI.Mcp.Knowledge` | `crestapps-core-mcp` |
+| WebMCP | `CrestApps.Core.AI.WebMcp`, npm `@crestapps/webmcp` | `crestapps-core-webmcp` |
 | A2A | `CrestApps.Core.AI.A2A` | `crestapps-core-a2a` |
 | Providers | `CrestApps.Core.AI.OpenAI`, `CrestApps.Core.AI.OpenAI.Azure`, `CrestApps.Core.AI.AzureAIInference`, `CrestApps.Core.AI.Ollama`, `CrestApps.Core.Azure` | provider skills below |
+| Speech voices | `CrestApps.Core.AI.ElevenLabs`, `CrestApps.Core.AI.Cartesia` | `crestapps-core-speech-voices` |
 | Orchestrators | `CrestApps.Core.AI.Claude`, `CrestApps.Core.AI.Copilot` | `crestapps-core-claude-orchestrator`, `crestapps-core-copilot-orchestrator` |
 | Search backends | `CrestApps.Core.Elasticsearch` + `CrestApps.Core.AI.Elasticsearch`, `CrestApps.Core.Azure.AISearch` + `CrestApps.Core.AI.Azure.AISearch`, `CrestApps.Core.PostgreSQL` + `CrestApps.Core.AI.PostgreSQL` | `crestapps-core-elasticsearch`, `crestapps-core-azure-ai-search`, `crestapps-core-postgresql` |
 | Storage | `CrestApps.Core.Data.EntityCore`, `CrestApps.Core.Data.YesSql` | `crestapps-core-entitycore-stores`, `crestapps-core-yessql-stores` |
@@ -175,7 +177,13 @@ Resolution order for a slot is: the explicit deployment name, the slot's site de
 | Chat sessions, Chat Interactions, hubs | `.AddChatInteractions(...)` | `CrestApps.Core.AI.Chat` |
 | Uploaded documents and document RAG | `.AddDocumentProcessing(dp => dp.AddOpenXml().AddPdf().AddWord())` | `CrestApps.Core.AI.Documents*` |
 | Ingestion only (no chat document stack) | `services.AddCoreAIDocumentIngestion(i => i.AddPlainTextReader().AddPdf())` | `CrestApps.Core.AI.Ingestion*` |
-| Long-term user memory | `.AddAIMemory(...)` | `CrestApps.Core.AI` |
+| Usage metering | `.AddUsageTracking()` | `CrestApps.Core.AI` |
+| User, session and past-conversation memory | `.AddAIMemory(...)` | `CrestApps.Core.AI` |
+| Speaking styles, guardrails | `.AddSpeakingStyles()`, `.AddGuardrails()` | `CrestApps.Core.AI` (see `crestapps-core-ai-profiles`) |
+| Conversation privacy | `.AddConversationPrivacy()` | `CrestApps.Core.AI.Chat` |
+| Profile versions | `.AddProfileVersions(v => v.AddYesSqlStores())` | store packages |
+| Browser tools (WebMCP) | `.AddWebMcp(webMcp => webMcp.AddPageTools<THub>())` and `app.MapWebMcpTools()` | `CrestApps.Core.AI.WebMcp` |
+| ElevenLabs or Cartesia voices | `.AddElevenLabs()`, `.AddCartesia()` | `CrestApps.Core.AI.ElevenLabs`, `CrestApps.Core.AI.Cartesia` |
 | Personas | `.AddPersonas(personas => personas.AddYesSqlStores())` | `CrestApps.Core.AI` |
 | User-configured tool instances | `.AddToolInstances(...)` | `CrestApps.Core.AI` |
 | MCP client or server | `.AddMcpClient(...)`, `.AddMcpServer(...)` | `CrestApps.Core.AI.Mcp` |
@@ -214,6 +222,7 @@ AI runtime
 Chat and voice
 
 - `crestapps-core-chat`, `crestapps-core-chat-interactions`, `crestapps-core-external-relays`, `crestapps-core-realtime-voice`.
+- `crestapps-core-speech-voices` - ElevenLabs and Cartesia speech, the voice library and speech markup.
 
 Knowledge and documents
 
@@ -223,9 +232,21 @@ Knowledge and documents
 Protocols and providers
 
 - `crestapps-core-mcp`, `crestapps-core-mcp-file-resources`, `crestapps-core-a2a`.
+- `crestapps-core-webmcp` - AI tools for browser agents through `document.modelContext`, and page tools in the chat.
 - `crestapps-core-openai`, `crestapps-core-azure-openai`, `crestapps-core-azure-ai-inference`, `crestapps-core-ollama`, `crestapps-core-claude-orchestrator`, `crestapps-core-copilot-orchestrator`.
 
 For Orchard Core modules built on CrestApps.Core, use the `orchardcore-ai` family of skills instead.
+
+## Upgrading Within 2.0 Previews
+
+- **Usage tracking is opted into by registration.** `GeneralAIOptions.EnableAIUsageTracking` is obsolete and ignored; call `.AddUsageTracking()` or `services.AddCoreAIUsageTracking()`. See `crestapps-core-ai-usage-metering`.
+- **Fluid 3.** Configure template filters and accessors on `Fluid.TemplateOptionsBuilder`; templates can read every public member of what they are passed. See `crestapps-core-templates`.
+- **`IAIChatSessionStore` gains `ListByLastActivityAsync` and `DeleteAsync`** for custom stores. See `crestapps-core-data-storage`.
+- **The chat hub opens a session only for its owner** unless `AuthorizeSessionAsync` is overridden. See `crestapps-core-chat-interactions`.
+- **Memory indexing is part of `AddAIMemory()`**; remove a host-registered indexing handler. See `crestapps-core-ai-memory`.
+- **`TopP` and the penalties default to `null`, and 30 tool-calling iterations are allowed per request.** See `crestapps-core-orchestration`.
+- **PDFsharp and MigraDoc are removed** from `CrestApps.Core.AI.Documents.Pdf`. See `crestapps-core-document-agents`.
+- Package floor: Fluid.Core 3.0.0-beta.9, YesSql 6.1.0, ModelContextProtocol 2.3.1.
 
 ## Upgrading from 1.x
 

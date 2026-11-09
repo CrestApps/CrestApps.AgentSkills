@@ -32,7 +32,7 @@ Each runs per tenant while its feature is on; manage them under **Configuration 
 | Expired stock holds | Inventory | Every 5 minutes |
 | Customer data retention | Customers | Daily at 03:30 |
 | Product Search Indexing | Products | Every minute |
-| Webhook deliveries | Commerce Webhooks | Every minute |
+| Webhook deliveries (`WebhookDeliveriesBackgroundTask`) | Webhooks (turned on by Commerce Webhooks) | Every minute |
 | Pay Later Renewals | Pay Later | Every 30 minutes |
 | Transaction Payment Reminders | Transactions | Every 6 hours |
 

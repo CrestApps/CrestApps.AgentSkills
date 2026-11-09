@@ -205,6 +205,15 @@ builder.Services.AddGeneratedFileWriter<SnapshotGeneratedFileWriter>(requestable
 - An A2A host that builds cards from `IAIProfileManager.GetAsync(AIProfileType.Agent)` publishes these agents too (see `crestapps-core-a2a`). Filter them out if remote clients should not reach them.
 - Over MCP they are reachable only when allow-listed in `McpServerOptions.Agents` or when `ExposeAllAgents` is `true` (see `crestapps-core-mcp`).
 
+## Upgrading Within 2.0 Previews
+
+- **PDFsharp and MigraDoc are gone.** `CrestApps.Core.AI.Documents.Pdf` now writes and edits PDFs with its own reader and writer built on PdfPig (Apache-2.0), so the package depends only on MIT, Apache-2.0 or BSD libraries. Nothing changes unless your own code used PDFsharp or MigraDoc types that came in through this package; reference the library yourself in that case and check its license (6.5.0 and later are AGPL-3.0).
+- Every PDF tool is kept, and composed documents lay out as before. Charts now step their value axis in whole numbers.
+- `protect_pdf` writes AES-256, AES-128 or RC4-128 itself, and changing a protected file still needs its owner password.
+- The model-backed PDF tools (`ask_pdf`, `summarize_pdf`, `classify_pdf`, `extract_pdf_entities`, `extract_pdf_data`, `cross_reference_pdfs`, `ocr_pdf`, `analyze_pdf_images`) no longer send a temperature of 0.2, so reasoning models that accept only their default work.
+- Table column widths that are all 1 or less (such as `0.25`) are read as fractions of the width.
+- Redaction, text editing and sanitizing no longer leave the removed text or image in the file (for example inside a form XObject).
+
 ## Upgrading from 1.x
 
 - The agents are new in 2.0. Hosts that already call `AddOpenXml()` or `AddPdf()` gain the Presentation or PDF Agent automatically; set the matching `Enabled = false` to keep 1.x behavior.

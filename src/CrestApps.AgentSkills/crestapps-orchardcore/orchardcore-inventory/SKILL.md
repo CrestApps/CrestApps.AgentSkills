@@ -1,6 +1,6 @@
 ---
 name: orchardcore-inventory
-description: Skill for the CrestApps Orchard Core Inventory module (CrestApps.OrchardCore.Inventory, Inventory.StockAlerts, Inventory.PurchaseOrders, Inventory.Api). Covers InventoryPart, stock items per product, variant and location, the append-only StockMovement ledger, IInventoryService (adjust, count, transfer, receive, reserve, commit, release, restock), StockChangeResult errors, stock locations and IFulfillmentLocationProvider, stock holds for orders through InventoryOrderEventHandler, IProductAvailabilityProvider and pre-orders, IStockLevelHandler and IStockLevelObserver, low-stock notifications and the Low Stock workflow event, the In stock listing filter, StockCsv import and export, the Stock recipe and deployment step, InventorySettings, back-in-stock alerts, purchase orders, stock reports, and the Inventory API. Use it when requests mention Orchard Core inventory, stock levels, stock holds, backorders, pre-orders, warehouses or locations, low stock alerts or purchase orders.
+description: Skill for the CrestApps Orchard Core Inventory module (CrestApps.OrchardCore.Inventory, Inventory.StockAlerts, Inventory.PurchaseOrders, Inventory.Api). Covers InventoryPart, stock items per product, variant and location, the append-only StockMovement ledger, IInventoryService (adjust, count, transfer, receive, consume, reserve, commit, release, restock), StockChangeResult errors, StockLocation records and IFulfillmentLocationProvider, stock holds for orders through InventoryOrderEventHandler, IProductAvailabilityProvider and pre-orders, IStockLevelHandler and IStockLevelObserver, low-stock notifications and workflow event, the In stock filter, StockCsv import and export, the Stock and StockLocations recipe and deployment steps, back-in-stock alerts, purchase orders, stock reports, the Report Builder data source, and the Inventory API. Use it when requests mention Orchard Core inventory, stock levels, stock holds, backorders, pre-orders, warehouses or locations, low stock alerts or purchase orders.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -61,12 +61,13 @@ All records live in the `Inventory` YesSql collection.
 | Record | Key members |
 | --- | --- |
 | `StockItem` | `ContentItemId`, `VariantId`, `Sku`, `Title`, `OnHand`, `Reserved`, `Available` (`OnHand - Reserved`), `LowStockThreshold`, `AllowBackorder`, `ReleaseDateUtc`, `Archived`, `Levels` per location (`StockLocationLevel`) |
-| `StockMovement` | `Kind` (`Received`, `Adjusted`, `Counted`, `Sold`, `Returned`, `Transferred`), signed `Quantity`, `OnHandAfter`, `Reason`, `OrderId`, `LocationId`, `PurchaseOrderId`, actor, `Utc` |
+| `StockMovement` | `Kind` (`Received`, `Adjusted`, `Counted`, `Sold`, `Returned`, `Transferred`, `Consumed`), signed `Quantity`, `OnHandAfter`, `Reason`, `OrderId`, `ReferenceType` and `ReferenceId` (what else it was for, such as a work order), `LocationId`, `PurchaseOrderId`, actor, `Utc` |
 | `StockReservation` | `OrderId`, `LocationId`, `Quantity`, `ReturnedQuantity`, `Status` (`Held`, `Committed`, `Released`), `ExpiresUtc` |
 | `InventoryPart` | `TrackInventory` (default true), `AllowBackorder`, `LowStockThreshold`, `ReleaseDateUtc` (**Ships from**, makes a backorder a pre-order) |
-| `InventorySettings` | `DefaultLowStockThreshold` (5), `HoldMinutes` (60), `Locations` (up to 50), `LowStockNotificationRoles` |
+| `StockLocation` | A place stock is kept (a `CatalogItem`; its `ItemId` is the location id): `Name`, `Address`, `Position` (the order orders take units from), and `OwnerKind`/`OwnerId` for a location another record owns, such as a van. `StockLocationStore.FindByOwnerAsync` finds an owner's location |
+| `InventorySettings` | `DefaultLowStockThreshold` (5), `HoldMinutes` (60), `LowStockNotificationRoles`; its old `Locations` list is moved into the `StockLocation` store by a migration, and the settings page edits the site's own locations (up to 50) there |
 
-The default location id is `InventoryConstants.DefaultLocationId` (`default`). `InventoryProductSynchronizer` keeps one stock item per variant (or one per product) in step as products are saved; removed variants and untracked products are archived, never deleted.
+The default location id is `InventoryConstants.DefaultLocationId` (`default`). `IInventoryLocationService.GetLocationsAsync()` lists the site's own locations, then those owned by other records; its `IFulfillmentLocationProvider` implementation offers only the site's own, so a van never fulfills an order. `InventoryProductSynchronizer` keeps one stock item per variant (or one per product) in step as products are saved; removed variants and untracked products are archived, never deleted.
 
 ## `IInventoryService`
 
@@ -80,6 +81,7 @@ The default location id is `InventoryConstants.DefaultLocationId` (`default`). `
 | `CommitAsync(orderId, lines)` | Sells what the order holds, once |
 | `ReleaseAsync(orderId, reason)`, `ReleaseExpiredAsync(take)` | Lets holds go |
 | `RestockAsync(orderId, reason, actor)` and `RestockAsync(orderId, lines, locationId, reason, actor)` | Returns sold units, never more than bought |
+| `ConsumeAsync(stockItemId, locationId, quantity, referenceType, referenceId, reason, actor)` | Uses units up at a location (such as parts fitted on a work order) with a `Consumed` movement; refuses more than available (`NotEnoughAtLocation`) |
 | `RebuildAsync(stockItemId)` | Sets `OnHand` from the movements |
 
 Results are `StockChangeResult`; errors are `NotFound`, `InvalidQuantity`, `Busy`, `NotEnoughAtLocation`. An order's units come from one location that has them all (the requested one first, then locations in listed order), otherwise from each in turn.
@@ -134,12 +136,28 @@ Built in: low-stock notifications to `LowStockNotificationRoles` (with Notificat
 }
 ```
 
-Rows match by `ContentItemId` and `VariantId`, else by SKU; products named by id that aren't counted yet are synced first. The **Stock** deployment step exports every non-archived item. **Commerce > Inventory** exports and imports `StockCsv` (`Sku`, `Title`, `ContentItemId`, `VariantId`, `OnHand`, `Reserved`, `Available`, `LowStockThreshold`), up to 2 MB and 10,000 rows, all or nothing. With Content Transfer, `InventoryPart_*` columns import policy and counts (`Stock`, `VariantStock` such as `TEE-S=4; M / Red=2`).
+The `StockLocations` step imports the site's own locations (`Locations`, each with `Name`, optional `Address`, `Position`); a location keeps the `ItemId` it is given (such as `default`), and one without an id is matched by name. Run it before `Stock` and before point of sale `Registers`. The **Stock locations** deployment step writes them in order and leaves out locations another module owns.
+
+```json
+{
+  "steps": [
+    {
+      "name": "StockLocations",
+      "Locations": [
+        { "ItemId": "default", "Name": "Main warehouse", "Address": "1 Dock Rd", "Position": 1 },
+        { "Name": "Downtown store", "Position": 2 }
+      ]
+    }
+  ]
+}
+```
+
+`Stock` rows match by `ContentItemId` and `VariantId`, else by SKU; products named by id that aren't counted yet are synced first. The **Stock** deployment step exports every non-archived item. **Commerce > Inventory** exports and imports `StockCsv` (`Sku`, `Title`, `ContentItemId`, `VariantId`, `OnHand`, `Reserved`, `Available`, `LowStockThreshold`), up to 2 MB and 10,000 rows, all or nothing. With Content Transfer, `InventoryPart_*` columns import policy and counts (`Stock`, `VariantStock` such as `TEE-S=4; M / Red=2`).
 
 ## Back-in-stock alerts and purchase orders
 
-- **StockAlerts:** `StockAlertForm` shows on a sold-out product's page; `POST stock/alerts` records a `StockAlert` (limited per email and per IP); `BackInStockAlertHandler` emails waiting requests when `BackInStock`. Alerts take part in personal data export and erasure.
-- **PurchaseOrders:** **Commerce > Purchase orders** (`purchase-orders`) manages `PurchaseOrder` records (`Number`, `Supplier`, `LocationId`, `Currency`, `Lines` with `Ordered`, `Received`, `UnitCost`, `Status`: `Draft`, `Ordered`, `PartiallyReceived`, `Received`, `Canceled`). `PurchaseOrderReceiver.ReceiveAsync` receives through `IInventoryService.ReceiveAsync`. Suppliers are not emailed.
+- **StockAlerts:** `StockAlertForm` shows on a sold-out product's page; `POST stock/alerts` records a `StockAlert` (limited per email and per IP); `BackInStockAlertHandler` emails waiting requests when `BackInStock`, through the store's `stock-alert` email template (`StockItem` record). Alerts take part in personal data export and erasure.
+- **PurchaseOrders:** **Commerce > Purchase orders** (`purchase-orders`) manages `PurchaseOrder` records (`Number` such as `PO-261019-K3QZ7`, from the `Inventory.PurchaseOrder` series of the shared `INumberSequence`, `Supplier`, `LocationId`, `Currency`, `Lines` with `Ordered`, `Received`, `UnitCost`, `Status`: `Draft`, `Ordered`, `PartiallyReceived`, `Received`, `Canceled`). `PurchaseOrderReceiver.ReceiveAsync` receives through `IInventoryService.ReceiveAsync`. Suppliers are not emailed.
 
 ## Inventory API
 
@@ -149,7 +167,8 @@ Rows match by `ContentItemId` and `VariantId`, else by SKU; products named by id
 
 - **Commerce > Inventory** (`InventoryAdminController`, an `AdminList`) lists items fewest available first, with *Low stock*, *Out of stock* and *Backordered* filters, and each item's movement history and forms.
 - **Settings > Commerce > Inventory** (group `inventory`) is opened by `ManageInventory` without **Manage settings**.
-- With Reports: **Stock on hand** and **Stock movements** (`ViewInventory`).
+- With Reports: **Stock on hand** and **Stock movements** (`ViewInventory`), and the **Low Stock** and **Stock Movements** dashboard widgets with Admin Dashboard (see `orchardcore-reports`).
+- With **Data Pipelines Core** on (Report Builder), the **Inventory** data source (`Inventory`, permission `ViewInventory`): `StockItems`, `StockLevels`, `StockMovements`, `StockReservations` and `Locations`, plus `PurchaseOrders` and `PurchaseOrderLines` (Purchase Orders) and `StockAlerts` (Back-in-Stock Alerts, never exposing who asked). The `InventoryReportBuilderReports` recipe adds editable copies of the stock reports. See `orchardcore-report-builder`.
 
 | Permission | Allows | Default roles |
 | --- | --- | --- |

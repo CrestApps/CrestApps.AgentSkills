@@ -426,7 +426,7 @@ Authorize a query against a specific profile with `authorizationService.Authoriz
 - The provider-specific steps `lucene-index`, `lucene-index-reset`, `lucene-index-rebuild`, `ElasticIndexSettings` and `azureai-index-create` still run but are obsolete; use `CreateOrUpdateIndexProfile`, `ResetIndex` and `RebuildIndex`.
 - `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex`.
 - `ElasticsearchIndexPermissionHelper.GetElasticIndexPermission(string)` was removed; use `IndexingPermissions.CreateDynamicPermission(IndexProfile)`.
-- `DeploymentStep.Category` and `Title` are `LocalizationSource` values; custom indexing deployment steps assign them in the parameterless constructor, for example `Category = LocalizationSource.Create<MyIndexDeploymentStep>("Indexing")`.
+- `DeploymentStep.Category` and `Title` are read-only virtual `LocalizationSource` properties; custom indexing deployment steps override them, for example `[JsonIgnore] public override LocalizationSource Category => CommonLocalizationSources.Search;` (see `orchardcore-deployments`).
 
 ### Indexing UI
 

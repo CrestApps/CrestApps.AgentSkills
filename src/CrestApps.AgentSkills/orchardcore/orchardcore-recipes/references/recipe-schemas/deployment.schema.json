@@ -24,37 +24,76 @@
                   "type": "string",
                   "examples": [
                     "AIPersonaDeploymentStep",
+                    "AccessGrantsDeploymentStep",
+                    "AccountsDeploymentStep",
                     "AllAdminTemplatesDeploymentStep",
                     "AllContentDeploymentStep",
                     "AllFeaturesDeploymentStep",
+                    "AllRateLimitPoliciesDeploymentStep",
                     "AllTemplatesDeploymentStep",
+                    "AssetsDeploymentStep",
                     "AzureAISearchIndexDeploymentStep",
                     "AzureAISearchIndexRebuildDeploymentStep",
                     "AzureAISearchIndexResetDeploymentStep",
+                    "BookingDatesDeploymentStep",
+                    "CalendarsDeploymentStep",
                     "ContentDefinitionDeploymentStep",
                     "ContentDeploymentStep",
                     "ContentItemDeploymentStep",
+                    "CouponsDeploymentStep",
                     "CustomFileDeploymentStep",
                     "CustomSettingsDeploymentStep",
                     "CustomUserSettingsDeploymentStep",
+                    "CustomersDeploymentStep",
+                    "DataPipelinesDeploymentStep",
                     "DeleteContentDefinitionDeploymentStep",
                     "DeploymentPlanDeploymentStep",
                     "ElasticsearchIndexDeploymentStep",
                     "ElasticsearchIndexRebuildDeploymentStep",
                     "ElasticsearchIndexResetDeploymentStep",
+                    "ExemptionCertificateDeploymentStep",
+                    "FileSourcesDeploymentStep",
+                    "GeoDeploymentStep",
                     "IndexProfileDeploymentStep",
                     "JsonRecipeDeploymentStep",
+                    "LocalDncListsDeploymentStep",
+                    "LoyaltyAccountsDeploymentStep",
                     "LuceneIndexDeploymentStep",
                     "LuceneIndexRebuildDeploymentStep",
                     "LuceneIndexResetDeploymentStep",
+                    "MarketingDeploymentStep",
+                    "MarketsDeploymentStep",
                     "MediaDeploymentStep",
+                    "MembershipsDeploymentStep",
+                    "MerchantTaxRegistrationDeploymentStep",
+                    "MessagingBroadcastsDeploymentStep",
+                    "PriceListsDeploymentStep",
                     "QueryBasedContentDeploymentStep",
                     "RebuildIndexDeploymentStep",
                     "RecipeFileDeploymentStep",
+                    "ReferralProfilesDeploymentStep",
+                    "RegistersDeploymentStep",
                     "ReplaceContentDefinitionDeploymentStep",
+                    "ReportDesignsDeploymentStep",
                     "ResetIndexDeploymentStep",
+                    "SchedulingDeploymentStep",
+                    "SecretsDeploymentStep",
+                    "ShippingZonesDeploymentStep",
                     "SiteSettingsDeploymentStep",
-                    "TranslationsDeploymentStep"
+                    "SkillsDeploymentStep",
+                    "StockLocationsDeploymentStep",
+                    "StoreCreditAccountsDeploymentStep",
+                    "TeamsDeploymentStep",
+                    "TimeTrackerDeploymentStep",
+                    "TranslationsDeploymentStep",
+                    "VendorsDeploymentStep",
+                    "WebCrawlersDeploymentStep",
+                    "WebhookSubscriptionsDeploymentStep",
+                    "WorkOrdersDeploymentStep",
+                    "WorkforceAdherenceDeploymentStep",
+                    "WorkforceDeploymentStep",
+                    "WorkforceForecastingDeploymentStep",
+                    "WorkforceSettingsDeploymentStep"
                   ],
                   "description": "The deployment step type name, which is the step\u0027s CLR type name, for example ContentDeploymentStep. The well known payload of \u0027Step\u0027 depends on this value."
                 },
@@ -98,6 +137,55 @@
                               "type": "string"
                             },
                             "description": "The item ids of the saved AI personas to export when IncludeAll is false."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AccessGrantsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Child tenant access step. Exports who in the parent tenant may sign in to child tenants, and with which roles there. Payload for the \u0027AccessGrantsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AccountsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Accounts step. Exports every account with its members, locations and other parts, and optionally the records the accounts hold. Payload for the \u0027AccountsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeRecords": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether the records the accounts hold, such as their contacts and opportunities, are exported too."
                           }
                         },
                         "additionalProperties": true
@@ -190,6 +278,27 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "AllRateLimitPoliciesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "All Rate Limit Policies step. Exports every rate-limit policy as a \u0027CreateOrUpdateRateLimitPolicies\u0027 recipe step. Payload for the \u0027AllRateLimitPoliciesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "AllTemplatesDeploymentStep"
                       }
                     },
@@ -206,6 +315,33 @@
                           "ExportAsFiles": {
                             "type": "boolean",
                             "description": "When true, exports each template as a separate file rather than embedding them in the recipe."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AssetsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Asset types and assets step. Exports every asset type, and every asset with its owner, place and parent. Payload for the \u0027AssetsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAssets": {
+                            "type": "boolean",
+                            "description": "When true, exports the assets too."
                           }
                         },
                         "additionalProperties": true
@@ -334,6 +470,58 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "BookingDatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Booking dates step. Exports the booking products\u0027 upcoming open dates with their capacity and price. Payload for the \u0027BookingDatesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CalendarsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Calendars step. Exports every calendar, optionally with its events and everyone\u0027s categories. Payload for the \u0027CalendarsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeEvents": {
+                            "type": "boolean",
+                            "description": "When true, exports the events of each calendar too, up to 10,000 per calendar."
+                          },
+                          "IncludeCategories": {
+                            "type": "boolean",
+                            "description": "When true (the default), exports everyone\u0027s categories too, so the events keep their colors."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "ContentDefinitionDeploymentStep"
                       }
                     },
@@ -368,23 +556,45 @@
                             "items": {
                               "type": "string",
                               "examples": [
+                                "AIProfilePart",
+                                "AccountLocationsPart",
+                                "AccountMembersPart",
+                                "AccountPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
                                 "BagPart",
+                                "BookingPart",
+                                "CalendarWidgetPart",
                                 "CommonPart",
                                 "ContainedPart",
                                 "FlowPart",
                                 "HtmlBodyPart",
                                 "HtmlMenuItemPart",
                                 "LayerMetadata",
+                                "LeadPart",
+                                "LiquidPart",
                                 "ListPart",
                                 "MarkdownBodyPart",
+                                "OmnichannelContactPart",
+                                "OpportunityPart",
                                 "PreviewPart",
+                                "ProductPart",
                                 "PublishLaterPart",
+                                "ReportDesignWidgetPart",
+                                "ReportWidgetPart",
+                                "RolePickerPart",
+                                "SchemaOrgPart",
                                 "SeoMetaPart",
+                                "SubscriptionPart",
+                                "SubscriptionSummaryPart",
+                                "TaxationPart",
+                                "TenantOnboardingPart",
                                 "TitlePart",
-                                "WidgetsListPart"
+                                "UserFullNamePart",
+                                "WebMcpPart",
+                                "WidgetsListPart",
+                                "WizardPart"
                               ]
                             },
                             "description": "The technical names of the content part definitions to export."
@@ -459,6 +669,27 @@
                         "required": [
                           "ContentItemId"
                         ],
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CouponsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Coupons step. Exports every coupon and automatic discount, without how often it was used. Payload for the \u0027CouponsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -570,6 +801,61 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "CustomersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Customers step. Exports the guest and business customers with their addresses. Customers with a user account, and erased or merged customers, are left out. Payload for the \u0027CustomersDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "DataPipelinesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Data Pipelines step. Exports the data pipelines with their published definition, or their draft when they were never published. The secrets of the steps are not exported. Payload for the \u0027DataPipelinesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all data pipelines, including the ones created after the step was added to the plan, and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "PipelineIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The identifiers of the data pipelines to export when \u0027IncludeAll\u0027 is false."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "DeleteContentDefinitionDeploymentStep"
                       }
                     },
@@ -600,23 +886,45 @@
                             "items": {
                               "type": "string",
                               "examples": [
+                                "AIProfilePart",
+                                "AccountLocationsPart",
+                                "AccountMembersPart",
+                                "AccountPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
                                 "BagPart",
+                                "BookingPart",
+                                "CalendarWidgetPart",
                                 "CommonPart",
                                 "ContainedPart",
                                 "FlowPart",
                                 "HtmlBodyPart",
                                 "HtmlMenuItemPart",
                                 "LayerMetadata",
+                                "LeadPart",
+                                "LiquidPart",
                                 "ListPart",
                                 "MarkdownBodyPart",
+                                "OmnichannelContactPart",
+                                "OpportunityPart",
                                 "PreviewPart",
+                                "ProductPart",
                                 "PublishLaterPart",
+                                "ReportDesignWidgetPart",
+                                "ReportWidgetPart",
+                                "RolePickerPart",
+                                "SchemaOrgPart",
                                 "SeoMetaPart",
+                                "SubscriptionPart",
+                                "SubscriptionSummaryPart",
+                                "TaxationPart",
+                                "TenantOnboardingPart",
                                 "TitlePart",
-                                "WidgetsListPart"
+                                "UserFullNamePart",
+                                "WebMcpPart",
+                                "WidgetsListPart",
+                                "WizardPart"
                               ]
                             },
                             "description": "The technical names of the content part definitions to delete."
@@ -782,6 +1090,69 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "ExemptionCertificateDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Exemption certificates step. Exports customers\u0027 tax exemption certificates with their types, jurisdictions and dates. Payload for the \u0027ExemptionCertificateDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "FileSourcesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "File sources step. Exports every file source with its connector settings. Passwords, keys and other secrets are never exported. Payload for the \u0027FileSourcesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "GeoDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Service territories step. Exports every service territory, with its shape or postal codes, parent and time zone. Payload for the \u0027GeoDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "IndexProfileDeploymentStep"
                       }
                     },
@@ -839,6 +1210,48 @@
                             "description": "The raw JSON, containing one or more recipe steps, added to the deployment package."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LocalDncListsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Local DNC lists step. Exports every imported local do-not-call list with its phone numbers. Phone numbers are personal data. Payload for the \u0027LocalDncListsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LoyaltyAccountsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Loyalty points step. Exports every customer\u0027s loyalty points, with their activity. Payload for the \u0027LoyaltyAccountsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -965,6 +1378,48 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "MarketingDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Marketing segments and campaigns step. Exports every marketing segment and campaign. Campaigns are exported without their status and counts, and import as drafts. Payload for the \u0027MarketingDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "MarketsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Markets step. Exports every market with its countries, currency, exchange rate and rounding. Payload for the \u0027MarketsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "MediaDeploymentStep"
                       }
                     },
@@ -997,6 +1452,90 @@
                             "description": "The paths of the media directories to export, including their contents."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "MembershipsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Memberships step. Exports every membership with its member by user name, its product, roles and dates. Payload for the \u0027MembershipsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "MerchantTaxRegistrationDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Tax registrations step. Exports the store\u0027s own tax registrations with their jurisdictions, numbers and thresholds. Payload for the \u0027MerchantTaxRegistrationDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "MessagingBroadcastsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Messaging broadcasts step. Exports every broadcast with its message and recipients, without its status or counts. Broadcasts import as drafts, so nothing is sent. Payload for the \u0027MessagingBroadcastsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PriceListsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Price Lists step. Exports every price list with its prices. Payload for the \u0027PriceListsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -1139,6 +1678,48 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "ReferralProfilesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Referral codes step. Exports every customer\u0027s referral code, with the referrals it earned. Payload for the \u0027ReferralProfilesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "RegistersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Registers step. Exports every point-of-sale register with its store location, address, currency and roles. Payload for the \u0027RegistersDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "ReplaceContentDefinitionDeploymentStep"
                       }
                     },
@@ -1173,26 +1754,89 @@
                             "items": {
                               "type": "string",
                               "examples": [
+                                "AIProfilePart",
+                                "AccountLocationsPart",
+                                "AccountMembersPart",
+                                "AccountPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
                                 "BagPart",
+                                "BookingPart",
+                                "CalendarWidgetPart",
                                 "CommonPart",
                                 "ContainedPart",
                                 "FlowPart",
                                 "HtmlBodyPart",
                                 "HtmlMenuItemPart",
                                 "LayerMetadata",
+                                "LeadPart",
+                                "LiquidPart",
                                 "ListPart",
                                 "MarkdownBodyPart",
+                                "OmnichannelContactPart",
+                                "OpportunityPart",
                                 "PreviewPart",
+                                "ProductPart",
                                 "PublishLaterPart",
+                                "ReportDesignWidgetPart",
+                                "ReportWidgetPart",
+                                "RolePickerPart",
+                                "SchemaOrgPart",
                                 "SeoMetaPart",
+                                "SubscriptionPart",
+                                "SubscriptionSummaryPart",
+                                "TaxationPart",
+                                "TenantOnboardingPart",
                                 "TitlePart",
-                                "WidgetsListPart"
+                                "UserFullNamePart",
+                                "WebMcpPart",
+                                "WidgetsListPart",
+                                "WizardPart"
                               ]
                             },
                             "description": "The technical names of the content part definitions to export."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ReportDesignsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Designed Reports and Views step. Exports designed reports, the views they read and their report groups. Share links are never exported. Payload for the \u0027ReportDesignsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAll": {
+                            "type": "boolean",
+                            "description": "When true, exports all reports, views and report groups and the accompanying selection array is ignored. When false, only the named entries are exported."
+                          },
+                          "ReportIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The itemIds of the reports to export when IncludeAll is false. Their groups and every view they read are exported too."
+                          },
+                          "ViewIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The itemIds of extra views to export when IncludeAll is false. The views they read are exported too."
                           }
                         },
                         "additionalProperties": true
@@ -1243,6 +1887,85 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "SchedulingDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Scheduling step. Exports appointment types and scheduling resources, and optionally the appointments and the waitlist. Payload for the \u0027SchedulingDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAppointments": {
+                            "type": "boolean",
+                            "description": "When true, exports every appointment too, with its customer\u0027s details but without its manage link."
+                          },
+                          "IncludeWaitlist": {
+                            "type": "boolean",
+                            "description": "When true, exports the waitlist too."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "SecretsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Secrets step. Exports the secrets. Without an encryption key, only their metadata is exported, and the importing site reads the values from its configuration. Payload for the \u0027SecretsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "EncryptionKeyName": {
+                            "type": "string",
+                            "description": "The name of the RsaKeySecret or X509Secret that holds the public key of the destination. When set, the secret values are exported encrypted with it; otherwise only the metadata is exported."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ShippingZonesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Shipping zones step. Exports every shipping zone with its countries, regions and shipping methods. Payload for the \u0027ShippingZonesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "SiteSettingsDeploymentStep"
                       }
                     },
@@ -1262,6 +1985,133 @@
                               "type": "string"
                             },
                             "description": "The names of the site settings sections to export, for example BaseUrl or TimeZoneId."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "SkillsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Skills and certifications step. Exports every skill and certification, and optionally the skills and certificates people hold. Payload for the \u0027SkillsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAssignments": {
+                            "type": "boolean",
+                            "description": "When true, exports the skills people hold too, with the skill name so they import on another site."
+                          },
+                          "IncludeCertificationRecords": {
+                            "type": "boolean",
+                            "description": "When true, exports the certificates people hold too."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "StockLocationsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Stock locations step. Exports the store\u0027s own stock locations, with their ids, so stock and registers keep pointing at them. Payload for the \u0027StockLocationsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "StoreCreditAccountsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Store credit step. Exports every customer\u0027s store credit, with its balance and activity. Payload for the \u0027StoreCreditAccountsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TeamsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Teams step. Exports every team, with its parent by name. Payload for the \u0027TeamsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TimeTrackerDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Time stages, categories and entries step. Exports the time categories and stages, and optionally the entries of the last days. Payload for the \u0027TimeTrackerDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeEntries": {
+                            "type": "boolean",
+                            "description": "When true, exports the time entries too."
+                          },
+                          "Days": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 3660,
+                            "description": "How many days back entries are exported."
                           }
                         },
                         "additionalProperties": true
@@ -1311,6 +2161,186 @@
                             "description": "The translation categories to export."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "VendorsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Vendors step. Exports every marketplace vendor with its users by name and its commission. Payout accounts are not exported. Payload for the \u0027VendorsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WebCrawlersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Web crawlers step. Exports every web crawler with its crawl settings. Secrets are never exported. Payload for the \u0027WebCrawlersDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WebhookSubscriptionsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Webhook subscriptions step. Exports every webhook subscription without its signing secret. Payload for the \u0027WebhookSubscriptionsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WorkOrdersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Work order settings step. Exports work order types, checklists, service levels and sub-statuses, and service agreements when asked. Payload for the \u0027WorkOrdersDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeAgreements": {
+                            "type": "boolean",
+                            "description": "When true, exports the agreements too."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WorkforceAdherenceDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Adherence rule sets step. Exports every adherence rule set, with the teams it applies to and its rules. Payload for the \u0027WorkforceAdherenceDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WorkforceDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Workforce teams and workers step. Exports the activity codes and the team hierarchy, and optionally the workers. Payload for the \u0027WorkforceDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeWorkers": {
+                            "type": "boolean",
+                            "description": "When true, exports every worker too, with their teams by name. Sensitive details such as the date of birth are left out."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WorkforceForecastingDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Forecasting setup step. Exports every planning group, forecast event and capacity plan. Payload for the \u0027WorkforceForecastingDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "WorkforceSettingsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Workforce settings step. Exports shift templates, rotations, coverage requirements, time-off settings, time clock settings (with kiosks, never their tokens, and the payroll CSV columns) and labor rule sets, for the features that are on. Payload for the \u0027WorkforceSettingsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }

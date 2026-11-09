@@ -63,6 +63,16 @@ The admin UI (**Twilio** tab) encrypts `AuthToken` with Data Protection, so
 enter the token there instead of in a recipe. Then pick the default on the
 **Providers** tab.
 
+In 4.0, `TwilioSettings.AuthTokenSecretName` can name a `TextSecret` of the
+Secrets module instead; it takes precedence over `AuthToken`. With the
+`OrchardCore.Secrets` feature enabled, the auth token editor offers **Use a
+secret** (suggested name `Twilio.AuthToken`), and a saved token can be moved
+without retyping it from **Tools → Security → Migrate Secrets**. A recipe can
+create the secret with the `Secrets` step (value from the
+`OrchardCore__Secrets__Twilio.AuthToken` environment variable) and set
+`"AuthTokenSecretName": "Twilio.AuthToken"` in `TwilioSettings`. See
+[orchardcore-secrets](../orchardcore-secrets/SKILL.md).
+
 ## Sending SMS Programmatically
 
 ```csharp
@@ -298,3 +308,7 @@ reports the status of the Twilio SMS service (see `orchardcore-health-checks`).
 - `OrchardCore_Sms_AzureCommunicationServices` → `OrchardCore:Sms:Azure`.
 - The SMS Task gained the optional **From Phone Number** (`FromNumber`) field
   and now honors workflow cancellation.
+- Saved Twilio auth tokens and Azure connection strings keep working. Code
+  reading `TwilioSettings.AuthToken` or `AzureSmsSettings.ConnectionString`
+  directly must also honor `AuthTokenSecretName` / `ConnectionStringSecretName`,
+  or read `IOptionsMonitor<TwilioOptions>` / `IOptionsMonitor<AzureSmsOptions>`.

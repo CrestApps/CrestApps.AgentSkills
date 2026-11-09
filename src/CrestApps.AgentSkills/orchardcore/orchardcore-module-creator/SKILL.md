@@ -39,7 +39,7 @@ dotnet add src/Contoso.Web/Contoso.Web.csproj reference src/Modules/Contoso.Your
 ```
 
 - `--AddPart true --PartName Rating` also generates a `RatingPart` with its driver, handler, settings, migration, and views (`Part` is appended to the name); `-ov` picks the Orchard Core package version.
-- Use `dotnet new ocmodulemvc` for a plain MVC module without content management.
+- Use `dotnet new ocmodulemvc` for a plain MVC module without content management. The matching `dotnet new ocmvc` web template's `_Layout.cshtml` loads Bootstrap 5.3.8 from a CDN pinned with Subresource Integrity (instead of jQuery 2.1.4 and Bootstrap 3.3.5 in 3.x); update the layout of sites created from the older template the same way.
 - The module must be referenced **by the web project**; unreferenced modules are not discovered.
 
 ### Step 3: Create Required Files

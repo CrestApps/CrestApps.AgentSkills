@@ -109,10 +109,16 @@ address (which selects the SMS omnichannel address, so the number must exist as
 one), `message` to content, `messageId` to provider message id (event id when
 missing), and `receivedTimestamp` to the created time.
 
-- Inbound texts are answered `200 OK` immediately and processed in the
-  background, because an automated reply can outlast Event Grid's 30-second
-  wait. A redelivered `messageId` is ignored. Storage concurrency conflicts are
-  retried up to three attempts.
+- With an SMS feature on (SMS Omnichannel Automation or the SMS Messaging
+  Channel), an inbound text is committed to the durable provider webhook inbox,
+  keyed on `messageId`, before Event Grid is answered, and processed as soon as
+  the response is sent, because an automated reply can outlast Event Grid's
+  30-second wait. The **Provider Webhook Inbox Dispatch** background task
+  finishes a text a restart interrupted, a redelivered `messageId` is recognized
+  on every node, and a text that cannot be stored is answered
+  `503 Service Unavailable` so Event Grid redelivers the batch.
+- With no SMS feature on, nothing composes a reply, so the text is stored and
+  passed to the event handlers inline.
 - A text without `from` or `to` is stored like an unmapped event with a warning.
 - Payloads over 1 MB get `413 Payload Too Large`; malformed JSON gets `400`.
 
@@ -149,8 +155,9 @@ and keep it idempotent because Event Grid delivers at least once.
 
 The endpoint logs one line per event (type and id), then what it did with it:
 mapped to `SmsReceived` (with provider message id and length), delivery report
-stored, redelivery ignored, concurrency retry (warning, error only when every
-attempt fails), mapping failure (warning), or no mapping (debug). Logs never
+stored, redelivery of an already stored text ignored (information), a text that
+could not be stored in the inbox (error; Event Grid is asked to redeliver),
+mapping failure (warning), or no mapping (debug). Logs never
 include message text or phone numbers. Watch for `401`, `400` and `413` on the
 route.
 

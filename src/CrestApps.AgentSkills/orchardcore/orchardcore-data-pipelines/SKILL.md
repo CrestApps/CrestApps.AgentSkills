@@ -267,7 +267,7 @@ Set the **host key fingerprint** of **Upload to an SFTP server** to refuse serve
 
 ## Saving files to the media library
 
-**Save to the media library** only saves extensions the media library accepts. By default it accepts `.xlsx` but not `.csv`, `.json`, `.jsonl` or `.zip`; a run that saves one fails, and the editor warns. Add them to `OrchardCore:Media:AllowedFileExtensions`. The list **replaces** the defaults, so include every extension to keep:
+**Save to the media library** only saves extensions the media library accepts. By default it accepts `.xlsx` and `.csv` (since Orchard Core 4.0), but not `.json`, `.jsonl` or `.zip`; a run that saves one fails, and the editor warns. Add them to `OrchardCore:Media:AllowedFileExtensions`. The list **replaces** the defaults, so include every extension to keep:
 
 ```json
 {
@@ -275,9 +275,9 @@ Set the **host key fingerprint** of **Upload to an SFTP server** to refuse serve
     "Media": {
       "AllowedFileExtensions": [
         ".jpg", ".jpeg", ".png", ".gif", ".ico", ".webp",
-        ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".pps", ".ppsx", ".odt", ".xls", ".xlsx", ".psd",
+        ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".pps", ".ppsx", ".odt", ".xls", ".xlsx", ".csv", ".psd",
         ".mp3", ".m4a", ".ogg", ".wav", ".mp4", ".m4v", ".mov", ".wmv", ".avi", ".mpg", ".ogv", ".3gp", ".webm",
-        ".csv", ".json", ".jsonl", ".zip"
+        ".json", ".jsonl", ".zip"
       ]
     }
   }

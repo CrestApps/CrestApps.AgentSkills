@@ -120,6 +120,12 @@ When the checks run:
 | Running an **AI profile** session | The profile is the authorization boundary: it runs exactly as configured (it may be anonymous), with no per-user tool check at send time. Control who may use it with the profile query permissions. |
 | System and hidden (dependency) tools | Never checked. |
 
+A hidden tool reaches a session only when the session names it: through a profile or agent selection, a
+dependency, or the completion context's `AICompletionContext.ToolNames` (plus `OrchestrationContext.MustIncludeTools`
+to keep the selection from dropping it). The call and hand-off tools of automated conversations (**End the
+call**, **Press keys**, **Collect digits securely**, **Transfer to live agent**) are registered hidden for this
+reason: as system tools they reached every chat on the site. Register channel-only tools the same way.
+
 ## Where selections are stored
 
 | Surface | Editor | Storage |
@@ -153,12 +159,15 @@ The caller comes from the framework's `IUserAccessor`, not `IHttpContextAccessor
 
 | Feature | Tools |
 |---|---|
-| `CrestApps.OrchardCore.AI.Agent` | Content, content definition, feature, tenant, recipe, user, role, workflow, communication, AI profile, and analytics tools. See `orchardcore-ai-agent`. |
+| `CrestApps.OrchardCore.AI.Agent` | Content, content definition, feature, tenant, recipe, user, role, workflow, communication, AI profile, AI conversation (`listAIConversations`, `viewAIConversation`, `getAIContactMemory`), AI quality (`summarizeAIQuality`, `listAITestCases`, `runAITests`, `listAIAlerts`, with AI Quality) and analytics tools. See `orchardcore-ai-agent`. |
+| `CrestApps.OrchardCore.NLWeb` (with AI) | `ask`: asks the site a question and returns matching content items as schema.org objects. Runs as the caller with `QueryNLWeb` and returns only published items the caller may view |
+| `CrestApps.OrchardCore.Seo` (with AI) | `getSchemaOrgOptions`, `configureContentTypeSchemaOrg`, `configureSiteStructuredData` for schema.org structured data |
+| `CrestApps.OrchardCore.AI.WebMcp` | Tools a browser page registers on `document.modelContext`, run through the AI chat for profiles with **Allow page tools**. See [orchardcore-ai-webmcp](../orchardcore-ai-webmcp/SKILL.md) |
 | `CrestApps.OrchardCore.AI.Memory` | Search, list, save, and remove user memories (authenticated users with memory enabled). See `orchardcore-ai-memory`. |
 | `CrestApps.OrchardCore.AI.A2A` | `listAvailableAgents`, `findAgentForTask`, `findToolsForTask`. See `orchardcore-ai-a2a-client`. |
 | AI Documents features | Document, tabular, PowerPoint, Word, and PDF tools and system agents. See `orchardcore-ai-documents`. |
 
-Functions an administrator creates from a tool instance source are tenant data, not code registrations; see `orchardcore-ai-tool-instances`.
+Functions an administrator creates from a tool instance source are tenant data, not code registrations; see `orchardcore-ai-tool-instances`. The **Workflow** source turns a workflow that starts with **AI Tool Called** into a tool (see `orchardcore-ai-conversations`).
 
 ## Troubleshooting
 
@@ -168,4 +177,5 @@ Functions an administrator creates from a tool instance source are tenant data, 
 | A chat interaction tool works for admins but not for a role | Grant `AccessAITool_{toolName}` (or `AccessAnyAITool`) and look for the `Warning` that lists excluded tools. |
 | An editor cannot see a tool in the picker | The editing user lacks `AccessAITool_{toolName}`. |
 | A tool is missing for MCP clients | Only selectable tools can be exposed, and they must be opted in on the MCP Server card. |
+| A channel-only tool shows up in every chat | It is registered as a system tool. Register it `.Hidden()` and name it in `AICompletionContext.ToolNames` where it applies. |
 | A tool resolves stale tenant data | Do not inject scoped services into the singleton tool; resolve them from `arguments.Services`. |

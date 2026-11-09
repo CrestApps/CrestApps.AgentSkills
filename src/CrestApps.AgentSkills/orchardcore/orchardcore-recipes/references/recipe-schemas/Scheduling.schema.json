@@ -1,0 +1,595 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Scheduling",
+      "description": "Recipe step discriminator. Must be \u0027Scheduling\u0027."
+    },
+    "Resources": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The resource\u0027s id. When it matches a stored resource, that resource is replaced; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "What it is. One of: Staff, Room, Equipment, Other (or its number)."
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For staff: the user."
+          },
+          "calendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The calendar that holds its appointments (see the Calendars step)."
+          },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The IANA time zone of its working hours."
+          },
+          "availabilityMode": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Where its hours come from. One of: WorkingHours, Shifts (or its number)."
+          },
+          "shiftCalendarId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "With Shifts: the calendar whose Shift events name it. Kept for older resources; shiftCalendarIds is read too."
+          },
+          "shiftCalendarIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "With Shifts: the workforce calendars whose shifts it works, such as one for each team a staff member is on."
+          },
+          "workingHours": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "day": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "The day. One of: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday (or its number)."
+                },
+                "start": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it starts, as HH:mm."
+                },
+                "end": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it ends, as HH:mm."
+                }
+              }
+            },
+            "description": "Its weekly hours; several on a day leave the gaps as breaks."
+          },
+          "dateOverrides": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "date": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time",
+                  "description": "The day."
+                },
+                "closed": {
+                  "type": "boolean",
+                  "description": "Whether it is closed that day."
+                },
+                "start": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "Otherwise, when it opens, as HH:mm."
+                },
+                "end": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "And when it closes, as HH:mm."
+                }
+              }
+            },
+            "description": "Days with other hours."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it can be booked."
+          },
+          "properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "Extension data other features keep on the resource."
+          }
+        }
+      },
+      "description": "The staff, rooms and equipment to create or replace."
+    },
+    "AppointmentTypes": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The appointment type\u0027s id. When it matches a stored appointment type, that appointment type is replaced; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The description."
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address of its public booking page (book/{slug})."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "How long an appointment lasts."
+          },
+          "slotIntervalMinutes": {
+            "type": "integer",
+            "description": "How far apart the start times are."
+          },
+          "bufferBeforeMinutes": {
+            "type": "integer",
+            "description": "Free time kept before each appointment."
+          },
+          "bufferAfterMinutes": {
+            "type": "integer",
+            "description": "Free time kept after each appointment."
+          },
+          "minimumNoticeMinutes": {
+            "type": "integer",
+            "description": "How long before an appointment it can still be booked."
+          },
+          "horizonDays": {
+            "type": "integer",
+            "description": "How far ahead it can be booked."
+          },
+          "maxPerDay": {
+            "type": "integer",
+            "description": "The most a resource takes a day; 0 for no limit."
+          },
+          "maxPerWeek": {
+            "type": "integer",
+            "description": "The most a resource takes a week (Monday to Sunday in its time zone); 0 for no limit."
+          },
+          "maxUpcomingPerCustomer": {
+            "type": "integer",
+            "description": "The most upcoming appointments of this type one customer can book themselves; 0 for no limit."
+          },
+          "cancelNoticeMinutes": {
+            "type": "integer",
+            "description": "How soon before the start a customer can still cancel it themselves; 0 for any time."
+          },
+          "rescheduleNoticeMinutes": {
+            "type": "integer",
+            "description": "How soon before the start a customer can still move it themselves; 0 for any time."
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "How many people one appointment takes (more than 1 for group sessions)."
+          },
+          "resourceIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "The resources that can take it. With resourceRequirements, every resource of every requirement."
+          },
+          "assignment": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "How a resource is chosen, when there are no resourceRequirements. One of: AnyAvailable, RoundRobin, AllTogether (or its number)."
+          },
+          "resourceRequirements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The group\u0027s name, such as Staff or Room."
+                },
+                "resourceIds": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The resources in the group, in order of preference."
+                },
+                "assignment": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ],
+                  "description": "How the group\u0027s resources are picked. One of: AnyAvailable, RoundRobin, AllTogether (or its number)."
+                },
+                "weights": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "description": "Round-robin weights by resource id; a resource with 2 takes about twice as many appointments as one with 1, the default."
+                }
+              }
+            },
+            "description": "Groups of resources each appointment needs, such as one person from the staff and one room; a time is offered only when every group can be met. When empty, resourceIds and assignment make the only group."
+          },
+          "requiresConfirmation": {
+            "type": "boolean",
+            "description": "Whether bookings wait for someone to confirm them."
+          },
+          "holdMinutes": {
+            "type": "integer",
+            "description": "How long a held time is kept."
+          },
+          "allowSelfService": {
+            "type": "boolean",
+            "description": "Whether customers can book it themselves."
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where it happens."
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The color of its appointments."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it can be booked."
+          }
+        }
+      },
+      "description": "The appointment types to create or replace."
+    },
+    "Appointments": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The appointment\u0027s id. When it matches a stored appointment, that appointment is replaced; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "appointmentTypeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its appointment type."
+          },
+          "resourceIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "The resources it is with."
+          },
+          "startUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it starts."
+          },
+          "endUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it ends."
+          },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s time zone."
+          },
+          "status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Its status. One of: Held, Requested, Confirmed, Completed, NoShow, Cancelled, Expired (or its number)."
+          },
+          "holdExpiresUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When a held time is let go."
+          },
+          "customerName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s name."
+          },
+          "customerEmail": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s email."
+          },
+          "customerPhone": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s phone."
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s user, if they have one."
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes."
+          },
+          "calendarEventId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its calendar event (see the Calendars step)."
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where it was booked."
+          },
+          "cancelReason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it was cancelled."
+          },
+          "createdUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was made."
+          },
+          "modifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it last changed."
+          }
+        }
+      },
+      "description": "The appointments to create or replace. Import the Calendars step with its events first, so their calendar events exist."
+    },
+    "Waitlist": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The waitlist entry\u0027s id. When it matches a stored waitlist entry, that waitlist entry is replaced; otherwise a new one is made under this id, so references to it keep working."
+          },
+          "appointmentTypeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The appointment type waited for."
+          },
+          "fromUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "The start of the times wanted."
+          },
+          "toUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "The end of the times wanted."
+          },
+          "customerName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s name."
+          },
+          "customerEmail": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s email."
+          },
+          "customerPhone": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The customer\u0027s phone."
+          },
+          "status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Its status. One of: Waiting, Notified, Booked, Removed (or its number)."
+          },
+          "createdUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was added."
+          },
+          "notifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the customer was told a time opened."
+          }
+        }
+      },
+      "description": "The waitlist entries to create or replace."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

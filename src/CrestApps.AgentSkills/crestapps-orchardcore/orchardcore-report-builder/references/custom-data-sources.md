@@ -7,6 +7,7 @@ The Report Builder reads Orchard Core 4.0 data sources (`OrchardCore.DataPipelin
 | You report on | Build | Packages |
 | --- | --- | --- |
 | Records your module stores (YesSql documents, catalog entries) | `RecordDataSource` with one `RecordDataSet<T>` per record type | `OrchardCore.DataSources.Abstractions`, `CrestApps.OrchardCore.Reports.Abstractions` |
+| YesSql records read through a map index (the usual case) | `RecordDataSource` with one `IndexedReportDataSet<TRecord, TIndex>` per record type (see [A data set over an index](#a-data-set-over-an-index)) | Also `CrestApps.OrchardCore.Reports.Core` |
 | The same, grouped in the database | Add `IAggregateRecordDataSet` and `ReportIndexAggregator` | Also `CrestApps.OrchardCore.Reports.Core` |
 | An external system whose data sets or fields are found at run time | `IDataSource` | `OrchardCore.DataSources.Abstractions` |
 | A content part or field the Content items source reads the wrong way | `ContentDataSourceOptions` | Orchard Core Data Pipelines |
@@ -16,7 +17,7 @@ Namespaces: the contract (`IDataSource`, `RecordDataSource`, `RecordDataSet<T>`,
 
 ## Where the code goes
 
-- A module exposing its own records keeps the source in that module, in a startup marked `[RequireFeatures("OrchardCore.DataPipelines.Core")]` (and the module's feature). Reports never depends on it; the source is registered whenever Data Pipelines Core is on, whether through the Report Builder or Orchard Core's Data Pipelines. Omnichannel, Contact Center, AI Chat and Messaging do this.
+- A module exposing its own records keeps the source in that module, in a startup marked `[RequireFeatures("OrchardCore.DataPipelines.Core")]` (and the module's feature). Reports never depends on it; the source is registered whenever Data Pipelines Core is on, whether through the Report Builder or Orchard Core's Data Pipelines. Omnichannel, Contact Center, AI Chat, Messaging and the store modules (Orders, Inventory, Customers and others) do this.
 - A source for an external system goes in its own module whose feature depends on `OrchardCore.DataPipelines.Core`. Put connection settings in configuration (for example `CrestApps:Reports:{Source}`), never in a design.
 - Register with `services.AddDataSource<TDataSource>()` (from `OrchardCore.DataSources.Core`). Sources are scoped and resolved by name through `IDataSourceManager` (`GetDataSource(name)`). `IDataSource` declares `Name`, `DisplayName` and `Description` as static abstract members, so never resolve sources with `GetServices<IDataSource>()`. Two sources cannot share a name.
 
@@ -81,9 +82,11 @@ public sealed class InvoicesReportDataSet : RecordDataSet<Invoice>
 
     protected override async IAsyncEnumerable<Invoice> LoadAsync(DataSourceQuery query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Join keys: null means no key condition; an empty list means nothing can match.
-        var invoiceIds = DataConditions.Keys(query.Conditions, "InvoiceId")?.Select(key => key?.ToString()).ToArray();
-        var customerIds = DataConditions.Keys(query.Conditions, "CustomerId")?.Select(key => key?.ToString()).ToArray();
+        // Join keys: null means no key condition; an empty list means nothing can match. Read only the join's
+        // conditions: a viewer's Equals/In filter on the same field is compared by the engine without regard to case.
+        var joinKeys = query.Conditions.Where(condition => condition.IsJoinKey).ToArray();
+        var invoiceIds = DataConditions.Keys(joinKeys, "InvoiceId")?.Select(key => key?.ToString()).ToArray();
+        var customerIds = DataConditions.Keys(joinKeys, "CustomerId")?.Select(key => key?.ToString()).ToArray();
 
         // A viewer filter limiting Status to a list of values, applied in the database without regard to case.
         var columns = new ReportIndexConditions<InvoiceIndex>(query.Conditions)
@@ -191,6 +194,71 @@ public sealed class DataSourcesStartup : StartupBase
 | `ReportIndexPages.ReadAsync<TRecord, TIndex>(session, filter, date, collection, cancellationToken)` | Reads a map index 500 at a time, newest first by a date column then index row, with keyset paging (no offsets), detaching each page from the session. A nullable date reads undated records last; `ReadPagesAsync` yields a page at a time |
 | `ReportIndexConditions<TIndex>` | `.Text(field, column)` (upper-case comparison, non-ASCII left to the engine), `.Enum(field, index => index.Column)`, `MatchesNothing`, `Apply(query)` |
 | `ReportIndexAggregator` | Answers an aggregate query with one `GROUP BY` over a map index |
+| `IndexedReportDataSet<TRecord, TIndex>` / `IndexedReportDataSet<TDocument, TIndex, TRow>` | All of the above for YesSql records read through a map index; see below |
+| `ReportChildRow<TParent, TChild>.For(parent, children)` | Rows for the entries a record holds (order lines), each reading the entry and its record |
+| `ReportDataReferences.User()`, `ReportDataReferences.ContentItem(type)` | References to Orchard Core's users and content items data sets |
+| `CommerceReportDataSets` | Stable names of the store sources and data sets (`OrderSource`, `ProductSource`, `CustomerSource`, ...), with `Reference(source, dataSet)`, `ProductReference()` and `VariantReference()`, so a module references another's data set without depending on it |
+
+### A data set over an index
+
+`IndexedReportDataSet<TRecord, TIndex>` (namespace `CrestApps.OrchardCore.Reports.Designer.DataSources`, package `CrestApps.OrchardCore.Reports.Core`) does the reading for YesSql records with a map index: it checks the permissions you pass (the principal needs every one), reads with `ReportIndexPages` newest first by `DateColumn`, pushes the date range, the join keys of `KeyColumns` and the columns `DescribeColumns` declares down to the index, and groups in the database through `ReportIndexAggregator` (override `GetAggregateColumns` to drop a column the index changes, such as an upper-cased email). The Orders, Inventory and other store sources are built this way.
+
+```csharp
+using System.Linq.Expressions;
+using CrestApps.OrchardCore.Reports.DataSources;
+using CrestApps.OrchardCore.Reports.Designer.DataSources;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Localization;
+using OrchardCore.DataSources;
+using ISession = YesSql.ISession;
+
+namespace MyModule.Reports;
+
+public sealed class InvoicesReportDataSet : IndexedReportDataSet<Invoice, InvoiceIndex>
+{
+    public InvoicesReportDataSet(
+        ISession session,
+        IAuthorizationService authorizationService,
+        IStringLocalizer<InvoicesReportDataSet> S)
+        : base(
+            new DataSetDescriptor("Invoices", S["Invoices"], S["One row per invoice."]),
+            session,
+            authorizationService,
+            BillingConstants.CollectionName,
+            BillingPermissions.ViewInvoiceReports)
+    {
+        AddField("InvoiceId", S["Invoice ID"], DataFieldType.Text, record => record.InvoiceId).Identifier();
+        AddField("Status", S["Status"], DataFieldType.Text, record => record.Status);
+        AddField("Currency", S["Currency"], DataFieldType.Text, record => record.Currency);
+        AddField("Amount", S["Amount"], DataFieldType.Decimal, record => record.Amount).Description = S["In the invoice's currency."];
+        AddField("IssuedUtc", S["Issued"], DataFieldType.DateTime, record => record.IssuedUtc);
+        AddField("CustomerId", S["Customer ID"], DataFieldType.Text, record => record.CustomerId)
+            .Identifier(CommerceReportDataSets.Reference(CommerceReportDataSets.CustomerSource.Name, CommerceReportDataSets.CustomerSource.Customers));
+
+        CompleteDescription();
+    }
+
+    // The main date: a non-nullable index column holding exactly the field's value.
+    protected override (string Field, Expression<Func<InvoiceIndex, DateTime>> Column)? DateColumn
+        => ("IssuedUtc", index => index.IssuedUtc);
+
+    // The fields a join narrows the read on, each an index column holding exactly its value.
+    protected override IReadOnlyDictionary<string, Expression<Func<InvoiceIndex, string>>> KeyColumns =>
+        new Dictionary<string, Expression<Func<InvoiceIndex, string>>>(StringComparer.Ordinal)
+        {
+            ["InvoiceId"] = index => index.InvoiceId,
+            ["CustomerId"] = index => index.CustomerId,
+        };
+
+    // The fields a viewer's filter limits to a list of values, applied to the index rows.
+    protected override void DescribeColumns(ReportIndexConditions<InvoiceIndex> columns)
+    {
+        columns.Text("Status", nameof(InvoiceIndex.Status));
+    }
+}
+```
+
+For the entries a record holds (order lines, refunds), derive from `IndexedReportDataSet<TDocument, TIndex, ReportChildRow<TDocument, TEntry>>` and return `ReportChildRow<TDocument, TEntry>.For(document, document.Entries)` from `GetRows`; such a data set never groups in the database. Give every money field a `Currency` field beside it and say in its description which currency it is in. A module with several features registers its data sets as a marker interface in the startup of the feature that stores each record, so the source lists only data sets whose feature is on.
 
 ### Index the date you read by
 
@@ -369,7 +437,7 @@ Each row is an `object[]` aligned with its `DataBatch` fields. `Text` is `string
 For inner and left joins the engine can send the distinct keys of the rows before the join, so the joined data set reads only records that can match:
 
 1. Mark the field `IsKeyFilterable` (`Fields.MarkKeyFilterable(names)`). Only `Text` and `Integer` fields joined to the same type are narrowed.
-2. Read keys with `DataConditions.Keys(query.Conditions, field)`: `null` (no key condition), empty (nothing matches), or the values.
+2. Read keys from the join's conditions only: `DataConditions.Keys(query.Conditions.Where(condition => condition.IsJoinKey), field)` gives `null` (no key condition), empty (nothing matches), or the values. Never pass every condition: `DataConditions.Keys` also returns a viewer's `Equals` or `In` filter on the field, which the engine compares without regard to case, so an exact match in the database would drop rows (apply those with `ReportIndexConditions.Text`, or leave them to the engine). `IndexedReportDataSet` does this for you.
 3. Apply them exactly: every record whose value is one of the keys, and no other. A source that cannot must not set the flag.
 
 Keys arrive as an `In` condition with `IsJoinKey`, in batches of `JoinKeyBatchSize`, up to `MaxJoinKeys`; beyond that the joined data set is read in full.
@@ -408,7 +476,8 @@ public sealed class InvoicesReportDataSet : RecordDataSet<Invoice>, IAggregateRe
 
 - `MapByName` maps each field to the index column of the same name; pass your own dictionary when names differ, and map only columns that hold exactly the field's value. Pass the index collection as the second argument when records are stored in one.
 - Return `null` instead when the data set limits records per principal beyond its permission, since the statement reads the whole index.
-- `ReportIndexAggregator` declines (`null`) whatever it cannot answer exactly: an unmapped field, a text comparison other than equality, equality on non-ASCII text, an empty-text test on a text column, or more groups than `MaxGroups`. Enums are compared and grouped by name; date buckets become a `CASE` over UTC boundaries.
+- `ReportIndexAggregator` declines (`null`) whatever it cannot answer exactly: an unmapped field, a text comparison other than equality, equality on non-ASCII text, an empty-text test on a text column, the smallest or largest value of a text column, a group by a text column on MySQL (its default collation also ignores accents), or more groups than `MaxGroups`. Enums are compared and grouped by name; date buckets become a `CASE` over UTC boundaries.
+- The engine groups text without regard to case (`Acme Corp` and `ACME CORP` are one group, shown with the smallest ordinal spelling) and regroups whatever a source returns, so a database may keep case variants apart but must never merge values that differ otherwise.
 
 To answer `AggregateAsync(DataAggregateQuery, CancellationToken)` yourself: `query.Groups` lists group fields (a group with `Boundaries` is a date bucketed by ascending UTC boundaries; its value is the zero-based bucket index as `long`, out-of-range or empty values fall in a `null` group); `query.Measures` lists `Count` (of a field, or all records when `Field` is `null`), `Sum`, `Min`, `Max`; each row holds group values then measures; apply `query.Conditions` exactly (`NotEquals` and `NotIn` keep empty values, text ignores case); answer only with records `query.Context.User` may read; return `null` for anything inexact or more than `query.MaxGroups` groups.
 

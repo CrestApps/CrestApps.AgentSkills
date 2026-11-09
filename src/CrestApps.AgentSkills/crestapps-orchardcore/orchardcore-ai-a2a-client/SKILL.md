@@ -43,6 +43,10 @@ The A2A Client feature lets Orchard Core AI experiences call agents hosted on ot
 2. Enter a **Title**, the host **Endpoint** (for example `https://agents.example.com`), and an **Authentication** method.
 3. Save. The list (`AdminList` name `A2AConnections`, see `orchardcore-admin-lists`) shows each connection with its endpoint.
 
+The client posts messages to the **Endpoint** itself and registers the agent card's **skills** as tools. For
+the A2A host of another CrestApps site, enter that site's address followed by `/a2a`, and set
+`ExposeAgentsAsSkill` to `true` on the host so its agents are listed as skills (`orchardcore-ai-a2a-host`).
+
 ### Authentication types (`A2AConnectionMetadata.AuthenticationType`)
 
 | Value | Fields |

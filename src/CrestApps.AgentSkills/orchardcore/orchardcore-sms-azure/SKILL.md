@@ -58,6 +58,7 @@ Communication Services** tab. `AzureSmsSettings` contains:
 |---|---|
 | `IsEnabled` | Enables the Azure provider for the tenant. |
 | `ConnectionString` | ACS connection string, stored encrypted with Data Protection. |
+| `ConnectionStringSecretName` | 4.0. Name of a `TextSecret` holding the connection string; takes precedence over `ConnectionString`. |
 | `PhoneNumber` | ACS sending number in E.164 format. |
 
 Enter the connection string in the admin UI; `AzureSmsOptionsConfiguration`
@@ -65,6 +66,14 @@ decrypts the stored value, so a plain connection string imported by a recipe
 cannot be read. After saving, select `Azure` on the **Providers** tab; enabling
 the feature does not select it. Saved changes refresh `AzureSmsOptions` and
 `SmsProviderOptions` through `IOptionsMonitor<T>` without a shell release.
+
+With the `OrchardCore.Secrets` feature enabled, the connection string editor
+offers **Use a secret** (suggested name `AzureSms.ConnectionString`), and a
+saved connection string can be moved without retyping it from **Tools →
+Security → Migrate Secrets**. A recipe can create the secret with the
+`Secrets` step (value from the `OrchardCore__Secrets__AzureSms.ConnectionString`
+environment variable) and set `"ConnectionStringSecretName": "AzureSms.ConnectionString"`
+in `AzureSmsSettings`. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
 
 ## Configure the Default Azure Provider
 
@@ -85,7 +94,10 @@ when a phone number and connection string are supplied:
 ```
 
 Provide the key through `OrchardCore__Sms__Azure__ConnectionString` or a key
-vault rather than a committed file. Use this provider when host configuration
+vault rather than a committed file. In 4.0 a configured `ConnectionString`
+logs a `LegacySecretConfiguration` warning (event `8100`); this provider can't
+reference a secret, so use the tenant `Azure` provider to keep the connection
+string in the Secrets module. Use this provider when host configuration
 centrally supplies ACS credentials, then select it with a recipe:
 
 ```json
@@ -185,3 +197,6 @@ logger, and a string localizer.
   (environment variable `OrchardCore__Sms__Azure__ConnectionString`). The old
   name still binds but is deprecated.
 - `IOptions<AzureSmsOptions>` → `IOptionsMonitor<AzureSmsOptions>.CurrentValue`.
+- Saved connection strings keep working; `AzureSmsSettings` gains
+  `ConnectionStringSecretName`, so code reading `ConnectionString` directly must
+  honor it. The configuration value still works but logs `LegacySecretConfiguration`.

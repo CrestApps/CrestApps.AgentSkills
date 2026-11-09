@@ -12,7 +12,7 @@
     },
     "ConsumerSecret": {
       "type": "string",
-      "description": "GitHub OAuth application client secret."
+      "description": "GitHub OAuth application client secret. The step stores the value as given, and Orchard Core decrypts it with the tenant\u0027s Data Protection keys, so a clear value does not work. Prefer a secret: create it with the \u0027Secrets\u0027 step and reference it with \u0027ClientSecretSecretName\u0027 in the \u0027GitHubAuthenticationSettings\u0027 property of the \u0027Settings\u0027 step."
     },
     "CallbackPath": {
       "type": "string",

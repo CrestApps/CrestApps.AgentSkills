@@ -1,6 +1,6 @@
 ---
 name: orchardcore-email-smtp
-description: Skill for configuring SMTP email delivery in Orchard Core. Covers SmtpSettings, SmtpOptions, DefaultSmtpOptions, SmtpEmailProvider, DefaultSmtpEmailProvider, SmtpEmailProviderBase, the OrchardCore Email Smtp configuration section, pickup directories and PickupDirectoryLocationBase, encryption methods, proxies, provider selection, recipes, IOptionsMonitor refresh, IEmailService, and legacy ISmtpService migration. Use this skill when requests mention Orchard Core SMTP Email, SmtpSettings, SmtpEmailProvider, SMTP configuration, MailKit email provider, pickup directory, DefaultSmtpOptions, DefaultSMTP, custom SMTP provider, upgrading SMTP code to Orchard Core 4, or closely related Orchard Core implementation setup extension or troubleshooting work.
+description: Skill for configuring SMTP email delivery in Orchard Core. Covers SmtpSettings, keeping the password in the Secrets module with PasswordSecretName, SmtpOptions, DefaultSmtpOptions, SmtpEmailProvider, DefaultSmtpEmailProvider, SmtpEmailProviderBase, the OrchardCore Email Smtp configuration section, pickup directories and PickupDirectoryLocationBase, encryption methods, proxies, provider selection, recipes, IOptionsMonitor refresh, IEmailService, and legacy ISmtpService migration. Use this skill when requests mention Orchard Core SMTP Email, SmtpSettings, SmtpEmailProvider, SMTP configuration, MailKit email provider, pickup directory, DefaultSmtpOptions, DefaultSMTP, custom SMTP provider, upgrading SMTP code to Orchard Core 4, or closely related Orchard Core implementation setup extension or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -58,6 +58,7 @@ one provider is enabled; enabling the only provider selects it automatically.
 | `Host`, `Port` | `Port` defaults to `25`. `Host` is required for `Network` delivery. |
 | `EncryptionMethod`, `AutoSelectEncryption` | `None`, `SslTls`, or `StartTls`. |
 | `RequireCredentials`, `UseDefaultCredentials`, `UserName`, `Password` | The admin UI encrypts `Password` with Data Protection, so enter it there rather than in a recipe. |
+| `PasswordSecretName` | 4.0. Name of a `TextSecret` holding the password; takes precedence over `Password`. |
 | `ProxyHost`, `ProxyPort` | Required when the SMTP server is reached through a proxy. |
 | `IgnoreInvalidSslCertificate` | Development and test servers only. |
 | `DeliveryMethod`, `PickupDirectoryLocation` | `Network` or `SpecifiedPickupDirectory`. |
@@ -90,7 +91,24 @@ it cannot be edited in the admin UI.
 ```
 
 Supply secrets through environment variables or a key vault, for example
-`OrchardCore__Email__Smtp__Password`.
+`OrchardCore__Email__Smtp__Password`. In 4.0 a nonblank `Password` here logs a
+`LegacySecretConfiguration` warning (event `8100`). `DefaultSmtpOptions` has no
+secret reference, so to keep the password in the Secrets module use the tenant
+`SMTP` provider with `PasswordSecretName` instead.
+
+## Keeping the Password in a Secret (4.0)
+
+The SMTP settings render the password with the `<secret-input>` editor. Without
+the `OrchardCore.Secrets` feature it is protected in `SmtpSettings.Password`, as
+before. With it, choose **Use a secret** and pick or create a `TextSecret`
+(suggested name `Smtp.Password`); `PasswordSecretName` then wins and the
+protected password is cleared when saved. An existing password can be moved
+without retyping it from **Tools → Security → Migrate Secrets**. In a recipe,
+create the secret with the `Secrets` step (value from the
+`OrchardCore__Secrets__Smtp.Password` environment variable) and set
+`"PasswordSecretName": "Smtp.Password"` in `SmtpSettings`. `SmtpOptions.Password`
+is resolved from the secret first, then from the protected value. See
+[orchardcore-secrets](../orchardcore-secrets/SKILL.md).
 
 ## Pickup Directory Delivery
 
@@ -200,3 +218,9 @@ or an `IConfigureOptions<EmailProviderOptions>` registered with
   `IOptionsMonitor<TOptions>`.
 - `ISmtpService`, `SmtpResult`, `MailKitSmtpService`, `Body`, and `IsHtmlBody`
   are obsolete; use `IEmailService`, `Result`, `HtmlBody`, and `TextBody`.
+- Saved passwords keep working. `SmtpSettings` gains `PasswordSecretName`;
+  code reading `SmtpSettings.Password` directly must honor it (read
+  `IOptionsMonitor<SmtpOptions>` or call `IServiceProvider.GetSecretValueAsync()`),
+  because moving the password to a secret clears `Password`.
+- `OrchardCore:Email:Smtp:Password` (and the legacy sections) still works but
+  logs `LegacySecretConfiguration`; remove it once the password lives in a secret.

@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Accounts",
+      "description": "Recipe step discriminator. Must be \u0027Accounts\u0027."
+    },
+    "Accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ContentItemId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The content item id, which stays the same across sites."
+          },
+          "ContentItemVersionId": {
+            "type": "string",
+            "description": "The version id."
+          },
+          "ContentType": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The content type."
+          },
+          "DisplayText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The item\u0027s title."
+          },
+          "Latest": {
+            "type": "boolean",
+            "description": "Whether this is the latest version of the item."
+          },
+          "Published": {
+            "type": "boolean",
+            "description": "Whether this version is published."
+          }
+        },
+        "required": [
+          "ContentItemId",
+          "ContentType"
+        ],
+        "additionalProperties": true,
+        "description": "An account: a content item with AccountPart, and the parts other modules add to it, such as AccountMembersPart, AccountLocationsPart and B2BAccountPart."
+      },
+      "description": "The accounts to create or update. An account with an existing ContentItemId is updated. An item without AccountPart is refused."
+    },
+    "Records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ContentItemId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The content item id, which stays the same across sites."
+          },
+          "ContentItemVersionId": {
+            "type": "string",
+            "description": "The version id."
+          },
+          "ContentType": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The content type."
+          },
+          "DisplayText": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The item\u0027s title."
+          },
+          "Latest": {
+            "type": "boolean",
+            "description": "Whether this is the latest version of the item."
+          },
+          "Published": {
+            "type": "boolean",
+            "description": "Whether this version is published."
+          }
+        },
+        "required": [
+          "ContentItemId",
+          "ContentType"
+        ],
+        "additionalProperties": true,
+        "description": "A record an account holds, such as a contact or an opportunity. Its ContainedPart names the account."
+      },
+      "description": "The records the accounts hold, imported after the accounts."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

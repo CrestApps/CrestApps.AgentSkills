@@ -49,6 +49,10 @@
                     "type": "string",
                     "description": "Absolute HTTP or HTTPS URL the request targets."
                   },
+                  "PathTemplate": {
+                    "type": "string",
+                    "description": "Optional path appended to BaseUrl. It may hold {parameterName} tokens replaced by parameters bound to the path, each escaped as one path segment."
+                  },
                   "HttpMethod": {
                     "type": "string",
                     "description": "HTTP method: GET, POST, PUT, PATCH, or DELETE."
@@ -63,11 +67,11 @@
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "API key credential. Stored encrypted at rest."
+                    "description": "API key credential. Encrypted when entered in the admin; a value imported in clear text is used as given. Exported plans leave it blank."
                   },
                   "BearerToken": {
                     "type": "string",
-                    "description": "Bearer token credential. Stored encrypted at rest."
+                    "description": "Bearer token credential. Encrypted when entered in the admin; a value imported in clear text is used as given. Exported plans leave it blank."
                   },
                   "Username": {
                     "type": "string",
@@ -75,7 +79,7 @@
                   },
                   "Password": {
                     "type": "string",
-                    "description": "Basic authentication password. Stored encrypted at rest."
+                    "description": "Basic authentication password. Encrypted when entered in the admin; a value imported in clear text is used as given. Exported plans leave it blank."
                   },
                   "TokenEndpoint": {
                     "type": "string",
@@ -87,7 +91,7 @@
                   },
                   "ClientSecret": {
                     "type": "string",
-                    "description": "OAuth 2.0 client secret. Stored encrypted at rest."
+                    "description": "OAuth 2.0 client secret. Encrypted when entered in the admin; a value imported in clear text is used as given. Exported plans leave it blank."
                   },
                   "Scope": {
                     "type": "string",
@@ -171,7 +175,7 @@
                   },
                   "ApiKey": {
                     "type": "string",
-                    "description": "Algolia search-only API key. Stored encrypted at rest."
+                    "description": "Algolia search-only API key. Encrypted when entered in the admin; a value imported in clear text is used as given. Exported plans leave it blank."
                   },
                   "IndexName": {
                     "type": "string",
@@ -254,6 +258,13 @@
                   "Filter": {
                     "type": "string",
                     "description": "OData filter expression translated to the index provider\u0027s own syntax before the search runs."
+                  },
+                  "ContentTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "The kinds of knowledge searched (knowledge object types). Empty searches every kind."
                   }
                 },
                 "additionalProperties": true,
@@ -336,7 +347,7 @@
               }
             },
             "additionalProperties": true,
-            "description": "Source-specific tool instance settings, grouped by settings object name. Secrets are stored encrypted at rest."
+            "description": "Source-specific tool instance settings, grouped by settings object name. Secrets entered in the admin are stored encrypted; exported plans leave them blank."
           }
         },
         "required": [

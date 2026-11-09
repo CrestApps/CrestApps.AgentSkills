@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PriceLists",
+      "description": "Recipe step discriminator. Must be \u0027PriceLists\u0027."
+    },
+    "PriceLists": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The price list\u0027s id. A list with this id is updated; otherwise a list with the same name is, or a new one is made with this id."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The price list\u0027s name, as shown in an account\u0027s B2B settings."
+          },
+          "PercentOff": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "A discount off the store\u0027s price for every SKU without its own price, from 0 to 100."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The currency the list\u0027s prices are in, such as \u0027USD\u0027. Its prices apply only to buyers shopping in it."
+          },
+          "Entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Sku": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The product variant\u0027s SKU."
+                },
+                "UnitPrice": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "The price of one unit, in the list\u0027s currency."
+                }
+              },
+              "required": [
+                "Sku",
+                "UnitPrice"
+              ]
+            },
+            "description": "The prices by SKU."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The price lists to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "PriceLists"
+  ],
+  "additionalProperties": true
+}

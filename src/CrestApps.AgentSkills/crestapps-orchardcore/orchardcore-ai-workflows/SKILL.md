@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-workflows
-description: Skill for using CrestApps AI Services in Orchard Core Workflows. Covers the AI Completion using Profile task (AICompletionFromProfileTask) and the AI Completion using Direct Config task (AICompletionWithConfigTask, which needs CrestApps.OrchardCore.AI.Chat.Interactions and stores an embedded ChatInteraction), the Content, Knowledge and Capabilities fields contributed by data sources, documents, prompting, personas, tool instances, MCP and A2A features, Liquid prompt rendering, chat deployment resolution through the chat slot, the Done, Drew Blank and Failed outcomes, AIResponseMessage output read with Workflow.Output, metering under the Workflow usage category, and the AIChatSessionFieldExtractedEvent, AIChatSessionAllFieldsExtractedEvent, AIChatSessionClosedEvent and AIChatSessionPostProcessedEvent events and their inputs. Use this skill when requests mention Orchard Core AI workflows, AI completion tasks, reacting to chat session events, or an AI workflow task that fails or draws blank.
+description: Skill for using CrestApps AI Services in Orchard Core Workflows. Covers the AI Completion using Profile task (AICompletionFromProfileTask) and the AI Completion using Direct Config task (AICompletionWithConfigTask, which needs CrestApps.OrchardCore.AI.Chat.Interactions), the fields other AI features contribute, Liquid prompt rendering, chat slot resolution, the Done, Drew Blank and Failed outcomes, AIResponseMessage output, Workflow usage metering, the AI chat session events (field extracted, all fields extracted, closed, post-processed) with Variables, Transcript and Turns, and an overview of the AI Conversations activities (conversation starting, turns, tool-called workflows, flows, evaluation, simulation, alerts, signed webhooks). Use this skill when requests mention Orchard Core AI workflows, AI completion tasks, AI Conversations workflow activities, reacting to chat session events, or an AI workflow task that fails or draws blank.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -75,7 +75,7 @@ The task owns its configuration. It stores it as an embedded `ChatInteraction` (
 | **Content** | Result property name, prompt template, orchestrator, chat and utility deployments, system instructions, max tokens, temperature, top P, penalties | AI Services |
 | **Content** | Prompt template selection | `CrestApps.OrchardCore.AI.Prompting` |
 | **Content** | Persona | `CrestApps.OrchardCore.AI.Personas` |
-| **Knowledge** | Data source, restrict to retrieved data, strictness, retrieved documents, OData filter | `CrestApps.OrchardCore.AI.DataSources` |
+| **Knowledge** | Data source, restrict to retrieved data, strictness, retrieved documents, OData filter. A blank strictness or retrieved documents uses the **Default strictness** / **Default top documents** of the **Data Sources** settings card (built-in default 5 documents) | `CrestApps.OrchardCore.AI.DataSources` |
 | **Knowledge** | Document retrieval mode and uploaded knowledge files | `CrestApps.OrchardCore.AI.Documents` module |
 | **Capabilities** | Tools | AI Services |
 | **Capabilities** | Tool instances | `CrestApps.OrchardCore.AI.ToolInstances` |
@@ -98,7 +98,7 @@ Both tasks run inside an `AIUsageScope` with the **Workflow** category, so their
 
 ## Chat session events
 
-All events use the chat session ID as the workflow correlation ID and accept an optional **Profile** filter (`ProfileId`). Every event input contains `SessionId`, `ProfileId`, `Session` (`AIChatSession`), and `Profile` (`AIProfile`).
+All events use the chat session ID as the workflow correlation ID and accept an optional **Profile** filter (`ProfileId`). Every event input contains `SessionId`, `ProfileId`, `Session` (`AIChatSession`), `Profile` (`AIProfile`). **Field Extracted**, **Closed** and **Post-Processed** also carry the conversation `Variables`; **Closed** and **Post-Processed** also carry `Transcript` (one `Customer:` or `Assistant:` line per turn) and `Turns` (`AIConversationTurn` records). An extracted field is also stored as a conversation variable.
 
 | Event | Triggers | Extra input |
 |---|---|---|
@@ -121,6 +121,34 @@ All events use the chat session ID as the workflow correlation ID and accept an 
 1. Configure post-session processing on the profile.
 2. Start a workflow with **AI Chat Session Post-Processed**.
 3. Read `Workflow.Input.Results` and route or store them.
+
+## AI Conversations activities
+
+With `OrchardCore.Workflows` and AI Services enabled, the **AI Conversations** category adds activities for
+website chats, text threads and AI phone calls. Their input is `AIConversationWorkflowInput` (`Channel`,
+`Direction`, `SessionId`, `ProfileId`, `ActivityId`, `ContactId`, `ContactName`, `Contact`, `CustomerAddress`,
+`BusinessAddress`, `Variables`, `Simulation`).
+
+| Activity | Kind | Outcomes |
+|---|---|---|
+| **AI Conversation Starting** | Event, before the first message (3 s budget inbound, 30 s outbound) | Done |
+| **AI Conversation Turn** | Event, after each saved turn (`Text`, `Role`) | Done |
+| **AI Tool Called** | Event, run by a **Workflow** tool instance (`Arguments`, `ToolName`) | Done |
+| **AI Conversation Flow Started** / **AI Conversation Stage** | Event / task, a staged conversation flow with a `moveToStage` tool | one outcome per way out, **Not in a conversation** |
+| **Set Conversation Variables** | Task, `name: value` per line | Done, No conversation |
+| **Use AI Profile** | Task, answer with another profile or a profile version | Done, Not starting |
+| **Decline Conversation** | Task, cancel or refuse (not a web chat) | Done, Not starting |
+| **Evaluate AI Conversation** | Task | Passed, Failed, Not evaluated |
+| **Simulate AI Conversation** | Task | Passed, Failed, Error |
+| **Rerun AI Conversation Analysis** | Task | Done, Nothing to analyze, Not found |
+| **Split Traffic** | Task, weighted outcomes with a sticky key | your outcomes |
+| **Check AI Conversation Metric** | Task | Alert started, Still alerting, Resolved, Normal |
+| **Update Contact Memory** | Task | Updated, Nothing to remember |
+| **AI Conversation Evaluated**, **AI Guardrail Triggered**, **AI Alert Triggered**, **AI Alert Resolved** | Events | Done |
+| **Send Signed Webhook** (category **HTTP**) | Task, HMAC-signed POST with retries | Delivered, Failed |
+
+The Contact Center adds **AI Call Action** and **Transfer AI Call**, and Omnichannel Management adds **Create
+AI Activity**. Behaviour, services and recipes are in `orchardcore-ai-conversations`.
 
 ## Upgrading from 2.x
 

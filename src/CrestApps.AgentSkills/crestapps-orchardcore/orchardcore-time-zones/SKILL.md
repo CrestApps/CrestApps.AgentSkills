@@ -142,7 +142,7 @@ The `TimeZoneMaps` recipe step creates or updates maps. It matches an existing m
 }
 ```
 
-The recipe step can also accept `CreatedUtc` and `ModifiedUtc` to preserve audit history. The step handler (`TimeZoneMapStep`) is registered when `OrchardCore.Recipes.Core` is enabled, which the feature depends on. With `CrestApps.OrchardCore.Recipes` enabled, the step also has a JSON Schema (`TimeZoneMaps`) for validation and editor autocomplete; see the `orchardcore-crestapps-recipes` skill.
+`TimeZoneMapStep` is built on the shared `NamedCatalogRecipeStep<TimeZoneMap>` (matched by `ItemId`, then by `Name`), and `TimeZoneMapHandler` on `AuditedCatalogEntryHandlerBase<TimeZoneMap>` (`TimeZoneMap` implements `IAuditedModel`). The import reads only `Name` and `TimeZoneId`; the handler stamps `CreatedUtc`, `ModifiedUtc`, and, when a user runs the recipe, `OwnerId` and `Author`. `OwnerId`, `Author`, `CreatedUtc` and `ModifiedUtc` in a recipe (including the exported values) are currently not restored. The step handler is registered when `OrchardCore.Recipes.Core` is enabled, which the feature depends on. With `CrestApps.OrchardCore.Recipes` enabled, the step also has a JSON Schema (`TimeZoneMaps`) for validation and editor autocomplete; see the `orchardcore-crestapps-recipes` skill.
 
 ## Export Maps with Deployment
 
@@ -183,6 +183,7 @@ Do not create a View Model as `sealed` if it is used for model binding. Domain a
 
 - The **Tools > Time Zones** list renders through Orchard Core's `AdminList` shape. A theme override of the whole list view must be redone; the List layout row is `TimeZoneMap_SummaryAdmin`, and the Grid layout is customized with `SummaryAdminGrid` placement.
 - The `ManageTimeZoneMaps` description and the deployment step's title and category are `LocalizationSource` values, translated from PO files with the declaring type as context.
+- The create and edit pages put **Save** and **Cancel** in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; a theme override of `Views/Admin/Create.cshtml` or `Edit.cshtml` must move its buttons there.
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-yessql-stores
-description: Skill for the CrestApps.Core.Data.YesSql persistence backend in CrestApps.Core 2.0. Covers AddYesSqlDataStore and AddCoreYesSqlDataStore (IStore, collections, index provider registration, scoped ISession, YesSqlStoreCommitter), YesSqlStoreOptions collection names, per-feature AddYesSqlStores on every feature builder including personas and tool instances, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, the full index and IndexProvider inventory, creating index tables with the Create*IndexSchemaAsync SchemaBuilder extensions, custom models with DocumentCatalog and CatalogItemIndex, and QueryContext paging. Use it when a host persists CrestApps.Core data with YesSql or troubleshoots missing tables, collections, or uncommitted writes.
+description: Skill for the CrestApps.Core.Data.YesSql persistence backend in CrestApps.Core 2.0. Covers AddYesSqlDataStore and AddCoreYesSqlDataStore (IStore, collections, index provider registration, scoped ISession, YesSqlStoreCommitter), YesSqlStoreOptions collection names, per-feature AddYesSqlStores on every feature builder including personas, tool instances and AI profile versions, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, the full index and IndexProvider inventory, creating index tables with the Create*IndexSchemaAsync SchemaBuilder extensions, custom models with DocumentCatalog and CatalogItemIndex, and QueryContext paging. Use it when a host persists CrestApps.Core data with YesSql or troubleshoots missing tables, collections, or uncommitted writes.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -120,6 +120,7 @@ public sealed class CrestAppsYesSqlSchema
             () => schema.CreateAIProfileIndexSchemaAsync(options),
             () => schema.CreateAIProfileTemplateIndexSchemaAsync(options),
             () => schema.CreateAIPersonaIndexSchemaAsync(options),
+            () => schema.CreateAIProfileVersionIndexSchemaAsync(options),
             () => schema.CreateAIChatSessionIndexSchemaAsync(options),
             () => schema.CreateAIChatSessionPromptIndexSchemaAsync(options),
             () => schema.CreateAIChatSessionMetricsSchemaAsync(options, _metricsOptions),
@@ -178,6 +179,7 @@ Keep only the steps for the features you registered. The skip-on-error loop mirr
 | `AddCoreAIServicesStoresYesSql()` | `YesSqlAIProfileStore`; `AIProviderConnection` and `AIDeployment` binding sources; `AIProfileIndexProvider`, `AIProviderConnectionIndexProvider`, `AIDeploymentIndexProvider` |
 | `AddCoreAIProfileTemplateStoresYesSql()` | `AIProfileTemplate` catalog, `AIProfileTemplateIndexProvider` |
 | `AddCoreAIPersonaStoresYesSql()` | `AIPersona` named catalog, `AIPersonaIndexProvider` |
+| `AddCoreAIProfileVersionStoresYesSql()` | `YesSqlAIProfileVersionStore` as `IAIProfileVersionStore`, `AIProfileVersionIndexProvider` (also `AddProfileVersions(v => v.AddYesSqlStores())`) |
 | `AddCoreAIChatSessionStoresYesSql()` | runs the base, metrics, completion usage and extracted data methods below |
 | `AddCoreAIChatSessionBaseStoresYesSql()` | `YesSqlAIChatSessionManager`, `YesSqlAIChatSessionStore`, `YesSqlAIChatSessionPromptStore`; session and prompt index providers |
 | `AddCoreAIChatSessionMetricsStoresYesSql()` | `YesSqlAIChatSessionEventStore`, `AIChatSessionMetricsIndexProvider` |
@@ -243,6 +245,12 @@ Create the table with `schema.CreateMapIndexTableAsync<TicketCategoryIndex>(tabl
 ## Paging
 
 `PageAsync(page, pageSize, new QueryContext { Name = search, Source = source, Sorted = true })` filters on the concrete index's `Name` (or `DisplayText`) and `Source` columns and translates to SQL `OFFSET`/`LIMIT`.
+
+## Upgrading Within 2.0 Previews
+
+- AI profile versions add the `AIProfileVersionIndex` table (`ItemId`, `ProfileId`, `Version`, `CreatedUtc`, in the AI collection). Create it with `CreateAIProfileVersionIndexSchemaAsync(options)` when you call `AddProfileVersions(v => v.AddYesSqlStores())`.
+- `YesSqlAIChatSessionStore` implements the new `IAIChatSessionStore.ListByLastActivityAsync` and `DeleteAsync` over the existing `AIChatSessionIndex` and `AIChatSessionPromptIndex`; no new columns.
+- `YesSqlAIChatSessionManager.PageAsync` filters by `AIChatSessionQueryContext.UserId` when set, and new sessions record the profile's `AIProfileVersionMetadata`.
 
 ## Upgrading from 1.x
 

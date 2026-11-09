@@ -38,7 +38,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 | Engine | `IWizardEngine.CompleteAsync(flow, prepareUnderLock, cancellationToken)` returns `WizardCompletionResult` |
 | Store | `IWizardSessionStore` (`GetAsync`, `NewAsync`, `SaveAsync`), indexed by `WizardSessionIndex` |
 | Access | `IWizardAccessPolicy.RequiresAuthenticatedUserAsync(wizardType, definitionId)` |
-| Permissions | `StartWizard`, `ContinueWizard` (granted to Anonymous, Authenticated and Administrator by default) |
+| Permissions | `StartWizard`, `ContinueWizard` (descriptions are `LocalizationSource` values; granted to Anonymous, Authenticated and Administrator by default) |
 | Rate-limit group | `wizard` (`WizardConstants.RateLimitGroups.Wizard`, for `OrchardCore.RateLimits`) |
 
 Enums: `WizardSessionStatus` (`Pending`, `AwaitingExternal`, `Completed`, `Failed`, `Canceled`, `Expired`), `WizardStepState` (`NotStarted`, `InProgress`, `Completed`, `Failed`), `WizardCompletionStatus` (`Completed`, `AlreadyCompleted`, `Blocked`, `Failed`).

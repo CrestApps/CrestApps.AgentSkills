@@ -63,9 +63,13 @@ through `IOptionsMonitor<T>` after the settings are committed.
 ```
 
 `EncryptionMethod` values are `None`, `SslTls`, and `StartTls`. The admin UI
-encrypts the SMTP password with Data Protection; enter it there, or use the
-configuration-backed `DefaultSMTP` provider for secrets. See
-`orchardcore-email-smtp` for pickup directories and all SMTP settings.
+encrypts the SMTP password with Data Protection; enter it there. In 4.0, with
+the `OrchardCore.Secrets` feature enabled, the SMTP password and the Azure
+connection string can instead reference a `TextSecret` (`SmtpSettings.PasswordSecretName`,
+`AzureEmailSettings.ConnectionStringSecretName`), which takes precedence, and
+saved values can be moved from **Tools → Security → Migrate Secrets**. See
+`orchardcore-email-smtp` for pickup directories and all SMTP settings, and
+[orchardcore-secrets](../orchardcore-secrets/SKILL.md).
 
 ## Configuration-backed Providers
 
@@ -95,7 +99,10 @@ Environment variables use the same path, for example
 `OrchardCore__Email__Smtp__Password` or
 `OrchardCore__Email__Azure__ConnectionString`. A `DefaultSMTP` or
 `DefaultAzure` provider only appears when its section has valid values, and it
-cannot be edited in the admin UI.
+cannot be edited in the admin UI. In 4.0 a configured `Password` or
+`ConnectionString` logs a `LegacySecretConfiguration` warning (event `8100`);
+these providers can't reference a secret, so switch to the tenant provider to
+keep the credential in the Secrets module.
 
 ## Enable Azure Communication Services
 
@@ -322,3 +329,8 @@ or `Html`. Keep provider configuration outside the workflow definition.
   instead of `Func<AzureEmailOptions>`.
 - `OrchardCore.Email.Permissions.ManageEmailSettings` was removed; use
   `OrchardCore.Email.EmailPermissions.ManageEmailSettings`.
+- The `OrchardCore.Email` feature now depends on `OrchardCore.Settings`, so
+  enabling it enables Settings too.
+- SMTP and Azure credentials can reference secrets (`PasswordSecretName`,
+  `ConnectionStringSecretName`); saved credentials keep working, and
+  configuration credentials log `LegacySecretConfiguration`.

@@ -12,7 +12,7 @@
     },
     "AppSecret": {
       "type": "string",
-      "description": "Microsoft application client secret."
+      "description": "Microsoft application client secret. The step stores the value as given, and Orchard Core decrypts it with the tenant\u0027s Data Protection keys, so a clear value does not work. Prefer a secret: create it with the \u0027Secrets\u0027 step and reference it with \u0027AppSecretSecretName\u0027 in the \u0027MicrosoftAccountSettings\u0027 property of the \u0027Settings\u0027 step."
     },
     "CallbackPath": {
       "type": "string",

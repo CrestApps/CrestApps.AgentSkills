@@ -1,6 +1,6 @@
 ---
 name: orchardcore-marketing
-description: Skill for the CrestApps Orchard Core Marketing commerce module and how it works with checkout coupons and discounts. Covers CustomerPurchases kept per customer from paid and refunded orders, the purchases backfill, Segment rules by orders, spend, recency and country, Liquid email Campaigns sent in batches to customers who accept marketing, scheduled sending, test sends, the protected one-click unsubscribe link, and pairing campaigns with Checkout coupons limited per customer or generated codes. Use this skill when requests mention Orchard Core email marketing, customer segments, lapsed buyers, marketing campaigns, unsubscribe links, AcceptsMarketing, or promotion codes sent to customers. Strong matches include CrestApps.OrchardCore.Marketing, CustomerPurchases, CustomerPurchasesService, ICustomerPurchasesStore, Segment, SegmentRules, Campaign, CampaignService, CampaignCustomer, UnsubscribeController, MarketingBackgroundTask and ManageMarketing.
+description: Skill for the CrestApps Orchard Core Marketing commerce module and how it works with checkout coupons and discounts. Covers CustomerPurchases kept per customer from paid and refunded orders, the purchases backfill, Segment rules by orders, spend, recency and country, Liquid email Campaigns sent through the Outreach engine to customers who accept marketing, scheduled sending, test sends, the protected one-click unsubscribe link, the MarketingSegments and MarketingCampaigns recipe and deployment steps, and pairing campaigns with Checkout coupons limited per customer or generated codes. Use this skill when requests mention Orchard Core email marketing, customer segments, lapsed buyers, marketing campaigns, unsubscribe links, AcceptsMarketing, or promotion codes sent to customers. Strong matches include CrestApps.OrchardCore.Marketing, CustomerPurchases, Segment, SegmentRules, Campaign, CampaignService, UnsubscribeController, MarketingBackgroundTask and ManageMarketing.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,7 +16,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Marketing` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle) in the web/startup project.
-- Enable `CrestApps.OrchardCore.Marketing`. It depends on `CrestApps.OrchardCore.Commerce`, `CrestApps.OrchardCore.Customers` and `CrestApps.OrchardCore.Orders` (see `orchardcore-customers` for `Customer.AcceptsMarketing`).
+- Enable `CrestApps.OrchardCore.Marketing`. It depends on `CrestApps.OrchardCore.Commerce`, `CrestApps.OrchardCore.Customers`, `CrestApps.OrchardCore.Orders`, Orchard Core Email (`OrchardCore.Email`) and Outreach (`CrestApps.OrchardCore.Outreach`) (see `orchardcore-customers` for `Customer.AcceptsMarketing`).
 - Configure an email provider (`OrchardCore.Email` with SMTP or Azure) and set the site's **Base URL**. Sending needs both.
 - Only customers who are `Active`, accept marketing and have an email are sent to. Do not bypass this in custom code.
 - Coupons and discounts are not part of this module. They are the Checkout coupon catalog (**Commerce > Coupons**, feature `CrestApps.OrchardCore.Checkout`); see `orchardcore-checkout`. Campaigns carry their codes.
@@ -32,7 +32,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 | YesSql collection | `Marketing` |
 | Records | `CustomerPurchases` (`CustomerPurchasesIndex`), `Segment` (`SegmentIndex`), `Campaign` (`CampaignIndex`), `PurchasesBackfill` |
 | Stores | `ICustomerPurchasesStore`, `ISegmentStore`, `ICampaignStore` |
-| Services | `CustomerPurchasesService` (`RecordAsync`, `BackfillAsync`), `CampaignService` (`RenderAsync`, `SendTestAsync`, `SendBatchAsync`, `CountAsync`) |
+| Services | `CustomerPurchasesService` (`RecordAsync`, `BackfillAsync`), `CampaignService` (`CanSendAsync`, `RenderAsync`, `SendTestAsync`, `StartSendingAsync`, `CancelAsync`, `CountAsync`) |
 | Order seam filled | `IOrderEventHandler` (`CustomerPurchasesOrderHandler`) |
 | Background task | `MarketingBackgroundTask` (every minute) |
 | Unsubscribe | `GET` and `POST marketing/unsubscribe?token=` (`MarketingUnsubscribe` route and shape) |
@@ -99,7 +99,30 @@ Use <strong>COMEBACK15</strong> for 15% off your next order.</p>
 <p><a href="{{ UnsubscribeUrl }}">Unsubscribe</a></p>
 ```
 
-`CampaignService.SendBatchAsync` sends 50 customers at a time from the cursor, at most ten batches per background run. A scheduled campaign starts when `ScheduledUtc` passes. The text part is the HTML with its tags removed. The campaign editor's test send renders the message as the segment's first customer would get it.
+Campaigns are sent by the Outreach engine. `MarketingBackgroundTask` starts a scheduled campaign when `ScheduledUtc` passes, and `CampaignService.StartSendingAsync` hands it to the engine as an outreach run (`Campaign.OutreachRunId`): the `MarketingSegment` audience source pages the segment 50 customers at a time from the cursor (skipping customers who are not `Active`, do not accept marketing or have no email), the engine checks consent (`Email`, as a `Customer`) before each email so a mid-run unsubscribe stops it, the `MarketingCampaign` renderer adds the unsubscribe link, and the `Email` sender sends HTML plus a text part. The run's counts and cursor are copied back; the campaign is `Sent` when the run completes, or `Canceled` when a batch keeps failing (for example the **Base URL** was removed). Canceling a campaign stops its run, and a campaign half sent before the engine resumes at its cursor. Until a default email provider is configured, `CanSendAsync` is false and the editor says so instead of queuing. The campaign editor's test send renders the message as the segment's first customer would get it.
+
+## Recipes and deployment
+
+The **Marketing segments and campaigns** deployment step (Commerce) writes a `MarketingSegments` step, then a `MarketingCampaigns` step. Both match by `ItemId` and are validated like their editors. A recipe never sends email: a campaign is exported without its delivery state, a new campaign always imports as a draft, and a campaign scheduled or sending on the site is left alone.
+
+```json
+{
+  "steps": [
+    {
+      "name": "MarketingSegments",
+      "Segments": [
+        { "ItemId": "4sg00000000000000000000001", "Name": "Lapsed buyers", "Rules": { "MinOrders": 1, "LastOrderAtLeastDaysAgo": 180 } }
+      ]
+    },
+    {
+      "name": "MarketingCampaigns",
+      "Campaigns": [
+        { "ItemId": "4cp00000000000000000000001", "Name": "Win back", "SegmentId": "4sg00000000000000000000001", "Subject": "We miss you", "Body": "Come back for 10% off." }
+      ]
+    }
+  ]
+}
+```
 
 ## Unsubscribing
 
@@ -138,7 +161,7 @@ Ship coupons between sites with Checkout's `Coupons` recipe step:
 
 | Symptom | Check |
 |---|---|
-| Campaign stays in Sending with nothing sent | Configure `IEmailService` and the site **Base URL** |
+| Campaign cannot be sent, or ends `Canceled` | Configure a default Orchard Core email provider and the site **Base URL**; check the outreach run |
 | Segment counts zero | Purchases are still backfilling (200 orders a minute), or no customer matches every rule |
 | Many customers skipped | They are not `Active`, do not accept marketing, or have no email |
 | Unsubscribe link fails | The token is older than 400 days, or the link was altered |

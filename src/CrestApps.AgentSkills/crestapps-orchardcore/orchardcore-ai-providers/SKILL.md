@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-providers
-description: Skill for the CrestApps.OrchardCore 3.0 AI provider modules. Covers CrestApps.OrchardCore.OpenAI (OpenAI and OpenAI-compatible services such as DeepSeek, Gemini and vLLM), CrestApps.OrchardCore.OpenAI.Azure (Azure OpenAI plus contained AzureSpeech deployments and GStreamer), CrestApps.OrchardCore.AzureAIInference (GitHub Models), CrestApps.OrchardCore.Ollama, the built-in CascadedRealtime deployment provider, provider connections and AIDeployment recipes with AIDeploymentMetadata capabilities, the AzureClient retry and logging options, how the Claude and Copilot orchestrators differ from providers, and writing a custom provider with AIClientProviderBase, IAIClientMarker, ProviderAICompletionClient, AddCoreAICompletionClient, AddCoreAIDeploymentProvider and AddCoreAIConnectionSource. Use this skill when requests mention AI providers, OpenAI setup, Azure OpenAI setup, Azure AI Speech, GitHub Models, Ollama, OpenAI-compatible endpoints, provider deployments, or adding a new AI provider to Orchard Core.
+description: Skill for the CrestApps.OrchardCore 3.0 AI provider modules. Covers OpenAI and OpenAI-compatible services, Azure OpenAI with contained AzureSpeech deployments, Azure AI Inference (GitHub Models), Ollama, the ElevenLabs and Cartesia speech providers, the Custom LLM (WebSocket) provider (CrestApps.OrchardCore.AI.CustomLlm), the built-in CascadedRealtime provider, AIDeployment recipes with capabilities, the AzureClient options, how the Claude and Copilot orchestrators differ from providers, and writing a custom provider with AIClientProviderBase, IAIClientMarker, ProviderAICompletionClient, AddCoreAICompletionClient, AddCoreAIDeploymentProvider and AddCoreAIConnectionSource. Use this skill when requests mention AI providers, OpenAI or Azure OpenAI setup, Azure AI Speech, ElevenLabs, Cartesia, a custom WebSocket LLM, GitHub Models, Ollama, or adding a new AI provider to Orchard Core.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -32,6 +32,9 @@ provider, and contributes its connection editor. Configure a **connection** (cre
 | Azure OpenAI | `CrestApps.OrchardCore.OpenAI.Azure` | `Azure` | Also registers the contained `AzureSpeech` deployment provider (**Azure AI Services**) |
 | Azure AI Inference | `CrestApps.OrchardCore.AzureAIInference` | `AzureAIInference` | GitHub Models and Azure AI model inference endpoints |
 | Ollama | `CrestApps.OrchardCore.Ollama` | `Ollama` | Local models; no API key |
+| ElevenLabs | `CrestApps.OrchardCore.ElevenLabs` | `ElevenLabs` | Speech only: text-to-speech, Scribe speech-to-text (whole recordings), voice library and cloning. Contained connection |
+| Cartesia | `CrestApps.OrchardCore.Cartesia` | `Cartesia` | Speech only: text-to-speech with emotion, speech-to-text (also realtime, as a cascade's hearing leg), voice library and cloning. Contained connection |
+| Custom LLM (WebSocket) | `CrestApps.OrchardCore.AI.CustomLlm` | `CustomLlm` | Chat turns streamed from your own WebSocket server |
 | Cascaded Realtime | built into `CrestApps.OrchardCore.AI` | `CascadedRealtime` | Chains speech-to-text, chat and text-to-speech deployments; see `orchardcore-ai-realtime-voice` |
 
 Connection metadata per provider and the `AIProviderConnections` recipe are in `orchardcore-ai-connections`.
@@ -182,6 +185,65 @@ Then set **Default Speech-to-Text Deployment** (`DefaultSpeechToTextDeploymentNa
 needs **GStreamer** on every host to decode the compressed audio browsers send (OGG/Opus, WebM/Opus, MP3,
 FLAC); without it requests fail with `SPXERR_GSTREAMER_NOT_FOUND_ERROR` (`0x29`). In Docker install
 `libgstreamer1.0-0` and the `gstreamer1.0-plugins-base/good/bad/ugly` packages before the app layer.
+
+## ElevenLabs and Cartesia
+
+Both modules depend only on `CrestApps.OrchardCore.AI` and wrap CrestApps.Core's `AddCoreAIElevenLabs()` and
+`AddCoreAICartesia()`. Their deployments carry their own connection: under **Artificial Intelligence >
+Deployments > Add Deployment** pick **ElevenLabs** or **Cartesia**, enter the model name (for example
+`eleven_flash_v2_5` or `sonic-2`) and the **API key**, which is stored encrypted in the deployment's
+`Properties.ApiKey` (leaving it blank later keeps it). The optional **Endpoint** (`Properties.Endpoint`) is only
+for a regional endpoint such as ElevenLabs' `https://api.eu.residency.elevenlabs.io`; the defaults are
+`https://api.elevenlabs.io` and `https://api.cartesia.ai`. A recipe sets the same keys:
+
+```json
+{
+  "steps": [
+    {
+      "name": "Feature",
+      "enable": [ "CrestApps.OrchardCore.ElevenLabs" ],
+      "disable": []
+    },
+    {
+      "name": "AIDeployment",
+      "Deployments": [
+        {
+          "Name": "elevenlabs-voice",
+          "ClientName": "ElevenLabs",
+          "ModelName": "eleven_flash_v2_5",
+          "ApiKey": "{{ElevenLabsApiKey}}",
+          "Properties": { "AIDeploymentMetadata": { "Features": [ "textToSpeech" ] } }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- These providers have no default voice: pick one on the profile, the persona or
+  `DefaultTextToSpeechVoiceId`. **Artificial Intelligence > Voice library** (`ManageAIDeployments`) searches a
+  deployment's voices by name and language, plays samples, copies a voice id and clones voices.
+- Use them as the text-to-speech (or, for Cartesia `ink-2`, speech-to-text) leg of a **Cascaded Realtime**
+  deployment; they have no chat, embedding, image or speech-to-speech client. See `orchardcore-ai-realtime-voice`.
+
+## Custom LLM (WebSocket)
+
+For a model or agent you host that does not speak an OpenAI-compatible API (if it does, use the OpenAI
+provider). Enable `CrestApps.OrchardCore.AI.CustomLlm`, add a **Custom LLM (WebSocket)** connection whose
+**Endpoint** is `wss://...` (an `https://` address is used as `wss://`) and whose optional **API key** is sent
+as `Authorization: Bearer` when the socket opens, add a deployment on it (the model name is sent with each
+request), and choose it as a profile's chat deployment.
+
+For each turn the site opens a socket, sends one JSON `request` frame and reads frames until `done` or `error`:
+
+```json
+{"type":"request","model":"collections-agent","conversationId":"<ai session id>","messages":[{"role":"system","content":"You are..."},{"role":"user","content":"Can I pay next week?"}],"temperature":0.3,"maxOutputTokens":400}
+```
+
+The server answers with `{"type":"delta","content":"..."}` frames, then
+`{"type":"done","usage":{"inputTokens":812,"outputTokens":11}}` (`usage` optional, metered when given), or
+`{"type":"error","message":"..."}`. A turn with no frame for 30 seconds fails. Tools are not sent, and
+embeddings, images and speech must come from other providers.
 
 ## Azure AI Inference (GitHub Models)
 

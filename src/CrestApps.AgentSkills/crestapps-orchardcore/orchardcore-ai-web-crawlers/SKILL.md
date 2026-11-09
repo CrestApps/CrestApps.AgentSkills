@@ -30,7 +30,30 @@ You are an Orchard Core expert. Generate configuration and code for CrestApps we
 4. Use **Synchronize now** in the row's **Actions** menu, or wait for the hourly task.
 5. Attach the Web data source to an AI profile or chat interaction on its **Knowledge** tab.
 
-A recipe can create the Web data source (`"Source": "Web"` in the `AIDataSource` step, see `orchardcore-ai-data-sources`). Crawlers have no recipe or deployment step; create them in the admin or through `ISourceCatalogManager<WebCrawler>`.
+A recipe can create the Web data source (`"Source": "Web"` in the `AIDataSource` step, see `orchardcore-ai-data-sources`), then its crawlers with the `WebCrawlers` step. A crawler is matched by `ItemId`, then by `DisplayText` within the same strategy, so running the recipe twice adds nothing. `Source` must be a registered strategy and `AIDataSourceId` must name a Web data source, so import data sources first.
+
+```json
+{
+  "steps": [
+    {
+      "name": "WebCrawlers",
+      "Crawlers": [
+        {
+          "ItemId": "4wc00000000000000000000001",
+          "Source": "Sitemap",
+          "DisplayText": "Help center",
+          "AIDataSourceId": "4ds00000000000000000000002",
+          "Enabled": true,
+          "ReindexIntervalMinutes": 1440,
+          "Properties": { }
+        }
+      ]
+    }
+  ]
+}
+```
+
+The **Web crawlers** deployment step (**Artificial Intelligence** category) exports every crawler with its strategy settings in `Properties`. Secrets are never exported, and a recipe that leaves one out keeps the stored one. With **AI Chat WebAPI**, crawlers are also managed through `/api/ai/v1/web-crawlers` (see `orchardcore-ai-conversations`).
 
 ### Shared crawler fields
 

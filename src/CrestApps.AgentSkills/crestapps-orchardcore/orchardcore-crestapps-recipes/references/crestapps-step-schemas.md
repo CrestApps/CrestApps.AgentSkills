@@ -77,8 +77,35 @@ Provider settings steps take secrets in clear text, protect them on import, neve
 | `CrestApps.OrchardCore.Inventory` | `Stock` |
 | `CrestApps.OrchardCore.Stripe` | `StripeSettings` |
 
-Modules also register their own schemas from startups gated on `CrestApps.OrchardCore.Recipes` (for example Taxation registers `TaxCategory`, `TaxType`, `TaxJurisdiction`, `TaxRule`, `TaxTable` and the `TaxationPart` schema).
+Modules also register their own schemas from startups gated on `CrestApps.OrchardCore.Recipes` (for example Taxation registers `TaxCategory`, `TaxType`, `TaxJurisdiction`, `TaxRule`, `TaxTable` and the `TaxationPart` schema). Every module-owned schema is registered by the module that owns the step, from a startup that requires both `CrestApps.OrchardCore.Recipes` and the module's feature (plus `OrchardCore.Workflows` for activity schemas).
+
+## Module-owned step schemas
+
+Each of these steps has its own `<step>.schema.json` in the `orchardcore-recipes` skill's `references/recipe-schemas` folder. Read it before emitting the step; the owning skill explains what the records mean.
+
+| Module (skill) | Step schemas |
+|---|---|
+| AI file sources and web crawlers (`orchardcore-ai-file-sources`, `orchardcore-ai-web-crawlers`) | `FileSources`, `WebCrawlers` |
+| Accounts (`orchardcore-accounts`, `orchardcore-accounts-b2b`) | `Accounts`, `PriceLists` |
+| Calendars, Scheduling, Bookings (`orchardcore-calendars`, `orchardcore-scheduling`, `orchardcore-bookings`) | `Calendars`, `Scheduling`, `BookingDates` |
+| Skills, Teams (`orchardcore-skills`, `orchardcore-teams`) | `Skills`, `Teams` |
+| Workforce (`orchardcore-workforce`, `orchardcore-workforce-contact-center`) | `Workforce`, `WorkforceShiftPlanning`, `WorkforceTimeOff`, `WorkforceTimeClock`, `WorkforceLaborRules`, `WorkforceAdherence`, `WorkforceForecasting` |
+| Time Tracker, Work Orders, Assets, Geo (`orchardcore-time-tracker`, `orchardcore-work-orders`, `orchardcore-assets`, `orchardcore-geo`) | `TimeTracker`, `WorkOrders`, `Assets`, `Geo` |
+| Data Connectors (`orchardcore-data-connectors`) | `DataConnection`, `ConnectedDataSet` |
+| Report Builder (`orchardcore-report-builder`) | `ReportDesigns` (+ deployment step) |
+| Webhooks (`orchardcore-webhooks`) | `WebhookSubscriptions` (+ deployment step) |
+| Omnichannel messaging and DNC (`orchardcore-omnichannel-messaging`, `orchardcore-dnc-registry`) | `MessagingBroadcasts`, `LocalDncLists` |
+| Tenant hierarchy (`orchardcore-tenant-hierarchy`) | `TenantHierarchyAccessGrants` |
+| Commerce (`orchardcore-markets`, `orchardcore-checkout`, `orchardcore-shipping`, `orchardcore-inventory`, `orchardcore-downloads`, `orchardcore-memberships`, `orchardcore-marketplace`, `orchardcore-marketing`, `orchardcore-customers`, `orchardcore-point-of-sale`, `orchardcore-taxation`) | `Markets`, `Coupons`, `ShippingZones`, `StockLocations`, `DigitalFiles`, `Memberships`, `Vendors`, `MarketingCampaigns`, `MarketingSegments`, `LoyaltyAccounts`, `StoreCreditAccounts`, `ReferralProfiles`, `Registers`, `MerchantTaxRegistration`, `ExemptionCertificate`, `TaxCategory`, `TaxType`, `TaxJurisdiction`, `TaxRule`, `TaxTable` |
+
+Module-owned site settings, parts and fields appear in the composed `Settings` and `ContentDefinition` schemas rather than as their own files. Examples: AI cost, contact memory, MCP server and WebMCP settings; phone number verification providers; the commerce, Geo, map provider and Dispatch settings; and the `WebMcpPart`, `LeadPart`, `OpportunityPart`, `AccountPart`, `BookingPart`, `WizardPart`, `SchemaOrgPart` and report widget parts.
+
+Behaviour to keep in mind when writing these steps:
+
+- `TimeZoneMaps` and the other audited catalog steps ignore `OwnerId`, `Author`, `CreatedUtc` and `ModifiedUtc`; the importing site stamps its own audit values.
+- `GeneralAISettings.EnableAnalytics` is a legacy alias that exported plans still carry; it is ignored. Usage tracking is the AI Usage Analytics feature.
+- Several provider keys set through the generic `Settings` step (Google Maps, Azure Maps, Google Places, EasyPost, TaxJar) and the AzureSpeech, ElevenLabs and Cartesia deployment `ApiKey` are read back as Data Protection–protected values, so a clear key does not work there. Set them in the admin, or import a value protected for the destination tenant.
 
 ## Exporting reference schemas
 
-The source repository's `utilities/CrestApps.OrchardCore.RecipeSchemaExporter` writes the composed schemas to files. It instantiates parameterless and service-backed `IRecipeStep` implementations (including ones that read option snapshots, such as `AIDeployment` and `AIProviderConnections`), so exported reference schemas match the runtime providers. Without a live tenant, example lists are empty.
+The source repository's `utilities/CrestApps.OrchardCore.RecipeSchemaExporter` writes the composed schemas to files. It loads every `CrestApps.OrchardCore*` assembly in the CMS targets and instantiates every step, content, settings, deployment and workflow activity schema definition it finds, including module-owned and internal ones, so exported reference schemas match the runtime providers. Set `ORCHARDCORE_SOURCE_DIR` to an Orchard Core checkout so feature IDs are scanned from its manifests. Without a live tenant, example lists are empty. A guard test (`RecipeSchemaCoverageArchitectureTests`) fails the build when a recipe step handler or workflow activity has no schema.

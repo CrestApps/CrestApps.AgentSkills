@@ -104,7 +104,8 @@ The part is in `CartOptions.ChooseOnProductPageParts`, so product cards send sho
 
 ## Donations, Receipts and Refunds
 
-- `RecordAsync` runs when an order is paid. It writes a `Donation` per campaign line, numbered `{order number}-{line}`, with the paid amount and `CampaignAmount` converted to the campaign currency, and emails a receipt for each tax-deductible gift when receipts are emailed. Recording twice adds nothing.
+- `RecordAsync` runs when an order is paid. It writes a `Donation` per campaign line, numbered `{order number}-{line}`, with the paid amount and `CampaignAmount` converted to the campaign currency, and emails a receipt for each tax-deductible gift when receipts are emailed (the store's `donation-receipt` email template, `Donation` record). Recording twice adds nothing.
+- Personal data: `DonationPersonalDataContributor` exports donations by the donor's account (name, email) and, on erasure, replaces the name, removes the email and scrubs the tribute; amounts and receipt numbers stay. Donations are not touched by the guest retention expiry.
 - `RefundAsync` takes a refund off the order's donations in proportion.
 - `GetProgressAsync` sums non-refunded gifts in the campaign's currency and counts donors.
 
