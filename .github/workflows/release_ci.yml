@@ -15,6 +15,9 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     name: Build, Test, Deploy
+    permissions:
+      contents: read
+      id-token: write # lets NuGet/login request a short-lived key through OIDC (Trusted Publishing)
     strategy:
       fail-fast: false
       matrix:
@@ -174,8 +177,14 @@ jobs:
           echo "::error file=$mcp_targets::Skills must be linked under '.agents/skills' to match the runtime loader path."
           exit 1
         fi
+    - name: NuGet login (Trusted Publishing)
+      id: nuget_login
+      if: matrix.os == 'ubuntu-latest'
+      uses: NuGet/login@v1
+      with:
+        user: malhayek
     - name: Deploy release NuGet packages
       if: matrix.os == 'ubuntu-latest'
       run: |
         dotnet pack -c Release --no-build -p:Version=${{ steps.get_version.outputs.VERSION }} -p:TreatWarningsAsErrors=false
-        dotnet nuget push './src/**/*.nupkg' -t 600 -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+        dotnet nuget push './src/**/*.nupkg' -t 600 -k ${{ steps.nuget_login.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
