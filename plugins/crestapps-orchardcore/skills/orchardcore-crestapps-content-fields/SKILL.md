@@ -19,6 +19,7 @@ You are an Orchard Core expert. Generate focused code, migrations and recipes fo
 - Enable `CrestApps.OrchardCore.ContentFields` for `PhoneField`. It depends on `CrestApps.OrchardCore.Resources`, `CrestApps.OrchardCore.PhoneNumbers`, `OrchardCore.ContentFields` and `OrchardCore.ContentTypes`.
 - Enable `CrestApps.OrchardCore.ContentFields.Address` for `AddressField`. It depends on `CrestApps.OrchardCore.Addresses`, `OrchardCore.ContentFields` and `OrchardCore.ContentTypes`, and is separate so the phone field does not pull in Addresses.
 - Field type names are exactly `PhoneField` and `AddressField`. Fields live in `CrestApps.OrchardCore.ContentFields.Fields`; settings and `InitialCountryMode` in `CrestApps.OrchardCore.ContentFields.Settings`.
+- The field and settings classes are in the `CrestApps.OrchardCore.ContentFields.Abstractions` package (namespaces unchanged). A class library that only reads or writes `PhoneField`/`AddressField` values references the abstractions package instead of the module.
 - Store `PhoneNumber` in E.164 form (for example `+14155552671`) and `CountryCode` as ISO 3166-1 alpha-2, because countries can share a calling code.
 - The phone editor validates with `IPhoneNumberService.IsValidNumber()` and normalizes with `TryFormatToE164()`; see the `orchardcore-phone-numbers` skill.
 - Query addresses through `AddressFieldIndex` rather than loading every item.

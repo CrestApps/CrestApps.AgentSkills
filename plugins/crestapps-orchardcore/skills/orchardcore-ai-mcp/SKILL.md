@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-mcp
-description: Overview skill for Model Context Protocol (MCP) support in Orchard Core through the CrestApps.OrchardCore.AI.Mcp module. Covers choosing between the MCP client features (CrestApps.OrchardCore.AI.Mcp for remote SSE servers, CrestApps.OrchardCore.AI.Mcp.Stdio for local process servers) and the MCP Server feature (CrestApps.OrchardCore.AI.Mcp.Server with opt-in tool exposure), the FTP and SFTP resource modules, the Model Context Protocol admin screens (MCP Hosts, Prompts, Resources), permissions, the McpConnection, McpPrompt and McpResource recipe steps, deployment steps, and a combined setup recipe. Use this skill when requests mention Orchard Core MCP in general, configuring MCP integration, picking the right MCP feature, or an end-to-end MCP setup, then switch to orchardcore-ai-mcp-client, orchardcore-ai-mcp-server or orchardcore-ai-mcp-resources for details.
+description: Overview skill for Model Context Protocol (MCP) support in Orchard Core through the CrestApps.OrchardCore.AI.Mcp module. Covers choosing between the MCP client features (CrestApps.OrchardCore.AI.Mcp for remote SSE servers, CrestApps.OrchardCore.AI.Mcp.Stdio for local process servers) and the MCP Server feature (CrestApps.OrchardCore.AI.Mcp.Server with opt-in tool exposure), the FTP and SFTP resource modules, the browser-side WebMCP module (CrestApps.OrchardCore.AI.WebMcp), the Model Context Protocol admin screens (MCP Hosts, Prompts, Resources), permissions, the McpConnection, McpPrompt and McpResource recipe steps, deployment steps, and a combined setup recipe. Use this skill when requests mention Orchard Core MCP in general, configuring MCP integration, picking the right MCP feature, or an end-to-end MCP setup, then switch to orchardcore-ai-mcp-client, orchardcore-ai-mcp-server, orchardcore-ai-mcp-resources or orchardcore-ai-webmcp for details.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) is an
 | Let IDEs and AI apps call Orchard Core tools, prompts, resources | `CrestApps.OrchardCore.AI.Mcp.Server` | `orchardcore-ai-mcp-server` |
 | Expose FTP/FTPS files as MCP resources | `CrestApps.OrchardCore.AI.Mcp.Resources.Ftp` | `orchardcore-ai-mcp-resources` |
 | Expose SFTP files as MCP resources | `CrestApps.OrchardCore.AI.Mcp.Resources.Sftp` | `orchardcore-ai-mcp-resources` |
+| Give tools to AI agents in the user's browser (`document.modelContext`), and let the AI chat use the open page's tools | `CrestApps.OrchardCore.AI.WebMcp` | `orchardcore-ai-webmcp` |
 
 All MCP features depend on `CrestApps.OrchardCore.AI`. The client feature also depends on `CrestApps.OrchardCore.Resources`, and the stdio and resource features depend on the client and server features respectively. Install the packages in the web/startup project.
 
@@ -51,7 +52,7 @@ The **MCP Server** card under **Settings → Artificial Intelligence** needs `Ma
 | `McpPrompt` | `Prompts` | `Prompt.Name` is the key; messages use role `user` or `assistant` |
 | `McpResource` | `Resources` | `Source` is the resource type; `Resource.Uri` may be the path portion |
 
-With `OrchardCore.Deployment` enabled, matching **Connection**, **Prompt**, and **Resource** deployment steps appear under **Artificial Intelligence** in the deployment-plan editor.
+With `OrchardCore.Deployment` enabled, the **MCP Connections**, **MCP Prompts** and **MCP Resources** deployment steps appear under **Artificial Intelligence** in the deployment-plan editor and export in the same shape the recipe steps import (secrets blanked). With **CrestApps Recipes** (`CrestApps.OrchardCore.Recipes`) enabled, all three recipe steps have JSON schemas, so the JSON import editor and the `recipe-step-schema` MCP resource validate them.
 
 ## Combined setup
 

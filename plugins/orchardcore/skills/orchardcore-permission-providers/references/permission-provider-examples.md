@@ -54,19 +54,22 @@ public sealed class Permissions : IPermissionProvider
 
 ## Dynamic Provider Example
 
-A provider can compute permissions at runtime, for example one per content type with a given stereotype. Keep the template description context-free and format it through `Description.Value`:
+A provider can compute permissions at runtime, for example one per content type with a given stereotype. Declare the template as a `PermissionTemplate`:
 
 ```csharp
 using OrchardCore.ContentManagement.Metadata;
 using OrchardCore.ContentManagement.Metadata.Models;
+using OrchardCore.Localization;
 using OrchardCore.Security.Permissions;
 
 namespace MyModule;
 
 internal sealed class ReportPermissionProvider : IPermissionProvider
 {
-    private static readonly Permission s_viewReportTemplate =
-        new("ViewReport_{0}", "View report - {0}", [ReportPermissions.ManageReports]);
+    private static readonly PermissionTemplate s_viewReport = new(
+        "ViewReport_{0}",
+        LocalizationSource.Create<ReportPermissionProvider>("View report - {0}"),
+        ReportPermissions.ManageReports);
 
     private readonly IContentDefinitionManager _contentDefinitionManager;
 
@@ -83,10 +86,7 @@ internal sealed class ReportPermissionProvider : IPermissionProvider
     public IEnumerable<PermissionStereotype> GetDefaultStereotypes() => [];
 
     public static Permission CreatePermission(ContentTypeDefinition type) =>
-        new(
-            string.Format(s_viewReportTemplate.Name, type.Name),
-            string.Format(s_viewReportTemplate.Description.Value, type.DisplayName),
-            s_viewReportTemplate.ImpliedBy);
+        s_viewReport.CreateDynamicPermission(type.Name, type.DisplayName);
 }
 ```
 
@@ -143,10 +143,19 @@ Only the C# members were removed; stored permission names are unchanged.
 | `OrchardCore.Users.CommonPermissions.CreateAssignRoleToUsersPermission(string)` | `OrchardCore.Users.UsersPermissions.CreateAssignRoleToUsersPermission(string)` (3.x member returned the edit-users-in-role permission) |
 | `OrchardCore.Workflows.Permissions.*` | `OrchardCore.Workflows.WorkflowsPermissions.*` |
 
+## Members Made Obsolete in Orchard Core 4.0
+
+| Obsolete member | Replacement |
+| --- | --- |
+| `new Permission(string name, string description, ...)` | `new Permission(name, LocalizationSource.Create(description, typeof(DeclaringType)), ...)` |
+| `ContentTypePermissionsHelper.CreateDynamicPermission(Permission, ContentTypeDefinition)` and `(Permission, string)` | `ContentTypePermissionsHelper.CreateDynamicPermissionOf(...)` |
+| `ContentTypePermissionsHelper.ConvertToDynamicPermission(Permission)` | `ContentTypePermissionsHelper.GetPermissionTemplate(string)` |
+
 ## Best Practices
 
 - Keep `PermissionProvider` internal and sealed; keep static permissions in a `static` `*Permissions` class.
 - Keep reusable static permission instances in the matching `*.Core` project.
 - Use `LocalizationSource.Create(value, typeof(DeclaringType))` for descriptions.
+- Declare dynamic permission templates as `PermissionTemplate`, never as a `Permission` returned by a provider.
 - Use `OrchardCoreConstants.Roles.Administrator` for the administrator stereotype.
 - Keep role-specific stereotypes focused on the minimum permissions each role needs.

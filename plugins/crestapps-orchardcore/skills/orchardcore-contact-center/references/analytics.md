@@ -3,13 +3,42 @@
 ## Activation and Access
 
 - The Contact Center reports activate when **Contact Center Work Distribution** (`CrestApps.OrchardCore.ContactCenter.Queues`) and **Reports** (`CrestApps.OrchardCore.Reports`) are both enabled. There is no separate feature to toggle.
-- **Dialer activity and health** also needs **Paced Dialing**. Excel export needs `CrestApps.OrchardCore.Reports.OpenXml`; CSV is built in.
-- Access requires `ViewContactCenterReports` (Supervisor and Administrator by default). CRM reports from Omnichannel Management require **View Omnichannel reports**.
+- **Dialer activity and health** also needs **Paced Dialing**. Excel export needs `CrestApps.OrchardCore.Reports.OpenXml` and PDF export `CrestApps.OrchardCore.Reports.Pdf`; CSV is built in. With only CSV the toolbar shows **Export CSV**, otherwise an **Export** dropdown.
+- Registered reports can be emailed daily, weekly or monthly with `CrestApps.OrchardCore.Reports.Subscriptions`; Report Builder reports cannot be subscribed to (use the **Email Report** workflow task).
+- Access requires `ViewContactCenterReports` (Supervisor and Administrator by default). CRM reports from Omnichannel Management require **View Omnichannel reports** (Administrator and Supervisor by default, implied by **Manage activities**).
 - They appear under the admin **Reports** menu, grouped into Executive, Operations, Queue & Routing, Agent Performance, Workforce & Payroll, Billing & Usage, CRM & Campaigns, Compliance & Audit, and Technical & IT.
 - They never depend on the capabilities they measure. One whose subject needs Voice or Recording renders a notice naming the missing feature; others drop the columns an absent capability would feed rather than showing zeroes.
-- With `OrchardCore.DataPipelines.Core` enabled, `ContactCenterReportDataSource` exposes interaction, event, call session, call quality, queue, queue item, dialer profile, callback, recording, agent and shared voicemail data sets to the Report Builder.
-
 For the framework itself (registering a report, filters, export formats) see `orchardcore-reports`.
+
+## Report Builder Data Sets
+
+With `OrchardCore.DataPipelines.Core` enabled, the `ContactCenter` data source exposes data sets to the Report Builder and to data pipelines. Each is registered by the feature that stores its records and needs `ViewContactCenterReports`; a principal without it sees nothing.
+
+| Feature | Data sets (technical names) |
+|---|---|
+| Contact Center | `Interactions`, `InteractionEvents` (no payload), `CallSessions`, `CallQuality` |
+| Work Distribution | `Queues`, `QueueGroups`, `QueueItems`, `DialerDecisions` (one row per decision-log entry, repeats coalesced) |
+| Outbound Dialer | `DialerProfiles`, `CallbackRequests` |
+| Paced Dialing | `DialerPacingCycles` |
+| Call Recording | `CallRecordings` (also needs `ListenToAllCallRecordings`; no storage location) |
+| Agent Services, Agents | `AgentProfiles`, `AgentSessions`, `AgentStateChanges` |
+| Inbound Voice | `SharedVoicemails` (also needs `AccessContactCenterSharedVoicemail`, entitled queues only) |
+| Interval Statistics | `QueueIntervals`, `AgentIntervals` (with **Half hour** and **Hour** fields) |
+
+Each data set reads newest first by its main date and pushes date ranges, join keys and filter values down to its index. Identifier fields declare references, so `AgentId`, `QueueId`, `InteractionId`, `ActivityItemId` (Omnichannel **Activities**), `CampaignId` (Omnichannel **Campaigns**) and user IDs join on their own. Dispositions and campaigns come from the Omnichannel data source (see `orchardcore-omnichannel-management`). Business-hours checks are never stored; daily agent time summaries are derived, so read `AgentStateChanges` instead.
+
+## Interval Statistics
+
+**Contact Center Interval Statistics** (`CrestApps.OrchardCore.ContactCenter.IntervalStatistics`, depends on Work Distribution) keeps one `QueueIntervalStatistics` document per queue and UTC day and one `AgentIntervalStatistics` per agent and day, in 15-minute rows computed with the same rules as the reports. Read them with `IIntervalStatisticsReader`; roll queue rows up with `IntervalStatisticsRollup.Combine`. A background task (every five minutes) computes up to `MaxDaysPerRun` days; **Interaction Center → Management → Interval statistics** shows progress and starts a rebuild (`ManageContactCenter`).
+
+| `CrestApps:ContactCenter:IntervalStatistics` | Default |
+|---|---|
+| `RetentionDays` | `760` |
+| `BackfillDays` | `400` |
+| `ShortAbandonSeconds` | `5` |
+| `SettleDelay` | `02:00:00` |
+| `CurrentDayRefresh` | `00:15:00` |
+| `MaxDaysPerRun` | `5` |
 
 ## Shared Rules
 

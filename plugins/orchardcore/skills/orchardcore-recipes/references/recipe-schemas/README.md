@@ -18,14 +18,8 @@ Important note for `ContentDefinition`:
 Orchard Core 4.0 notes:
 
 - The Html and Markdown part and field settings no longer include `RenderLiquid`; use `LiquidPart` or `LiquidField` instead.
-- `OrchardCore.Media.ImageSharpV3` is no longer a valid feature ID.
-- Steps added in 4.0 without a schema file here, such as `DataPipelines`, should be authored from an exported deployment plan. `ReloadTenant` takes no properties.
+- Credentials can reference a secret from the `Secrets` module through the `*SecretName` settings properties. Only the generic `Settings` step accepts them; the dedicated `GitHubAuthenticationSettings`, `FacebookCoreSettings`, `FacebookLoginSettings`, `MicrosoftAccountSettings`, `TwitterSettings`, `AzureADSettings` and `OpenIdClientSettings` steps store a credential as given, and a clear value does not work at runtime.
+- `WorkflowType` carries the modernized workflow model: `Variables`, `IsActivity`, `IsSingletonPerCorrelation`, `BranchingMode`, `FaultOnScriptErrors`, `RecordActivityData`, a `Syntax` on expressions, `OutputBindings` on activities and an `ActivityRetryPolicy` on tasks.
+- `ReloadTenant` takes no properties.
 
-Maintenance note: the schema definitions in `CrestApps.OrchardCore` do not yet cover every Orchard Core 4.0 settings change; the current files include them only because they were re-applied by hand after the last regeneration. After regenerating with `utilities/CrestApps.OrchardCore.RecipeSchemaExporter`, re-apply these 4.0 changes until those definitions are updated:
-
-- remove `RenderLiquid` from `HtmlBodyPartSettings`, `MarkdownBodyPartSettings`, `HtmlFieldSettings` and `MarkdownFieldSettings`;
-- add `TextFieldSettings.MinLength` and `MaxLength`;
-- add `OpenIdServerSettings.RequireEndSessionConfirmation`;
-- add the `AdminSettings` properties `DisplayQuickNavigation`, `ShowBreadcrumb`, `MenuBehavior`, `ListLayout`, `ListActionsLayout` and `AllowUserListLayoutSelection`;
-- add `LoginSettings.UsePersistentAuthenticationCookie`;
-- add the root settings properties `AllowPageSizeSelection` and `PageSizeOptions`.
+Maintenance note: the schemas are generated from the C# definitions in `CrestApps.OrchardCore` (Recipes.Core and the module-owned `IRecipeStep` and schema definitions). Regenerate with `utilities/CrestApps.OrchardCore.RecipeSchemaExporter`; set `ORCHARDCORE_SOURCE_DIR` to an Orchard Core checkout so feature IDs are scanned from its manifests. No hand edits are needed after regeneration.

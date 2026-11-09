@@ -178,7 +178,8 @@ clean deployments) and throttled local disks (App Service).
 When `OrchardCore.Media.Tus` is also enabled, TUS partial uploads are staged as
 uncommitted blocks (`AzureBlobTusTempStore`) under a `_tus-uploads` prefix of
 the media container, so any instance can continue an upload without a shared
-temp folder. See `orchardcore-media-gallery` for TUS, SignalR and
+temp folder. Without a valid Azure configuration, TUS keeps using the local
+temp directory. See `orchardcore-media-gallery` for TUS, SignalR and
 multi-instance guidance.
 
 ## Upgrading from 3.x

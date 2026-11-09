@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TaxCategory",
+      "description": "Recipe step discriminator. Must be \u0027TaxCategory\u0027."
+    },
+    "TaxCategories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The stable identifier of the category. Preserved across environments."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The display name of the category."
+          },
+          "Code": {
+            "type": "string",
+            "description": "The unique code of the category (for example \u0027Electronics\u0027)."
+          },
+          "ParentCode": {
+            "type": "string",
+            "description": "The code of the parent category, forming a hierarchy."
+          },
+          "Description": {
+            "type": "string",
+            "description": "A description of the category."
+          },
+          "ExternalCodes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Provider-specific tax codes keyed by provider name."
+          }
+        },
+        "required": [
+          "Name",
+          "Code"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The tax categories to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "TaxCategories"
+  ],
+  "additionalProperties": true
+}

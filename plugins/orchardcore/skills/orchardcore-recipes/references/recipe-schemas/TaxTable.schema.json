@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TaxTable",
+      "description": "Recipe step discriminator. Must be \u0027TaxTable\u0027."
+    },
+    "TaxTables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The stable identifier of the tax table. Preserved across environments."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name of the tax table, referenced by table-based tax rules."
+          },
+          "Version": {
+            "type": "integer",
+            "description": "Ignored on import: each site stamps its own version, incremented on every change."
+          },
+          "EffectiveFromUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the tax table stops being effective."
+          },
+          "EffectiveToUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the tax table stops being effective."
+          },
+          "Rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Minimum": {
+                  "type": "number",
+                  "description": "The inclusive lower bound the row applies to."
+                },
+                "Maximum": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The exclusive upper bound the row applies to. Omit for no upper bound."
+                },
+                "Rate": {
+                  "type": "number",
+                  "description": "The rate applied within the row, expressed as a fraction (for example 0.2 for 20%)."
+                },
+                "FixedAmount": {
+                  "type": "number",
+                  "description": "A fixed amount applied within the row."
+                },
+                "BaseAmount": {
+                  "type": "number",
+                  "description": "A base amount added before the rate is applied, used by tiered schedules."
+                }
+              },
+              "required": [
+                "Minimum"
+              ],
+              "additionalProperties": true
+            },
+            "description": "The rows that make up the tax table."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The tax tables to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "TaxTables"
+  ],
+  "additionalProperties": true
+}

@@ -189,6 +189,7 @@ If you also override the dialog's grid container (`ContentOptionsViewModel.Thumb
 - After (4.0): title and capability icons on the first line, the token in a `<code>` line, and the description last, as shown in [The card template](#the-card-template).
 - `contentTypeId` and `stereotype` now accept several values; single-value routes and query strings work as before.
 - A theme or module that overrides the content items list page must render the `List` context of `ListContentsViewModel` with the `<admin-list>` tag helper (see `orchardcore-admin-lists`). Row templates such as `Content-BlogPost.SummaryAdmin.cshtml` only apply in the `List` layout.
+- `YesSql.Filters.Abstractions` and `YesSql.Filters.Query` move to 6.1.0 on Parlot 2. `QueryEngineBuilder`, `WithNamedTerm`, `WithDefaultTerm`, `OneCondition` and `ManyCondition` providers are unchanged. Only hand-written Parlot parsers break: `ZeroOrOne(parser)` now returns a list (use `parser.Else(fallback)` for a single value with a default) and `Parser<T>.Compile()` no longer exists (remove the call).
 
 ## Troubleshooting
 

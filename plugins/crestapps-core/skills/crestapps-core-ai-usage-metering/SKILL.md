@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-ai-usage-metering
-description: Skill for AI usage metering in CrestApps.Core 2.0. Covers how every client created by IAIClientFactory (chat, embedding, image, speech-to-text, text-to-speech and realtime) records one AICompletionUsageRecord per provider request, enabling it with GeneralAIOptions EnableAIUsageTracking, the recorded units (cached, reasoning and audio tokens, audio duration, characters, images) and AIUsageOperationTypes, labeling requests by category and purpose with UseUsageLabels, AIUsageScope, AICompletionContextKeys and AIUsagePurposes, metering clients built outside the factory with AIUsageMetering Meter, observing records with IAICompletionUsageObserver, storing them with IAICompletionUsageStore, and building per-model, per-category and per-purpose reports with AIUsageReport. Use it when pricing or attributing AI usage, building a usage dashboard, or troubleshooting missing or mislabeled usage records.
+description: Skill for AI usage metering in CrestApps.Core 2.0. Covers opting in with AddCoreAIUsageTracking or AddUsageTracking, how every client created by IAIClientFactory (chat, embedding, image, speech-to-text, text-to-speech and realtime) records one AICompletionUsageRecord per provider request, the recorded units (cached, cache-write, reasoning, audio and image tokens, web searches, audio duration and bytes, characters, voices) and AIUsageOperationTypes, labeling requests with UseUsageLabels, AIUsageScope and AIUsagePurposes, metering clients built outside the factory with AIUsageMetering Meter, IAICompletionUsageObserver and IAICompletionUsageStore, AIUsageReport and AIAudioUsageReport, and per-deployment prices with AIDeploymentPricing, AIUsageMeters and AIUsageCostEstimator. Use it when pricing or attributing AI usage, estimating cost, building a usage or audio usage dashboard, or troubleshooting missing usage records.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -13,7 +13,7 @@ Every client `IAIClientFactory` returns meters its own requests by wrapping the 
 
 ## Guidelines
 
-- Turn metering on with `GeneralAIOptions.EnableAIUsageTracking = true`. It is off by default.
+- Metering is opt-in by registration: call `services.AddCoreAIUsageTracking()` or `.AddUsageTracking()` on the AI suite builder. Without it, and without an `IAICompletionUsageObserver` of your own, nothing is metered and `IAICompletionUsageService` is not registered.
 - A record is written per request sent to the provider, not per user turn. Planning, query rewrites, vision calls, each tool-calling round trip, each embedding batch and each realtime response are separate records, so the request count equals billed requests.
 - Metering sits below every middleware you add, so `UseFunctionInvocation()` yields one record per round trip and a cached response yields none.
 - Label your own requests with `UseUsageLabels(...)` on the client pipeline, or an `AIUsageScope` around a call into a service that creates the client for you. Labels never reach the provider.
@@ -22,15 +22,18 @@ Every client `IAIClientFactory` returns meters its own requests by wrapping the 
 ## Enable Metering and Storage
 
 ```csharp
-using CrestApps.Core.AI.Models;
+using CrestApps.Core.AI;
 
-builder.Services.Configure<GeneralAIOptions>(options =>
-{
-    options.EnableAIUsageTracking = true;
-});
+builder.Services.AddCoreAIUsageTracking();
+
+// or, on the AI suite builder
+builder.Services.AddCrestAppsCore(crestApps => crestApps
+    .AddAISuite(ai => ai.AddUsageTracking()));
 ```
 
-Each record goes to every registered `IAICompletionUsageObserver`. The default `IAICompletionUsageService` is one of them and saves through `IAICompletionUsageStore`. The YesSql chat-session stores (`AddCoreAIChatSessionStoresYesSql()`, which calls `AddCoreAICompletionUsageStoresYesSql()`) and the EntityCore chat-session stores (`AddCoreAIChatSessionStoresEntityCore()`) register a store. A record whose scope was already disposed when the response finished is dropped rather than failing the answer.
+Metering follows registration: a client is wrapped only when an `IAICompletionUsageObserver` is registered (checked through `IServiceProviderIsService`, so nothing is constructed to find out). `AddCoreAIUsageTracking()` registers the default `IAICompletionUsageService`, which is itself an observer. A host can register its own observer instead of, or alongside, it.
+
+Each record goes to every registered `IAICompletionUsageObserver`. The default `IAICompletionUsageService` saves through `IAICompletionUsageStore`. The YesSql chat-session stores (`AddCoreAIChatSessionStoresYesSql()`, which calls `AddCoreAICompletionUsageStoresYesSql()`) and the EntityCore chat-session stores (`AddCoreAIChatSessionStoresEntityCore()`) register a store. A record whose scope was already disposed when the response finished is dropped rather than failing the answer.
 
 ## What a Record Holds
 
@@ -41,15 +44,22 @@ Each record goes to every registered `IAICompletionUsageObserver`. The default `
 | `InputTokenCount`, `OutputTokenCount`, `TotalTokenCount` | Tokens in and out |
 | `CachedInputTokenCount`, `ReasoningTokenCount` | Discounted cached input; reasoning output tokens |
 | `InputAudioTokenCount`, `OutputAudioTokenCount` | Audio tokens, billed at their own rate |
-| `AudioDurationMs`, `CharacterCount`, `ImageCount` | Duration-, character- and image-billed units |
+| `CacheWriteInputTokenCount`, `CachedInputAudioTokenCount` | Tokens written to the prompt cache (Anthropic bills a premium); cached audio input |
+| `InputImageTokenCount`, `OutputImageTokenCount` | Image tokens in and out |
+| `AcceptedPredictionTokenCount`, `RejectedPredictionTokenCount` | Predicted-output tokens; rejected ones are still billed |
+| `WebSearchCount`, `WebFetchCount` | Server-side web searches and fetches |
+| `AdditionalCounts` | Any other count the provider reported, by its own name |
+| `AudioDurationMs`, `CharacterCount`, `ImageCount` | Duration-, character- and image-billed units; `AudioDurationMs` also holds generated TTS length when known |
+| `AudioStartMs`, `AudioInputBytes`, `AudioOutputBytes`, `SegmentCount` | Start of recognized speech, audio sizes, transcription segments |
+| `AudioSampleRate`, `AudioFormat`, `VoiceId`, `Language`, `TargetLanguage`, `Speed`, `Pitch` | What an STT or TTS request asked for |
 | `ContextType`, `Purpose` | Category of feature and reason for the request |
 | `SessionId`, `ProfileId`, `InteractionId`, `UserId`, `VisitorId`, `ResponseLatencyMs`, `IsStreaming` | Attribution and timing |
 
-A provider that measures a non-token unit better reports it in `UsageDetails.AdditionalCounts` under `AIUsageAdditionalCounts.AudioDurationMs`, `CharacterCount` or `ImageCount`.
+Input and output token counts include the cached, cache-write, audio and image tokens; those fields say how many were of each kind. A provider that measures a non-token unit better reports it in `UsageDetails.AdditionalCounts` under `AIUsageAdditionalCounts.AudioDurationMs`, `CharacterCount` or `ImageCount`. The adapters' own names are read too: Anthropic's `CacheCreationInputTokens`, `WebSearchRequests` and `WebFetchRequests`, and OpenAI's audio, image and predicted-output token details. A TTS model that reports only tokens has its output tokens recorded as audio output tokens, and an image model's as image output tokens.
 
 ## Labeling Requests
 
-`ContextType` is the feature category (`AIChatSession` and `ChatInteraction` for the built-in chats; any other feature names its own). `Purpose` is why the request was made. The framework uses `AIUsagePurposes`: `Conversation`, `Planning`, `SearchQueryGeneration`, `Retrieval`, `Indexing`, `TitleGeneration`, `SubAgent`, `TabularProcessing`, `DataExtraction`, `PostSessionProcessing`, `ImageAnalysis`, `DocumentAnalysis`, `ImageGeneration`, `ChartGeneration`, `MetadataExtraction`, `Transcription`, `SpeechSynthesis`, `VoiceConversation`.
+`ContextType` is the feature category (`AIChatSession` and `ChatInteraction` for the built-in chats; any other feature names its own). `Purpose` is why the request was made. The framework uses `AIUsagePurposes`: `Conversation`, `Planning`, `SearchQueryGeneration`, `Retrieval`, `Indexing`, `TitleGeneration`, `SubAgent`, `TabularProcessing`, `DataExtraction`, `PostSessionProcessing`, `ImageAnalysis`, `DocumentAnalysis`, `ImageGeneration`, `ChartGeneration`, `MetadataExtraction`, `Transcription`, `SpeechSynthesis`, `VoiceConversation`, `Guardrail`, `PersonalDataRedaction`, `ConversationSummarization`.
 
 When your code creates the client:
 
@@ -161,9 +171,83 @@ var perPurpose = AIUsageReport.Build(records, AIUsageReportGrouping.ModelAndPurp
 var perCategory = AIUsageReport.Build(records, AIUsageReportGrouping.ModelAndCategory);
 ```
 
-Every grouping keeps client, model and operation type apart because each combination is priced separately. `AIUsageReportRow` sums `RequestCount`, every token, audio, character and image total, and reports `AverageResponseLatencyMs`. Records written before 2.0 have no operation type and report as chat requests.
+Every grouping keeps client, model and operation type apart because each combination is priced separately. `AIUsageReportRow` sums `RequestCount`, every token, web search, audio, character and image total and `AdditionalCounts`, and reports `AverageResponseLatencyMs`. Records written before 2.0 have no operation type and report as chat requests.
 
-To turn usage into cost, multiply each unit by its meter's price for an estimate, or split each meter's billed cost in proportion to the units each group used in the same period. A single blended per-model price misprices groups with a different input and output mix.
+### Audio Usage
+
+`AIAudioUsageReport.Build` reports speech-to-text and text-to-speech requests only:
+
+```csharp
+var perModel = AIAudioUsageReport.Build(records, AIAudioUsageReportGrouping.Model);
+var perVoice = AIAudioUsageReport.Build(records, AIAudioUsageReportGrouping.ModelAndVoice);
+var perLanguage = AIAudioUsageReport.Build(records, AIAudioUsageReportGrouping.ModelAndLanguage);
+```
+
+`AIAudioUsageReportRow` exposes `AudioHours`, `AudioDurationMs`, `SpeechDurationMs`, `RequestCount`, `RequestsWithDurationCount`, `CharacterCount`, `AudioInputBytes`, `AudioOutputBytes`, `SegmentCount` and tokens. TTS length is known only when the provider reports it or the audio is WAV, so a row whose `RequestsWithDurationCount` is below `RequestCount` is a minimum.
+
+## Deployment Pricing and Estimated Cost
+
+A deployment can carry its own prices in `AIDeploymentPricing` (`Currency`, default `USD`, and `Prices`). Each `AIDeploymentPrice` is an `Amount` for `Per` base units of one `AIUsageMeters` meter:
+
+| Meter | Base unit |
+|---|---|
+| `InputTokens`, `CachedInputTokens`, `CacheWriteInputTokens`, `OutputTokens` | token |
+| `InputAudioTokens`, `CachedInputAudioTokens`, `OutputAudioTokens`, `InputImageTokens`, `OutputImageTokens` | token |
+| `AudioSeconds` | second of audio |
+| `Characters`, `Images`, `Requests`, `WebSearches`, `WebFetches` | one each |
+| `AdditionalCount` | the provider count named by `CountName` |
+
+- Cached, cache-write, audio and image tokens are taken out of the input or output count and billed at their own price only when the deployment prices that meter; otherwise they stay at the token price.
+- Several prices for one meter add up.
+- `AboveInputTokens` makes a long-context price: a request with more input tokens pays it instead of the lower tier.
+- `Increment` rounds each request's quantity up, such as `15` for audio billed in 15-second steps.
+
+```csharp
+using CrestApps.Core.AI.Completions;
+using CrestApps.Core.AI.Models;
+
+deployment.SetPricing("USD",
+[
+    new AIDeploymentPrice { Meter = AIUsageMeters.InputTokens, Amount = 2.5m, Per = 1_000_000 },
+    new AIDeploymentPrice { Meter = AIUsageMeters.CachedInputTokens, Amount = 1.25m, Per = 1_000_000 },
+    new AIDeploymentPrice { Meter = AIUsageMeters.OutputTokens, Amount = 10m, Per = 1_000_000 },
+]);
+
+var pricing = deployment.GetPricing();
+```
+
+`SetPricing` drops incomplete prices and removes the pricing when none is left. A configured deployment declares it under `Properties`:
+
+```json
+{
+  "Name": "gpt-4o",
+  "Properties": {
+    "AIDeploymentPricing": {
+      "Currency": "USD",
+      "Prices": [
+        { "Meter": "InputTokens", "Amount": 2.5, "Per": 1000000 },
+        { "Meter": "OutputTokens", "Amount": 10, "Per": 1000000 }
+      ]
+    }
+  }
+}
+```
+
+Pass pricing to a report and each row gains `Currency` and `EstimatedCost`. Requests are priced by `DeploymentName`; deployments in different currencies, or without a price, land in separate rows:
+
+```csharp
+using CrestApps.Core.AI.Services;
+
+var pricingByDeployment = await deploymentStore.GetPricingByDeploymentAsync(cancellationToken);
+
+var perModel = AIUsageReport.Build(records, AIUsageReportGrouping.Model, pricingByDeployment);
+var audio = AIAudioUsageReport.Build(records, AIAudioUsageReportGrouping.Model, pricingByDeployment);
+
+decimal? oneRecord = AIUsageCostEstimator.Estimate(record, AIUsageCostEstimator.GetPricing(pricingByDeployment, record));
+decimal? allRecords = AIUsageCostEstimator.Estimate(records, pricingByDeployment);
+```
+
+`GetPricingByDeploymentAsync` is an `IAIDeploymentStore` extension declared on `AIUsageCostEstimator`. To match an actual bill, including discounts and credits, split each meter's billed cost in proportion to the units each group used in the same period; a single blended per-model price misprices groups with a different input and output mix.
 
 ## Provider Notes
 
@@ -171,6 +255,12 @@ To turn usage into cost, multiply each unit by its meter's price for an estimate
 - The Azure realtime protocol reads usage on `response.done` and on completed input transcriptions, including duration-billed transcription.
 - Azure AI Speech reports recognized speech start and end, which gives speech-to-text its duration. Trailing silence is not counted.
 - A cascaded realtime deployment is not wrapped itself; each leg meters its own usage.
+
+## Upgrading Within 2.0 Previews
+
+- **Tracking is opted into by registration.** `GeneralAIOptions.EnableAIUsageTracking` and `GeneralAISettings.EnableAIUsageTracking` are `[Obsolete]` and ignored. Call `AddCoreAIUsageTracking()` (or `.AddUsageTracking()`) in any host that had the option on. `GeneralAISettings.EnableAIUsageTracking` stays readable so a migration can turn a stored `true` into that registration.
+- Without the registration, the factory returns unmetered clients, `AIUsageMetering.Meter` returns the client it was given, and `IAICompletionUsageService` cannot be resolved.
+- New usage-record fields need no store migration; older records read them as zero or empty.
 
 ## Upgrading from 1.x
 

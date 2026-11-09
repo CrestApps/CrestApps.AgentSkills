@@ -6,8 +6,11 @@ A designed report is a `ReportDesign` and a reusable view a `ReportView`; both a
 
 | `ReportDesign` property | Meaning |
 | --- | --- |
-| `displayText`, `description`, `category` | Title (required), description, menu category |
-| `query` | A `ReportQueryDefinition` |
+| `displayText`, `description` | Title (required), description |
+| `groupId` | The `ReportGroup` the report is listed under (`category` is obsolete, read only to migrate) |
+| `query` | The main `ReportQueryDefinition` |
+| `queries` | Other queries: `ReportNamedQuery` with `id`, `name`, `query` |
+| `containers` | `ReportContainerDefinition` with `id`, `title`, `width` (1 to 12), `height` (pixels, `0` grows, at most 2000) |
 | `visuals` | `ReportVisualDefinition` list |
 | `showInAdminMenu` | Pin the report to the admin **Reports** menu |
 | `sharedUserNames`, `sharedRoles` | Who may run it (`Anonymous` needs `ShareReportsPublicly`, `Authenticated` means every signed-in user) |
@@ -24,25 +27,35 @@ A designed report is a `ReportDesign` and a reusable view a `ReportView`; both a
 | `joins` | `ReportJoinDefinition`: `alias` (the joined data set), `type` (`DataJoinType`: `Inner`, `Left`, `Right`, `Full`), `conditions` of `{ leftField, rightField }` |
 | `calculatedFields` | `ReportCalculatedField`: `name`, `label`, `expression` (see `formulas.md`) |
 | `filters` | `ReportFilterDefinition`: `id`, `field`, `stage` (`Rows` or `Result`), `operator` (`DataFilterOperator`, such as `Equals`, `NotEquals`, `In`, `NotIn`, `GreaterThan`, `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Between`, `InLastDays`, `InNextDays`, `IsEmpty`, `IsNotEmpty`), `values` (strings), `exposed`, `label`, `control` (`Auto`, `Text`, `Select`, `MultiSelect`, `DateRange`, `NumberRange`, `Boolean`, `RelativeDate`) |
-| `columns` | `ReportColumnDefinition`: `id`, `field`, `label`, `aggregate` (`DataAggregate`: `None`, `Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`, `Median`), `transform` (`DataFieldTransform`: `None`, `Hour`, `Day`, `Week`, `DayOfWeek`, `Month`, `MonthOfYear`, `Quarter`, `Year`), `format` (.NET format string), `hidden` |
+| `columns` | `ReportColumnDefinition`: `id`, `field`, `label`, `aggregate` (`DataAggregate`: `None`, `Count`, `CountDistinct`, `Sum`, `Average`, `Min`, `Max`, `Median`), `transform` (`DataFieldTransform`: `None`, `Hour`, `Day`, `Week`, `DayOfWeek`, `Month`, `MonthOfYear`, `Quarter`, `Year`), `format` (.NET format string), `hidden`, `shelf` (`Columns` or `Rows`), `colors` (`ReportColumnColors`), `showAs` (`Value`, `PercentOfTotal`, `RunningTotal`, `DifferenceFromPrevious`, `PercentDifference`, `Rank`), `showAsDirection` (`Down`, `Across`, `Table`) |
 | `sorts` | `ReportSortDefinition`: `columnId`, `descending` |
 | `limit` | Optional row limit |
 
 Fields are referenced as `alias.FieldName` (such as `Article.Owner`); calculated fields by `name`. A result-stage filter's `field` is a column `id`. When any column has an aggregate, rows are grouped by the other columns.
 
-`ReportVisualDefinition`: `id`, `type` (`Table`, `Chart`, `Metrics`, `Pivot`), `title`, `width` (1 to 12), `chartType` (`Line`, `Bar`, `Doughnut`, `Pie`, `Area`, `HorizontalBar`), `categoryColumnId`, `seriesColumnId`, `valueColumnIds`, `columnIds`, `showTotals`, `showSubtotals`, `stacked`, `showLegend`.
+`ReportVisualDefinition`: `id`, `type` (`Table`, `Chart`, `Metrics`, `Pivot`), `title`, `width` (1 to 12), `containerId`, `queryId` (`null` for the main query), `action` (`columnId` and `targets` of `{ visualId, field }`), `chartType` (`Line`, `Bar`, `Doughnut`, `Pie`, `Area`, `HorizontalBar`), `categoryColumnId`, `seriesColumnId`, `valueColumnIds`, `columnIds`, `showTotals`, `showSubtotals`, `stacked`, `showLegend`, `referenceLines` (`columnId`, `kind` of `Average`, `Median` or `Constant`, `value`, `label`).
+
+`colors` on a column: `headerColor`, `headerBackgroundColor`, `color`, `backgroundColor`, `scale` (`lowColor`, `midColor`, `highColor`, `target`) and `rules` (each `operator` as a `DataFilterOperator`, `values`, `color`, `target`); `target` is `Background` or `Text`. Use hexadecimal colors.
+
+A column shown as `PercentOfTotal` or `PercentDifference` defaults to the `P1` format unless its own format is a percent format; `Rank` uses `N0`.
 
 Column **Format** defaults: whole numbers `N0`, decimals `#,##0.##`, dates `d`, date-times `g` (`d` at midnight). Booleans show as Yes and No, **Month** as month and year, **Day of week** and **Month of year** as names. A table with `showSubtotals` adds a subtotal after each group of its leading dimensions, innermost first.
 
 ## ReportDesigns recipe step
 
-The step imports `Views` first, then `Reports`. Items are matched by `itemId` (letters, digits, `-` and `_`, at most 64 characters) and replaced, or created with that id. `OwnerUserName` sets the owner when a user with that name exists; otherwise `ownerId` is kept. An item without a valid `itemId` or a `displayText` is a recipe error. Designs are not checked against the site's data sources on import; a missing source is reported when the report runs. Importing a changed or live view drops its stored rows.
+The step imports `Groups` first, then `Views`, then `Reports`. Items are matched by `itemId` (letters, digits, `-` and `_`, at most 64 characters) and replaced, or created with that id. `OwnerUserName` sets the owner when a user with that name exists; otherwise `ownerId` is kept; an item with neither belongs to the person who runs the recipe (no owner when the recipe runs at setup with nobody signed in). An item without a valid `itemId` or a `displayText` is a recipe error.
+
+A group (`itemId`, `displayText`, `parentId`, `order`) may name a parent that comes later in the step; a group whose parent is missing or that would nest under itself is imported at the top level. A report names its group by `groupId` (a group in the step or on the site), by `group` (a path such as `"Sales / Regional"`, each name found ignoring case under the previous one and created when missing, which ready-made reports use), or by the legacy `category` (a top-level group, found or created). A report with an unknown `groupId` and neither `group` nor `category` is in no group. Designs are not checked against the site's data sources on import; a missing source is reported when the report runs. Importing a changed or live view drops its stored rows.
 
 ```json
 {
   "steps": [
     {
       "name": "ReportDesigns",
+      "Groups": [
+        { "itemId": "content", "displayText": "Content", "order": 1 },
+        { "itemId": "content-authors", "displayText": "Authors", "parentId": "content" }
+      ],
       "Views": [
         {
           "itemId": "articles-with-authors",
@@ -73,7 +86,7 @@ The step imports `Views` first, then `Reports`. Items are matched by `itemId` (l
         {
           "itemId": "articles-per-author",
           "displayText": "Articles per author",
-          "category": "Content",
+          "groupId": "content-authors",
           "showInAdminMenu": true,
           "allowExport": true,
           "sharedRoles": [ "Editor" ],
@@ -121,9 +134,74 @@ The step imports `Views` first, then `Reports`. Items are matched by `itemId` (l
 
 The easiest way to get an exact shape is to build the report in the builder on a site where it works and export it with a deployment plan.
 
+### A dashboard with two queries, containers and a click action
+
+Clicking an agent in the table filters the trend chart, which reads another query of the same data set:
+
+```json
+{
+  "steps": [
+    {
+      "name": "ReportDesigns",
+      "Reports": [
+        {
+          "itemId": "call-quality",
+          "displayText": "Call quality",
+          "group": "Contact Center / Quality",
+          "query": {
+            "dataSets": [ { "alias": "c", "source": "MyCalls", "dataSet": "Call" } ],
+            "columns": [
+              { "id": "agent", "field": "c.Agent" },
+              { "id": "score", "field": "c.Score", "aggregate": "Average", "colors": { "rules": [ { "operator": "LessThan", "values": [ "50" ], "color": "#DC2626", "target": "Background" } ] } },
+              { "id": "share", "field": "c.CallId", "aggregate": "Count", "showAs": "PercentOfTotal" }
+            ]
+          },
+          "queries": [
+            {
+              "id": "byDay",
+              "name": "By day",
+              "query": {
+                "dataSets": [ { "alias": "c", "source": "MyCalls", "dataSet": "Call" } ],
+                "columns": [
+                  { "id": "day", "field": "c.StartedUtc", "transform": "Day" },
+                  { "id": "score", "field": "c.Score", "aggregate": "Average" }
+                ]
+              }
+            }
+          ],
+          "containers": [
+            { "id": "agents", "title": "Agent scorecard", "width": 6, "height": 400 },
+            { "id": "trend", "title": "Score trend", "width": 6, "height": 400 }
+          ],
+          "visuals": [
+            {
+              "id": "agentTable",
+              "type": "Table",
+              "containerId": "agents",
+              "action": { "columnId": "agent", "targets": [ { "visualId": "trendChart" } ] }
+            },
+            {
+              "id": "trendChart",
+              "type": "Chart",
+              "queryId": "byDay",
+              "containerId": "trend",
+              "chartType": "Line",
+              "categoryColumnId": "day",
+              "valueColumnIds": [ "score" ],
+              "referenceLines": [ { "columnId": "score", "kind": "Average" }, { "kind": "Constant", "value": 80, "label": "Target" } ]
+            }
+          ],
+          "OwnerUserName": "admin"
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Deployment step
 
-**Designed Reports and Views** (`ReportDesignsDeploymentStep`, category **Reporting**) writes a `ReportDesigns` step. `IncludeAll` (default `true`) exports every report and view, including ones created later; otherwise `ReportIds` and `ViewIds` pick them, and the views they read are added. Each item carries `OwnerUserName`; share links are never exported. In a `DeploymentPlans` recipe:
+**Designed Reports and Views** (`ReportDesignsDeploymentStep`, category **Reporting**) writes a `ReportDesigns` step. `IncludeAll` (default `true`) exports every report, view and report group, including ones created later; otherwise `ReportIds` and `ViewIds` pick them, and the views any of their queries read and the groups they sit in (with their parents, parents first) are added. Import an exported file under **Tools > Deployments > JSON Import** or **Package Import**; importing it again replaces the same reports. Each item carries `OwnerUserName`; share links are never exported. In a `DeploymentPlans` recipe:
 
 ```json
 {
@@ -157,8 +235,8 @@ Tasks find the report by `ReportId` or `ReportIdExpression` (Liquid) and take fi
 | Task | Outcomes | Output |
 | --- | --- | --- |
 | `RunReportTask` | `Done`, `No rows`, `Failed` | `Report`: `ReportId`, `Title`, `RowCount`, `Columns`, `Rows` (at most 1,000 dictionaries by column label), `Errors` |
-| `ExportReportTask` (`Format`, `MediaFolder`) | `Done`, `Failed` | `ReportFile`: `ReportId`, `Title`, `FileName`, `ContentType`, `Format`, `RowCount`, `Size`, and `Path` and `Url` (with a media folder, needs Media) or `Base64` |
-| `EmailReportTask` (`To`, `Cc`, `Bcc`, `Subject`, `Body`, `AttachmentFormat` default `csv`, `IncludeReport` default `true`) | `Done`, `Failed` | None; metrics and tables rendered as inline-styled HTML |
+| `ExportReportTask` (`Format`: `csv`, `xlsx` or `pdf` as their features allow; `MediaFolder`) | `Done`, `Failed` | `ReportFile`: `ReportId`, `Title`, `FileName`, `ContentType`, `Format`, `RowCount`, `Size`, and `Path` and `Url` (with a media folder, needs Media) or `Base64` |
+| `EmailReportTask` (`To` required, `Cc`, `Bcc`, `Subject`, `Body`, `AttachmentFormat` default `csv`, also `xlsx` or `pdf`, `IncludeReport` default `true`) | `Done`, `Failed` | None; metrics and tables rendered as inline-styled HTML, with cross-tab header rows and column colors |
 | `CreateReportShareLinkTask` (`Recipients`, `Note`, `ExpiresAfterDays` default 7, `MaxUses`, `AllowExport`, `NotifyByEmail` default `true`) | `Done`, `Failed` | `ReportShareLink`: `ReportId`, `Title`, `Url`, `LinkId`, `ExpiresUtc`, `Recipients`, `Notified` |
 
 `Workflow.LastResult` is the output of run and export, the link URL for the share link task, and the report id for the email task. Share link URLs use the site's base URL (set it for timer-started workflows).

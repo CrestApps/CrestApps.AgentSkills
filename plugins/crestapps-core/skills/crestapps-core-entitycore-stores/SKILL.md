@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-entitycore-stores
-description: Skill for the CrestApps.Core.Data.EntityCore persistence backend in CrestApps.Core 2.0. Covers AddEntityCoreSqliteDataStore and AddEntityCoreDataStore with any EF Core provider, EntityCoreDataStoreOptions (TablePrefix, EnforceNamedSourceUniqueness), CrestAppsEntityDbContext and its tables, EntityCoreStoreCommitter, per-feature AddEntityCoreStores on every feature builder including personas and tool instances, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, generic document catalogs for custom models, binding sources, InitializeEntityCoreSchemaAsync, and extending the model with ICrestAppsModelConfigurer. Use it when a host persists CrestApps.Core data with Entity Framework Core or troubleshoots EF Core stores.
+description: Skill for the CrestApps.Core.Data.EntityCore persistence backend in CrestApps.Core 2.0. Covers AddEntityCoreSqliteDataStore and AddEntityCoreDataStore with any EF Core provider, EntityCoreDataStoreOptions (TablePrefix, EnforceNamedSourceUniqueness), CrestAppsEntityDbContext and its tables, EntityCoreStoreCommitter, per-feature AddEntityCoreStores on every feature builder including personas, tool instances and AI profile versions, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, generic document catalogs for custom models, binding sources, InitializeEntityCoreSchemaAsync, and extending the model with ICrestAppsModelConfigurer. Use it when a host persists CrestApps.Core data with Entity Framework Core or troubleshoots EF Core stores.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -58,6 +58,7 @@ builder.Services.AddCoreFileSourceStoresEntityCore();
 | `AddCoreAIServicesStoresEntityCore()` | `EntityCoreAIProfileStore` as `IAIProfileStore` and every `AIProfile` catalog interface; writable binding sources for `AIProviderConnection` and `AIDeployment` |
 | `AddCoreAIProfileTemplateStoresEntityCore()` | `AIProfileTemplate` named-source catalog |
 | `AddCoreAIPersonaStoresEntityCore()` | `AIPersona` named catalog |
+| `AddCoreAIProfileVersionStoresEntityCore()` | `EntityCoreAIProfileVersionStore` as `IAIProfileVersionStore` (also `AddProfileVersions(v => v.AddEntityCoreStores())`) |
 | `AddCoreAIToolInstanceStoresEntityCore()` | `AIToolInstance` named-source catalog |
 | `AddCoreAIA2AClientStoresEntityCore()` | `A2AConnection` catalog |
 | `AddCoreAIMcpClientStoresEntityCore()` | `McpConnection` source catalog |
@@ -74,7 +75,7 @@ builder.Services.AddCoreFileSourceStoresEntityCore();
 | `AddCoreWebCrawlerStoresEntityCore()` | `EntityCoreWebCrawlerStore`, `EntityCoreWebCrawlStateStore`, plus knowledge and ingestion item state |
 | `AddCoreFileSourceStoresEntityCore()` | `EntityCoreFileSourceStore`, plus knowledge and ingestion item state |
 
-`services.AddEntityCoreStores()` is a one-call shortcut that runs `AddCatalogManagers()` and the services, tool instance, profile template, A2A, MCP client, MCP server, chat session, document processing, data source, memory, chat interaction and indexing methods. It does **not** include personas, knowledge objects, ingestion item state, web crawlers or file sources; add those explicitly.
+`services.AddEntityCoreStores()` is a one-call shortcut that runs `AddCatalogManagers()` and the services, tool instance, profile template, A2A, MCP client, MCP server, chat session, document processing, data source, memory, chat interaction and indexing methods. It does **not** include personas, profile versions, knowledge objects, ingestion item state, web crawlers or file sources; add those explicitly.
 
 ## Tables
 
@@ -138,6 +139,12 @@ Configurers run inside `OnModelCreating` in registration order. Access the table
 - **Writes disappear**: no commit boundary ran. Add the MVC, hub or endpoint filter, or call `IStoreCommitter.CommitAsync()` in background scopes.
 - **`IKnowledgeObjectStore` cannot be resolved**: call `AddCoreKnowledgeStoresEntityCore()` (or a web crawler or file source store method).
 - **Duplicate names across sources**: clean them up before turning on `EnforceNamedSourceUniqueness`.
+
+## Upgrading Within 2.0 Previews
+
+- AI profile versions are stored as `AIProfileVersion` documents in `Documents`, with the profile id in the `CatalogRecords` reference column (`ReferenceId`, `ReferenceType = AIProfile`) and the save time in `CreatedUtc`. No new table.
+- `EntityCoreAIChatSessionStore` implements the new `IAIChatSessionStore.ListByLastActivityAsync` and `DeleteAsync`. A host with its own session store must add both.
+- `EntityCoreAIChatSessionManager.PageAsync` filters by `AIChatSessionQueryContext.UserId` when set, and new sessions record the profile's `AIProfileVersionMetadata`.
 
 ## Upgrading from 1.x
 

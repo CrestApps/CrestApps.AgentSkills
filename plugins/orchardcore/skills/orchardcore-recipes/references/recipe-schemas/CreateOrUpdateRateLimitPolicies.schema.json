@@ -1,0 +1,243 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "CreateOrUpdateRateLimitPolicies",
+      "description": "Recipe step discriminator. Must be \u0027CreateOrUpdateRateLimitPolicies\u0027."
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "PolicyId": {
+            "type": "string",
+            "description": "The identifier of the policy. A policy with the same identifier, or else with the same name, is updated; otherwise a policy is created."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The unique name of the policy."
+          },
+          "Description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The description of the policy."
+          },
+          "OwnerId": {
+            "type": "string",
+            "description": "The identifier of the user who owns the policy, for example \u0022[js: parameters(\u0027AdminUserId\u0027)]\u0022."
+          },
+          "Author": {
+            "type": "string",
+            "description": "The user name of the author of the policy, for example \u0022[js: parameters(\u0027AdminUsername\u0027)]\u0022."
+          },
+          "Scope": {
+            "type": "string",
+            "enum": [
+              "Global",
+              "Endpoint",
+              "Group"
+            ],
+            "description": "Which requests the policy limits: every request, the requests to one path, or the endpoints of a rate-limit group."
+          },
+          "Path": {
+            "type": "string",
+            "pattern": "^/",
+            "description": "The request path that starts with \u0027/\u0027. Required when the scope is \u0027Endpoint\u0027."
+          },
+          "GroupName": {
+            "type": "string",
+            "examples": [
+              "email-confirmation",
+              "password-authentication",
+              "password-recovery",
+              "two-factor-authentication",
+              "two-factor-code-send",
+              "two-factor-recovery",
+              "user-registration"
+            ],
+            "description": "The rate-limit group of the endpoints. Required when the scope is \u0027Group\u0027."
+          },
+          "IsEnabled": {
+            "type": "boolean",
+            "description": "Whether the policy is enforced."
+          },
+          "EnabledUtc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date and time when the policy was enabled. Set automatically when omitted."
+          },
+          "Limiters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "description": "The identifier of the limiter, for example \u0022[js: uuid()]\u0022."
+                },
+                "Source": {
+                  "type": "string",
+                  "examples": [
+                    "FixedWindow",
+                    "SlidingWindow",
+                    "TokenBucket",
+                    "Concurrency"
+                  ],
+                  "description": "The algorithm of the limiter."
+                },
+                "Properties": {
+                  "type": "object",
+                  "properties": {
+                    "FixedWindowRateLimiterData": {
+                      "type": "object",
+                      "properties": {
+                        "PermitLimit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The number of requests allowed in a window."
+                        },
+                        "WindowSeconds": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The length of the window, in seconds."
+                        },
+                        "QueueLimit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "The number of requests that wait when the limit is reached."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "The settings of a \u0027FixedWindow\u0027 limiter."
+                    },
+                    "SlidingWindowRateLimiterData": {
+                      "type": "object",
+                      "properties": {
+                        "PermitLimit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The number of requests allowed in a window."
+                        },
+                        "WindowSeconds": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The length of the window, in seconds."
+                        },
+                        "SegmentsPerWindow": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The number of segments the window is divided into."
+                        },
+                        "QueueLimit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "The number of requests that wait when the limit is reached."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "The settings of a \u0027SlidingWindow\u0027 limiter."
+                    },
+                    "TokenBucketRateLimiterData": {
+                      "type": "object",
+                      "properties": {
+                        "TokenLimit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The maximum number of tokens in the bucket."
+                        },
+                        "TokensPerPeriod": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The number of tokens added at each period."
+                        },
+                        "ReplenishmentPeriodSeconds": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The period between two replenishments, in seconds."
+                        },
+                        "QueueLimit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "The number of requests that wait when no token is left."
+                        },
+                        "QueueProcessingOrder": {
+                          "type": "string",
+                          "enum": [
+                            "OldestFirst",
+                            "NewestFirst"
+                          ],
+                          "description": "The order in which queued requests are processed."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "The settings of a \u0027TokenBucket\u0027 limiter."
+                    },
+                    "ConcurrencyRateLimiterData": {
+                      "type": "object",
+                      "properties": {
+                        "PermitLimit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "The number of requests processed at the same time."
+                        },
+                        "QueueLimit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "The number of requests that wait when the limit is reached."
+                        },
+                        "QueueProcessingOrder": {
+                          "type": "string",
+                          "enum": [
+                            "OldestFirst",
+                            "NewestFirst"
+                          ],
+                          "description": "The order in which queued requests are processed."
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "The settings of a \u0027Concurrency\u0027 limiter."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "The settings of the limiter, under the name of the data type of its algorithm."
+                }
+              },
+              "required": [
+                "Source"
+              ],
+              "additionalProperties": true
+            },
+            "description": "The limiters of the policy. A request must be allowed by every limiter."
+          }
+        },
+        "required": [
+          "Name",
+          "Scope"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The rate-limit policies to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "policies"
+  ],
+  "additionalProperties": true
+}

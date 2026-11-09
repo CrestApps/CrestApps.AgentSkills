@@ -201,6 +201,7 @@ public sealed class ProfileRunner
 | A profile's tools, agents, RAG and MCP | `IOrchestrator.ExecuteStreamingAsync` |
 | Stored sessions, hubs, chat UI | `crestapps-core-chat-interactions` |
 | Speech-to-speech conversations | `crestapps-core-realtime-voice` |
+| Let the chat run tools the user's browser page exposes | `crestapps-core-webmcp` |
 
 ## Provider Behavior Worth Knowing
 

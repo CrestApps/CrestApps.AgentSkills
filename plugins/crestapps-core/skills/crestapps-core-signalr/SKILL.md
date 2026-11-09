@@ -103,7 +103,8 @@ A `HubRouteManager` constructed with a `siteBaseUrlResolver` builds absolute URL
 `AddCoreSignalR()` does not configure authentication; `app.UseAuthentication()` and `app.UseAuthorization()` must run before endpoints.
 
 - **Connection level**: put `[Authorize]` on the hub class to reject the negotiate request.
-- **Per invocation**: the chat hubs are not decorated and their hooks allow everything by default. Override `AuthorizeProfileAsync(IServiceProvider, AIProfile)` on `AIChatHubCore<TClient>` and `AuthorizeAsync(IServiceProvider, ChatInteraction)` on `ChatInteractionHubBase`. A `false` result sends `ReceiveError` with `GetNotAuthorizedMessage()` and keeps the connection open.
+- **Per invocation**: the chat hubs are not decorated and their profile and interaction hooks allow everything by default. Override `AuthorizeProfileAsync(IServiceProvider, AIProfile)` on `AIChatHubCore<TClient>` and `AuthorizeAsync(IServiceProvider, ChatInteraction)` on `ChatInteractionHubBase`. A `false` result sends `ReceiveError` with `GetNotAuthorizedMessage()` and keeps the connection open.
+- **Per session**: `AIChatHubCore<TClient>.AuthorizeSessionAsync(IServiceProvider, AIChatSession)` lets only the session's owner (matching `UserId`, or the visitor's `ClientId`) load, continue or rate it, and reports any other id as not found. Override it to let administrators review conversations (see `crestapps-core-chat-interactions`).
 
 Headless clients send a bearer token as the `access_token` query parameter during the WebSocket handshake. Accept it only on hub paths:
 

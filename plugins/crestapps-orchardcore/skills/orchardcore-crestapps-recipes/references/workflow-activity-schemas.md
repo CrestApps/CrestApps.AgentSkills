@@ -2,7 +2,7 @@
 
 The `WorkflowType` step imports workflow definitions. Each activity keeps its configuration in a free-form `Properties` bag whose shape depends on the activity. CrestApps Recipes composes one `Properties` schema per registered activity, so editors and AI agents get the property list, types, syntax hints, required members and outcomes as soon as the activity `Name` is typed.
 
-Registered when `OrchardCore.Workflows` is enabled (`IWorkflowActivitySchemaService`, `WorkflowTypeRecipeStep`). Built-in definitions are added per owning feature: core control-flow tasks, `OrchardCore.Workflows.Http`, `OrchardCore.Workflows.Timers`, content events and tasks (`OrchardCore.Contents`), `EmailTask` (`OrchardCore.Email`), `SmsTask` (`OrchardCore.Sms`), forms, notifications, reCaptcha, roles, users, tenants, Twitter, the CrestApps AI events and tasks (`CrestApps.OrchardCore.AI`) and the Contact Center events and tasks (`CrestApps.OrchardCore.ContactCenter`).
+Registered when `OrchardCore.Workflows` is enabled (`IWorkflowActivitySchemaService`, `WorkflowTypeRecipeStep`). Built-in definitions are added per owning feature: core control-flow tasks, `OrchardCore.Workflows.Http`, `OrchardCore.Workflows.Timers`, content events and tasks (`OrchardCore.Contents`), `EmailTask` (`OrchardCore.Email`), `SmsTask` (`OrchardCore.Sms`), forms, notifications, reCaptcha, roles, users, tenants, Twitter, Data Pipelines (`RunDataPipelineTask`, `DataPipelineRunCompletedEvent`), Facebook Pixel (`MetaConversionsApiEventTask`), the Orchard Core 4.0 additions (`ExecuteWorkflowTask`, `StartedByWorkflowEvent`, `SetVariableTask`, `UserLoggedOutEvent`), the CrestApps AI events and tasks (`CrestApps.OrchardCore.AI`) and the Contact Center events and tasks (`CrestApps.OrchardCore.ContactCenter`). Other CrestApps modules register their own activity schemas from their startups: Calendars, Scheduling, Bookings, Skills, Workforce, Work Orders, Dispatch, Orders, Shipping, Stripe, Inventory, Subscriptions, Report Builder, Wizard and Omnichannel. A guard test fails the CrestApps build when an activity has no schema.
 
 ## What the schema describes
 
@@ -15,9 +15,11 @@ Registered when `OrchardCore.Workflows` is enabled (`IWorkflowActivitySchemaServ
 
 ## Expressions, enums and `ActivityMetadata`
 
-`WorkflowExpression<T>` properties serialize as an object with an optional, nullable `Expression` string; a bare string is rejected. `{ "Sender": {} }` and `{ "Sender": { "Expression": null } }` are both valid. Enum properties accept the member name or its ordinal (`"BodyFormat": "Html"` or `"BodyFormat": 2`).
+`WorkflowExpression<T>` properties serialize as an object with an optional, nullable `Expression` string and an optional `Syntax` (`Literal`, `Liquid`, `JavaScript` or another registered syntax); a bare string is rejected. `{ "Sender": {} }` and `{ "Sender": { "Expression": null } }` are both valid. Only the activities that let each expression pick its syntax read `Syntax` (`IfElseTask`, `WhileLoopTask`, `ForEachTask`, `ForLoopTask`, `SetPropertyTask`, `SetOutputTask`, `SetVariableTask`, `CorrelateTask`, `ExecuteWorkflowTask`); on those, the older `Liquid*` properties and activity-level `Syntax` are legacy. Some CrestApps tasks take plain Liquid strings rather than expression objects; follow each activity's schema. Enum properties accept the member name or its ordinal (`"BodyFormat": "Html"` or `"BodyFormat": 2`).
 
-Every activity may carry `ActivityMetadata` with an optional, nullable `Title`. The base class adds it; never declare it yourself. Its schema is closed.
+Every activity may carry `ActivityMetadata` with an optional, nullable `Title`, and `OutputBindings`, an object that maps output names (such as `Result`) to declared workflow variables. Every task may also carry `ActivityRetryPolicy` (`MaxRetries` 0–10, `DelaySeconds`, `Backoff`, `OnFailure`). The base class adds these; never declare them yourself.
+
+The workflow type itself carries `Variables` (`Name`, `TypeName`, `DefaultValue`, `Description`, `IsInput`, `IsOutput`), `IsActivity` (the workflow can be started from another workflow), `IsSingletonPerCorrelation`, `BranchingMode` (`FirstOnly` or `All`), `FaultOnScriptErrors` and `RecordActivityData`. Importing an existing `WorkflowTypeId` publishes it as the next version and discards its draft; `VersionId` is ignored on import. See the `orchardcore-workflows` skill for what each one does.
 
 ```json
 {

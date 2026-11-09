@@ -1,6 +1,6 @@
 ---
 name: orchardcore-email-azure
-description: Skill for configuring Azure Communication Services email delivery in Orchard Core. Covers AzureEmailSettings, AzureEmailOptions, DefaultAzureEmailOptions, AzureEmailProvider, DefaultAzureEmailProvider, the generic AzureEmailProviderBase, the OrchardCore Email Azure configuration section, IOptionsMonitor refresh, encrypted connection strings, provider selection, recipes, IEmailService, and configuration overrides. Use this skill when requests mention Orchard Core Azure Email, Azure Communication Services Email, AzureEmailSettings, AzureEmailProvider, DefaultAzureEmailOptions, DefaultAzure, ACS email provider, custom Azure email provider, upgrading Azure email code to Orchard Core 4, or closely related Orchard Core implementation setup extension or troubleshooting work.
+description: Skill for configuring Azure Communication Services email delivery in Orchard Core. Covers AzureEmailSettings, AzureEmailOptions, DefaultAzureEmailOptions, AzureEmailProvider, DefaultAzureEmailProvider, the generic AzureEmailProviderBase, the OrchardCore Email Azure configuration section, IOptionsMonitor refresh, encrypted connection strings, ConnectionStringSecretName references to the Secrets module, provider selection, recipes, IEmailService, and configuration overrides. Use this skill when requests mention Orchard Core Azure Email, Azure Communication Services Email, AzureEmailSettings, AzureEmailProvider, DefaultAzureEmailOptions, DefaultAzure, ACS email provider, custom Azure email provider, upgrading Azure email code to Orchard Core 4, or closely related Orchard Core implementation setup extension or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -40,7 +40,10 @@ on top of the provider-neutral `OrchardCore.Email` API (see
 ```
 
 Keep the connection string out of committed files: use
-`OrchardCore__Email__Azure__ConnectionString` or a key vault.
+`OrchardCore__Email__Azure__ConnectionString` or a key vault. In 4.0 a nonblank
+`ConnectionString` here logs a `LegacySecretConfiguration` warning (event
+`8100`). `DefaultAzureEmailOptions` can't reference a secret; to keep the
+connection string in the Secrets module, use the tenant `Azure` provider.
 
 ```json
 {
@@ -68,11 +71,21 @@ Keep the connection string out of committed files: use
 |---|---|
 | `IsEnabled` | Enables the tenant provider. |
 | `DefaultSender` | Verified ACS sender address. Required. |
-| `ConnectionString` | ACS connection string. Required. Stored encrypted with Data Protection. |
+| `ConnectionString` | ACS connection string. Required unless a secret is referenced. Stored encrypted with Data Protection. |
+| `ConnectionStringSecretName` | 4.0. Name of a `TextSecret` holding the connection string; takes precedence over `ConnectionString`. |
 
 The admin UI encrypts the connection string before saving it, and
 `AzureEmailOptionsConfiguration` decrypts it. Enter it in the admin UI; a plain
-connection string imported by a `Settings` recipe step cannot be decrypted. When
+connection string imported by a `Settings` recipe step cannot be decrypted.
+
+With the `OrchardCore.Secrets` feature enabled, the connection string editor
+(`<secret-input>`) offers **Use a secret**: pick or create a `TextSecret`
+(suggested name `AzureEmail.ConnectionString`), and the protected value is
+cleared on save. A saved connection string can be moved without retyping it
+from **Tools → Security → Migrate Secrets**. A recipe can create the secret
+with the `Secrets` step (value from the `OrchardCore__Secrets__AzureEmail.ConnectionString`
+environment variable) and set `"ConnectionStringSecretName": "AzureEmail.ConnectionString"`
+in `AzureEmailSettings`. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md). When
 the tenant provider is the only one enabled it becomes the default
 automatically; disabling it clears the default if it was selected.
 
@@ -164,3 +177,9 @@ use.
 - `class MyProvider : AzureEmailProviderBase` with a `Func<AzureEmailOptions>`
   constructor argument → `AzureEmailProviderBase<TOptions>` with
   `IOptionsMonitor<TOptions>`.
+- Saved connection strings keep working. Code reading
+  `AzureEmailSettings.ConnectionString` directly must also honor
+  `ConnectionStringSecretName` (read `IOptionsMonitor<AzureEmailOptions>`
+  or call `IServiceProvider.GetSecretValueAsync()`).
+- `OrchardCore:Email:Azure:ConnectionString` still works but logs
+  `LegacySecretConfiguration`.

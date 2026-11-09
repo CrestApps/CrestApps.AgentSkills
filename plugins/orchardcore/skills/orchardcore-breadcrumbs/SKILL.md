@@ -54,6 +54,7 @@ Rendering it in the `Title` zone keeps the **Display titles in the top bar** adm
 
 - Use stable literal strings for `name` and ancestor `id`, in PascalCase without separators (`ContentsEdit`, `Records`), so alternate file names stay readable.
 - Reuse the screen's admin list name when it has one; the content items list uses `Contents` for both. Content screens use `Contents`, `ContentsCreate`, and `ContentsEdit`.
+- The `ContentsEdit` trail of a **listable** content type includes the type as a `ContentType` item between **Manage Content** and the edit title: it links to the request's `returnUrl` when that is a local URL, otherwise to the content items list filtered to that type (link disabled when the user can't list it). Non-listable types keep the shorter trail. Target it in a provider or alternate with the `ContentType` id (for example `BreadcrumbItem-ContentsEdit-ContentType.DetailAdmin.cshtml`).
 - The name drives provider targeting, the `breadcrumb-{name}` CSS class, shape alternates, and Dashboard deduplication. No constants class, `data` attribute, or breadcrumb manager is needed.
 
 ## `<breadcrumb>` Attributes

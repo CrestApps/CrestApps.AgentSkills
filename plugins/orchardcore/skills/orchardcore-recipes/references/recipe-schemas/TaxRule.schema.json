@@ -1,0 +1,192 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TaxRule",
+      "description": "Recipe step discriminator. Must be \u0027TaxRule\u0027."
+    },
+    "TaxRules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The stable identifier of the rule. Preserved across environments."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The display name of the rule."
+          },
+          "Version": {
+            "type": "integer",
+            "description": "Ignored on import: each site stamps its own version, incremented on every change."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the rule is enabled."
+          },
+          "Priority": {
+            "type": "integer",
+            "description": "The evaluation priority. Lower values are evaluated first."
+          },
+          "TaxType": {
+            "type": "string",
+            "description": "The type of tax the rule produces (for example \u0027SalesTax\u0027)."
+          },
+          "TaxName": {
+            "type": "string",
+            "description": "The human readable name of the tax the rule produces."
+          },
+          "TaxCode": {
+            "type": "string",
+            "description": "The code of the tax the rule produces."
+          },
+          "JurisdictionId": {
+            "type": "string",
+            "description": "The identifier of the jurisdiction the rule belongs to."
+          },
+          "CategoryCode": {
+            "type": "string",
+            "description": "The tax category code the rule applies to. Omit to match every category."
+          },
+          "CustomerType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "B2C",
+                  "B2B"
+                ]
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The customer classification the rule applies to. Omit to match every customer type."
+          },
+          "Source": {
+            "type": "string",
+            "description": "The calculation method used by the rule (for example \u0027Percentage\u0027)."
+          },
+          "Rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exclusive maximum taxable amount the rule applies to."
+          },
+          "FixedAmount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exclusive maximum taxable amount the rule applies to."
+          },
+          "TaxTableId": {
+            "type": "string",
+            "description": "The identifier of the tax table the rule uses, when the method is table based."
+          },
+          "IncludedInPrice": {
+            "type": "boolean",
+            "description": "Whether the produced tax is included in the item price."
+          },
+          "IsCompound": {
+            "type": "boolean",
+            "description": "Whether the produced tax is compound (calculated on top of other taxes)."
+          },
+          "ReverseCharge": {
+            "type": "boolean",
+            "description": "Whether the recipient accounts for the tax (reverse charge). Produces a zero-amount reverse-charge line when the customer matches."
+          },
+          "AppliesToShipping": {
+            "type": "boolean",
+            "description": "Whether the rule applies to shipping charges."
+          },
+          "MinimumAmount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exclusive maximum taxable amount the rule applies to."
+          },
+          "MaximumAmount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exclusive maximum taxable amount the rule applies to."
+          },
+          "ThresholdBasis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Item",
+                  "Order"
+                ]
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "What the minimum and maximum amounts are compared with: each item, or the whole order."
+          },
+          "EffectiveFromUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the rule stops being effective."
+          },
+          "EffectiveToUtc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The UTC date the rule stops being effective."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "minItems": 1,
+      "description": "The tax rules to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "TaxRules"
+  ],
+  "additionalProperties": true
+}

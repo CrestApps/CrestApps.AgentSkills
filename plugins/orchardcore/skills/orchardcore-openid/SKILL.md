@@ -1,6 +1,6 @@
 ---
 name: orchardcore-openid
-description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers the authorization server, token validation, client integration and management features, the OpenIdServerSettings, OpenIdApplication, OpenIdScope, OpenIdValidationSettings and OpenIdClientSettings recipe steps, client registration, authorization code with PKCE, client credentials, refresh tokens, pushed authorization requests, logout without confirmation through RequireEndSessionConfirmation, userinfo claims, securing APIs with the Api scheme, token endpoint rate limiting, and OpenIdPermissions. Use this skill when requests mention Orchard Core OpenID Connect, OAuth 2.0, OpenIddict, token endpoint, bearer tokens, PKCE, logout confirmation, external OIDC login, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include work with OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, IOpenIdServerService, IOpenIdApplicationManager, and OpenIdPermissions.
+description: Skill for configuring and managing OpenID Connect in Orchard Core. Covers the authorization server, token validation, client integration and management features, the OpenIdServerSettings, OpenIdApplication, OpenIdScope, OpenIdValidationSettings and OpenIdClientSettings recipe steps, authorization code with PKCE, client credentials, refresh tokens, pushed authorization requests, RequireEndSessionConfirmation, userinfo claims, securing APIs with the Api scheme, token endpoint rate limiting, signing and encryption keys from the Secrets module with OrchardCore.OpenId.Secrets, and OpenIdPermissions. Use this skill when requests mention Orchard Core OpenID Connect, OAuth 2.0, OpenIddict, token endpoint, bearer tokens, PKCE, logout confirmation, external OIDC login, or related setup or troubleshooting work. Strong matches include OrchardCore.OpenId, OrchardCore.OpenId.Server, OrchardCore.OpenId.Validation, IOpenIdServerService, IOpenIdApplicationManager, and OpenIdPermissions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,7 @@ The `OrchardCore.OpenId` module provides OpenID Connect and OAuth 2.0 on top of 
 | OpenID Connect Authorization Server | `OrchardCore.OpenId.Server` | `/connect/authorize`, `/connect/token`, `/connect/logout`, `/connect/userinfo`, `/connect/par`, introspection, revocation. Depends on Management. |
 | OpenID Connect Token Validation | `OrchardCore.OpenId.Validation` | Validates bearer tokens for the `Api` scheme (same tenant, another tenant, or a remote authority). |
 | OpenID Connect Client Integration | `OrchardCore.OpenId.Client` | Sign in with an external OIDC provider. Depends on `OrchardCore.Users.ExternalAuthentication`. |
+| OpenID Connect Secrets | `OrchardCore.OpenId.Secrets` | 4.0. Loads the server signing and encryption keys from the Secrets module. Depends on `OrchardCore.OpenId.Server` and `OrchardCore.Secrets`; must be enabled explicitly. |
 
 Admin locations:
 
@@ -83,6 +84,30 @@ The dedicated step toggles endpoints with `Enable*Endpoint` booleans (the paths 
 Other properties: `DisableAccessTokenEncryption` (lets third-party resource servers read JWTs), `SigningCertificateStoreLocation`/`SigningCertificateStoreName`/`SigningCertificateThumbprint`, and the matching `EncryptionCertificate*` properties. `AccessTokenFormat` is `DataProtection` (default) or `JsonWebToken`.
 
 The generic `settings` step also accepts an `OpenIdServerSettings` object with the stored property names, including custom `*EndpointPath` values.
+
+### Signing and Encryption Keys From Secrets (4.0)
+
+Enable `OrchardCore.OpenId.Secrets` to pick the server keys from the Secrets module in the **RSA Keys from Secrets** card of the server settings. The choice is stored in the `OpenIdSecretSettings` site settings (`SigningKeySecretName`, `EncryptionKeySecretName`), and each secret can be an `RsaKeySecret` with its private key (portable, tried first) or an `X509Secret` (certificate store reference or PEM certificate with private key). Secret keys are added before the configured or generated ones, so they are used first.
+
+```json
+{
+  "steps": [
+    {
+      "name": "feature",
+      "enable": [ "OrchardCore.Secrets", "OrchardCore.OpenId.Server", "OrchardCore.OpenId.Secrets" ]
+    },
+    {
+      "name": "settings",
+      "OpenIdSecretSettings": {
+        "SigningKeySecretName": "OpenId.SigningKey",
+        "EncryptionKeySecretName": "OpenId.EncryptionKey"
+      }
+    }
+  ]
+}
+```
+
+Create the RSA or X.509 secrets first (admin or `ISecretManager`; the `Secrets` recipe step only creates text secrets). When the feature is enabled, a migration turns configured `SigningCertificate*`/`EncryptionCertificate*` settings into `X509Secret` references named `OpenId.SigningCertificate` and `OpenId.EncryptionCertificate`; certificates and private keys are not copied, so keep them accessible on every instance, and auto-generated development certificates are not converted. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
 
 ### Server Settings via Migration
 
@@ -149,7 +174,7 @@ Use `LoadSettingsAsync()` (not the cached `GetSettingsAsync()`) before updating.
 
 ### Token Endpoint Rate Limiting
 
-When `OrchardCore.RateLimits` is enabled, the server registers a built-in limit on `POST /connect/token` (route `Access.Token`): 10 requests per minute per IP, sliding window, sharing the `password-authentication` budget with the Users login form. Rejected calls return `429`. See `orchardcore-rate-limits`.
+When `OrchardCore.RateLimits` is enabled, the server registers a built-in limit on `POST /connect/token` (route `Access.Token`) for the **password grant only**: 100 requests per minute per IP, sliding window, sharing the `password-authentication` budget with the Users login form. Authorization code, refresh token, and client credentials requests are not limited, since a single server often requests tokens for many users. A rejected token request gets an OAuth 2.0 error response with `error=slow_down` and a `Retry-After` header (through a route rejection handler) instead of an empty body, so token clients can back off. See `orchardcore-rate-limits`.
 
 ## Client Applications
 
@@ -387,7 +412,7 @@ public sealed class ProductsController : ControllerBase
 }
 ```
 
-- A missing or invalid token returns `401` with the RFC 6750 `WWW-Authenticate` header from OpenIddict and, in 4.0, an RFC 9457 Problem Details body. Insufficient permissions return `403` with Problem Details.
+- A missing or invalid token returns `401` with the RFC 6750 `WWW-Authenticate` header from OpenIddict and, in 4.0, an RFC 9457 Problem Details body written by the `Api` scheme's middleware through `IProblemDetailsService`. Insufficient permissions return `403` with Problem Details. The OAuth 2.0 error details stay in the `WWW-Authenticate` header; the body doesn't repeat them as `error`/`error_uri` extensions.
 - `DisableAntiforgery()` / `[IgnoreAntiforgeryToken]` is appropriate only on bearer-authenticated endpoints.
 
 ## External OpenID Connect Login
@@ -415,14 +440,19 @@ The `OrchardCore.OpenId.Client` feature signs users in with an external provider
 }
 ```
 
-`Scopes` is a space- or comma-separated string of extra scopes. For Microsoft Entra ID, Google, GitHub, Facebook, or X, prefer the dedicated modules (`orchardcore-microsoft-auth`, `orchardcore-google`, `orchardcore-github-authentication`, `orchardcore-facebook`, `orchardcore-twitter`).
+`Scopes` is a space- or comma-separated string of extra scopes.
+
+In 4.0, `OpenIdClientSettings.ClientSecretSecretName` can name a `TextSecret` of the Secrets module; it takes precedence over `ClientSecret`. With `OrchardCore.Secrets` enabled, the **Authentication Client** settings offer **Use a secret** (suggested name `OpenIdClient.ClientSecret`), and a saved client secret can be moved without retyping it from **Tools → Security → Migrate Secrets**. The `OpenIdClientSettings` step has no secret-name property and leaves an existing reference unchanged; set it in the admin or with the generic `settings` step. See [orchardcore-secrets](../orchardcore-secrets/SKILL.md).
+
+For Microsoft Entra ID, Google, GitHub, Facebook, or X, prefer the dedicated modules (`orchardcore-microsoft-auth`, `orchardcore-google`, `orchardcore-github-authentication`, `orchardcore-facebook`, `orchardcore-twitter`).
 
 ## Upgrading from 3.x
 
 - `OrchardCore.OpenId.Permissions.ManageApplications`, `ManageClientSettings`, `ManageScopes`, `ManageServerSettings`, and `ManageValidationSettings` were removed; use the same members on `OrchardCore.OpenId.OpenIdPermissions`.
 - Disabling `RequireEndSessionConfirmation` now really skips the prompt for a valid `id_token_hint` (the prompt was always shown in 3.x). It can now be set from the `OpenIdServerSettings` step and is exported by deployment plans; omitted, it is `true`.
 - Recipes that used non-existent step properties (`UseRollingRefreshTokens`, `*EndpointPath` in the `OpenIdServerSettings` step, `ClientType` or `AllowedScopes` in `OpenIdApplication`) must use `DisableRollingRefreshTokens`, `Enable*Endpoint`, `Type`, and `ScopeEntries`.
-- API `401`/`403` challenges now carry a Problem Details body; the status codes and `WWW-Authenticate` header are unchanged.
-- With Rate Limits enabled, `POST /connect/token` is limited per IP.
+- API `401`/`403` challenges now carry a Problem Details body; the status codes and `WWW-Authenticate` header are unchanged. The Token Validation feature no longer registers its own OpenIddict challenge handler or calls `AddProblemDetails()` (the host registers Problem Details), so customize the body through `IProblemDetailsService`.
+- With Rate Limits enabled, password-grant requests to `POST /connect/token` are limited per IP and rejected with an OAuth 2.0 `slow_down` error and `Retry-After`.
+- Saved client secrets and server certificates keep working. `OpenIdClientSettings` gains `ClientSecretSecretName`, and the optional `OrchardCore.OpenId.Secrets` feature, part of the `OrchardCore.OpenId` module (no separate package), loads server keys from secrets.
 
 See [openid-examples.md](references/openid-examples.md) for complete setups.

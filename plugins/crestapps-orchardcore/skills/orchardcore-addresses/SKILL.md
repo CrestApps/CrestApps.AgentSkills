@@ -1,6 +1,6 @@
 ---
 name: orchardcore-addresses
-description: Skill for the CrestApps Orchard Core Addresses module (CrestApps.OrchardCore.Addresses, Addresses.Countries, Addresses.GooglePlaces). Covers the immutable Address value shared by customers, checkout, orders, shipping and taxation, per-country address formats from Google address data with AddAddressesCore, IAddressFormatProvider and AddressFormat, IAddressValidator and AddressProblem, IAddressFormatter, region codes, the AddressEditor shape with IAddressEditorService and AddressEditorOptions, CreateAddressEditorAsync and CreateAddressDisplayAsync, the addresses/formats endpoint, ICountryService and managed Country content items, address suggestions through IAddressAutocompleteProvider, the Google Places provider with its protected API key, the address-autocomplete rate-limit group, and the ManageAddressSuggestions permission. Use it when requests mention Orchard Core addresses, international address formats, address validation, a country list, address autocomplete or Google Places.
+description: Skill for the CrestApps Orchard Core Addresses module (CrestApps.OrchardCore.Addresses, Addresses.Countries, Addresses.GooglePlaces). Covers the immutable Address value shared by customers, checkout, orders, shipping and taxation, per-country address formats from Google address data with AddAddressesCore, IAddressFormatProvider and AddressFormat, IAddressValidator and AddressProblem, IAddressFormatter, the AddressEditor shape with IAddressEditorService and AddressEditorOptions, CreateAddressEditorAsync and CreateAddressDisplayAsync, ICountryService and managed Country content items, address suggestions through IAddressAutocompleteProvider, ContactInfo, NamedAddress and IShippingAddressBook, the Google Places provider with its protected API key, the address-autocomplete rate-limit group, and the ManageAddressSuggestions permission. Use it when requests mention Orchard Core addresses, international address formats, address validation, a country list, address autocomplete or Google Places.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -60,7 +60,7 @@ Addresses depends on nothing and can be used outside commerce.
 
 ## The Address value
 
-`Address` (`CrestApps.OrchardCore.Addresses.Models`, in `CrestApps.OrchardCore.Addresses.Abstractions`) is immutable with init-only parts: `Name`, `Company`, `AddressLine1`, `AddressLine2`, `DependentLocality`, `City`, `Region`, `PostalCode`, `SortingCode`, `Country` (ISO alpha-2), `County`, `District` (for tax) and `Phone`.
+`Address` (`CrestApps.OrchardCore.Addresses.Models`, in `CrestApps.OrchardCore.Addresses.Abstractions`) is immutable with init-only parts: `Name`, `Company`, `AddressLine1`, `AddressLine2`, `DependentLocality`, `City`, `Region`, `PostalCode`, `SortingCode`, `Country` (ISO alpha-2), `County`, `District` (for tax) and `Phone`. It also carries optional coordinates, `Latitude`, `Longitude`, `GeocodedUtc` and `GeocodeSource` (a geocoding provider's name, or `Manual` when pinned on a map), which `Clone()` copies. `AddressComparison.IsSameAddress(left, right)` compares the street lines, city, region, postal code and country, trimmed and case-insensitively.
 
 ```csharp
 var address = new Address
@@ -73,6 +73,16 @@ var address = new Address
     Country = "US",
 };
 ```
+
+## Contact info, named addresses and address books
+
+These shared building blocks live in `CrestApps.OrchardCore.Addresses.Abstractions` so modules stop declaring their own copies:
+
+- `ContactInfo` (record): `Name`, `Email`, `Phone` (a `PhoneNumber` in E.164 form) and `Address`, plus `HasAnyValue`. New records that keep a contact snapshot keep a `ContactInfo`. `ContactInfo.From(name, email, phone, address)` builds one from text, keeping the phone only when it is already E.164. Records that predate it (orders, returns, transactions, subscriptions, receipts, the checkout contact and others) keep their own fields, because moving them would need a data migration.
+- `NamedAddress` (record): `Id`, `Name`, `Address`, for listing places such as a store's locations.
+- `IShippingAddressBook` (`CrestApps.OrchardCore.Addresses.Services`): `GetAsync(userId)` returns a `ShippingAddressBook` (`Addresses` of `ShippingAddressBookEntry`, `DefaultShippingAddressId`, `DefaultBillingAddressId`, `MaxAddresses`, `CanAdd`), and `AddAsync(userId, address)` saves one. Customers implements it (`CustomerShippingAddressBook`); Shipping reads it in its checkout step, so it does not depend on Customers.
+
+Normalize a phone typed into a form with `PhoneNumberNormalization.ToE164OrTrimmed(text, phoneNumberService, country)` (PhoneNumbers.Abstractions); see [orchardcore-phone-numbers](../orchardcore-phone-numbers/SKILL.md).
 
 ## Formats, validation and printing
 

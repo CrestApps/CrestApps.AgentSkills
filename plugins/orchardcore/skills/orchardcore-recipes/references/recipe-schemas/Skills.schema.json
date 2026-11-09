@@ -1,0 +1,242 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Skills",
+      "description": "Recipe step discriminator. Must be \u0027Skills\u0027."
+    },
+    "Certifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The certification id; omit to match by name."
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique certification name."
+          },
+          "issuer": {
+            "type": "string",
+            "description": "Who issues it."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it covers."
+          },
+          "validityMonths": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "minimum": 1,
+            "description": "How many months a certificate stays valid; null when it never expires."
+          },
+          "requiresDocument": {
+            "type": "boolean",
+            "description": "Whether a copy of the certificate is needed before it counts."
+          },
+          "reminderDays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Days before expiry that a reminder is raised."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the certification can be recorded and required by skills."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The certifications to create, or update by id or name."
+    },
+    "Skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The skill id; omit to match by name."
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique skill name."
+          },
+          "category": {
+            "type": "string",
+            "description": "The group the skill is listed under."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the skill means."
+          },
+          "requiredCertificationId": {
+            "type": "string",
+            "description": "The certification the skill requires, by id."
+          },
+          "RequiredCertificationName": {
+            "type": "string",
+            "description": "The certification the skill requires, by name; wins over the id."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the skill can be assigned and used for matching."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The skills to create, or update by id or name."
+    },
+    "Assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "subjectKind": {
+            "type": "string",
+            "examples": [
+              "User",
+              "Worker"
+            ],
+            "description": "Who holds the skill: User (the default) or Worker for a workforce worker. Other modules may register more kinds."
+          },
+          "subjectId": {
+            "type": "string",
+            "description": "The user id or the worker id."
+          },
+          "skillId": {
+            "type": "string",
+            "description": "The skill, by id."
+          },
+          "skillName": {
+            "type": "string",
+            "description": "The skill, by name, when the id isn\u0027t known."
+          },
+          "proficiency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "From 1 (trainee) to 5 (expert); 3 when omitted."
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day the skill counts."
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day the skill counts."
+          }
+        },
+        "required": [
+          "subjectId"
+        ],
+        "additionalProperties": false
+      },
+      "description": "The skills people hold. Each one is added, or its proficiency and dates changed."
+    },
+    "CertificationRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The record id; omit for a new record."
+          },
+          "subjectKind": {
+            "type": "string",
+            "examples": [
+              "User",
+              "Worker"
+            ],
+            "description": "Who holds the certificate: User (the default) or Worker for a workforce worker."
+          },
+          "subjectId": {
+            "type": "string",
+            "description": "The user id or the worker id."
+          },
+          "subjectName": {
+            "type": "string",
+            "description": "The holder\u0027s name, shown in lists."
+          },
+          "certificationId": {
+            "type": "string",
+            "description": "The certification, by id."
+          },
+          "certificationName": {
+            "type": "string",
+            "description": "The certification, by name; wins over the id."
+          },
+          "number": {
+            "type": "string",
+            "description": "The certificate number."
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date",
+            "description": "The day it was issued."
+          },
+          "expiresOn": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day it is valid."
+          },
+          "documentPath": {
+            "type": "string",
+            "description": "The media library path of a copy of the certificate."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Valid",
+              "Expired",
+              "Revoked"
+            ],
+            "description": "Whether the certificate is waiting for a check, valid, expired or revoked."
+          },
+          "verifiedBy": {
+            "type": "string",
+            "description": "Who checked the certificate."
+          },
+          "verifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the certificate was checked."
+          },
+          "notes": {
+            "type": "string",
+            "description": "A note about the record."
+          }
+        },
+        "required": [
+          "subjectId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The certificates people hold, created or updated by id."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

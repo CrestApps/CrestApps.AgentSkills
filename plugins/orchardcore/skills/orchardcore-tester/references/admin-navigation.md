@@ -97,7 +97,7 @@ playwright-cli snapshot
 Lists (content items, features, users, tenants, queries, workflows, ...) render through the `AdminList` shape:
 
 - Layouts: `List` (rows) or `Grid` (CSS grid with one column per field; stacks on small screens). Force a layout with `?layout=Grid` or `?layout=List` when **Let users choose the layout of a list** is enabled; the choice is kept in a cookie per list.
-- Row actions are `Buttons` or a `Menu` (an ellipsis dropdown) depending on **List actions layout**; open the dropdown before clicking Edit/Delete in `Menu` mode.
+- Row actions are `Buttons` or a `Menu` (an ellipsis dropdown) depending on **Actions layout**; open the dropdown before clicking Edit/Delete in `Menu` mode.
 - Selecting rows shows a toolbar with item count, select-all and an **Actions** bulk menu.
 - With **Page size selection** enabled (General settings), an **Items per page** selector appears next to the pager and adds `?pageSize=` to the URL.
 

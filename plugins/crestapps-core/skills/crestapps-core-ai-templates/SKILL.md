@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-ai-templates
-description: Skill for Liquid prompt templates in CrestApps.Core 2.0. Covers AddCoreAITemplating and AddTemplating registration, Markdown templates with front matter under Templates and Templates Prompts, AddTemplatesFromAssembly, code and discovery-path templates through TemplateOptions, ITemplateService ListAsync, GetAsync, RenderAsync and MergeAsync, ITemplateEngine validation, custom ITemplateProvider and IDynamicTemplateProvider sources, template Aliases, the AIProfileSystemPromptTemplateProvider that exposes SystemPrompt AI profile templates by name, selecting templates on a profile with PromptTemplateMetadata, and how templates compose with personas. Use it when authoring reusable system prompts, loading templates from a database, or fixing a selected template that does not render.
+description: Skill for Liquid prompt templates in CrestApps.Core 2.0. Covers AddCoreAITemplating and AddTemplating registration, Markdown templates with front matter under Templates and Templates Prompts, AddTemplatesFromAssembly, code and discovery-path templates through TemplateOptions, ITemplateService ListAsync, GetAsync, RenderAsync and MergeAsync, ITemplateEngine validation, custom ITemplateProvider and IDynamicTemplateProvider sources, template Aliases, the AIProfileSystemPromptTemplateProvider that exposes SystemPrompt AI profile templates by name, selecting templates on a profile with PromptTemplateMetadata, seeding editable defaults embedded under SystemPromptDefaults with IAISystemPromptTemplateSeeder and AddCoreAISystemPromptTemplateDefaults, listing a template category with AITemplateCategoryExtensions, and how templates compose with personas. Use it when authoring reusable system prompts, loading templates from a database, or fixing a selected template that does not render.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -108,6 +108,47 @@ profile.Put(new PromptTemplateMetadata
 ```
 
 The profile context handler renders the selections into the system message. A linked persona's block is placed before them, and the profile's own system message after them.
+
+## Seeded System Prompt Defaults
+
+Speaking styles and guardrail topics are System Prompt templates in their own category (`Speaking style`, `Guardrail topic`). Their defaults are not served read-only: they ship as Markdown embedded under `SystemPromptDefaults` and are copied once into the saved AI profile templates, where users can edit or delete them. `AddSpeakingStyles()` and `AddGuardrails()` register the framework's defaults.
+
+```csharp
+using CrestApps.Core.AI.Services;
+
+// Once, from a migration or a setup step, with the AI profile template store registered.
+var seeder = serviceProvider.GetRequiredService<IAISystemPromptTemplateSeeder>();
+IReadOnlyList<string> created = await seeder.SeedAsync(); // or SeedAsync(AISpeakingStyles.Category)
+```
+
+- A saved template with the same name is never overwritten; one deleted after seeding comes back if the seeder runs again. `GetDefaultsAsync(category)` reads the defaults without saving.
+- Ship your own defaults: embed Markdown under `SystemPromptDefaults` (for example `<EmbeddedResource Include="SystemPromptDefaults\**\*" />`) and call `services.AddCoreAISystemPromptTemplateDefaults(typeof(Startup).Assembly)`, optionally with a category to read only that category. Front matter sets `Title`, `Description`, `Category` and `IsListable`; the body is the system message.
+
+```markdown
+---
+Title: Echo Verification
+Description: Reads back what the customer gave before acting on it
+IsListable: false
+Category: Speaking style
+---
+
+## Read back what you are given
+
+When the customer gives you something you will act on or record, repeat it back once and ask them to confirm.
+```
+
+Fill a picker from one category, file-based and saved templates together, deduplicated by id and ordered by title:
+
+```csharp
+using CrestApps.Core.AI.Models;
+using CrestApps.Core.AI.Services;
+using CrestApps.Core.Templates.Models;
+
+IReadOnlyList<AITemplateOption> styles = await templateService.ListOptionsByCategoryAsync(AISpeakingStyles.Category, cancellationToken);
+IReadOnlyList<Template> topics = await templateService.ListByCategoryAsync(AIGuardrailTopics.Category, cancellationToken);
+```
+
+`AITemplateOption` is `(Id, Title, Description)`; `AITemplateCategoryExtensions.GetTitle(template)` falls back to the id.
 
 ## Custom Providers
 

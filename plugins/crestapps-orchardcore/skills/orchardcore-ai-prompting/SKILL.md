@@ -139,6 +139,13 @@ A module prompt file with the same ID wins over a saved template.
 }
 ```
 
+Speaking styles and guardrail topics are System Prompt templates too, in the categories
+`AISpeakingStyles.Category` ("Speaking style") and `AIGuardrailTopics.Category`. They are not listable, so they
+stay out of the prompt template picker; **Artificial Intelligence > Speaking Styles** and **Guardrail Topics**
+list them, and the profile's **Speaking Style** and **Guardrails** cards pick them. The eight default styles and
+topics are seeded once per tenant (`AISystemPromptTemplateDefaultsMigrations`), so a deleted default stays
+deleted. See `orchardcore-ai-conversations`.
+
 ## Render templates from code and scripts
 
 - `PromptTemplateSelectionService` lists and finds selectable templates through `ITemplateService`; resolve

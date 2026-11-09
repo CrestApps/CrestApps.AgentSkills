@@ -1,0 +1,246 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Coupons",
+      "description": "Recipe step discriminator. Must be \u0027Coupons\u0027."
+    },
+    "Coupons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A coupon or automatic discount. It is matched by Code (without case sensitivity) and checked with the same rules as the coupon editor. How often it was used is never imported.",
+        "properties": {
+          "Code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The code the buyer enters, which the step matches coupons by. An automatic discount needs one too: it identifies the discount\u0027s uses."
+          },
+          "Method": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Code",
+                  "Automatic"
+                ]
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Whether the buyer enters the code (Code) or the discount applies by itself to every checkout that meets its conditions (Automatic). Defaults to Code."
+          },
+          "OnlyGeneratedCodes": {
+            "type": "boolean",
+            "description": "Whether only the unique codes generated for the coupon work, and not its own code."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the buyer sees on their invoice. Required for an automatic discount."
+          },
+          "Kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Percentage",
+                  "FixedAmount",
+                  "FreeShipping",
+                  "BuyXGetY"
+                ]
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "How the reduction is calculated. Defaults to Percentage."
+          },
+          "Percentage": {
+            "type": "number",
+            "description": "The percentage taken off (1 to 100) for Percentage and BuyXGetY coupons; 100 makes the items a buyer gets free."
+          },
+          "Amount": {
+            "type": "number",
+            "description": "The amount taken off for a FixedAmount coupon. Must be greater than zero."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ISO-4217 currency a fixed amount is in. Required for a FixedAmount coupon, which only applies to invoices in that currency."
+          },
+          "Target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OneTime",
+                  "FirstCycle",
+                  "Shipping"
+                ]
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "What the coupon reduces: OneTime (one-time amount), FirstCycle (first recurring cycle only) or Shipping. Defaults to OneTime."
+          },
+          "IsEnabled": {
+            "type": "boolean",
+            "description": "Whether the coupon can be used. Defaults to true."
+          },
+          "StartsUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "The UTC time the coupon starts being valid."
+          },
+          "EndsUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "The UTC time the coupon stops being valid. Must be after StartsUtc."
+          },
+          "MaxRedemptions": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many times the coupon may be used in total, or null for no limit."
+          },
+          "MaxRedemptionsPerCustomer": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many times one customer (account, or guest email) may use the coupon, or null for no limit."
+          },
+          "MinimumAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The amount the items the coupon applies to must reach."
+          },
+          "MaximumAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most the items the coupon applies to may come to, or null for no maximum. Can\u0027t be less than MinimumAmount."
+          },
+          "MinimumQuantity": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many of the items it counts the order must have, or null for no minimum."
+          },
+          "BuyQuantity": {
+            "type": "integer",
+            "description": "For a BuyXGetY offer: how many qualifying items the buyer buys each time the offer applies (1 or more). Ignored for other kinds."
+          },
+          "GetQuantity": {
+            "type": "integer",
+            "description": "For a BuyXGetY offer: how many items the buyer gets at Percentage off each time the offer applies (1 or more). Ignored for other kinds."
+          },
+          "BuyProductIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For a BuyXGetY offer: the product content item ids that count toward what the buyer buys. Empty, with BuyCategoryIds empty, counts every item."
+          },
+          "BuyCategoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For a BuyXGetY offer: the category (taxonomy term) content item ids whose products count toward what the buyer buys."
+          },
+          "MaxApplicationsPerOrder": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "For a BuyXGetY offer: the most times it applies to one order, or null for no limit."
+          },
+          "CombinesWithProductDiscounts": {
+            "type": "boolean",
+            "description": "Whether the coupon can be used with discounts off some products."
+          },
+          "CombinesWithOrderDiscounts": {
+            "type": "boolean",
+            "description": "Whether the coupon can be used with discounts off the order."
+          },
+          "CombinesWithShippingDiscounts": {
+            "type": "boolean",
+            "description": "Whether the coupon can be used with discounts off shipping."
+          },
+          "ProductIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The product content item ids the coupon is limited to. With CategoryIds empty too, it applies to every item."
+          },
+          "CategoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The category (taxonomy term) content item ids the coupon is limited to."
+          },
+          "Sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The checkout sources the coupon is limited to, matched without case sensitivity. Empty means any source."
+          },
+          "ReferenceTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The reference types (what a checkout pays for, such as Transaction) the coupon is limited to. Empty means any."
+          },
+          "CustomerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the one customer (user id or guest customer id) who may use the coupon, or null for anyone."
+          },
+          "CustomerEmail": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The email address of the one customer who may use the coupon, or null for anyone."
+          }
+        },
+        "required": [
+          "Code"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The coupons to create, or to update when a stored coupon has the same code."
+    }
+  },
+  "required": [
+    "name",
+    "Coupons"
+  ],
+  "additionalProperties": true
+}

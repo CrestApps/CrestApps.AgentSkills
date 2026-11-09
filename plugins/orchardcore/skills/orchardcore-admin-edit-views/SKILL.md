@@ -36,7 +36,7 @@ Shape-based editors (all rows except the last) render **only their rows**: the h
 |---|---|---|---|
 | `ocat-wrapper` | `<div>` | Outer container of one field row. Carries `asp-validation-class-for`. | `margin-bottom: 1rem` |
 | `ocat-label` | `<label>` (or `<div>` for a group caption) | Field label in the leading column. | Like `.form-label` |
-| `ocat-label-required` | `<label>` | Added next to `ocat-label` on required fields. | Appends a red ` *` |
+| `ocat-label-required` | `<label>` | Added next to `ocat-label` on every field whose editor rejects an empty value. | Appends a ` *` in `--bs-danger`, with a `0.25rem` inline-start padding (LTR and RTL) |
 | `ocat-end` | `<div>` | Holds the control, its validation message, and its hint, after a label. | None (stacked) |
 | `ocat-end-offset` | `<div>` | Same column with **no** label: checkboxes, switches, alerts, headings, buttons. | None (stacked) |
 | `ocat-start` | `<div>` | Leading column container for content other than a label (alignment/push). | None (stacked) |
@@ -48,7 +48,7 @@ Shape-based editors (all rows except the last) render **only their rows**: the h
 | Row | Pattern |
 |---|---|
 | Labelled full-width field | `ocat-wrapper` > `ocat-label` + `ocat-end` |
-| Required field | Same, with `class="ocat-label ocat-label-required"` |
+| Required field | Same, with `class="ocat-label ocat-label-required"`. Use it whenever the editor rejects an empty value (`[Required]`, a model error on empty, or an HTML `required` attribute); add it conditionally when the field is required only in some states, e.g. `@(settings.Required ? "ocat-label-required" : null)`, and never on fields whose empty value is accepted or generated |
 | Checkbox or switch (its label is inline) | `ocat-wrapper` > `ocat-end-offset` > `form-check` |
 | Alert, notice, `<legend>`, section heading, or buttons in the form flow | `ocat-wrapper` > `ocat-end-offset` |
 | Short control (number, port, page size, select, short code or path) | `ocat-limited-wrapper` > `ocat-label` + `ocat-limited` |
@@ -318,19 +318,50 @@ A module's own edit page owns the title, form, summary, and actions:
         </div>
     </div>
 
-    <div class="ocat-wrapper">
-        <div class="ocat-end-offset">
-            <button type="submit" class="btn btn-primary save">@T["Save"]</button>
-            <a asp-action="Index" class="btn btn-secondary cancel" role="button">@T["Cancel"]</a>
-        </div>
+    <div class="action-bar-bottom">
+        <button type="submit" class="btn btn-primary save">@T["Save"]</button>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger action-bar-secondary" role="button" data-url-af="UnsafeUrl RemoveUrl">@T["Delete"]</a>
+        <a asp-action="Index" class="btn btn-secondary cancel" role="button">@T["Cancel"]</a>
     </div>
 </form>
 ```
 
 - `no-multisubmit` makes TheAdmin ignore a second submit while the form posts.
-- Long editors can put the buttons in a sticky action bar at the top of the form instead: `<div class="card text-bg-theme mb-3 position-sticky action-bar"><div class="card-body p-3 text-end">...</div></div>`.
+- See [Edit Page Action Bar](#edit-page-action-bar) for the `action-bar-bottom` contract.
 - A page that renders a shape-based editor (`@await DisplayAsync(Model.Editor)`) keeps the same structure; the editor contributes only rows.
 - See `orchardcore-breadcrumbs` for the title trail and `orchardcore-admin` for controllers and routes.
+
+## Edit Page Action Bar
+
+Since Orchard Core 4.0 the submit buttons of admin edit pages (**Publish**, **Save**, **Cancel**, ...) render in a bar fixed to the bottom of the viewport, always visible without scrolling. TheAdmin pads the page so the bar never hides the end of the form.
+
+- Wrap the page's buttons in `<div class="action-bar-bottom">`, typically the last child of the `<form>`. Do not wrap them in `ocat-wrapper`/`ocat-end-offset` or the old top `position-sticky action-bar` card.
+- Mark every action other than the main ones (for example **Delete**, **Preview**, **Publish Later**, links to sub-pages) with `action-bar-secondary`. A secondary action can be one button or a whole control group (for example a `btn-group` or an input plus a button).
+- When **Configuration → Settings → Admin → Actions layout** (`AdminSettings.ActionsLayout`) resolves to `Menu`, secondary actions move into one ellipsis menu; on small screens they always do.
+- Shape-based editors (parts, fields, settings) never render their own bar: the host page owns it. Site settings get it from the `SiteSettings.SaveButton` shape. Content action shapes placed in the content editor's `Actions` zone render inside `Content.Edit`'s `action-bar-bottom`, so give secondary buttons `action-bar-secondary`.
+
+A split button can remember the last action the user chose (for example **Save** vs **Save and continue**). Put these attributes on the `btn-group`, which contains one submit button and one `dropdown-item` submit button, both with an explicit `value`:
+
+```cshtml
+<div class="btn-group"
+     role="group"
+     aria-label="@T["Save actions"]"
+     data-action-group="my-module-record-save-action"
+     data-action-default="Save"
+     data-label-default="@T["Save"]"
+     data-action-alt="SaveAndContinue"
+     data-label-alt="@T["Save and continue"]">
+    <button type="submit" name="submit" value="Save" class="btn btn-primary save">@T["Save"]</button>
+    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="visually-hidden">@T["Toggle Dropdown"]</span>
+    </button>
+    <div class="dropdown-menu">
+        <button type="submit" name="submit" value="SaveAndContinue" class="dropdown-item save-continue">@T["and continue"]</button>
+    </div>
+</div>
+```
+
+`data-action-group` is the storage key (pages sharing a key share the choice); the choice is stored per tenant in the browser's admin preferences.
 
 ## Restyling Admin Forms
 
@@ -380,6 +411,7 @@ This works only because views follow the rules above: a row that skips `ocat-end
 | `@Orchard.GetPartWrapperClasses(...)`, `@Orchard.GetFieldWrapperClasses(...)` | Literal `ocat-wrapper content-part-wrapper ...` / `ocat-wrapper field-wrapper ...` |
 | `TheAdminThemeOptions`, `TheAdminTheme:StyleSettings` | CSS overrides of the `ocat-*` classes in an admin theme |
 | Hint directly in the row | Hint inside `ocat-end` / `ocat-end-offset` |
+| Buttons in `ocat-wrapper` > `ocat-end-offset`, or a top `card ... position-sticky action-bar` | `<div class="action-bar-bottom">`, secondary actions with `action-bar-secondary` |
 
 See `references/admin-edit-views-examples.md` for a complete part with its driver, part settings editor, site settings editor, and workflow activity editor.
 

@@ -318,6 +318,8 @@ A `PermissionMigrations` deferred task rewrites the legacy per-index role claims
 - `OrchardCore.Lucene.Permissions.QueryLuceneApi` was removed; use `OrchardCore.Lucene.LuceneSearchPermissions.QueryLuceneApi`.
 - `OrchardCore.Search.Permissions.QuerySearchIndex` was removed; use `OrchardCore.Indexing.Core.IndexingPermissions.QuerySearchIndex`.
 - Stored permission names are unchanged, so roles keep their permissions; only code referencing the removed members must change.
+- Each index is stored in one directory directly under the tenant's Lucene folder: characters that are invalid in file names are encoded (`/` becomes `_47`) to prevent path traversal. An index whose full name contains such characters resolves to a new, empty directory after the upgrade; rebuild it.
+- The `type` of a Lucene query `sort` is now parsed with culture-invariant casing, so a lowercase type no longer fails on servers running a culture such as Turkish.
 
 ### Lucene Worker
 

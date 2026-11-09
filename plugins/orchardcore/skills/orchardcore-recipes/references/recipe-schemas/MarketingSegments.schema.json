@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "description": "Creates or updates marketing segments, matched by ItemId.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "MarketingSegments",
+      "description": "Recipe step discriminator. Must be \u0027MarketingSegments\u0027."
+    },
+    "Segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A segment of customers, chosen by their orders, spending and country.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the record. When it matches a stored record, that record is updated. Otherwise a new record is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name of the segment."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the segment is for."
+          },
+          "Rules": {
+            "type": "object",
+            "description": "The rules a customer matches: MinOrders, MaxOrders, MinSpent, MaxSpent, LastOrderAtLeastDaysAgo, LastOrderWithinDays, FirstOrderWithinDays and Country (a two-letter code)."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "Name"
+        ]
+      },
+      "description": "The records to create, or to update when their ItemId matches a stored record."
+    }
+  },
+  "required": [
+    "name",
+    "Segments"
+  ],
+  "additionalProperties": true
+}

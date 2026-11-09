@@ -161,3 +161,11 @@ Defaults for types without a category or thumbnail come from
   shown to users with both `ManageTemplates` and `ManageLiquidTemplates`.
 - Adding a `LiquidPart`, `LiquidField`, or `FacebookPluginPart` to a type makes
   editing or publishing its items require `ManageLiquidTemplates` as well.
+
+### Selecting Content Types in an Editor
+
+The `SelectContentTypes` view component renders a content type selector and binds a `string[]` to the model. Parameters: `selectedContentTypes`, `htmlName`, optional `stereotype` (filters the list), and optional `displayMode`: `Picker` renders a searchable list showing the selection as tags instead of checkboxes (used by the workflow content events).
+
+```cshtml
+@await Component.InvokeAsync("SelectContentTypes", new { selectedContentTypes = Model.ContentTypes, htmlName = Html.NameFor(m => m.ContentTypes), displayMode = "Picker" })
+```

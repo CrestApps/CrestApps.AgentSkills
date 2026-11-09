@@ -126,11 +126,11 @@ Printing outputs only the receipt; the print stylesheet hides the site header an
 }
 ```
 
-Empty `HeaderTitle` prints *Payment receipt*; empty `BusinessName` uses the site name. The store setup guide fills these from the store details step.
+Empty `HeaderTitle` prints *Payment receipt*. Empty `BusinessName`, `LogoUrl`, `BusinessAddress`, `ContactEmail` and `ContactPhone` fall back to the Store Profile (`StoreProfileSettings`, see `orchardcore-commerce`; the address on one line as its country writes it), then the site name for the business name. The fallback reads the settings directly, so it works whether or not the Store Profile feature is on. The store setup guide fills these from the store details step.
 
 ## Consumers
 
-- Transactions: printable receipt per payment and invoice per transaction whenever Receipts is on; **Send Payment Receipts** (`CrestApps.OrchardCore.Transactions.Receipts`) emails a receipt numbered `R-1001`... after every payment.
+- Transactions: printable receipt per payment and invoice per transaction whenever Receipts is on; **Send Payment Receipts** (`CrestApps.OrchardCore.Transactions.Receipts`) emails a receipt numbered `R-1001`... after every payment, through the store's `payment-receipt` and `payment-refund` email templates (**Settings > Commerce > Emails**).
 - Orders: invoice and packing slip pages for an order and each shipment.
 - Point of Sale: printed and emailed till receipts.
 

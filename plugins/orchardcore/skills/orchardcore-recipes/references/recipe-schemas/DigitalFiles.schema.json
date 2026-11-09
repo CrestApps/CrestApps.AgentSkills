@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "DigitalFiles",
+      "description": "Recipe step discriminator. Must be \u0027DigitalFiles\u0027."
+    },
+    "Files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A file to store privately and add to a product\u0027s digital files. A product that already has a file of that name (without case sensitivity) keeps it, so running the recipe again adds nothing.",
+        "properties": {
+          "ProductId": {
+            "type": "string",
+            "description": "The content item id of the product the file is delivered with. The latest version of the product is updated."
+          },
+          "FileName": {
+            "type": "string",
+            "description": "The name the file is stored and downloaded under, such as manual.pdf. Unsafe characters are removed."
+          },
+          "Base64": {
+            "type": "string",
+            "description": "The file\u0027s bytes, base64-encoded. Takes precedence over Text."
+          },
+          "Text": {
+            "type": "string",
+            "description": "The file\u0027s content as UTF-8 text, used when Base64 is not given."
+          }
+        },
+        "required": [
+          "ProductId",
+          "FileName"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "Base64"
+            ]
+          },
+          {
+            "required": [
+              "Text"
+            ]
+          }
+        ],
+        "additionalProperties": true
+      },
+      "description": "The files to add. Each must be between 1 byte and 10 MB."
+    }
+  },
+  "required": [
+    "name",
+    "Files"
+  ],
+  "additionalProperties": true
+}

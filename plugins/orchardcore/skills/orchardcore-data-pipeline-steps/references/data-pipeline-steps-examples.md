@@ -208,7 +208,7 @@ public class MaskTextStepViewModel
 <div class="ocat-wrapper" asp-validation-class-for="Fields">
     <label asp-for="Fields" class="ocat-label ocat-label-required">@T["Fields"]</label>
     <div class="ocat-end">
-        <select asp-for="Fields" multiple class="form-select" data-dp-select data-live-search="true" data-show-selected-tags="true">
+        <select asp-for="Fields" multiple class="form-select" data-dp-select data-live-search="true" data-actions-box="true" data-select-all-text="@T["Select all"]" data-deselect-all-text="@T["Deselect all"]" data-show-selected-tags="true">
             @foreach (var field in Model.AvailableFields.Where(field => field.Type == DataFieldType.Text))
             {
                 <option value="@field.Name" selected="@Model.Fields.Contains(field.Name)">@field.Name</option>

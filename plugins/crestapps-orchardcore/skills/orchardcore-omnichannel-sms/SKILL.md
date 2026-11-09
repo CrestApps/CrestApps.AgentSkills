@@ -22,9 +22,13 @@ reach the AI.
   enable `CrestApps.OrchardCore.Omnichannel.Sms`.
 - Its manifest depends on `CrestApps.OrchardCore.AI`,
   `CrestApps.OrchardCore.AI.Chat.Core`,
-  `CrestApps.OrchardCore.Omnichannel.Managements`, `OrchardCore.Sms` and
-  `CrestApps.OrchardCore.ContactCenter.BusinessHours` (business-hours calendars
-  gate background follow-ups).
+  `CrestApps.OrchardCore.Omnichannel.Managements`, `OrchardCore.Sms` and the
+  dependency-only **Provider Webhook Inbox**
+  (`CrestApps.OrchardCore.ContactCenter.ProviderInbox`, from the Webhooks
+  module), which stores every inbound text before the provider is answered.
+- It no longer enables Contact Center Business Hours. Enable
+  `CrestApps.OrchardCore.ContactCenter.BusinessHours` yourself to define the
+  calendars that keep background follow-ups within hours.
 - An AI provider connection and a chat deployment must exist (see
   `orchardcore-ai` and `orchardcore-ai-connections`).
 - Configure at least one Orchard Core SMS provider (Twilio, Azure, or Telnyx from
@@ -98,6 +102,13 @@ Twilio number's *A message comes in* to that URL with HTTP POST.
 - Each receiver raises `OmnichannelConstants.Events.SmsReceived` on the `SMS`
   channel, which `SmsOmnichannelEventHandler` and the messaging workspace both
   consume.
+- Twilio, Telnyx and Event Grid texts are committed to the durable provider
+  webhook inbox under the `sms-inbound` handler, keyed on the provider message
+  id (Twilio's `MessageSid`), before the provider is answered, then processed as
+  soon as the response is sent. The **Provider Webhook Inbox Dispatch**
+  background task finishes any text a restart interrupted, a redelivery is
+  recognized on every node, and a text that cannot be stored is answered `503`
+  so the provider resends it.
 
 ## Conversation Behavior
 
@@ -105,9 +116,15 @@ Twilio number's *A message comes in* to that URL with HTTP POST.
   generates the next reply, which is sent after the reply delay with natural
   pacing. A reply delay set on the load is stored on each activity and wins over
   the subject's **Response delay**.
-- An opt-out keyword (default `STOP`, configurable on the subject) cancels the
-  activity and sets the contact's **Do not SMS**, even when the AI may not update
-  the contact.
+- An opt-out keyword cancels the activity and sets the contact's **Do not
+  SMS**, even when the AI may not update the contact. The subject's **Opt-out
+  keywords** add to the standard STOP, STOPALL, UNSUBSCRIBE, CANCEL, END and
+  QUIT. After trimming and dropping trailing punctuation, a message opts out
+  when it is a keyword or starts with one followed by a space or punctuation
+  ("STOP please" opts out, "please stop" does not), the same rule as the
+  messaging workspace (`OmnichannelSmsComplianceHelper.IsOptOutRequest`). Opt-outs
+  are recorded through `IConsentService` (see
+  `orchardcore-omnichannel-management`).
 - **No-response timeout** fails the activity when the customer stops answering.
 - After the conversation ends, the `sms-conclusion-analysis` prompt picks a
   disposition from the subject's wired dispositions, writes the summary to the
@@ -157,4 +174,6 @@ deleted. Entry points are covered by `orchardcore-contact-center`.
 - Subject flows are configured on the `OmnichannelSubjectPart` content-type
   part settings, and the per-run campaign, channel and address are chosen on the
   activity load (see `orchardcore-omnichannel-management`).
-- Enabling the feature now also enables **Contact Center Business Hours**.
+- Enabling the feature enables the **Provider Webhook Inbox**, not **Contact
+  Center Business Hours**; turn Business Hours on explicitly when loads or
+  cadences pick a business-hours calendar.

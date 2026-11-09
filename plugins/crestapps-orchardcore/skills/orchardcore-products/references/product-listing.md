@@ -113,4 +113,4 @@ See `orchardcore-elasticsearch`, `orchardcore-lucene` and `orchardcore-azure-ai-
 
 ## Search engines
 
-Enable `OrchardCore.Seo` and attach the SEO part to the `ProductListing` type and product types. Filtered or keyword states of a listing ask for `noindex, follow` and canonicalize to the listing URL; page, sort, page size and layout don't count as filters.
+Enable `OrchardCore.Seo` and attach the SEO part to the `ProductListing` type and product types. For schema.org `Product` JSON-LD with offers and ratings, enable Advanced SEO (`CrestApps.OrchardCore.Seo`, see [orchardcore-advanced-seo](../../orchardcore-advanced-seo/SKILL.md)). Filtered or keyword states of a listing ask for `noindex, follow` and canonicalize to the listing URL; page, sort, page size and layout don't count as filters.

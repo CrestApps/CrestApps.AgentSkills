@@ -141,8 +141,15 @@ settings, with the shape root marked `data-address-capability="Email"`.
 ## Inbound and Receipts
 
 1. Verify the provider signature in your webhook and commit the delivery to the
-   Contact Center provider webhook inbox (keyed on the provider message id) so
-   retries are de-duplicated.
+   provider webhook inbox (`IProviderWebhookInbox.AcceptAsync`, keyed on the
+   provider message id) so retries are de-duplicated. The inbox contracts are in
+   `CrestApps.OrchardCore.Webhooks.Abstractions` (namespace
+   `CrestApps.OrchardCore.Webhooks`); depend on the
+   `CrestApps.OrchardCore.ContactCenter.ProviderInbox` feature and process with
+   an `IProviderWebhookInboxHandler` that declares `WebhookHandlerReplaySafety`.
+   Read agents with `IAgentProfileReader` and queue membership with
+   `IAgentQueueMembershipReader` (Contact Center Abstractions) instead of
+   referencing Contact Center Core.
 2. Build an `OmnichannelMessage` with `Channel`, `ServiceAddress`,
    `CustomerAddress`, `Content`, `IsInbound = true`, `ProviderMessageId`,
    `CreatedUtc` and any `MediaReferences`, and call

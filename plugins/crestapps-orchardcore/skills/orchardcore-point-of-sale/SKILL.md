@@ -82,7 +82,34 @@ A register has one open shift at a time.
 2. **Card** for the rest: `pos-card` records an approval code from the store's own terminal (reference `pos_card_{code}`, verified as paid at once; refunds are recorded and made on the terminal), or `stripe-terminal` sends it to a Stripe reader.
 3. **Completion** through `ICheckoutEngine.TryCompleteAsync`. A reader payment stays pending until Stripe reports the PaymentIntent succeeded.
 
-Returns (`POST pos/returns`) refund through `OrderOperationsService.RefundAsync`, card first and cash last, restock at the order's location unless `restock` is `false`, and record the cash handed back as a negative cash movement on the register's open shift. Only register sales are returned at a till, unless the caller has **Manage orders**.
+Returns (`POST pos/returns`) refund through `IOrderOperationsService.RefundAsync` (Orders.Core), card first and cash last, restock at the order's location unless `restock` is `false`, and record the cash handed back as a negative cash movement on the register's open shift. Only register sales are returned at a till, unless the caller has **Manage orders**.
+
+## Recipes, deployment and reporting
+
+The `Registers` step creates or updates registers, matched by `ItemId`, then by name, validated like the admin screen (a name, an existing store location, an address with street, city and two-letter country, a three-letter currency or none). Import stock locations first (`StockLocations`, see `orchardcore-inventory`). The **Registers** deployment step (*Commerce*) writes every register; shifts and sales stay on the site.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Registers",
+      "Registers": [
+        {
+          "ItemId": "4rg00000000000000000000001",
+          "Name": "Front till",
+          "LocationId": "default",
+          "Address": { "AddressLine1": "1 Main St", "City": "Springfield", "Region": "IL", "PostalCode": "62701", "Country": "US" },
+          "Currency": "USD",
+          "Roles": [ "Cashier" ],
+          "IsEnabled": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+With **Data Pipelines Core** on (Report Builder), the **Point of Sale** data source (`PointOfSale`, permission `ManageRegisters`) has `Registers` and `RegisterShifts`; the Orders data set's `RegisterId` and `ShiftId` join them. Receipts use the `pos-receipt` email template.
 
 ## API Summary
 

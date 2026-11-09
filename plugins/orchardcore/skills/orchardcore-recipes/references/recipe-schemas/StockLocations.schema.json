@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "description": "Creates or updates the store\u0027s own stock locations. A location keeps the id it is given, such as default; one without an id is matched by its name.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "StockLocations",
+      "description": "Recipe step discriminator. Must be \u0027StockLocations\u0027."
+    },
+    "Locations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A stock location the store keeps units at.",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional unique identifier of the record. When it matches a stored record, that record is updated. Otherwise a new record is created under this identifier, so references to it from other entries and steps keep resolving."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The location\u0027s name, such as Main warehouse."
+          },
+          "Address": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The location\u0027s address, as one line of text."
+          },
+          "Position": {
+            "type": "integer",
+            "description": "The location\u0027s place in the list: orders take units from the first locations first."
+          },
+          "OwnerKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Leave empty. A location owned by another record, such as an asset\u0027s, belongs to that record and is skipped."
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "Name"
+        ]
+      },
+      "description": "The records to create, or to update when their ItemId matches a stored record."
+    }
+  },
+  "required": [
+    "name",
+    "Locations"
+  ],
+  "additionalProperties": true
+}

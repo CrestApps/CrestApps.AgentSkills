@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-claude-orchestrator
-description: Skill for the Claude orchestrator in CrestApps.Core 2.0, a named IOrchestrator ("anthropic") built on the official Anthropic C# SDK. Covers AddClaudeOrchestrator and AddCoreAIClaudeOrchestrator registration, binding ClaudeOptions (ApiKey, BaseUrl, DefaultModel) yourself because the package reads no configuration section, the ClaudeOptionsValidator and the requirement that both ApiKey and DefaultModel are set, per-profile and per-interaction overrides with ClaudeSessionMetadata ClaudeModel and ClaudeEffortLevel, ClaudeClientService model discovery, resolving it with IOrchestratorResolver, tool scoping and function invocation, and Anthropic usage metering through AIUsageMetering. Use it when running AI profiles or chat interactions on Anthropic Claude models, or when Claude reports it is not configured.
+description: Skill for the Claude orchestrator in CrestApps.Core 2.0, a named IOrchestrator ("anthropic") built on the official Anthropic C# SDK. Covers AddClaudeOrchestrator and AddCoreAIClaudeOrchestrator registration, binding ClaudeOptions (ApiKey, BaseUrl, DefaultModel, EnablePromptCaching) yourself because the package reads no configuration section, the ClaudeOptionsValidator and the requirement that both ApiKey and DefaultModel are set, per-profile and per-interaction overrides with ClaudeSessionMetadata ClaudeModel and ClaudeEffortLevel, ClaudeClientService model discovery, resolving it with IOrchestratorResolver, sending scoped tools through IToolMaterializer and the function-invocation loop, Anthropic prompt caching breakpoints, and Anthropic usage metering through AIUsageMetering. Use it when running AI profiles or chat interactions on Anthropic Claude models, or when Claude reports it is not configured.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -40,7 +40,8 @@ Raw form: `builder.Services.AddCoreAIClaudeOrchestrator();` after `AddCoreAIServ
   "Claude": {
     "ApiKey": "sk-ant-...",
     "BaseUrl": "https://api.anthropic.com",
-    "DefaultModel": "claude-sonnet-4-6"
+    "DefaultModel": "claude-sonnet-4-6",
+    "EnablePromptCaching": true
   }
 }
 ```
@@ -80,10 +81,14 @@ Or resolve it directly: `var orchestrator = resolver.Resolve(ClaudeOrchestrator.
 ## How a Turn Runs
 
 1. The model is `ClaudeSessionMetadata.ClaudeModel`, else `ClaudeOptions.DefaultModel`.
-2. Tools come from `IToolRegistry.GetAllAsync(context.CompletionContext)`, the same scoped registry the default orchestrator uses.
+2. Tools come from `IToolRegistry.GetAllAsync(context.CompletionContext)`, the same scoped registry the default orchestrator uses, and are materialized into `ChatOptions.Tools` through `IToolMaterializer`. For a Chat Interaction the listable tools are re-checked against the current user (`IUserAccessor`) and denied ones are left out with a warning; AI sessions run the profile's tools as configured. `DisableTools` sends none.
 3. The Anthropic chat client is wrapped with `AIUsageMetering.Meter(..., AIUsagePurposes.Conversation)` before `UseFunctionInvocation`, so every round trip is a usage record with client name `anthropic`.
-4. Temperature, top-p, penalties and max tokens come from the completion context; the iteration cap from `DefaultAIOptions.MaximumIterationsPerRequest`.
+4. Temperature, top-p, penalties and max tokens come from the completion context (a `null` value is not sent); the iteration cap from `DefaultAIOptions.MaximumIterationsPerRequest` (default 30).
 5. A provider failure ends the stream with "An unexpected error occurred while communicating with Anthropic. Please try again." and is logged.
+
+## Prompt Caching
+
+With `ClaudeOptions.EnablePromptCaching` on (the default), each request marks ephemeral cache breakpoints on the last function tool, the end of the system prompt and the last block of the latest message. Later turns, and later round trips of the tool-calling loop within five minutes, read that prefix at the cache-read rate. Three of Anthropic's four breakpoints are used, and marked messages and tools are copies, so the caller's history is never changed. A prefix shorter than the model's minimum cacheable length is sent uncached without an error. Cache reads are metered as `CachedInputTokenCount` and cache writes as `CacheWriteInputTokenCount`. Turn it off only for workloads that never repeat a prefix within five minutes, since a cache write costs more than an uncached request.
 
 ## Model Discovery
 
@@ -92,7 +97,14 @@ Or resolve it directly: `var orchestrator = resolver.Resolve(ClaudeOrchestrator.
 ## Troubleshooting
 
 - **"Claude is not configured..."**: `ClaudeOptions.ApiKey` or `DefaultModel` is empty, usually because nothing bound the options. Set a default model even when every profile overrides it.
-- **No usage records**: turn on `GeneralAIOptions.EnableAIUsageTracking` (see `crestapps-core-ai-usage-metering`).
+- **No usage records**: register usage tracking with `AddCoreAIUsageTracking()` or `.AddUsageTracking()` (see `crestapps-core-ai-usage-metering`).
+- **"Claude is configured, but no default model or override has been selected."**: the model resolved to empty.
+- **Claude never calls tools**: before the scoped-tools fix the orchestrator sent no tools at all; update to a current 2.0 preview.
+
+## Upgrading Within 2.0 Previews
+
+- The orchestrator now sends the scoped tools, so profile, interaction, system and MCP tools are called on Claude. `ClaudeOrchestrator` takes `IToolMaterializer` and `IUserAccessor` as new constructor parameters; code that constructs it directly passes them.
+- Prompt caching is on by default. Set `EnablePromptCaching` to `false` to restore uncached requests.
 
 ## Upgrading from 1.x
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-contact-center
-description: Skill for enabling, configuring, extending and operating the CrestApps Orchard Core Contact Center module that orchestrates work between the Omnichannel CRM and Telephony. Covers the CrestApps.OrchardCore.ContactCenter features (Agents, AgentEntitlements, BusinessHours, Queues, Dialer, Dialer.Paced, EntryPoints, InboundVoice, Voice, Voice.Media, Recording, SecureCapture, Supervision, RealTime), presence, queues, reservations and routing, Preview, Power, Progressive and Predictive dialing with compliance screening, entry points and IVR, voicemail, recording governance, call topology, the Agent Workspace and Live dashboard, recipe steps, configuration sections, workflows, reports, health checks and runbooks. Use it for Contact Center, call center, ACD, dialer, IVR or supervisor monitoring work. Strong matches include IContactCenterEventHandler, IActivityRoutingStrategy, IContactCenterWorkStateService, IContactCenterVoiceProvider, ISecureCaptureTokenSink, ContactCenterHub, and ContactCenterPermissions.
+description: Skill for enabling, configuring, extending and operating the CrestApps Orchard Core Contact Center module that orchestrates work between the Omnichannel CRM and Telephony. Covers the CrestApps.OrchardCore.ContactCenter features (Agents, AgentEntitlements, BusinessHours, Queues, IntervalStatistics, Dialer, Dialer.Paced, EntryPoints, InboundVoice, Voice, Voice.Media, Recording, SecureCapture, Supervision, RealTime), presence, routing, Preview, Power, Progressive and Predictive dialing with compliance screening, entry points and IVR, voicemail, recording governance, the Agent Workspace, agent bar and Live dashboard with live AI calls, recipe steps, configuration, workflows, reports and data sets, health checks and runbooks. Use it for Contact Center, call center, ACD, dialer or IVR work. Strong matches include IContactCenterEventHandler, IActivityRoutingStrategy, IContactCenterWorkStateService, IContactCenterVoiceProvider, ISecureCaptureTokenSink, ContactCenterHub, and ContactCenterPermissions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate accurate feature selections, recipes, c
 
 - Install `CrestApps.OrchardCore.ContactCenter` (and the provider package, for example Telnyx or Asterisk) in the web/startup project.
 - Enable the capability you need and let Orchard resolve dependencies. There is no separate administration feature; each capability ships its own screens.
-- `CrestApps.OrchardCore.ContactCenter.Voice`, `.RealTime`, `.ProviderInbox`, `.Recording.Core` and `.AgentServices` are dependency-only. Never list them as the thing to enable; enable Inbound Voice, the Dialer, Recording or Supervision instead.
+- `CrestApps.OrchardCore.ContactCenter.Voice`, `.RealTime`, `.ProviderInbox`, `.Recording.Core` and `.AgentServices` are dependency-only. Never list them as the thing to enable; enable Inbound Voice, the Dialer, Recording or Supervision instead. `CrestApps.OrchardCore.ContactCenter.ProviderInbox` keeps its ID but is now the **Provider Webhook Inbox** feature of the `CrestApps.OrchardCore.Webhooks` module.
 - The Agent Workspace, the docked agent bar, the soft-phone projection and each provider's Contact Center voice adapter are integration glue with no feature toggle. They activate when the features they compose are all enabled.
 - The CRM `OmnichannelActivity` is the unit of work; an `Interaction` is the history of one attempt and never owns a disposition. Complete work through the Omnichannel `IActivityDispositionService`, never by writing activity status directly.
 - Decide routing from `IContactCenterWorkStateService`, not from the activity's projected `AssignedToId` or `ReservationId` columns.
@@ -34,13 +34,14 @@ You are an Orchard Core expert. Generate accurate feature selections, recipes, c
 |---|---|---|---|
 | Contact Center | `CrestApps.OrchardCore.ContactCenter` | `CrestApps.OrchardCore.Omnichannel.Activities` | Interaction lifecycle, durable event log and outbox, baseline permissions, Voice Media library, dialer decision log, admin menu |
 | Contact Center Agent Services | `CrestApps.OrchardCore.ContactCenter.AgentServices` | none | Dependency-only agent profile directory (also used by the messaging workspace) |
-| Contact Center Agents | `CrestApps.OrchardCore.ContactCenter.Agents` | Contact Center, Agent Services, `CrestApps.OrchardCore.Users` | Agent profiles, presence, reason codes, sessions, heartbeat, after-call recovery |
+| Contact Center Agents | `CrestApps.OrchardCore.ContactCenter.Agents` | Contact Center, Agent Services, `CrestApps.OrchardCore.Users`, `CrestApps.OrchardCore.Skills` | Agent profiles, presence, reason codes, sessions, heartbeat, after-call recovery. Agent skills come from the shared Skills catalog (Skills module) |
 | Contact Center Agent Entitlements | `CrestApps.OrchardCore.ContactCenter.AgentEntitlements` | Agents | Restricts which queues and campaigns an agent may join. Disabled means any agent may join any queue |
-| Contact Center Business Hours | `CrestApps.OrchardCore.ContactCenter.BusinessHours` | none | Calendars and the evaluation service (also gates automated Omnichannel sends) |
+| Contact Center Business Hours | `CrestApps.OrchardCore.ContactCenter.BusinessHours` | none | Business-hours calendars, a schedule source of the shared Business Hours building block (`IOpenHoursService`) that queues, entry points, the dialer and automated Omnichannel sends read |
 | Contact Center Work Distribution | `CrestApps.OrchardCore.ContactCenter.Queues` | Agents, Business Hours | Queues, queue groups, skills, reservations, routing strategies |
+| Contact Center Interval Statistics | `CrestApps.OrchardCore.ContactCenter.IntervalStatistics` | Queues | 15-minute queue and agent statistics (`IIntervalStatisticsReader`), the **Queue intervals** and **Agent intervals** report data sets, and **Interaction Center → Management → Interval statistics** |
 | Contact Center Outbound Dialer | `CrestApps.OrchardCore.ContactCenter.Dialer` | Voice, Queues | Dialer profiles, callbacks, Preview batches, mandatory compliance gate, manual soft-phone screening |
 | Contact Center Paced Dialing | `CrestApps.OrchardCore.ContactCenter.Dialer.Paced` | Dialer | Power, Progressive and Predictive pacing, pacing cycle records, dialer health |
-| Contact Center Provider Webhook Inbox | `CrestApps.OrchardCore.ContactCenter.ProviderInbox` | Contact Center | Dependency-only durable at-least-once webhook inbox |
+| Provider Webhook Inbox | `CrestApps.OrchardCore.ContactCenter.ProviderInbox` | none | Dependency-only durable at-least-once webhook inbox, shipped by the `CrestApps.OrchardCore.Webhooks` module (category Webhooks) |
 | Contact Center Voice | `CrestApps.OrchardCore.ContactCenter.Voice` | Queues, Real-Time, Recording Core, Provider Inbox, `CrestApps.OrchardCore.Omnichannel.ChannelEndpoints`, `CrestApps.OrchardCore.Telephony` | Dependency-only Voice Contact Center Call Router, outbound lines, external transfer destinations |
 | Contact Center Inbound Entry Points | `CrestApps.OrchardCore.ContactCenter.EntryPoints` | Queues, Channel Endpoints | Entry points per channel (no voice dependency), IVR menu editor |
 | Contact Center Inbound Voice | `CrestApps.OrchardCore.ContactCenter.InboundVoice` | Voice, Queues, Entry Points | Caller qualification, welcome and closed messages, IVR, voicemail, shared voicemail |
@@ -140,11 +141,13 @@ A dialer profile is an execution policy (mode, provider, pacing, retries, caller
 | Mode | Feature | Behavior |
 |---|---|---|
 | `Preview` | Dialer | Agent reviews and accepts, then the call is placed |
-| `Power` | Paced Dialing | Up to **Calls per agent** (max 3) calls per cycle, each with a reserved agent |
-| `Progressive` | Paced Dialing | One call per available agent, bounded at 100 per cycle |
+| `Power` | Paced Dialing | Up to **Calls per agent** (max 3) calls per look at the campaign, each with a reserved agent |
+| `Progressive` | Paced Dialing | One call per available agent, bounded at 100 per look |
 | `Predictive` | Paced Dialing | `ReservedPerCall` (default) throttled by abandonment rate, or `OverDial` sized from the measured answer rate |
 
 Every attempt passes `IDialerEligibilityService` (attempts, retry delay, do-not-call, calling window, abandonment cap, national registries) and fails closed. `Manual` is not a profile mode; soft-phone dials are screened by the Dialer's `IOutboundCallScreener`.
+
+Paced calls connect to the agent without an **Answer** click: the agent stays `Reserved` while the customer rings, the hub snapshot and every `AgentPresenceNotification` carry `DialHoldReservationId`, and the soft phone answers only the leg tagged for that dial. A Preview record stays reserved for the profile's `PreviewOfferTimeoutSeconds` (default 180, 15 to 3600), and the open Complete screen keeps it alive. Dialer loads skip contacts with no number to dial.
 
 ### Voice routing and entry points
 
@@ -173,12 +176,14 @@ Every change is an immutable `InteractionEvent` published through `IContactCente
 | **Interaction Center → Management → Agent states** | Agents |
 | **Interaction Center → Management → Agent entitlements** | Agent Entitlements |
 | **Interaction Center → Management → Business hours** | Business Hours |
-| **Interaction Center → Management → Queues**, **Queue groups**, **Skills** | Queues |
+| **Interaction Center → Management → Queues**, **Queue groups** | Queues |
+| **Content → Skills** (the old Contact Center skills page redirects there; `ManageContactCenterSkills` still manages them) | Skills catalog |
+| **Interaction Center → Management → Interval statistics** | Interval Statistics |
 | **Interaction Center → Management → Dialer Profiles** | Dialer |
 | **Interaction Center → Management → Inbound entry points** | Entry Points |
 | **Interaction Center → Management → Voice Media** | Contact Center |
 | **Interaction Center → My workspace**, **My voicemail greeting** | Agent Workspace glue |
-| **Interaction Center → Live dashboard** | Supervision |
+| **Interaction Center → Live dashboard** (with the **Live AI calls** panel) | Supervision |
 | **Interaction Center → Shared voicemail** | Inbound Voice |
 | **Interaction Center → Call recordings** | Call Recording |
 | **Settings → Contact Center** (group `contactcenter`) | Tabs from Voice, Recording, Secure Capture and Channel Endpoints |
@@ -214,7 +219,9 @@ Supervisors see only the queues and campaigns on their own agent entitlement rec
 | `IDialerStrategy` | Implement a dialing mode |
 | `INationalDoNotCallRegistry` | Add a national DNC registry (see `orchardcore-dnc-registry`) |
 | `IContactCenterVoiceProvider` plus `IContactCenterVoiceCallControlProvider`, `...TransferProvider`, `...RecordingProvider`, `...MonitoringProvider`, `IContactCenterVoiceMediaProvider` | Write a provider adapter. Reference only `CrestApps.OrchardCore.ContactCenter.Abstractions` |
-| `IProviderWebhookInboxHandler` | Process durable provider webhook deliveries |
+| `IProviderWebhookInboxHandler` (namespace `CrestApps.OrchardCore.Webhooks`, package `CrestApps.OrchardCore.Webhooks.Abstractions`) | Process durable provider webhook deliveries; declare `TechnicalName` and a `WebhookHandlerReplaySafety` |
+| `IAgentPhoneStatusProvider` | Tell the agent bar whether a user has a phone open (`HasOpenPhoneAsync`; `null` when the provider cannot tell) |
+| `IAgentProfileReader`, `IAgentQueueMembershipReader`, `services.AddEntryPointChannel(...)` | Let a channel module read the agent directory and offer a channel to entry points without referencing Contact Center Core |
 | `ISecureCaptureTokenSink` | Forward captured values to a PCI-DSS vault (required outside Development) |
 | `IRecordingDisclosureProvider` | Supply the disclosure text per call type |
 | `IVoiceMediaProvisioningService` | Resolve playable media for a provider (`ResolveAsync`) |
@@ -271,8 +278,11 @@ Contact Center is new in 3.0. Code from 3.0 previews or neighboring modules must
 - Dialpad was removed; use Telnyx (`orchardcore-telephony-telnyx`) or Asterisk (`orchardcore-telephony-asterisk`). Remove `CrestApps.OrchardCore.Telephony.Admin` from recipes.
 - Play voice media through `IVoiceMediaProvisioningService.ResolveAsync(...)` instead of reading `VoiceMediaItem.MediaReference`. `VoiceMediaItem` gains `MasterStorageReference`, `ContentType` and `ProviderReferences`.
 - Admin lists render through Orchard Core `AdminList`. A driver that adds a shape to a Contact Center row must also place it for `SummaryAdminGrid` (see `orchardcore-admin-lists`).
-- `crestapps-bootstrap-select` was removed; views use Orchard Core's `bootstrap-select` resource.
+- `crestapps-bootstrap-select` was removed; views use Orchard Core's `bootstrap-select` resource (also for the **Call recordings** list filters).
+- Admin create and edit forms (queues, entry points, dialer profiles, and the rest) render **Save**, **Cancel** and **Delete** in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; update theme overrides and UI tests. Less used buttons move into the bar's ellipsis menu when **Settings → Admin → Actions layout** is **Menu**.
 - `RoutingDecisionMade` repeats are coalesced. Sum `ActivityRoutingDecisionEventData.OccurrenceCount` and read `LastSeenUtc`.
+- The provider webhook inbox moved to the Webhooks module: `IProviderWebhookInbox`, `IProviderWebhookInboxHandler`, `IProviderWebhookIngressLimiter` and their models are in namespace `CrestApps.OrchardCore.Webhooks` (package `CrestApps.OrchardCore.Webhooks.Abstractions`), and a handler's `ReplaySafety` is a `WebhookHandlerReplaySafety` with the same values as `ContactCenterHandlerReplaySafety`. The feature ID and the `CrestApps:ContactCenter:WebhookIngress` section are unchanged.
+- Contact Center skills are the shared Skills catalog (`CrestApps.OrchardCore.Skills`, enabled by Agents); existing skills are copied once with their ids. The `ContactCenterSkill` recipe step still imports them.
 - Feature consolidation: there is no Administration feature, Voice and Real-Time are dependency-only, and the Agent Workspace and provider adapters are glue. Remove those IDs from recipes.
 - Custom reports use the 3.0 Reports API (`services.AddReport<T>()`, `ReportFilter.GetDateRange()`); see `orchardcore-reports`.
 
@@ -280,7 +290,9 @@ Contact Center is new in 3.0. Code from 3.0 previews or neighboring modules must
 
 - **Agent never receives offers**: check sign-in to the queue on the **Work** tab, `Available` presence, live session and heartbeat, entitlements, skills and proficiency, and the queue's business hours. The **Agent availability and wait time** report states the exact reason.
 - **Dialer not calling**: read the Live dashboard **Why isn't this dialing?** card, the **Dialer decision log** and **Dialer activity and health** reports, and the `contactcenter-dialer-pacing` health check.
-- **Agent stuck Busy or Reserved**: use **Free agent** on the Live dashboard; it never ends a call the provider confirms is alive.
+- **Agent stuck Busy or Reserved**: use **Free agent** on the Live dashboard; it never ends a call the provider confirms is alive. When the agent still holds dialer work, **Open activity** on their card opens it so a supervisor with **Complete activity** can disposition it for them.
+- **Offers ring nowhere**: the agent bar warns when the state's `phoneOpen` is `false` and links to `/softphone`. A ringing offer whose leg is refused as unavailable is released at once and the agent set **Away** (*Phone unreachable*).
+- **Preview agents refused the disposition**: raise the Preview profile's **Offer time (seconds)** (`PreviewOfferTimeoutSeconds`); an agent who lost the record is redirected with a reason instead of a 403.
 - **Settings pages throw for `IDialDestinationPolicy`**: enable a voice capability so Telephony is present.
 - **Tenant refuses work or readiness fails**: the declared topology or base-voice verification is unmet; read the critical startup log.
 - **Health routes return 404**: enable `OrchardCore.HealthChecks` and include the tenant URL prefix.
@@ -306,4 +318,5 @@ Full diagnostics and runbooks are in [references/production-support.md](referenc
 - `orchardcore-signalr`, `orchardcore-websockets` - real-time transport and media stream sockets
 - `orchardcore-dnc-registry`, `orchardcore-phone-numbers` - do-not-call screening and E.164 handling
 - `orchardcore-reports` - the Reports framework
+- `orchardcore-webhooks` - the Webhooks module that ships the provider webhook inbox
 - `orchardcore-workflows`, `orchardcore-health-checks`, `orchardcore-redis` - Orchard Core framework features used here
