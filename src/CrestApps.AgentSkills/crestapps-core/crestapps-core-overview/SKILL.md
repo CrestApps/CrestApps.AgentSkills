@@ -156,6 +156,7 @@ Resolution order for a slot is: the explicit deployment name, the slot's site de
 | Templates | `CrestApps.Core.Templates` | `crestapps-core-templates`, `crestapps-core-ai-templates` |
 | Markdown | `CrestApps.Core.AI.Markdown` | `crestapps-core-ai-markdown` |
 | Resilience | `CrestApps.Core.AI.Resilience` | `crestapps-core-resilience` |
+| Observability | `CrestApps.Core.OpenTelemetry` | `crestapps-core-observability` |
 | Ingestion | `CrestApps.Core.AI.Ingestion`, `CrestApps.Core.AI.Ingestion.Pdf`, `CrestApps.Core.Azure.DocumentIntelligence`, `CrestApps.Core.DataIngestion` | `crestapps-core-document-processing` |
 | Documents and generated files | `CrestApps.Core.AI.Documents`, `CrestApps.Core.AI.Documents.OpenXml`, `CrestApps.Core.AI.Documents.Pdf`, `CrestApps.Core.AI.Documents.Word` | `crestapps-core-document-processing`, `crestapps-core-document-agents` |
 | File sources | `CrestApps.Core.AI.FileSources`, `CrestApps.Core.AI.Ftp`, `CrestApps.Core.AI.Sftp` | `crestapps-core-file-sources`, `crestapps-core-mcp-file-resources` |
@@ -206,6 +207,7 @@ Hosting and infrastructure
 - `crestapps-core-templates` - the general Liquid template engine.
 - `crestapps-core-signalr` - SignalR registration and hub routes.
 - `crestapps-core-resilience` - retry middleware for AI clients.
+- `crestapps-core-observability` - OpenTelemetry traces, metrics and logs, and the instrument contract.
 
 AI runtime
 

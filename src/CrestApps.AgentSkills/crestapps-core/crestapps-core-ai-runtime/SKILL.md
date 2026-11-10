@@ -17,7 +17,7 @@ The runtime is the provider-agnostic layer every other AI feature builds on. A *
 - Program against `IAIClientFactory`, `IAICompletionService`, `IAICompletionContextBuilder` and `IAIDeploymentManager`. Never create a provider SDK client in business code.
 - Every configured deployment declares its model capabilities through `Features`. A configured entry with no features and no legacy purpose is skipped at startup with the warning "declares no model capabilities".
 - Pick deployments through slots (`AIDeploymentSlotNames`) and `ResolveSlotAsync(...)`. There is no deployment purpose or type in 2.0.
-- Use `crestapps-core-ai-model-capabilities` for registering features, parameters and slots, `crestapps-core-ai-usage-metering` for usage records, and the provider skills (`crestapps-core-openai`, `crestapps-core-azure-openai`, `crestapps-core-ollama`, `crestapps-core-azure-ai-inference`) for provider-specific settings.
+- Use `crestapps-core-ai-model-capabilities` for registering features, parameters and slots, `crestapps-core-ai-usage-metering` for usage records, `crestapps-core-observability` for traces and metrics, and the provider skills (`crestapps-core-openai`, `crestapps-core-azure-openai`, `crestapps-core-ollama`, `crestapps-core-azure-ai-inference`) for provider-specific settings.
 
 ## Registration
 
@@ -142,6 +142,15 @@ builder.Services.Configure<DefaultAIDeploymentSettings>(settings =>
 
 Every client the factory creates is metered, and every chat client is wrapped in `CapabilityEnforcingChatClient`, which strips tools, JSON response formats and reasoning options the deployment does not declare. `CreateRealtimeClientAsync` returns a metering wrapper; use `GetService` to reach the provider client.
 
+## Telemetry Options
+
+The framework registers a scoped `DefaultAIOptions` that applies the site's `GeneralAIOptions` overrides. Two of its options control the Microsoft.Extensions.AI `gen_ai.*` telemetry; the framework's own `CrestApps.Core` spans and metrics do not depend on them.
+
+- `EnableOpenTelemetry` (off by default) adds `gen_ai.*` spans and metrics, under the `AICompletionService` source, to the OpenAI, Azure AI Inference and Ollama completion clients, the Azure OpenAI Responses path, the Claude orchestrator, and the embedding, image, speech and realtime clients from `IAIClientFactory`. The Azure OpenAI chat-completions path uses the OpenAI SDK's `OpenAI.Experimental.EnableOpenTelemetry` switch instead.
+- `EnableSensitiveData` (off by default) adds prompts, responses and tool arguments to those spans. It applies only while `EnableOpenTelemetry` is on.
+
+A site value applies only with its flag: `GeneralAIOptions.OverrideEnableOpenTelemetry` or `OverrideEnableSensitiveData`. See `crestapps-core-observability`.
+
 ## Example Completion Service
 
 ```csharp
@@ -212,6 +221,10 @@ A provider that creates Microsoft.Extensions.AI clients implements `IAIClientPro
 - **`ResolveSlotAsync` returns `null`**: no deployment declares the slot's required feature, or the only candidate declares the excluded `realtime` feature for `Chat` or `Utility`.
 - **A configured deployment is missing**: the entry declares no `Features`, its `ClientName` is unknown, or one of its values could not be read (each bad entry is now skipped on its own with an error naming it).
 - **Tools are never called**: the deployment declares metadata without `toolCalling`, so capability enforcement removes them and logs a warning.
+
+## Upgrading Within 2.0 Previews
+
+- `ProviderAICompletionClient<TProvider>` takes the scoped `DefaultAIOptions` instead of `IOptions<DefaultAIOptions>`, so a site's telemetry settings reach the OpenAI, Azure AI Inference and Ollama clients. Code that constructs it directly passes a `DefaultAIOptions`. A client registered with `AddCoreAICompletionClient` needs no change.
 
 ## Upgrading from 1.x
 

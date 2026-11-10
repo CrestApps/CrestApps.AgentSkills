@@ -36,17 +36,21 @@ dotnet run --project ./src/Startup/CrestApps.Core.Aspire.AppHost/CrestApps.Core.
 - `SampleHostContentRootResolver.ResolveContentRoot(...)` finds the project folder, so the commands work from the repository root.
 - The sample admin account is configured under `CrestApps:Admin` in each host's `appsettings.json`. The MVC host also signs in ordinary users listed under `CrestApps:Users` (`Username`, `Password` pairs) in `App_Data/appsettings.json`, for checking that one user never sees another's conversations or memories.
 - Put credentials in `App_Data/appsettings.json`; it is layered over the normal configuration chain. Set `CrestApps:AppDataPath` to move `App_Data` outside the source tree.
+- The AppHost sets `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_SERVICE_NAME` for every project it runs, so under Aspire both hosts send traces, metrics and logs to the Aspire dashboard.
 - Aspire needs a container runtime. It pulls `deepseek-v2:16b` into Ollama on first run and wires it through `CrestApps__AI__Providers__Ollama__Connections__Default__ChatDeploymentName`, so a chat deployment exists without manual configuration. Change `ollamaModelName` in the app host `Program.cs` for a smaller model.
 - With your own Ollama, the deployment `ModelName` must match a pulled model exactly, or the provider returns 404.
 
 ## What Each Host Does at Startup
 
 1. `builder.AddSharedSampleHostDefaults()` - NLog, `App_Data` creation, `App_Data/appsettings.json`, data-protection keys under `App_Data/DataProtection-Keys`, and `AddSharedSiteSettings(appDataPath)` (the `SiteSettingsStore` plus `IConfigureOptions` bridges for `GeneralAIOptions`, `DefaultAIDeploymentSettings`, `PromptSecurityOptions`, `AIVisitorIdentityOptions` and others, refreshed through `SiteSettingsOptionsChangeTokenSource<TOptions>`).
-2. Host services, authentication with an `Admin` policy, `AddSharedAIChatProtection()` (endpoint rate limiting) and `AddWebRtcRealtimeTransport()`.
-3. `AddMvcSampleHostServices(appDataPath)` or `AddBlazorSampleHostServices(appDataPath)` - the backing store (`AddCoreYesSqlDataStore(...)` or `AddCoreEntityCoreSqliteDataStore(...)`), the sample document and figure authorization handlers, article demo services, and option bridges for A2A, MCP, Copilot and Claude.
-4. `AddCrestAppsCore(...)` with the full AI suite and indexing composition, then `ConfigureCrestAppsChatHubOptions<AIChatHub>()`, `AddCoreWebCrawlers()`, `AddCoreFileSources(builder.Configuration)` with connectors, and the web-crawler and file-source stores.
-5. After `Build()`: `InitializeYesSqlSchemaAsync()` (MVC, defined in the sample) or `InitializeEntityCoreSchemaAsync()` (Blazor, a package API), then `SeedArticlesAsync()`.
-6. Pipeline: HTTPS, static files, `UseWebSockets()`, routing, `UseSharedAIChatProtection()` (anonymous visitor cookie plus rate limiter), authentication, authorization, `/mcp` authentication middleware, the two hubs, `MapMcp("mcp")`, `MapA2AHost()`, and the chat and document endpoints.
+2. `builder.AddSharedSampleOpenTelemetry()` - only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set: `AddCrestAppsOpenTelemetry()` with ASP.NET Core, HttpClient and `System.Runtime` telemetry over `UseOtlpExporter()`, the OpenTelemetry log provider with scopes (after the `ClearProviders()` of step 1, so NLog keeps running), and the `OpenAI.Experimental.EnableOpenTelemetry` switch. See `crestapps-core-observability`.
+3. Host services, authentication with an `Admin` policy, `AddSharedAIChatProtection()` (endpoint rate limiting) and `AddWebRtcRealtimeTransport()`.
+4. `AddMvcSampleHostServices(appDataPath)` or `AddBlazorSampleHostServices(appDataPath)` - the backing store (`AddCoreYesSqlDataStore(...)` or `AddCoreEntityCoreSqliteDataStore(...)`), the sample document and figure authorization handlers, article demo services, and option bridges for A2A, MCP, Copilot and Claude.
+5. `AddCrestAppsCore(...)` with the full AI suite and indexing composition, then `ConfigureCrestAppsChatHubOptions<AIChatHub>()`, `AddCoreWebCrawlers()`, `AddCoreFileSources(builder.Configuration)` with connectors, and the web-crawler and file-source stores.
+6. After `Build()`: `InitializeYesSqlSchemaAsync()` (MVC, defined in the sample) or `InitializeEntityCoreSchemaAsync()` (Blazor, a package API), then `SeedArticlesAsync()`.
+7. Pipeline: HTTPS, static files, `UseWebSockets()`, routing, `UseSharedAIChatProtection()` (anonymous visitor cookie plus rate limiter), authentication, authorization, `/mcp` authentication middleware, the two hubs, `MapMcp("mcp")`, `MapA2AHost()`, and the chat and document endpoints.
+
+Both `nlog.config` files print each line's event id and trace id (`${activity:property=TraceId}`, from `NLog.DiagnosticSource`), so a log line can be matched to its trace. The samples' own log messages use event ids in the 9000 range.
 
 ## Sample Pages Worth Copying
 
@@ -59,7 +63,7 @@ dotnet run --project ./src/Startup/CrestApps.Core.Aspire.AppHost/CrestApps.Core.
 | Profile editor, data extraction | `DataExtractionEntry.FieldType` and `AllowedValues` |
 | Profile editor, **Knowledge** tab | **Remember earlier parts of long conversations** and **Let the assistant look up past conversations** next to user memory |
 | Profile editor | **Allow page tools** and **Allow consequential page tools** (`WebMcpProfileSettings`) |
-| **Settings** | a **WebMCP** card choosing the exposed tools, and the chat-interaction session-memory default |
+| **Settings** | a **WebMCP** card choosing the exposed tools, the chat-interaction session-memory default, and **Enable OpenTelemetry** and **Include prompts and responses in telemetry**, saved with their `Override...` flags |
 | **WebMCP Playground** | a fake store exposing tools through `document.modelContext` |
 
 Both `AIChatHub` samples override `AuthorizeSessionAsync` so the `Admin` policy can open any conversation from the admin Sessions page. The sample `AIMemoryEntryHandler` is gone because memory indexing is now registered by `AddAIMemory()`.
@@ -73,6 +77,7 @@ Rewrite these for your host, because they exist only in `src/Startup`:
 | Sample helper | Replace with |
 |---|---|
 | `AddSharedSampleHostDefaults()`, `AddSharedSiteSettings(...)` | Your logging, configuration, data protection, and a settings store that signals `IOptionsMonitor` |
+| `AddSharedSampleOpenTelemetry()` | Your OpenTelemetry setup with `AddCrestAppsOpenTelemetry()`; see `crestapps-core-observability` |
 | `AddMvcSampleHostServices(...)`, `AddBlazorSampleHostServices(...)` | Direct store registration plus your own `IAuthorizationHandler` implementations |
 | `Sample*AuthorizationHandler` types | Handlers that apply your real access rules (the samples grant most document access to administrators only) |
 | `InitializeYesSqlSchemaAsync()` | Your YesSql schema step using the package `Create*IndexSchemaAsync` extensions |
@@ -93,6 +98,8 @@ The chat scripts and stylesheets are sources under `src/Resources/CrestApps.AI.R
 - If you copied the sample `AIMemoryEntryHandler` into a host that calls `AddAIMemory()`, delete it; the framework now indexes memories and the copy would index each one twice.
 - Copy the `AuthorizeSessionAsync` override from the sample `AIChatHub` if your staff open other users' conversations through the hub.
 - The site-settings bridge no longer maps `EnableAIUsageTracking`; call `AddUsageTracking()` instead.
+- The **Enable OpenTelemetry** setting had no effect, because the Settings page saved it without `OverrideEnableOpenTelemetry`. Both pages now save the flag with the value, and do the same for **Include prompts and responses in telemetry**. Do the same in your own settings page.
+- The Blazor sample's log event ids moved to the 9000 range, because they collided with the A2A ids.
 
 ## Upgrading from 1.x Samples
 
