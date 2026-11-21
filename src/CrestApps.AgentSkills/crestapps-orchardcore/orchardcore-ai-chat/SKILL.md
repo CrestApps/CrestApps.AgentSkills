@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-chat
-description: Skill for setting up and extending AI Chat in Orchard Core with the CrestApps AI Chat module. Covers the CrestApps.OrchardCore.AI.Chat and CrestApps.OrchardCore.AI.Chat.AdminWidget features, chat profiles on the admin menu, the admin chat session and history pages, Invoke Profile, the frontend AIChat widget with AIProfilePart, chat modes through ChatModeProfileSettings with ConversationDeploymentName and VoiceName, text-to-speech playback, session uploads, citations, PromptSecurityOptions rate-limit tiers, AIVisitorIdentityOptions cross-site cookies, AIChatHub methods, the AIChatSessions admin list, and upgrading from deployment purposes and ChatMode.Realtime. Use this skill when requests mention Orchard Core AI Chat, chat profiles, chat widgets, anonymous chat visitors, chat rate limits, or prompt security. Strong matches include AIChatHub, AIChatProfileSettings, IsOnAdminMenu, AIProfilePart, QueryAIProfile, and AIChatApp.
+description: Skill for setting up and extending AI Chat in Orchard Core with the CrestApps AI Chat module. Covers the AI Chat and AI Chat Admin Widget features, chat profiles on the admin menu, chat session and history pages, Invoke Profile, the frontend AIChat widget with AIProfilePart, chat modes with ChatModeProfileSettings, session uploads and citations, AG-UI tool cards and tool approvals, admin widget page context with IAIChatPageContextProvider and SendPageContext, the AG-UI endpoint, PromptSecurityOptions rate-limit tiers, AIVisitorIdentityOptions cookies, AIChatHub methods, and upgrading from deployment purposes and ChatMode.Realtime. Use this skill when requests mention Orchard Core AI Chat, chat profiles, chat widgets, the admin chat widget, anonymous chat visitors, chat rate limits, or prompt security. Strong matches include AIChatHub, AG-UI, RequireApproval, IAIChatPageContextProvider, AIChatProfileSettings, IsOnAdminMenu, AIProfilePart, QueryAIProfile, and AIChatApp.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -34,7 +34,7 @@ You are an Orchard Core expert. Generate code, configuration, and recipes for ad
 | AI Chat Admin Widget | `CrestApps.OrchardCore.AI.Chat.AdminWidget` | Floating chat on every admin page. Depends on AI Chat and `CrestApps.OrchardCore.AI.Agent` |
 | AI Chat Session Analytics | `CrestApps.OrchardCore.AI.Chat.Analytics` | See `orchardcore-ai-chat-analytics` |
 | AI Chat Services | `CrestApps.OrchardCore.AI.Chat.Core` | Dependency only; hub, session manager and handlers |
-| AI Chat WebAPI | `CrestApps.OrchardCore.AI.Chat.Api` | REST chat API, shipped by the AI module |
+| AI Chat WebAPI | `CrestApps.OrchardCore.AI.Chat.Api` | REST chat API and the AG-UI endpoint `POST /api/ai/v1/agui`, shipped by the AI module |
 
 Provider features: `CrestApps.OrchardCore.OpenAI`, `CrestApps.OrchardCore.OpenAI.Azure`, `CrestApps.OrchardCore.AzureAIInference`, `CrestApps.OrchardCore.Ollama`. See `orchardcore-ai-providers`.
 
@@ -244,7 +244,61 @@ The history page renders through Orchard Core's `AdminList` shape (`AIChatSessio
 
 ### Admin Widget
 
-Enable `CrestApps.OrchardCore.AI.Chat.AdminWidget`, then pick the profile, the history size (1 to 50, default 10) and the primary color (default `#41b670`) in the **Admin Widget** section of **Settings → Artificial Intelligence** (permission `ManageAIProfiles`). It renders for signed-in users allowed to query that profile and keeps its position, size and session in browser local storage.
+Enable `CrestApps.OrchardCore.AI.Chat.AdminWidget`, then pick the profile, the history size (1 to 50, default 10), the primary color (default `#41b670`) and **Tell the AI which page the user is on** (`SendPageContext`, on by default) in the **Admin Widget** section of **Settings → Artificial Intelligence** (permission `ManageAIProfiles`). It renders for signed-in users allowed to query that profile and keeps its position, size and session in browser local storage.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "AIChatAdminWidgetSettings": {
+        "ProfileId": "<chat-profile-id>",
+        "MaxSessions": 10,
+        "PrimaryColor": "#41b670",
+        "SendPageContext": true
+      }
+    }
+  ]
+}
+```
+
+### AG-UI: the Assistant Works on the Page
+
+The chat page, the admin widget, the frontend widget and the profile test page run the chat as an [AG-UI](https://docs.ag-ui.com) agent over the AI chat hub (`RunAgent`, from CrestApps.Core; see `crestapps-core-ag-ui`). Nothing needs to be enabled.
+
+- **Tool cards.** Each tool call shows as a card in the message with the tool's title (`.WithTitle(...)`), input and result, also after the chat reloads. The UI texts are localized by `AIChatUIConfiguration`.
+- **Tool approvals.** A tool registered with `.RequireApproval()` waits for the user: the run ends with an interrupt, the card shows **Allow** and **Deny**, and the answer starts a new run. The tool's own permission checks still run. Chats that cannot ask (SMS, voice) run such tools as before. The **Orchard Core AI Agent** tools that delete, disable, import, set up tenants or send email/SMS ask first.
+- **Page context.** The admin widget sends the page title and address, the selected text and what the page is about (at most 10 entries of 1,000 characters, read by the model as data). Built-in providers: `ContentItemPageContextProvider` (content item being edited or viewed, or the type being created; needs `OrchardCore.Contents`) and `SitePageContextProvider` (site name and tenant). `SendPageContext = false` turns all of it off.
+- **Page tools.** With WebMCP and a profile that has **Allow page tools**, the assistant reads the page (`page_read_content`), fills forms without submitting them and opens other site pages; a `page_navigate` run continues on the next page (up to five pages in a row). See `orchardcore-ai-webmcp`.
+
+```csharp
+services.AddCoreAITool<ArchiveOrdersTool>(ArchiveOrdersTool.TheName)
+    .WithTitle(S["Archive Orders"])
+    .RequireApproval()
+    .Selectable();
+```
+
+A module adds context for the records it owns with `IAIChatPageContextProvider` (`CrestApps.OrchardCore.AI.Chat.Core.Services`). Providers run when the widget renders on each admin page, so read only what is already loaded or cached:
+
+```csharp
+public sealed class OrderPageContextProvider : IAIChatPageContextProvider
+{
+    public Task PopulateAsync(AIChatPageContext context)
+    {
+        if (context.GetRouteValue("area") == "MyCompany.Orders" && context.GetRouteValue("orderId") is { } orderId)
+        {
+            context.Add("Order being edited", $"Order {orderId}");
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+// In the startup of the feature that owns orders:
+services.AddScoped<IAIChatPageContextProvider, OrderPageContextProvider>();
+```
+
+**AG-UI endpoint.** With **AI Chat WebAPI** (`CrestApps.OrchardCore.AI.Chat.Api`), any AG-UI client (such as a CopilotKit front end) runs chat profiles at `POST /api/ai/v1/agui` with a `RunAgentInput`, answered as Server-Sent Events. Put the profile id in `forwardedProps.profileId` and the session id in `threadId` (empty starts a session). Authenticate with an AI API key whose areas include `ai.chat` (`X-Api-Key` header or bearer) or an OpenID bearer token; others get `401`. The hub then authorizes the profile and session. JSON only, no antiforgery token.
 
 ### Frontend Widget
 
@@ -332,6 +386,7 @@ The hub is mapped with `SignalRHubRoutes.GetHubPath<AIChatHub>()`, and `Configur
 | `SynthesizeSpeech` | Read an answer aloud |
 | `RateMessage` | Thumbs up or down |
 | `HandleNotificationAction` | Run a notification action, see `orchardcore-ai-chat-notifications` |
+| `RunAgent` | Run one AG-UI turn (the chat UI and widgets use it; tool cards, approvals and page context ride on it) |
 | `SetPageTools` / `ClearPageTools` | Register or clear the WebMCP tools of the user's current page (WebMCP bridge) |
 
 ### Resources

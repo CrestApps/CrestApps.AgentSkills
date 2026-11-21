@@ -1,6 +1,6 @@
 ---
 name: orchardcore-scheduling
-description: Skill for the CrestApps Orchard Core Scheduling module (CrestApps.OrchardCore.Scheduling) with its Self-Service and API features. Covers appointment types (length, interval, buffers, notice, horizon, daily and weekly limits, group sessions, confirmation, holds), staff, rooms and equipment with weekly hours, overrides or Workforce shifts, assignment modes, resource requirement groups with weights, self-service booking policies, the waitlist, book pages and manage links, locked booking, IAppointmentService, IAppointmentSlotFilter, IAppointmentObserver, editor sections from display drivers, work orders from bookings, workflows, api/scheduling/v1, AI tools, the Report Builder data source and the Scheduling recipe step. Use this skill when requests mention booking appointments, online booking pages, staff availability, appointment types or waitlists. Strong matches include AppointmentType, SchedulingResource, AppointmentRequest, ISchedulingAvailabilityService, AppointmentSlot and SchedulingPermissions.
+description: Skill for the CrestApps Orchard Core Scheduling module (CrestApps.OrchardCore.Scheduling) with its Self-Service and API features. Covers appointment types (length, buffers, notice, horizon, limits, group sessions, confirmation, holds), staff, rooms and equipment with weekly hours or Workforce shifts, staff resources from Staff, assignment modes, resource requirement groups, self-service policies, the waitlist, dated sessions with registrations, offers and attendance through ISchedulingSessionService, book pages, locked booking, IAppointmentService, IAppointmentSlotFilter, IAppointmentObserver, workflows, api/scheduling/v1, AI tools, the Report Builder data source and the Scheduling recipe step. Use this skill when requests mention booking appointments, online booking pages, staff availability, appointment types, classes or sessions people register for, or waitlists. Strong matches include AppointmentType, SchedulingResource, SchedulingSession, ISchedulingSessionService and ISchedulingAvailabilityService.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -18,7 +18,8 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 - Install `CrestApps.OrchardCore.Scheduling` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle, which includes it and Calendars) in the web/startup project.
 - Scheduling depends on `CrestApps.OrchardCore.Calendars`; calendars, free/busy and calendar workflows are covered by `orchardcore-calendars`.
 - Contracts live in `CrestApps.OrchardCore.Scheduling.Abstractions` (models, `IAppointmentService`, `ISchedulingAvailabilityService`, `IAppointmentSlotFilter`, `IAppointmentObserver`, `SchedulingPermissions`); stores and services in `CrestApps.OrchardCore.Scheduling.Core`.
-- Always book, confirm, move, cancel and complete through `IAppointmentService`. It locks, re-checks availability, versions resources and writes the calendar event in the same session.
+- Always book, confirm, move, cancel and complete through `IAppointmentService`. It locks, re-checks availability, versions resources and writes the calendar event in the same session. Register people for dated sessions through `ISchedulingSessionService`.
+- Show appointment times in the local time zone (`ILocalClock`, the `DateTime` shape) and convert entered times back with `ILocalClock.ToUtcLenientAsync`; see `orchardcore-time-zones`.
 - Records live in the `Scheduling` YesSql collection. Appointment events go on `Appointments` calendars (`Source = Scheduling`, `SourceId` = appointment id, `Editable = false`).
 - Scheduling sends no email. Send confirmations from a workflow on **Appointment Confirmed** with the `ManageToken` link.
 - Commerce bookings sold through the cart are `orchardcore-bookings`, not Scheduling. Work orders from bookings are `orchardcore-work-orders`; technician capacity is `orchardcore-dispatch`; shifts come from `orchardcore-workforce`.
@@ -60,6 +61,8 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 | `OrchardCore.DataPipelines.Core` | The **Scheduling** Report Builder data source |
 | `OrchardCore.Recipes.Core` / `OrchardCore.Deployment` | The `Scheduling` recipe step / deployment step |
 | `CrestApps.OrchardCore.Recipes` | `SchedulingRecipeStepSchema` and `SchedulingDeploymentStepSchema` |
+| `CrestApps.OrchardCore.Staff` | The resource editor picks a staff resource's person with the `StaffPicker` (else the calendar user search); saving fills an empty name and time zone from the staff record and gives the person the `Bookable` staff capability ("Takes appointments as a scheduling resource"), creating a staff record when the user has none. See `orchardcore-staff`. |
+| Learning Classes | A class item's sessions are Scheduling sessions with source `Learning.Class`. |
 | Workforce | A team's `Workforce` calendar holds `Shift` events that resources in **Shifts** mode read; breaks inside shifts are busy (`ShiftSegmentBusyTimeSource`) |
 | `CrestApps.OrchardCore.WorkOrders` | A work order type lists `AppointmentTypeIds`; each confirmed booking makes a work order, moves it when rescheduled and cancels it with the booking |
 | `CrestApps.OrchardCore.Dispatch` | `DispatchCapacitySlotFilter` offers a work-order appointment slot only while a qualified technician can take the job |
@@ -88,8 +91,11 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 | `SchedulingResource` | `Name`, `Kind` (`Staff`, `Room`, `Equipment`, `Other`), `UserId` (a staff member's user; their own calendars also make them busy), `CalendarId`, `TimeZoneId`, `AvailabilityMode` (`WorkingHours`, `Shifts`), `ShiftCalendarIds` (legacy single `ShiftCalendarId` still read), `WorkingHours` (`Day`, `Start`, `End` as `HH:mm`; several per day, gaps are breaks), `DateOverrides` (`Date`, `Closed`, `Start`, `End`), `Enabled`, `BookingVersion` |
 | `AppointmentType` | `Name`, `Description`, `Slug`, `DurationMinutes` (30), `SlotIntervalMinutes` (30), `BufferBeforeMinutes`, `BufferAfterMinutes`, `MinimumNoticeMinutes` (60), `HorizonDays` (60), `MaxPerDay` (0 = none), `MaxPerWeek` (0), `MaxUpcomingPerCustomer` (0), `CancelNoticeMinutes` (0), `RescheduleNoticeMinutes` (0), `Capacity` (1; more is a group session), `ResourceIds`, `Assignment`, `ResourceRequirements`, `RequiresConfirmation`, `HoldMinutes` (10), `AllowSelfService`, `Location`, `Color`, `Enabled` |
 | `AppointmentResourceRequirement` | `Name`, `ResourceIds` (preference order), `Assignment`, `Weights` (resource id to round-robin weight, 1 when absent) |
-| `Appointment` | `AppointmentTypeId`, `ResourceIds`, `StartUtc`, `EndUtc`, `TimeZoneId`, `Status`, `HoldExpiresUtc`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `UserId`, `Notes`, `CalendarEventId`, `ManageToken`, `Source` (`Admin`, `SelfService`, `Api`, `AI`, `Workflow`), `CancelReason` |
-| `WaitlistEntry` | `AppointmentTypeId`, `FromUtc`, `ToUtc`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `Status` (`Waiting`, `Notified`, `Booked`, `Removed`), `NotifiedUtc` |
+| `Appointment` | `AppointmentTypeId`, `ResourceIds`, `StartUtc`, `EndUtc`, `TimeZoneId`, `Status`, `HoldExpiresUtc`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `UserId`, `Notes`, `CalendarEventId`, `ManageToken`, `Source` (`Admin`, `SelfService`, `Api`, `AI`, `Workflow`, or a module's own), `SourceId`, `CancelReason`; for a session registration `SessionId`, `Attendance` (`Unmarked`, `Attended`, `Partial`, `Absent`), `MinutesAttended` |
+| `WaitlistEntry` | `AppointmentTypeId`, `FromUtc`, `ToUtc`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `UserId`, `Status` (`Waiting`, `Notified`, `Booked`, `Removed`, `OfferExpired`), `NotifiedUtc`; for a session `SessionId`, `AppointmentId` (the offered place), `OfferExpiresUtc`, `Source`, `SourceId` |
+| `SchedulingSession` | `AppointmentTypeId`, `Title`, `Meetings` (`StartUtc`, `EndUtc`), `Capacity` (1), `Location`, `MeetingUrl`, `ResourceIds`, `RegistrationOpensUtc`, `RegistrationClosesUtc`, `WaitlistMode` (`AutoPromote` default, `Notify`, `None`), `OfferHours` (24), `Status` (`Scheduled`, `Cancelled`), `Source`, `SourceId`, `CalendarEventId` |
+
+Every index provider is declared `.ExclusiveToDocumentType()`; all but `AppointmentResourceIndex` (one row per booked resource) are also `.SingleRecordPerDocument()`. `WaitlistEntryIndex` only holds entries without a `SessionId`; session registrations and waits have their own `SessionRegistrationIndex` and `SessionWaitlistIndex` (migration 3).
 
 `AppointmentStatus` is `Held`, `Requested`, `Confirmed`, `Completed`, `NoShow`, `Cancelled` or `Expired`. `AppointmentAssignment` is `AnyAvailable` (first free in list order), `RoundRobin` (fewest appointments in the last 30 days divided by weight) or `AllTogether` (every resource at once, such as a doctor and a nurse).
 
@@ -130,7 +136,9 @@ Groups are picked in order and never take the same resource twice; the appointme
 | `CompleteAsync(appointment, noShow, actor)` | Took place, or no-show |
 | `ExpireHoldsAsync()` | End holds that ran out (background task every minute) |
 
-`AppointmentRequest`: `AppointmentTypeId`, `StartUtc`, `ResourceId`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `UserId`, `Notes`, `TimeZoneId`, `Source`, `Actor`, `Hold`, `SelfService`. Results are `AppointmentResult` (`Appointment`, `Errors`, `Succeeded`, `Conflict`).
+For an appointment with a `SessionId`, `IAppointmentService` hands off to the session service: confirming a held place accepts the offer, cancelling gives the place to the session's waitlist, completing records attendance, and rescheduling is refused (register in another session instead).
+
+`AppointmentRequest`: `AppointmentTypeId`, `StartUtc`, `ResourceId`, `CustomerName`, `CustomerEmail`, `CustomerPhone`, `UserId`, `Notes`, `TimeZoneId`, `Source`, `SourceId`, `Actor`, `Hold`, `SelfService`. Results are `AppointmentResult` (`Appointment`, `Errors`, `Succeeded`, `Conflict`).
 
 Every booking and reschedule locks `SCHEDULING_RESOURCE_{id}` for every resource it could take plus their calendars' `CALENDAR_{id}` keys (and `SCHEDULING_CUSTOMER_{typeId}_{identifier}` with a per-customer limit) in one ordinal-ordered set, re-checks availability, picks resources, bumps every taken resource's `BookingVersion` with YesSql's concurrency check, then writes the appointment and its calendar event (tentative while held or requested) with `CalendarLocksHeld`. A booking for a customer who already has that type at that time is a `Conflict`, so retries can't take a second place.
 
@@ -169,11 +177,48 @@ The booking page and manage link are always self-service; AI tools are unless th
 - A type with `AllowSelfService`, `Enabled` and a `Slug` gets `/book/{slug}` (route `SchedulingBook`): pick a day and time (site time zone), enter name, email, phone and notes. The customer lands on `/book/manage/{id}/{token}` (`SchedulingManage`) to move or cancel without signing in. Otherwise `404`.
 - Cancelling or moving frees a time: the oldest `Waiting` entry whose range covers it is marked `Notified` and **Waitlist Slot Available** is raised. A group session shares one calendar event per time (`SourceId = session:...`).
 
+## Dated Sessions
+
+A `SchedulingSession` is a dated occurrence of an appointment type that several people register for (a class, a workshop, a webinar): one or more meetings, its own capacity, a registration window and a waitlist. A module that needs sessions builds on them instead of keeping seats of its own. `ISchedulingSessionService` (`DefaultSchedulingSessionService`, registered by `AddSchedulingCore()`) runs every register, cancel, accept and pass-on under one distributed lock per session on fresh counts, so a session never takes more than its capacity.
+
+```csharp
+var session = new SchedulingSession
+{
+    AppointmentTypeId = workshopTypeId,
+    Title = "Forklift safety, morning group",
+    Capacity = 12,
+    ResourceIds = [instructorResourceId],
+    Meetings = [new SchedulingSessionMeeting { StartUtc = startUtc, EndUtc = startUtc.AddHours(3) }],
+    WaitlistMode = SchedulingWaitlistMode.AutoPromote,
+    Source = "Training.Course",
+    SourceId = courseId,
+};
+
+var errors = await _sessionService.SaveAsync(session, actor);
+
+var result = await _sessionService.RegisterAsync(new SessionRegistrationRequest
+{
+    SessionId = session.ItemId,
+    UserId = userId,
+    Source = "Training.Course",
+    SourceId = courseId,
+    Actor = userName,
+});
+
+if (result.Waitlisted)
+{
+    // Full: result.WaitlistEntry holds the place in line.
+}
+```
+
+A registration is an `Appointment` with `SessionId` (one per person for every meeting); the session's single calendar event sits on its first resource's calendar with the registered people as attendees. Changes reach `IAppointmentObserver` after commit, with `WaitlistSlotAvailable` when a place frees up. The appointment holds background task also calls `ExpireOffersAsync` every minute. The full member list, waitlist modes and attendance are in [references/scheduling-sessions.md](references/scheduling-sessions.md).
+
 ## Extension Points
 
 | Seam | Use it to |
 |---|---|
 | `IAppointmentService` / `ISchedulingAvailabilityService` | Book and find open times from another module |
+| `ISchedulingSessionService` | Keep dated sessions, their registrations, waitlist offers and attendance |
 | `IAppointmentSlotFilter` | `FilterAsync(AppointmentSlotFilterContext, slots)` narrows offered slots (context has `AppointmentType`, `ExcludeAppointmentId`); register with `services.AddScoped<IAppointmentSlotFilter, T>()` |
 | `IAppointmentObserver` | `OnChangedAsync(AppointmentChange)` after commit: `Kind` (`Held`, `Requested`, `Confirmed`, `Rescheduled`, `Cancelled`, `Completed`, `NoShow`, `HoldExpired`, `WaitlistSlotAvailable`), `Appointment`, `AppointmentType`, `PreviousStartUtc`, `WaitlistEntry`, `Actor` |
 | `DisplayDriver<AppointmentType>` / `DisplayDriver<SchedulingResource>` | Add a section to the appointment type or resource editor, both built with `IDisplayManager<T>`; built-in fields are `AppointmentTypeFields_Edit` / `SchedulingResourceFields_Edit` at `Content:1` |
@@ -288,5 +333,10 @@ The **Scheduling** deployment step (category **Calendar**) exports resources and
 | Booking page 404 | Enable Self-Service; the type needs `Enabled`, `AllowSelfService` and a `slug`. |
 | Customer limit or notice not enforced | Policies apply only to self-service calls; staff, API and workflows bypass them. |
 | Editor refuses to save | A section driver added a model error, or a resource is in two requirement groups. |
+| "A place in a dated session moves with the session" | Session registrations can't be rescheduled; cancel and register in another session. |
+| Session registration refused | Outside `RegistrationOpensUtc`..`RegistrationClosesUtc` (empty closes at the first meeting; `IgnoreWindow` for staff), the session is cancelled, or it is full with `WaitlistMode` `None` or `JoinWaitlistWhenFull = false`. |
+| User picker in the resource editor is empty | Without Staff it calls the calendar user search (route `CalendarsUserSearch`), which needs `AccessCalendars` and `AccessAdminPanel`; emails are matched only for callers with `ViewUsers`. |
 
-Related skills: `orchardcore-calendars`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-work-orders`, `orchardcore-dispatch`, `orchardcore-bookings`, `orchardcore-ai-tools`, `orchardcore-report-builder`.
+Scheduling records the `crestapps.scheduling.observer.failures` counter on the `Scheduling` meter when an observer throws; see `orchardcore-opentelemetry`.
+
+Related skills: `orchardcore-staff`, `orchardcore-calendars`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-work-orders`, `orchardcore-dispatch`, `orchardcore-bookings`, `orchardcore-ai-tools`, `orchardcore-report-builder`, `orchardcore-learning` (Learning Classes run their dated sessions on Scheduling).

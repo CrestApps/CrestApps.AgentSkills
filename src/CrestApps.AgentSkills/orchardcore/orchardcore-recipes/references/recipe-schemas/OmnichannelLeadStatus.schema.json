@@ -40,6 +40,10 @@
             "type": "boolean",
             "description": "Whether a new lead starts in this status."
           },
+          "IsContacted": {
+            "type": "boolean",
+            "description": "Whether a lead in the default status moves to this status once an activity for it is completed."
+          },
           "IsClosed": {
             "type": "boolean",
             "description": "Whether a lead in this status is closed."

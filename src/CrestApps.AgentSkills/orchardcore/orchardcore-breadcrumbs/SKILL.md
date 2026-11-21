@@ -193,7 +193,7 @@ Enabling `OrchardCore.AdminDashboard` registers `OrchardCore.AdminDashboard.Serv
 
 ## Hiding Admin Breadcrumbs
 
-**Show breadcrumb** under **Configuration → Settings → Admin** (`AdminSettings.ShowBreadcrumb`, default `true`) hides admin trails only:
+**Show breadcrumb** under **Settings → Admin** (`AdminSettings.ShowBreadcrumb`, default `true`) hides admin trails only:
 
 ```json
 {

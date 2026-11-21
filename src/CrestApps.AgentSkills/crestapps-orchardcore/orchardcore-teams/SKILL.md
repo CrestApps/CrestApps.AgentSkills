@@ -1,6 +1,6 @@
 ---
 name: orchardcore-teams
-description: Skill for the CrestApps Orchard Core Teams module (CrestApps.OrchardCore.Teams) and the shared building blocks beside it. Covers the one team hierarchy of a site, Content > Teams, ITeamManager, ITeamDeletionGuard, team editor cards and row actions with DisplayDriver of Team, module data with team.Put, team members through ITeamMembershipService and ITeamMemberProvider, the Teams recipe and deployment step, business hours with HoursSchedule and IOpenHoursService, parties with PartyRef, IPartySource and IPartyDirectory, and TimeWindow and CalendarTime in Calendars.Abstractions. Use this skill when requests mention teams, a team hierarchy, crews, who is in a team, business hours, holidays or party pickers. Strong matches include Team, TeamKind, TeamMember, TeamRecipeImport, AddTeamsCore, HoursScheduleEvaluator, OpenHoursBusinessHoursGate, OpenHoursServiceHoursProvider, PartyKinds and AddPartySource.
+description: Skill for the CrestApps Orchard Core Teams module (CrestApps.OrchardCore.Teams) and the shared building blocks beside it. Covers the team hierarchy, Content > Teams, ITeamManager, ITeamDeletionGuard, team editor cards, module data with team.Put, the team address, members through ITeamMembershipService and ITeamMemberProvider (staff memberships), picking who takes work with ITeamAssignmentService, load and availability sources, the TeamPicker, the Team audience rule, the Teams recipe and deployment step, where business hours now live (orchardcore-business-hours), parties with PartyRef and IPartyDirectory, and TimeWindow and CalendarTime. Use this skill when requests mention teams, crews, who is in a team, assigning work to a team member, round robin or least loaded assignment, business hours, holidays or party pickers. Strong matches include Team, TeamMember, TeamAssignmentRequest, TeamAssignmentStrategies, AddTeamsCore and AddPartySource.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,16 +11,17 @@ metadata:
 
 ## One Team Hierarchy for the Whole Site
 
-You are an Orchard Core expert. Generate accurate setup, recipes and extension code for the CrestApps Teams module and the small shared building blocks (business hours, parties, time windows) that Workforce, Contact Center, Work Orders and Assets build on. A team has a name, a kind, an optional parent, a description, a linked role, a time zone and whether it is in use. Modules keep their own data on the team and add their own cards to its editor.
+You are an Orchard Core expert. Generate accurate setup, recipes and extension code for the CrestApps Teams module and the small shared building blocks (business hours, parties, time windows) that Workforce, Contact Center, Work Orders and Assets build on. A team has a name, a kind, an optional parent, a description, a linked role, a time zone, an optional address and whether it is in use. Modules keep their own data on the team and add their own cards to its editor.
 
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Teams` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle, which includes it) in the web/startup project.
 - Reference `CrestApps.OrchardCore.Teams.Abstractions` (the `Team` model and contracts) or `CrestApps.OrchardCore.Teams.Core` (`TeamStore`, `TeamManager`, `TeamTree`, `TeamRecipeImport`, `AddTeamsCore()`) from your own module, never the module project.
-- The module has no dependencies. Workforce depends on it, so turning Workforce on turns Teams on.
+- The module has no dependencies. Workforce depends on it (and on Staff), so turning Workforce on turns Teams on.
 - Write teams through `ITeamManager` so validation and every module's `ICatalogEntryHandler<Team>` run (Workforce gives each new team its calendar). `TeamStore` is public for reads that must skip the handlers.
 - `services.AddTeamsCore()` is safe to call more than once; a module that builds on teams calls it from its own registration.
-- Workers, shifts and the Workforce card are covered by `orchardcore-workforce`; skills by `orchardcore-skills`.
+- People and their dated team memberships are kept by Staff (`StaffMember.TeamMemberships`, see `orchardcore-staff`); shifts and the Workforce card by `orchardcore-workforce`; skills by `orchardcore-skills`.
+- Hand work to a team member through `ITeamAssignmentService` instead of writing your own rotation.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -46,7 +47,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension c
 
 ## The Team Model
 
-Each team is a YesSql document in the `Teams` collection (`TeamsConstants.CollectionName`) with a `TeamIndex` of `ItemId`, `Name`, `Kind`, `ParentId` and `Enabled`. The whole tree is read and walked in memory (`TeamTree`).
+Each team is a YesSql document in the `Teams` collection (`TeamsConstants.CollectionName`) with a `TeamIndex` of `ItemId`, `Name`, `Kind`, `ParentId` and `Enabled` (declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`). The whole tree is read and walked in memory (`TeamTree`).
 
 | Property | Notes |
 |---|---|
@@ -56,6 +57,7 @@ Each team is a YesSql document in the `Teams` collection (`TeamsConstants.Collec
 | `Description` | Optional. |
 | `LinkedRoleName` | Users in this role are treated as part of the team (for example, to read its calendar). |
 | `TimeZoneId` | IANA or Windows id (a Windows id is stored as its IANA id); `null` uses the site's. |
+| `Address` | Optional structured `Address` (Addresses building block): where the team works. Workforce geocodes its geofence from it and Payroll reads a work site's tax jurisdictions from it. With Addresses (`CrestApps.OrchardCore.Addresses`) on, the editor shows an **Address** card (`TeamAddress_Edit` at `Content:2`) laid out for the country; a started address must be complete. |
 | `Enabled` | Whether the team is in use (default `true`). |
 | `CreatedUtc`, `ModifiedUtc` | Set by the catalog handler. |
 
@@ -78,14 +80,68 @@ With Workforce on, `ManageWorkforceTeams` (Manage workforce teams) also grants `
 | `ITeamManager` | `ICatalogManager<Team>` plus `ListTreeAsync()` (each team followed by its sub-teams, with its depth), `GetSubtreeIdsAsync(teamId)`, `GetAncestorsAsync(teamId)` (nearest first) and `GetDeletionBlockersAsync(team)`. |
 | `TeamStore` | The `DocumentCatalog<Team, TeamIndex>` behind the manager. |
 | `TeamTree` | `GetSubtreeIds` and `Order` over a list of teams. |
-| `ITeamMembershipService` | `GetMembersAsync(teamId, includeSubTeams = true, on = null)`, `GetMembershipsAsync(userId, on = null)`, `IsMemberAsync(teamId, userId, on = null)`. A team's members include its sub-teams' members. |
+| `ITeamMembershipService` | `GetMembersAsync(teamId, includeSubTeams = true, on = null)`, `GetMembershipsAsync(userId, on = null)`, `IsMemberAsync(teamId, userId, on = null)`. A team's members include its sub-teams' members; one membership per team and person (the user, or the staff record for people without an account). |
+| `ITeamAssignmentService` | Picks the member who takes a piece of work: `PickAsync(TeamAssignmentRequest)` returns `TeamAssignmentResult(Member, Outcome)`; `SelectAsync` returns only the member. See [Team Assignment](#team-assignment). |
 | `TeamRecipeImport` | `ImportAsync(teamManager, nodes, errors, stepName, configure)` used by the `Teams` and `Workforce` steps. |
 
-Teams keeps **no member list of its own**. Members come from every registered `ITeamMemberProvider` as `TeamMember { TeamId, UserId, Role, EffectiveFrom, EffectiveTo, Source }`; `Role` is an open string and `TeamMemberRoles` names `Member`, `Lead`, `Scheduler` and `Manager`. With no provider, teams have no members. Workforce registers `WorkerTeamMemberProvider` (each worker with a user account, from its team memberships).
+Teams keeps **no member list of its own**. Members come from every registered `ITeamMemberProvider` as `TeamMember { TeamId, UserId, StaffMemberId, Role, EffectiveFrom, EffectiveTo, Source }`; `Role` is an open string and `TeamMemberRoles` names `Member`, `Lead`, `Scheduler` and `Manager`. With no provider, teams have no members. Staff registers `StaffTeamMemberProvider` (source `Staff`): every staff member from their dated team memberships, people without a user account included (`StaffMemberId` set, `UserId` empty). Workforce no longer provides members: its `WorkerProfile` was replaced by Staff's `StaffMember` (see `orchardcore-staff`).
+
+### Staff Memberships
+
+With Staff (`CrestApps.OrchardCore.Staff`) on, Teams sets `StaffOptions.UsesTeams = true` (Staff then scopes managers, time zones, filters and reports by team), adds the **Teams** card (`StaffTeams_Edit` at `Content:5`) to the staff editor and a **Teams** section to the staff profile page. Each row is a Staff `TeamMembership { TeamId, Role, EffectiveFrom, EffectiveTo }` with `Role` a `TeamMemberRole` enum (`Member`, `Lead`, `Scheduler`, `Manager`); the first row becomes `StaffMember.PrimaryTeamId`. A manager can only add people to the teams they manage.
+
+### Team Picker and Audience Rule
+
+The `TeamPicker` view component lists the enabled teams as a tree (a chosen team stays listed after it is disabled); the posted value is the team id. Its other arguments are `buttonText` and `smallButton`.
+
+```cshtml
+@await Component.InvokeAsync("TeamPicker", new { name = "TeamIds", selectedValues = Model.TeamIds, multiple = true, required = false, excludeId = Model.CurrentTeamId })
+```
+
+Teams also registers the `Team` user audience rule ("Member of a team or its sub-teams", an `IUserAudienceRuleSource`), which matches the members of the chosen teams on today's date. See `orchardcore-crestapps-users`.
+
+## Team Assignment
+
+`ITeamAssignmentService` (`DefaultTeamAssignmentService`, registered by `AddTeamsCore()`) keeps no state: whose turn it is comes from each member's load, so every node picks the same person. Tickets uses it for desk assignment.
+
+| `TeamAssignmentRequest` | Notes |
+|---|---|
+| `TeamId`, `IncludeSubTeams` (`true`) | Whose members are considered; members without a `UserId` are skipped and each person counts once. |
+| `WorkKind` | Open string (Tickets uses its record kind); the load comes from the `ITeamMemberLoadSource` with that `WorkKind`. |
+| `Strategy` | `TeamAssignmentStrategies.LeastLoaded` (default: fewest open items) or `RoundRobin` (given work longest ago, never-assigned first). The user id breaks ties. |
+| `MaxOpen` | Most open items a member may hold and still be picked; `null` is no limit. |
+| `OnlyAvailable` (`true`), `AvailabilitySources` | Pass over members any honored `ITeamMemberAvailabilitySource` reports; `null` honors every source, an empty list none. A source that throws is logged and skipped. |
+| `ExcludedUserIds`, `CandidateFilter` | Users never picked; an async filter over the candidates (for example, required skills). |
+
+`TeamAssignmentOutcome`: `Picked`, `NoTeam`, `NoMembers`, `NoneAvailable`, `NoneQualified` (the filter left nobody), `AllAtCapacity` (`MaxOpen`).
+
+| Availability source `Name` | Registered by | `HonoredByDefault` |
+|---|---|---|
+| `WorkforceShifts` (on a published shift, not on a break) | Workforce | yes |
+| `CalendarAbsences` (not out of office or on time off) | Calendars, when Teams is on | yes |
+| `ContactCenterPresence` (signed in, not on a break) | Contact Center agent services | no |
+
+```csharp
+var result = await _teamAssignmentService.PickAsync(new TeamAssignmentRequest
+{
+    TeamId = teamId,
+    WorkKind = "Repair",
+    Strategy = TeamAssignmentStrategies.RoundRobin,
+    MaxOpen = 10,
+    ExcludedUserIds = [currentAssigneeId],
+}, cancellationToken);
+
+if (!result.Picked)
+{
+    _logger.LogInformation("Nobody could take the repair: {Outcome}.", result.Outcome);
+}
+```
+
+Load and availability source examples are in [references/teams-extensions.md](references/teams-extensions.md).
 
 ## Recipes and Deployment
 
-The `Teams` step (needs `OrchardCore.Recipes.Core`) creates teams, or updates them by `itemId` or by name (case and surrounding spaces ignored), with the parent named by `parentName` in any order. Property names are camelCase and enums are written as names. Each team goes through `ITeamManager`, so it is validated and other modules' handlers run; what other modules keep on a team is left as it is.
+The `Teams` step (needs `OrchardCore.Recipes.Core`) creates teams, or updates them by `itemId` or by name (case and surrounding spaces ignored), with the parent named by `parentName` in any order. Property names are camelCase and enums are written as names; `address` is an object (`addressLine1`, `addressLine2`, `city`, `region`, `postalCode`, `country` as a two-letter code, and the other address parts) or `null`. Each team goes through `ITeamManager`, so it is validated and other modules' handlers run; what other modules keep on a team is left as it is.
 
 ```json
 {
@@ -95,7 +151,13 @@ The `Teams` step (needs `OrchardCore.Recipes.Core`) creates teams, or updates th
       "Teams": [
         { "name": "Acme", "kind": "Organization" },
         { "name": "East", "kind": "Region", "parentName": "Acme" },
-        { "name": "Boston", "kind": "Site", "parentName": "East", "timeZoneId": "America/New_York" },
+        {
+          "name": "Boston",
+          "kind": "Site",
+          "parentName": "East",
+          "timeZoneId": "America/New_York",
+          "address": { "addressLine1": "1 Federal St", "city": "Boston", "region": "MA", "postalCode": "02110", "country": "US" }
+        },
         { "name": "Billing", "kind": "Team", "parentName": "Boston", "linkedRoleName": "Billing", "description": "Invoices and payments." },
         { "name": "Van 7", "kind": "Crew", "parentName": "Boston", "enabled": true }
       ]
@@ -115,6 +177,8 @@ The `Teams` step (needs `OrchardCore.Recipes.Core`) creates teams, or updates th
 | `ICatalogEntryHandler<Team>` | Keep your records in step with a team (create, update, delete). |
 | `ITeamDeletionGuard` | Refuse to delete a team you still use; return the reason or `null`. Register with `services.AddTeamDeletionGuard<T>()` (in `Teams.Core`). The **Delete** action calls `GetDeletionBlockersAsync` first; a team with sub-teams is always refused. |
 | `ITeamMemberProvider` | Give the members of teams your module knows. Register with `services.AddTeamMemberProvider<T>()` (in `Teams.Abstractions`). |
+| `ITeamMemberLoadSource` | Report each user's open items of one `WorkKind` and `LastAssignedUtc`. Count in the database: it runs on every assignment. Register with `services.AddTeamMemberLoadSource<T>()`. |
+| `ITeamMemberAvailabilitySource` | Report who can't take work now (`Name`, a `[JsonIgnore]` `DisplayName`, `HonoredByDefault`). Register with `services.AddTeamMemberAvailabilitySource<T>()`. |
 | `DisplayDriver<Team>` | Add a card to the team editor (the built-in **Team** card is `TeamFields_Edit` at `Content:1`) or row actions between **Add a team under it** (`ActionsMenu:5`) and **Delete** (`ActionsMenu:100`) for `SummaryAdmin` and `SummaryAdminGrid`. |
 
 ### Keep Module Data on the Team
@@ -157,49 +221,15 @@ Full guard and provider examples, plus a team row action, are in [references/tea
 
 ## Shared Building Blocks
 
-The changelog section "Shared time, business hours, teams and parties" moved these into small libraries with no feature of their own.
+The changelog section "Shared time, business hours, teams and parties" moved these into small libraries. Parties and time windows have no feature of their own; business hours now have their own module.
 
 ### Business Hours
 
-| Project | Holds |
-|---|---|
-| `CrestApps.OrchardCore.BusinessHours.Abstractions` | `HoursSchedule` (`TimeZoneId`, `Windows` of `HoursWindow { Day, OpenMinute, CloseMinute }`, `DateExceptions` of `HoursDateException { Date, Name, Closed = true, OpenMinute, CloseMinute }`), `HoursScheduleOption(Id, Name)`, `IOpenHoursService`, `IHoursScheduleSource`, `AddHoursScheduleSource<T>()` and the pure `HoursScheduleEvaluator` (`IsOpen`, `GetOpenWindows`, `GetDayStretches`). |
-| `CrestApps.OrchardCore.BusinessHours.Core` | `DefaultOpenHoursService` and `services.AddOpenHours()`. |
+Business hours are no longer a library-only block: they are the **Business Hours** module (`CrestApps.OrchardCore.BusinessHours`, schedules under **Content → Business Hours**, permission `ManageBusinessHoursSchedules`). See `orchardcore-business-hours` for the schedule model, `IOpenHoursService`, `IHoursScheduleSource`, the `BusinessHoursSchedules` recipe step, the picker and the workflow task.
 
-- `IOpenHoursService.IsOpenAsync(scheduleId, utcInstant, timeZoneId)` returns `bool?`; `null` means no source knows the schedule, so treat it as open. `GetOpenWindowsAsync` returns merged `TimeWindow`s or `null`; `ListSchedulesAsync` feeds pickers.
-- A window that opens and closes at the same minute is open all day; one that closes before it opens runs past midnight. A date exception owns its whole local date.
-- Schedule sources today are the Contact Center **Business Hours** feature (`CrestApps.OrchardCore.ContactCenter.BusinessHours`) calendars.
-- `OpenHoursBusinessHoursGate` (an `IBusinessHoursGate`, in `CrestApps.OrchardCore.Omnichannel.Core`, registered by Omnichannel Activities) replaces `AlwaysOpenBusinessHoursGate` and the Contact Center `BusinessHoursGate`.
-- `OpenHoursServiceHoursProvider` (an `IServiceHoursProvider`, in `CrestApps.OrchardCore.WorkOrders.Core`, registered by Work Orders) replaces the Contact Center `BusinessHoursServiceHoursProvider`; `IServiceHoursProvider.GetOpenAsync` returns `TimeWindow`s. See `orchardcore-work-orders`.
-
-```csharp
-public sealed class StoreHoursScheduleSource : IHoursScheduleSource
-{
-    public Task<HoursSchedule> FindAsync(string scheduleId, CancellationToken cancellationToken = default)
-    {
-        if (scheduleId != "store")
-        {
-            return Task.FromResult<HoursSchedule>(null);
-        }
-
-        var schedule = new HoursSchedule { TimeZoneId = "America/New_York" };
-
-        foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
-        {
-            schedule.Windows.Add(new HoursWindow { Day = day, OpenMinute = 9 * 60, CloseMinute = 17 * 60 });
-        }
-
-        schedule.DateExceptions.Add(new HoursDateException { Date = new DateOnly(2026, 12, 25), Name = "Christmas Day" });
-
-        return Task.FromResult(schedule);
-    }
-
-    public Task<IReadOnlyList<HoursScheduleOption>> ListAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyList<HoursScheduleOption>>([new HoursScheduleOption("store", "Store hours")]);
-}
-
-// Startup: services.AddOpenHours().AddHoursScheduleSource<StoreHoursScheduleSource>();
-```
+- Teams keeps no hours of its own. A team's time zone (`TimeZoneId`) is separate from any schedule; modules that need hours store a schedule id (ticket desks `HoursScheduleId`, service-level policies, Contact Center queues `BusinessHoursCalendarId`).
+- Contact Center calendars became Business Hours schedules with the same ids; Contact Center Business Hours (`CrestApps.OrchardCore.ContactCenter.BusinessHours`) now depends on the Business Hours feature and only gates queues, entry points, the dialer and Omnichannel sends (`IBusinessHoursService`, `OpenHoursBusinessHoursGate`).
+- Work-order SLA clocks moved to Service Levels (`orchardcore-service-levels`); `OpenHoursServiceHoursProvider` and `IServiceHoursProvider` are gone.
 
 ### Parties
 
@@ -230,10 +260,14 @@ public sealed class StoreHoursScheduleSource : IHoursScheduleSource
 | Symptom | Check |
 |---|---|
 | Delete refused | The team has sub-teams, or a guard refused (Workforce refuses a team with current workers). |
-| `ITeamMembershipService` returns nobody | No `ITeamMemberProvider` is registered (enable Workforce, or register your own). |
+| `ITeamMembershipService` returns nobody | No `ITeamMemberProvider` is registered (enable Staff and add team memberships on the staff editor, or register your own). |
+| Assignment returns `NoneAvailable` | Every member is off shift, absent or (when honored) signed out of Contact Center; narrow `AvailabilitySources` or set `OnlyAvailable = false`. |
+| Assignment never balances | No `ITeamMemberLoadSource` has the request's `WorkKind`, so every load is zero and the user id decides. |
+| A staff member without a login is never picked | Assignment needs a `UserId`; such people are members but not candidates. |
+| Team address not saved | Addresses must be on, and a started address must be complete for its country. |
 | A recipe team lands at the top level | `parentName` must match an existing or imported team's name. |
 | Imported team lost its Workforce settings | The `Teams` step never touches module settings; use the `Workforce` step for them. |
 | Time zone rejected | Use an IANA or Windows id; `CalendarTimeZones.IsValid` decides. |
-| `IsOpenAsync` returns `null` | No `IHoursScheduleSource` knows the id, or the schedule is disabled; treat as open. |
+| `IsOpenAsync` returns `null` | No `IHoursScheduleSource` knows the id, or the schedule is disabled; treat as open. See `orchardcore-business-hours`. |
 
-Related skills: `orchardcore-workforce`, `orchardcore-skills`, `orchardcore-calendars`, `orchardcore-contact-center`, `orchardcore-work-orders`, `orchardcore-assets`, `orchardcore-accounts`, `orchardcore-crestapps-users`.
+Related skills: `orchardcore-staff`, `orchardcore-business-hours`, `orchardcore-tickets`, `orchardcore-workforce`, `orchardcore-skills`, `orchardcore-calendars`, `orchardcore-contact-center`, `orchardcore-work-orders`, `orchardcore-assets`, `orchardcore-accounts`, `orchardcore-crestapps-users`.

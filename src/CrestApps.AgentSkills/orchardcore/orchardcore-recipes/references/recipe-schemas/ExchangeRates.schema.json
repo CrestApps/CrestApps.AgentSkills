@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ExchangeRates",
+      "description": "Recipe step discriminator. Must be \u0027ExchangeRates\u0027."
+    },
+    "Rates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The rate\u0027s 26-character id. When it matches a stored rate, that rate is updated."
+          },
+          "Currency": {
+            "type": "string",
+            "description": "The ISO 4217 code of the currency converted, such as EUR."
+          },
+          "BaseCurrency": {
+            "type": "string",
+            "description": "The ISO 4217 code of the currency converted to, such as USD."
+          },
+          "Rate": {
+            "type": "number",
+            "description": "How many units of the base currency one unit of the currency is worth."
+          },
+          "Date": {
+            "type": "string",
+            "format": "date",
+            "description": "The day the rate takes effect, such as 2026-11-14."
+          },
+          "Source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where the rate came from: manual, or a provider\u0027s name."
+          }
+        },
+        "required": [
+          "Currency",
+          "BaseCurrency",
+          "Rate",
+          "Date"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The exchange rates to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Rates"
+  ],
+  "additionalProperties": true
+}

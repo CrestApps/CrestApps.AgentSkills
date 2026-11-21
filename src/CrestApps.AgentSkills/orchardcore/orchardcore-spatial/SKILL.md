@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate code and queries for spatial data inclu
 
 - Enable `OrchardCore.Spatial` to add the `GeoPointField` content field. The module depends on `OrchardCore.ContentTypes` and `OrchardCore.Lucene`, so enabling it also enables Lucene.
 - `GeoPointField` (`OrchardCore.Spatial.Fields`) stores `decimal? Latitude` and `decimal? Longitude`. `GeoPointFieldSettings` only has the standard `Hint` and `Required` settings.
-- Editors: the default editor (two inputs) and `Leaflet` (an interactive OpenStreetMap map; it sends a referrer so tiles load). Values are parsed and rendered with the invariant culture, so always use `.` as the decimal separator.
+- Editors: the default editor (two inputs) and `Leaflet` (an interactive OpenStreetMap map; it sends a referrer so tiles load). Values are parsed and rendered with the invariant culture, so always use `.` as the decimal separator. Both editors accept coordinates with more than six decimals (`step="any"` since 4.0; they used to reject them as invalid).
 - The index handler writes the point under `{PartName}.{FieldName}` and also under a shared `Location` key, so one query can search several content types. Lucene stores the point as culture-invariant `lat,lon` text (fixed in 4.0, cultures with a `,` decimal separator used to corrupt it).
 - Use `geo_bounding_box` queries for fast area-based filtering without distance calculation.
 - Use `geo_distance` queries for precise radius-based filtering using the Haversine formula.

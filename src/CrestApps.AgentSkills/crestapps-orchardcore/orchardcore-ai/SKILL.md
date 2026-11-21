@@ -36,7 +36,7 @@ instance and persona management, AI site settings, recipes, deployment steps and
 | --- | --- | --- |
 | `CrestApps.OrchardCore.AI` | AI Services | Dependency only. Deployments, profiles, profile templates, AI settings, the **Cascaded Realtime** deployment provider |
 | `CrestApps.OrchardCore.AI.Chat.Core` | AI Chat Services | Dependency only. Chat sessions, session processing, response-handler selection. Depends on `CrestApps.OrchardCore.AI.Prompting` |
-| `CrestApps.OrchardCore.AI.Chat.Api` | AI Chat WebAPI | REST endpoints for chat and completion |
+| `CrestApps.OrchardCore.AI.Chat.Api` | AI Chat WebAPI | REST endpoints for chat and completion, and the AG-UI endpoint `POST /api/ai/v1/agui` (with AI Chat; see `orchardcore-ai-chat`) |
 | `CrestApps.OrchardCore.AI.ConnectionManagement` | AI Connection Management | Provider connection editor and the `AIProviderConnections` recipe step. See `orchardcore-ai-connections` |
 | `CrestApps.OrchardCore.AI.ToolInstances` | AI Tool Instances | See `orchardcore-ai-tool-instances` |
 | `CrestApps.OrchardCore.AI.Personas` | AI Personas | See `orchardcore-ai-personas` |
@@ -77,7 +77,7 @@ instance and persona management, AI site settings, recipes, deployment steps and
 | **Artificial Intelligence > Tests**, **QA**, **Alert rules** (AI Quality) | `ManageAIQuality` |
 | **Settings > Artificial Intelligence** (group `ai-settings`) | `ManageAIProfiles`, plus the permission each feature's card registers |
 
-AI Webhooks subscriptions are managed on **Configuration > Webhooks** with the Webhooks module's **Manage webhooks** permission (stored name `ManageCommerceWebhooks`); the old **Manage AI webhooks** permission is no longer registered, and `AIWebhookIndexMigrations` carries roles that held it over to `ManageCommerceWebhooks`. Every saved profile is a version under the profile's
+AI Webhooks subscriptions are managed on **Settings > Webhooks** with the Webhooks module's **Manage webhooks** permission (stored name `ManageCommerceWebhooks`); the old **Manage AI webhooks** permission is no longer registered, and `AIWebhookIndexMigrations` carries roles that held it over to `ManageCommerceWebhooks`. Every saved profile is a version under the profile's
 **Versions** page (see `orchardcore-ai-conversations`).
 
 Permissions are declared in `AIPermissions` with `LocalizationSource.Create(...)` descriptions. Every list
@@ -163,7 +163,9 @@ Per-provider connection keys are in `orchardcore-ai-providers`.
     {
       "name": "Settings",
       "GeneralAISettings": {
-        "EnablePreemptiveMemoryRetrieval": false
+        "EnablePreemptiveMemoryRetrieval": false,
+        "OverrideMaximumIterationsPerRequest": true,
+        "MaximumIterationsPerRequest": 20
       },
       "DefaultAIDeploymentSettings": {
         "DefaultChatDeploymentName": "chat-default",
@@ -175,9 +177,16 @@ Per-provider connection keys are in `orchardcore-ai-providers`.
 }
 ```
 
+On the **General** card, **Maximum iterations**, **Distributed caching** and **Enable OpenTelemetry** show the
+value in effect. A saved value overrides configuration (`CrestApps:AI:DefaultParameters`) only when it differs from
+it: saving sets the matching `Override...` flag, and a value equal to configuration keeps following configuration.
+(Before #1306 the flags were never set, so saved values had no effect.) In a recipe, set the `Override...` flag
+together with the value.
+
 Usage tracking is no longer a setting: enable the `CrestApps.OrchardCore.AI.UsageAnalytics` feature. The
-**Costs** card (`AICostSettings`) keeps only the carrier's `Currency`, `TelephonyPerMinute` and
-`SmsPerMessage`; model prices are on each deployment (see `orchardcore-ai-usage-analytics`).
+**Costs** card and `AICostSettings` are gone: model prices are on each deployment's **Pricing** card, and the
+carrier's call price is on the **Costs** tab of **Settings → Communication → Telephony** (`TelephonyCostSettings`;
+see `orchardcore-ai-usage-analytics` and `orchardcore-telephony`).
 
 Saving **General** no longer reloads the tenant: `GeneralAIOptions` is refreshed live through
 `AddSignalOptionsChangeTokenSource<GeneralAIOptions>()`. Code that reads it must use
@@ -422,7 +431,8 @@ CrestApps Recipes feature publishes the JSON schemas of these steps (see `orchar
   `SummaryAdminGrid` location.
 - Admin create and edit forms render their buttons in Orchard Core's sticky `<div class="action-bar-bottom">`
   instead of an `ocat-wrapper` / `ocat-end-offset` row; update overridden editor views and UI tests.
-- `EnableAIUsageTracking` and `AICostSettings.Deployments` are removed (see AI site settings above).
+- `EnableAIUsageTracking`, `AICostSettings` (with its recipe schema) and the **Costs** card are removed (see AI site settings above).
+- The AI modules report OpenTelemetry metrics and spans on the `CrestApps.OrchardCore.AI` meter (data source syncs, evaluations, alerts, tool timeouts, signed webhooks); the chat pipeline is measured by CrestApps.Core. See `orchardcore-observability`.
 - A record an upgrade migration cannot move is skipped and logged (`MigrationSkipReport`), with a dismissible
   admin warning for people with `ManageAIProfiles`; other modules join through `services.AddMigrationSkipLog()`.
 
@@ -436,3 +446,4 @@ CrestApps Recipes feature publishes the JSON schemas of these steps (see `orchar
 - `orchardcore-ai-tools`, `orchardcore-ai-agent` and `orchardcore-ai-workflows` for tools, agents and workflows.
 - `orchardcore-ai-conversations` for conversation workflows, quality, guardrails, privacy and the AI API.
 - `crestapps-core-ai-profiles` and `crestapps-core-ai-runtime` for the CrestApps.Core APIs.
+- `orchardcore-observability` for the AI telemetry and turning OpenTelemetry on.

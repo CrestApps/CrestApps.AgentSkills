@@ -98,6 +98,9 @@ The tool is a singleton. Resolve tenant services per call from `arguments.Servic
 | `WithoutDependency`, `WithoutDependencies` | Remove a dependency |
 | `Selectable()` | Not a system tool, shown in pickers |
 | `Hidden()` | Not a system tool, not shown in pickers, still selectable by name |
+| `RequireApproval()` | The chat UI and admin widget ask the user to **Allow** or **Deny** each call before it runs (AG-UI interrupt); chats that cannot ask (SMS, voice) run it as before. See `orchardcore-ai-chat` |
+
+`services.MarkAIToolAnonymousSafe(name)` (`CrestApps.OrchardCore.AI.Core.Extensions`) marks a tool anyone may run, so WebMCP can offer it to visitors who are not signed in (see `orchardcore-ai-webmcp`). Mark only tools that read public data or act on the caller's own data.
 
 `AIToolDefinitionOptions.GetSelectableTools()` returns the tools that are neither system nor hidden.
 
@@ -166,6 +169,9 @@ The caller comes from the framework's `IUserAccessor`, not `IHttpContextAccessor
 | `CrestApps.OrchardCore.AI.Memory` | Search, list, save, and remove user memories (authenticated users with memory enabled). See `orchardcore-ai-memory`. |
 | `CrestApps.OrchardCore.AI.A2A` | `listAvailableAgents`, `findAgentForTask`, `findToolsForTask`. See `orchardcore-ai-a2a-client`. |
 | AI Documents features | Document, tabular, PowerPoint, Word, and PDF tools and system agents. See `orchardcore-ai-documents`. |
+| `CrestApps.OrchardCore.Tickets` (with AI) | `listTicketOptions`, `searchTickets`, `getTicket`, `createTicket`, `addTicketReply`, `updateTicket` (category **Tickets**; act for the signed-in person within their ticket permissions). See `orchardcore-tickets`. |
+| `CrestApps.OrchardCore.AgenticCommerce` (with AI, Products Listing and Product Feeds) | `searchStoreProducts`, `getStoreProduct`, `addToStoreCart`, `getStoreCart`, `startStoreCheckout` (category **Commerce**; marked safe for anyone, never pays). See `orchardcore-agentic-commerce`. |
+| `CrestApps.OrchardCore.Learning.AI` (Learning Assistant) | `getMyLearningProgress`, `getMyNextLesson`, `explainMyQuizResult` (with Learning Assessments), `listOverdueLearners`, `listLearnersExpiringSoon`. See `orchardcore-learning`. |
 
 Functions an administrator creates from a tool instance source are tenant data, not code registrations; see `orchardcore-ai-tool-instances`. The **Workflow** source turns a workflow that starts with **AI Tool Called** into a tool (see `orchardcore-ai-conversations`).
 

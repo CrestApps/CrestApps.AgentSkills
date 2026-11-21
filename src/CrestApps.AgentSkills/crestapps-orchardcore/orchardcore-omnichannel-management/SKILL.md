@@ -96,6 +96,13 @@ do not rename or replace it.
 when auto detect is off), **Use Do not call**, **Use Do not SMS**, **Use Do not
 email**.
 
+Contacts are parties: Managements registers `ContactPartySource` for
+`PartyKinds.Contact` (gated by `ListContent`), so party pickers and lists in
+other modules (ticket requesters, asset owners) find and name contacts and
+leads. With the Timeline feature (`CrestApps.OrchardCore.Timeline`), contact
+and lead pages get a **Notes** card (`ContactTimelineDisplayDriver`, the
+record's timeline with a composer for internal notes).
+
 ### Keep Numbers and Emails in Your Own Fields
 
 Every reader (contact index, inbound call and SMS matching, `phone:` search,
@@ -164,11 +171,18 @@ lookups also read the first Cell and Home numbers.
 
 The `phone:`, `phone-exact:`, `phone-starts:` and `phone-ends:` terms and the
 activity phone filters search the primary Cell and Home numbers. On
-contact-only content lists the search box also matches a number that begins
-with the digits typed (at least three digits, no letters), and
+contact-only content lists (Contacts, Leads) the search box treats an entry
+written like a number (at least three digits, no letters) as a number search
+only: it matches any number of the record, of any type, that begins with the
+digits, read from `OmnichannelContactPhoneNumberIndex` through the covering
+index `IDX_OCPhone_NumberDocument` (contacts migration 13 to 14), and never
+compares the Display Text (an unindexable `LIKE '%…%'` that timed out on large
+tenants). Until the backfill finishes it reads the contact index as before. An
+entry with letters matches the Display Text only.
 `OmnichannelContactListFilterParser` (replacing `IContentsAdminListFilterParser`)
-reads free words as one phrase (`John Smith`, `702 555 0104`); named terms and
-explicit search syntax are parsed as typed.
+reads free words as one phrase (`John Smith`, `702 555 0104`) and keeps a
+number with parentheses (`(702) 555-0104`) together; named terms and explicit
+search syntax are parsed as typed.
 
 A request not to be reached, recorded on one record, stops every record holding
 the same number. A STOP from a number no record holds is recorded against the
@@ -249,6 +263,12 @@ services.AddOmnichannelAddressCapability(OmnichannelAddressTypes.PhoneNumber, "W
   `LeadDispositionDisplayDriver`; converted statuses are not offered). Completing
   a lead's activity with it, in any subject, moves the lead to that status; a
   subject action that sets its own lead status wins. Contacts are unaffected.
+- When neither sets a status, completing an activity still moves the lead: a
+  lead in the default status moves to the status flagged **A lead moves to this
+  status once it is contacted** (`LeadStatus.IsContacted`, seeded on *Working -
+  Contacted*), so a load that picks only the default status skips leads already
+  called; a lead dispositioned not in service with no other number in service
+  moves to the first closed status by order.
 - Campaigns and campaign groups are grouping and reporting records only; they
   cannot be deleted.
 
@@ -314,8 +334,8 @@ services.Configure<SubjectActionOptions>(options =>
 - An `OmnichannelActivityBatch` (load) pages contacts and creates activities in
   the background; it starts only on **Load activities**. **Automatic** loads
   create `Automated` activities driven by a Chat profile with **Start the
-  conversation automatically**, plus an optional cadence and business-hours
-  calendar (see [references/cadences.md](references/cadences.md)).
+  conversation automatically**, plus an optional cadence and Business Hours
+  schedule (see [references/cadences.md](references/cadences.md)).
 - `AutomatedActivitiesProcessorBackgroundTask` (`*/5 * * * *`) skips numbers
   known not in service, then dispatches due `NotStated` or `Scheduled`
   automated activities to the `IOmnichannelProcessor` for their channel.
@@ -324,13 +344,24 @@ services.Configure<SubjectActionOptions>(options =>
   `MaxActivitiesPerInvocation` (1,000), `MaxProcessingAttempts` (5) and
   `RetryDelayMinutes` (5).
 - A load's **Schedule at** (`ScheduleAt`) is stored in UTC and shown in local
-  time. Dialer loads skip contacts with no number
+  time. Admin dates and times (activity lists, the Complete screen's
+  **Created** time, reports) are shown in the site time zone.
+- **Change dialer profile** (Manage Activities) dials the activity's own number,
+  or else the contact's preferred phone number (unless it opted out of calls),
+  and turns the record into a phone call; a record with no number to dial is
+  left unchanged. Dialer loads skip contacts with no number
   (`TotalSkippedForNoDestination`). An outbound subject holds no AI profile, so
   an outbound **Automatic** load must name one.
 - `IActivityOfferKeepAlive` lets the Complete screen keep a pending offer alive
   without knowing who offered it (Contact Center extends preview offers).
 
 ### Workflows
+
+With `OrchardCore.Workflows` and the AI feature, Omnichannel Activities also
+registers **Create AI Activity** (`CreateAIActivityTask`, category **AI
+Conversations**; outcomes **Done** and **Failed**), which starts an AI call or
+text; without AI the task is not registered, since its editor lists AI
+profiles.
 
 With `OrchardCore.Workflows`, Omnichannel Activities registers **Update
 Contact** (`UpdateContactTask`, category **Omnichannel CRM**; outcomes **Done**
@@ -526,6 +557,10 @@ names, contact-method emails and numbers, the AI memory note) and never rewrites
 the ids it references. The nightly guest-retention expiry does not reach CRM
 records.
 
+## Monitoring
+
+`OmnichannelTelemetry` (`CrestApps.OrchardCore.Omnichannel.Core`) publishes the meter and activity source `CrestApps.OrchardCore.Omnichannel` (matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`) for bulk loads: `crestapps.omnichannel.batch.load.duration` (`outcome`, `trigger`), `.load.page.duration`, `.load.records` (`result`: `loaded`, `duplicate`, `opted_out`, `no_destination`, `not_in_service`, `lead_or_contact`, `over_limit`; never counted in preview), `.load.stalled` (gauge from the watchdog sweep) and `.load.preview.duration`. Spans: `crestapps.omnichannel.batch.load` (tag `crestapps.omnichannel.batch.id`), `crestapps.omnichannel.batch.load.preview` and the deferred `crestapps.deferred.omnichannel_batch_load`, linked to the request that started the load. The five Omnichannel.Managements background tasks report on `crestapps.background_task.*`, and a load run opens a `BatchId` log scope.
+
 ## Upgrading from 2.x
 
 - Replace `OmnichannelSubjectWriter.GetContactEmail(contact)` with
@@ -560,9 +595,15 @@ records.
   and keeps existing accounts.
 - Admin create and edit forms render their buttons in Orchard Core's sticky
   bottom action bar (`<div class="action-bar-bottom">`) instead of an
-  `ocat-wrapper` row; update theme overrides and UI tests.
-- SMS automation no longer enables Contact Center Business Hours; enable it to
-  define the calendars that loads and cadences use.
+  `ocat-wrapper` row: **Cancel** first, secondary actions next, the primary
+  **Save** last; update theme overrides and UI tests.
+- Load and cadence business hours are Business Hours schedules (edited under
+  **Content > Business Hours**, `orchardcore-business-hours`); the load's
+  calendar id is a schedule id. SMS automation does not enable the Business
+  Hours feature; enable it to define schedules.
+- A data migration flags the seeded *Working - Contacted* lead status as the
+  contacted status (when no status carries the flag) and moves leads already
+  called out of the default status, both as deferred tasks.
 - Migration fixes: the contact index migration no longer stalls on PostgreSQL,
   and a repair step restores missing `Source` and `CreatedUtc` columns on
   `OmnichannelActivityBatchIndex`.

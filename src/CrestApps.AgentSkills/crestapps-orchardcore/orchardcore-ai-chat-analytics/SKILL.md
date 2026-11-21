@@ -246,6 +246,8 @@ public sealed class LongSessionsReport : IReport, IReportFilterMetadata
 
 Register it with `services.AddReport<LongSessionsReport>()` in a startup marked `[RequireFeatures(ReportsConstants.Feature)]`. `IAIChatSessionEventReader` and `AIChatSessionEventQuery` (`ProfileId`, `FromUtc`, `ToUtc`, both bounds nullable) are in `CrestApps.OrchardCore.AI.Chat.Services`; `AIChatReportFilters` (`Profile`, `RequiredProfile`, `ProfileId`) is in `CrestApps.OrchardCore.AI.Chat.Reports`.
 
+Dates a report shows (and its CSV, Excel and PDF exports) are in the local time zone, never UTC: inject Orchard Core's `ILocalClock` and call `ConvertToLocalAsync(DateTime.SpecifyKind(utc, DateTimeKind.Utc))`, and group rows by the local day or hour. The built-in **Extracted Data** and **Conversion Goals** reports label their column **Session started** (no longer "(UTC)").
+
 ### Key Services (CrestApps.Core)
 
 | Service | Role |

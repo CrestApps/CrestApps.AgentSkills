@@ -1,6 +1,6 @@
 ---
 name: orchardcore-templates
-description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, the Templates and AdminTemplates recipe steps, template deployment steps, the ManageTemplates, ManageAdminTemplates and ManageLiquidTemplates permissions, Liquid shape template rendering, and template precedence rules. Use this skill when requests mention Orchard Core Templates, Admin Templates, Customizing Templates in Orchard Core, Content Type Templates, Widget Templates, Content Part Templates, Custom Model Shape Templates, template previews or closely related Orchard Core work. Strong matches include work with OrchardCore.Templates, OrchardCore.AdminTemplates, OrchardCore.Users, AliasPart, AutoroutePart, HtmlBodyPart, BagPart, TextField, ListPart, TitlePart, SummaryAdmin, CampaignAction_Edit.
+description: Skill for customizing templates in Orchard Core via the admin UI. Covers shape template overrides, content type templates, content part templates, content field templates, differentiated display types, Liquid template syntax, admin template editing, the Templates and AdminTemplates recipe steps, template deployment steps, the ManageTemplates, ManageAdminTemplates and ManageLiquidTemplates permissions, Liquid shape template rendering, and template precedence rules. Use this skill when requests mention Orchard Core Templates, Admin Templates, Customizing Templates in Orchard Core, Content Type Templates, Widget Templates, Content Part Templates, Custom Model Shape Templates, template previews, assisted templates or closely related Orchard Core work. Strong matches include work with OrchardCore.Templates, OrchardCore.AdminTemplates, OrchardCore.Users, AliasPart, AutoroutePart, HtmlBodyPart, BagPart, TextField, ListPart, TitlePart, SummaryAdmin, CampaignAction_Edit.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,7 +23,8 @@ You are an Orchard Core expert. Generate template overrides and explain template
 - Display types include `Detail` (default for full page), `Summary` (lists), `SummaryAdmin` (admin lists), etc.
 - For custom model display drivers, Orchard also resolves root shapes like `CampaignAction_Edit` and `CampaignAction_SummaryAdmin`, which map to `CampaignAction.Edit.cshtml` and `CampaignAction.SummaryAdmin.cshtml`.
 - If child shapes are placed into zones such as `Content`, `Actions`, `Meta`, or `Description`, the root template must render those zones explicitly.
-- Use `ConsoleLog` (Razor) or `console_log` (Liquid) to inspect available alternates for any shape.
+- Use `ConsoleLog` (Razor) or `console_log` (Liquid) to inspect available alternates for any shape, or enable **Shape Tracing** and use **Inspect Content** (see `orchardcore-assisted-templates`).
+- To customize a theme template, enable **Assisted Templates** and **Clone** it from **Theme Templates** instead of copying its source by hand (see `orchardcore-assisted-templates`).
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
 
@@ -33,6 +34,8 @@ You are an Orchard Core expert. Generate template overrides and explain template
 |---|---|---|
 | `OrchardCore.Templates` (depends on `OrchardCore.Liquid`) | **Design > Templates** | `ManageTemplates` (Administrator, Editor) |
 | `OrchardCore.AdminTemplates` | **Design > Admin Templates** | `ManageAdminTemplates` (Administrator) |
+| `OrchardCore.Templates.Assisted` (depends on `OrchardCore.Templates`) | **Theme Templates** and **Feature Templates** buttons on both pages | Same as the page |
+| `OrchardCore.Templates.ShapeTracing` (depends on Assisted Templates, `OrchardCore.Contents`, `OrchardCore.ContentFields`) | **Inspect Content** button, content type alternates, **Inspect templates** content item action | Same as the page, plus `ViewContent` on the inspected item |
 
 Every template action, including previews, also requires the security-critical
 `OrchardCore.Liquid.Permissions.ManageLiquidTemplates` permission (granted to
@@ -44,6 +47,8 @@ hidden. Grant it explicitly to custom roles that manage templates.
 `LiquidShapeTemplateViewEngine` directly with Fluid; Razor no longer renders
 them as `LiquidPage` partials. Behavior and PO localization contexts are
 unchanged.
+
+The template editor's **Preview** tab renders the template with `~/OrchardCore.Templates/Scripts/template-editors/template-preview.min.js` (a 4.0 regression where the script never loaded and the tab stayed blank is fixed). An override of `Views/Preview/Index.cshtml` must register its `at="Foot"` scripts before `<resources type="Footer" />`, or they are never written.
 
 ### Templates Recipe Steps
 

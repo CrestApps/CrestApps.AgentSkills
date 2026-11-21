@@ -103,6 +103,8 @@ With `ClaudeOptions.EnablePromptCaching` on (the default), each request marks ep
 
 ## Upgrading Within 2.0 Previews
 
+- The Claude orchestrator cannot pause for tool approvals, so tools registered with `RequireApproval()` are left out of its requests.
+
 - The orchestrator now sends the scoped tools, so profile, interaction, system and MCP tools are called on Claude. `ClaudeOrchestrator` takes `IToolMaterializer` and `IUserAccessor` as new constructor parameters; code that constructs it directly passes them.
 - Prompt caching is on by default. Set `EnablePromptCaching` to `false` to restore uncached requests.
 - `ClaudeOrchestrator` takes the scoped `DefaultAIOptions` instead of `IOptions<DefaultAIOptions>`, so a site's **Enable OpenTelemetry** setting reaches it. Code that constructs it directly passes a `DefaultAIOptions`.

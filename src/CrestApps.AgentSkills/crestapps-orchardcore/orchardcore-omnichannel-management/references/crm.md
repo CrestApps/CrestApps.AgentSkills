@@ -106,7 +106,12 @@ With `OrchardCore.Workflows`, the feature adds the **Lead Converted** event
 
 A status is Open (no flags), Closed (`IsClosed`) or Converted (`IsClosed` and
 `IsConverted`). Only an open status can be `IsDefault`; a recipe that sets
-`IsDefault` with a closed flag is rejected.
+`IsDefault` with a closed flag is rejected. One other open status can be
+`IsContacted` (**A lead moves to this status once it is contacted**): a lead
+still in the default status moves there when an activity for it is completed
+and neither the disposition nor a subject action names a status. Saving a
+status with `IsDefault`, `IsContacted` or `IsConverted` clears that flag from
+every other status. The seeder flags *Working - Contacted*.
 
 ## Import and Export
 
@@ -144,7 +149,7 @@ with that disposition (see the main skill).
     {
       "name": "OmnichannelLeadStatus",
       "LeadStatuses": [
-        { "Name": "Working - Contacted", "Order": 2 },
+        { "Name": "Working - Contacted", "Order": 2, "IsContacted": true },
         { "Name": "Nurturing", "Order": 3 }
       ]
     },

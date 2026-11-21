@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningCreditTypes",
+      "description": "Recipe step discriminator. Must be \u0027LearningCreditTypes\u0027."
+    },
+    "CreditTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The credit type id; courses and certification paths refer to it."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name, such as CPD hours; types are matched by id, then by name."
+          },
+          "unit": {
+            "type": "string",
+            "description": "The unit shown after an amount, such as hours."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description."
+          },
+          "allowExternalLearning": {
+            "type": "boolean",
+            "description": "Whether people can record external learning of this type."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "description": "The credit types to create, or update by id or name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

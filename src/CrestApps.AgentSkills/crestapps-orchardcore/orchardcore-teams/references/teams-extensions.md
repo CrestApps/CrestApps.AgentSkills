@@ -83,6 +83,79 @@ var members = await _teamMembershipService.GetMembersAsync(teamId, includeSubTea
 var isMember = await _teamMembershipService.IsMemberAsync(teamId, userId, today);
 ```
 
+Staff already provides every staff member's dated memberships (see `orchardcore-staff`); add a provider only for people Staff does not keep. A member without a user account sets `StaffMemberId` and leaves `UserId` empty: it counts as a member but `ITeamAssignmentService` never picks it.
+
+## Feed Team Assignment
+
+`ITeamAssignmentService` balances work with the `ITeamMemberLoadSource` whose `WorkKind` matches the request, and skips members any honored `ITeamMemberAvailabilitySource` reports.
+
+```csharp
+public sealed class RepairTeamMemberLoadSource : ITeamMemberLoadSource
+{
+    private static readonly string[] _openStatuses = ["New", "InProgress"];
+
+    private readonly ISession _session;
+
+    public RepairTeamMemberLoadSource(ISession session)
+    {
+        _session = session;
+    }
+
+    public string WorkKind => "Repair";
+
+    public async Task<IReadOnlyDictionary<string, TeamMemberLoad>> GetLoadAsync(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken = default)
+    {
+        var loads = new Dictionary<string, TeamMemberLoad>(StringComparer.Ordinal);
+
+        // Count in the database: this runs on every assignment.
+        foreach (var userId in userIds)
+        {
+            var open = await _session.QueryIndex<RepairIndex>(index => index.AssigneeId == userId && index.Status.IsIn(_openStatuses))
+                .CountAsync(cancellationToken);
+
+            var latest = await _session.QueryIndex<RepairIndex>(index => index.AssigneeId == userId && index.AssignedUtc != null)
+                .OrderByDescending(index => index.AssignedUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            loads[userId] = new TeamMemberLoad { Open = open, LastAssignedUtc = latest?.AssignedUtc };
+        }
+
+        return loads;
+    }
+}
+
+public sealed class OnCallAvailabilitySource : ITeamMemberAvailabilitySource
+{
+    private readonly OnCallStore _onCall;
+
+    public OnCallAvailabilitySource(OnCallStore onCall)
+    {
+        _onCall = onCall;
+    }
+
+    public string Name => "OnCall";
+
+    [JsonIgnore]
+    public LocalizationSource DisplayName { get; } = LocalizationSource.Create<OnCallAvailabilitySource>("On call now");
+
+    // Only callers that turn it on honor it.
+    public bool HonoredByDefault => false;
+
+    public async Task<IReadOnlyCollection<string>> GetUnavailableAsync(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken = default)
+    {
+        var onCall = await _onCall.ListOnCallUserIdsAsync(cancellationToken);
+
+        return [.. userIds.Where(userId => !onCall.Contains(userId))];
+    }
+}
+
+// Startup:
+// services.AddTeamMemberLoadSource<RepairTeamMemberLoadSource>();
+// services.AddTeamMemberAvailabilitySource<OnCallAvailabilitySource>();
+```
+
+A caller that lets people choose the sources keeps their `Name`s in its settings and passes them as `AvailabilitySources`; when nothing is chosen, pass the names of the sources with `HonoredByDefault` (as Tickets does per desk).
+
 ## Add a Row Action to the Team List
 
 The team list renders each team with `DisplayType` `SummaryAdmin` (list layout) or `SummaryAdminGrid` (grid layout). Built-in shapes: `Team_Fields_SummaryAdmin` (`Content:1` / `Name:1`), `Team_Tags_SummaryAdmin` (`Tags:5` / `Details:5`), `Team_Buttons_SummaryAdmin` (`Actions:5`), `Team_ActionsMenu_SummaryAdmin` (`ActionsMenu:5`) and `Team_Delete_SummaryAdmin` (`ActionsMenu:100`).

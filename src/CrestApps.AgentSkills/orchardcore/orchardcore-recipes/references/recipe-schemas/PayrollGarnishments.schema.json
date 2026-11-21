@@ -1,0 +1,192 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayrollGarnishments",
+      "description": "Recipe step discriminator. Must be \u0027PayrollGarnishments\u0027."
+    },
+    "Orders": {
+      "type": "array",
+      "description": "The garnishment orders to create, or update by id.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The order\u0027s 26-character id."
+          },
+          "ProfileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay profile the order applies to."
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "Support",
+              "FederalTaxLevy",
+              "StateTaxLevy",
+              "Bankruptcy",
+              "StudentLoan",
+              "Creditor",
+              "Other"
+            ]
+          },
+          "CaseNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The case or docket number."
+          },
+          "Agency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The court or agency."
+          },
+          "PayCodeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The deduction pay code."
+          },
+          "Amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The amount each pay."
+          },
+          "Percent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The percent of disposable earnings each pay."
+          },
+          "LimitPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most, as a percent of disposable earnings, the order may take with the orders before it of its limit group."
+          },
+          "ProtectedWeeklyAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The pay a week left to the person before a creditor order takes anything."
+          },
+          "ExemptAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The pay each period exempt from a tax levy."
+          },
+          "TotalOwed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The total owed, or null."
+          },
+          "Priority": {
+            "type": "integer",
+            "description": "The lowest number is withheld first."
+          },
+          "ReceivedDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The day the order was received."
+          },
+          "StartDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The first pay date the order applies to."
+          },
+          "EndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The last pay date, or null."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "Suspended",
+              "Completed",
+              "Released"
+            ]
+          },
+          "PayeeName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payee\u0027s name."
+          },
+          "PayeeAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The payee\u0027s mailing address."
+          },
+          "PaymentMethod": {
+            "type": "string",
+            "enum": [
+              "Check",
+              "BankAccount",
+              "Outside"
+            ]
+          },
+          "PayeeBankAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payee\u0027s bank account under Banking, for a deposit."
+          },
+          "Notes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes."
+          }
+        },
+        "required": [
+          "ProfileId",
+          "PayCodeId",
+          "StartDate"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "Orders"
+  ],
+  "additionalProperties": true
+}

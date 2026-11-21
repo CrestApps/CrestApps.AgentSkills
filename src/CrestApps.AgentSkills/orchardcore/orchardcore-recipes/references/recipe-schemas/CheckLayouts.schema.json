@@ -1,0 +1,151 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "CheckLayouts",
+      "description": "Recipe step discriminator. Must be \u0027CheckLayouts\u0027."
+    },
+    "Layouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The layout\u0027s 26-character id; omit it to match by name or create one."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The layout\u0027s name."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes about the layout."
+          },
+          "Stock": {
+            "type": "string",
+            "enum": [
+              "Blank",
+              "PrePrinted"
+            ],
+            "description": "The paper."
+          },
+          "Form": {
+            "type": "string",
+            "enum": [
+              "CheckOnTop",
+              "CheckInMiddle",
+              "CheckOnBottom",
+              "ThreePerPage"
+            ],
+            "description": "Where the check sits on the sheet."
+          },
+          "Fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "X": {
+                  "type": "number",
+                  "description": "Distance from the left edge of the check, in points."
+                },
+                "Y": {
+                  "type": "number",
+                  "description": "Distance from the top edge of the check, in points."
+                },
+                "Width": {
+                  "type": "number",
+                  "description": "Width the field may take, in points; 0 for no limit."
+                },
+                "FontSize": {
+                  "type": "number",
+                  "description": "Text size, in points."
+                },
+                "Hidden": {
+                  "type": "boolean",
+                  "description": "Whether the field is left off."
+                }
+              }
+            },
+            "description": "The place of each field by name: Date, Payee, PayeeAddress, Amount, AmountInWords, Memo, Number, Payer, Bank, Signature, SecondSignature."
+          },
+          "OffsetX": {
+            "type": "number",
+            "description": "Calibration: how far everything moves right, in points."
+          },
+          "OffsetY": {
+            "type": "number",
+            "description": "Calibration: how far everything moves down, in points."
+          },
+          "PrintMicr": {
+            "type": "boolean",
+            "description": "Whether the check line prints; it needs a check line font uploaded on the site."
+          },
+          "MicrCountry": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The country whose check line format is used."
+          },
+          "UseAuxiliaryOnUs": {
+            "type": "boolean",
+            "description": "Whether the check number prints left of the routing number (business checks)."
+          },
+          "MicrFontSize": {
+            "type": "number",
+            "description": "The check line font size, in points."
+          },
+          "MicrSymbolCharacters": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The four characters the font draws the transit, amount, on-us and dash symbols on."
+          },
+          "PayerName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payer\u0027s name printed on blank stock."
+          },
+          "PayerAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The payer\u0027s address printed on blank stock."
+          },
+          "SecondSignatureAbove": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The amount above which a second signature line prints."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The check layouts to create, or update by id or name. Signatures and fonts are uploaded on each site."
+    }
+  },
+  "required": [
+    "name",
+    "Layouts"
+  ],
+  "additionalProperties": true
+}

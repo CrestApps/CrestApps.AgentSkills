@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-prompt-security
-description: Skill for the CrestApps.Core 2.0 prompt-security layer that hardens AI Profile chat. Covers input validation with IPromptSecurityService and weighted IPromptSecurityRule scoring, custom rules, PromptSecurityOptions guards and thresholds, the security preamble and input delimiters including EnableChatInteractionInputDelimiters, output filtering with IOutputSecurityFilter, audit logging, multi-tier anonymous rate limits with ChatRateLimitTier, AIChatRateLimitingOptions partitions, PromptSecurityProfileSettings per-profile throttles, GetRateLimitedMessage, visitor identity cookies and AllowCrossSiteEmbedding, IUploadedFileScanner, where guardrails run relative to prompt security and output filtering, conversation privacy, and how tool authorization relates (the profile boundary and IAIToolAccessEvaluator for Chat Interactions). Use it when tuning chat abuse protection, adding detection rules, embedding a chat on another site, or explaining why a prompt was blocked or throttled.
+description: Skill for the CrestApps.Core 2.0 prompt-security layer that hardens AI Profile chat. Covers IPromptSecurityService and weighted IPromptSecurityRule scoring, custom rules, PromptSecurityOptions guards and thresholds, the security preamble and input delimiters, IOutputSecurityFilter, audit logging, multi-tier anonymous rate limits with ChatRateLimitTier, AIChatRateLimitingOptions partitions, PromptSecurityProfileSettings, GetRateLimitedMessage and EvaluateMessageRateLimitAsync, the remote address behind a proxy and IPv6 /64 keys, visitor cookies and AllowCrossSiteEmbedding with the antiforgery cookie, IUploadedFileScanner, the chat answer sanitizer, guardrails relative to prompt security, conversation privacy, and tool authorization and approvals. Use it when tuning chat abuse protection, adding detection rules, embedding a chat on another site, running behind a reverse proxy, or explaining why a prompt was blocked or throttled.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -82,7 +82,33 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
             }))));
 ```
 
-`AllowCrossSiteEmbedding` writes the `crestapps-ai-visitor` cookie as `SameSite=None; Secure; Partitioned` (keep `UsePartitionedCookie` on). It requires HTTPS; behind a TLS-terminating proxy forward the scheme. Replace `IChatRateLimiter` for a distributed store in multi-instance deployments. `AIChatEndpointRateLimitingOptions` lets you swap the ASP.NET Core endpoint policy for session-start routes.
+`AllowCrossSiteEmbedding` writes the `crestapps-ai-visitor` cookie as `SameSite=None; Secure; Partitioned` (keep `UsePartitionedCookie` on). It requires HTTPS; behind a TLS-terminating proxy forward the scheme. The visitor cookie owns a visitor's session documents, so the upload and remove endpoints validate antiforgery for requests that carry it. An embedded chat therefore also needs the antiforgery cookie written the same way, and `SuppressXFrameOptionsHeader`, or the first load of the framed page is blocked by `X-Frame-Options: SAMEORIGIN` and uploads answer `400`:
+
+```csharp
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.Extensions.Add("Partitioned");
+    options.SuppressXFrameOptionsHeader = true;
+});
+```
+
+### Remote Address Behind a Proxy
+
+`DefaultAIVisitorIdentityResolver` uses the connection's remote address and never reads `X-Forwarded-For`, which any client can send. Behind a reverse proxy, let ASP.NET Core's forwarded headers middleware replace the address for trusted proxies only:
+
+```csharp
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Add(IPAddress.Parse("10.0.0.4"));
+});
+
+app.UseForwardedHeaders();
+```
+
+Without it, every visitor shares the proxy's address. An IPv4-mapped address is keyed as IPv4, an IPv6 client is keyed on its `/64` in every `RemoteAddressMode` (`ChatRateLimitKeyResolver` reduces a plain-text address to `ip:{prefix}::/64`; the stored address stays full), and a request with no address shares one bucket. A visitor cookie is reused only when it looks like an id (letters, digits, `-`, `_`, at most 64 characters). Replace `IChatRateLimiter` for a distributed store in multi-instance deployments. `AIChatEndpointRateLimitingOptions` lets you swap the ASP.NET Core endpoint policy for session-start routes.
 
 ## Per-Profile Throttles
 
@@ -145,6 +171,8 @@ Evaluate `NormalizedInput` (Unicode FormKC, invisible characters removed, whites
 - `AIChatHubCore` validates Utility and Chat profile prompts before processing. A rate-limit block (`DetectionRule == PromptSecurityResult.RateLimitDetectionRule`, `"rate-limit"`) returns a slow-down message with the retry delay; override `GetRateLimitedMessage(PromptSecurityResult)` on the hub to change it. Other blocks return the generic safe message so detection details are not disclosed.
 - `IOutputSecurityFilter.ValidateOutputAsync(OutputSecurityContext, CancellationToken)` checks system-prompt leakage, tool-schema disclosure, sensitive data and unsafe script content. The hub validates the **complete** response after streaming; a blocked response is not persisted and a safe replacement is sent.
 - `EnableAuditLogging` records suspicious input and output through `IAIChatSecurityAuditService`.
+- Input that carries no prompt still counts against the per-message limit through the hub's protected virtual `EvaluateMessageRateLimitAsync`: `SendAudioStream`, `SynthesizeSpeech`, `StartConversation`, `StartRealtimeConversation`, `StartRealtimeWebRtc`, template prompts, blank messages, and resuming or continuing an AG-UI run (each approval resume counts once). `SynthesizeSpeech` also refuses text over `MaxSpeechTextLength` (10,000).
+- Over long polling the hub puts the connection's `HttpContext` on `IHttpContextAccessor` for each invocation, so a custom `IAIVisitorIdentityResolver` that reads the accessor sees the visitor on every transport.
 - The preamble is wrapped in `[SECURITY DIRECTIVES — IMMUTABLE AND NON-NEGOTIABLE]` markers; user input is wrapped in `<|user_input_begin|>` / `<|user_input_end|>` after stripping injected delimiter tokens.
 
 ## Guardrails and Redaction
@@ -162,10 +190,21 @@ Prompt security never redacts stored conversations. To redact personal data, kee
 
 Every chat session and chat interaction upload passes `IUploadedFileScanner.ScanAsync(IFormFile, CancellationToken)` before storage. The default `NoOpUploadedFileScanner` returns `Clean`; register your scanner before document processing so `TryAdd` keeps yours. `FileScanResult.Infected(...)` and `FileScanResult.Error(...)` reject the upload (fail closed).
 
+## Answers in the Browser
+
+The chat scripts sanitize every answer (`CoreAIImages.sanitize` in `chat-markers.js`), because a model can be tricked by a document, crawled page or prompt injection into writing markup:
+
+- images only from the page's origin or `allowedImageHosts` (others become links), and no other element or attribute that fetches without a click;
+- no `id`, `data-coreai-*`, `data-chat-interaction-*` or `data-agui-*` attributes, so an answer cannot start a chat or forge a tool approval, and auto-start ignores configurations inside rendered messages (`CoreAIChatSurface`);
+- `style` limited to size, spacing, text and color, no id-pointing attributes (`for`, `form`, `popovertarget`, ...), no form-control `name`, buttons forced to `type="button"`, so an answer cannot overlay or press the page's controls.
+
+See `crestapps-core-chat-interactions` for the details and the `allowedImageHosts` option.
+
 ## Tool Authorization
 
 - **AI sessions**: the AI Profile is the boundary. Tools, MCP connections and agents the profile author attached run for any caller allowed to use the profile, including anonymous ones. No per-user tool check runs at completion time.
 - **Chat Interactions**: saved tool names are caller-controllable, so each send re-checks selectable tools with `IAIToolAccessEvaluator.IsAuthorizedAsync(ClaimsPrincipal user, string toolName)` and drops unauthorized ones with one warning. System and hidden tools are not checked; a `null` user (server-side work) skips the check. The default evaluator allows everything; replace it to enforce permissions.
+- **Approvals**: a tool registered with `RequireApproval()` runs only after the user approves the call in an AG-UI run, and is never offered to a request that cannot ask (see `crestapps-core-ag-ui`).
 
 ## Choose the Right Extension Point
 
@@ -186,6 +225,10 @@ Every chat session and chat interaction upload passes `IUploadedFileScanner.Scan
 ## Upgrading Within 2.0 Previews
 
 - The hub's reply check moved into the new protected virtual `ValidateOutputAsync(services, profile, sessionId, prompt, output, handlerContext, cancellationToken)`, which runs the output filter and then the reply guardrail. Override it rather than replacing the output filter when a host needs a different reply policy.
+
+- `DefaultAIVisitorIdentityResolver` no longer trusts `X-Forwarded-For`. Configure `UseForwardedHeaders` with `KnownProxies`/`KnownNetworks` behind a proxy.
+- Blank messages, template prompts, speech methods and AG-UI resumes now count against the message limit; a host that overrides `EvaluateMessageRateLimitAsync` sees them all.
+- Hosts with `AllowCrossSiteEmbedding` must also write the antiforgery cookie `SameSite=None; Secure; Partitioned` and set `SuppressXFrameOptionsHeader`.
 
 ## Upgrading from 1.x
 

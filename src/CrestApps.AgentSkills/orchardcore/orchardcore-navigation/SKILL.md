@@ -149,7 +149,7 @@ public async Task<IActionResult> List(PagerParameters pagerParameters)
 
 ### Page Size Selection
 
-When **Page size selection** is enabled in **Configuration → Settings → General**, `Pager` and `PagerSlim` render an **Items per page** selector next to the links on admin and front-end lists. The value travels as `?pageSize=` and is honored only when selection is enabled and the value is one of the allowed sizes (sorted, de-duplicated positive numbers, default `10, 25, 50, 100`); otherwise the default page size applies. Pager links keep the selection. When disabled (the default), pagers render as before.
+When **Page size selection** is enabled in **Settings → General**, `Pager` and `PagerSlim` render an **Items per page** selector next to the links on admin and front-end lists. The value travels as `?pageSize=` and is honored only when selection is enabled and the value is one of the allowed sizes (sorted, de-duplicated positive numbers, default `10, 25, 50, 100`); otherwise the default page size applies. Pager links keep the selection. When disabled (the default), pagers render as before.
 
 ```json
 {

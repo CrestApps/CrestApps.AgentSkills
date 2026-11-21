@@ -1,0 +1,88 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayrollTaxDeposits",
+      "description": "Recipe step discriminator. Must be \u0027PayrollTaxDeposits\u0027."
+    },
+    "Deposits": {
+      "type": "array",
+      "description": "The tax deposits to create, or update by id.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The deposit\u0027s 26-character id."
+          },
+          "EmployerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The employer."
+          },
+          "Jurisdiction": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The jurisdiction deposited to, such as US."
+          },
+          "Group": {
+            "type": "string",
+            "enum": [
+              "Withholding",
+              "Unemployment",
+              "NonPayrollWithholding"
+            ]
+          },
+          "PeriodStart": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day of the period paid."
+          },
+          "PeriodEnd": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day of the period paid."
+          },
+          "Amount": {
+            "type": "number",
+            "description": "The amount deposited."
+          },
+          "PaidOn": {
+            "type": "string",
+            "format": "date",
+            "description": "The day it was deposited."
+          },
+          "Reference": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The agency\u0027s confirmation number."
+          }
+        },
+        "required": [
+          "EmployerId",
+          "Jurisdiction",
+          "PeriodStart",
+          "PeriodEnd",
+          "Amount",
+          "PaidOn"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "Deposits"
+  ],
+  "additionalProperties": true
+}

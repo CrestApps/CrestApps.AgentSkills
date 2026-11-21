@@ -280,6 +280,8 @@ The shared browser client is `realtime-audio.js` (`@crestapps/ai-chat-ui`, globa
 
 ## Upgrading Within 2.0 Previews
 
+- Realtime sessions cannot ask for tool approvals, so tools registered with `RequireApproval()` are no longer offered to a realtime profile. Starting a voice conversation (`StartConversation`, `StartRealtimeConversation`, `StartRealtimeWebRtc`), transcribing audio and `SynthesizeSpeech` count against the per-message rate limit, and `SynthesizeSpeech` refuses text over 10,000 characters and, on the AI chat hub, profiles without text-to-speech playback or Conversation mode.
+
 - `DefaultRealtimeOrchestrator` takes `IRealtimeVoiceResolver` as a new constructor dependency (no change when resolved from the container). A voice the native realtime deployment does not list is now dropped, so a session that used to fail its set-up now opens with the provider's default voice.
 - A cascaded reply that calls a tool now produces two finished assistant lines (before and after the tool call) instead of one. Hosts that read "what was said" from finished lines see a goodbye spoken before an end-call tool as said.
 - Earlier previews described ElevenLabs as a possible cascade speech-to-text leg, which never worked; use Cartesia (`ink-2`), OpenAI or Azure OpenAI for that leg and keep ElevenLabs for speaking.

@@ -108,7 +108,7 @@
           },
           "EnforceCallingWindow": {
             "type": "boolean",
-            "description": "Whether calls are restricted by business-hours calendars."
+            "description": "Whether calls are restricted by Business Hours schedules."
           },
           "EnforceAbandonmentCap": {
             "type": "boolean",
@@ -186,15 +186,15 @@
               "null",
               "string"
             ],
-            "description": "Default business-hours calendar used to evaluate outbound calls."
+            "description": "Default Business Hours schedule used to evaluate outbound calls."
           },
           "RegionalCallingCalendarIds": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "A business-hours calendar identifier."
+              "description": "A Business Hours schedule identifier."
             },
-            "description": "Region-specific business-hours calendar overrides keyed by ISO 3166-1 alpha-2 region code."
+            "description": "Region-specific Business Hours schedule overrides keyed by ISO 3166-1 alpha-2 region code."
           },
           "Enabled": {
             "type": "boolean",

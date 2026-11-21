@@ -25,7 +25,7 @@
 
 ## Queues
 
-Key `ActivityQueue` members: `DefaultPriority` (`Lowest` to `Highest`), `RoutingStrategy`, `PreferStickyAgent`, `EnableSlaAging`, `SlaThresholdSeconds` (120), `ReservationTimeoutSeconds` (30), `UnansweredOfferAction`, `BusinessHoursCalendarId`, `AfterHoursAction` (`HoldInQueue`, `Overflow`), `OverflowQueueId`, `OverflowAfterSeconds`, `OverflowTargets`, `RequiredSkills`, `SkillRequirements`, `MaxWaitSeconds`, `MaxWaitAction`, `MaxQueueSize`, `QueueFullAction`, `Treatment`, `InboundChannelEndpointId`, `FirstResponseTargetSeconds` (messaging), `QueueGroupId`.
+Key `ActivityQueue` members: `DefaultPriority` (`Lowest` to `Highest`), `RoutingStrategy`, `PreferStickyAgent`, `EnableSlaAging`, `SlaThresholdSeconds` (120), `ReservationTimeoutSeconds` (30), `UnansweredOfferAction`, `BusinessHoursCalendarId` (a Business Hours schedule id), `AfterHoursAction` (`HoldInQueue`, `Overflow`), `OverflowQueueId`, `OverflowAfterSeconds`, `OverflowTargets`, `RequiredSkills`, `SkillRequirements`, `MaxWaitSeconds`, `MaxWaitAction`, `MaxQueueSize`, `QueueFullAction`, `Treatment`, `InboundChannelEndpointId`, `FirstResponseTargetSeconds` (messaging), `QueueGroupId`.
 
 - Skills are held at proficiency 1 to 5. `RequiredSkills` means proficiency 3 or more; `SkillRequirements` sets a per-skill minimum, marks a skill preferred instead of required, and can relax after a wait. Skill names compare trimmed and case-insensitively; interior spaces matter.
 - Queue groups are catalog and reporting metadata only, with current-membership semantics in reports.
@@ -116,7 +116,7 @@ await _activityWriter.ScheduleUpdateAsync(activityItemId, activity =>
 | `AnsweringMachineDetection` | `Disabled`, `Standard`, `Premium` |
 | `CallerId`, `AlwaysUseCallerId` | Caller ID fallback, or forced |
 | `DefaultRegionCode` | Region for national-format destinations (E.164 canonicalization) |
-| `RespectDoNotCall`, `EnforceCallingWindow`, `CallingCalendarId` | Compliance gates; per-region calendar overrides are supported |
+| `RespectDoNotCall`, `EnforceCallingWindow`, `CallingCalendarId` | Compliance gates; `CallingCalendarId` and its per-region overrides are Business Hours schedule ids |
 | `EnforceAbandonmentCap`, `MaxAbandonmentRatePercent`, `AbandonmentSampleFloor`, `SafeHarborEnabled`, `SafeHarborMessage` | Abandonment cap and the abandoned-call message (`{company}`, `{number}`). The message is required when the cap is enforced |
 | `ShowDialProgressToAgent` | Show *Dialing…*, *Screening…*, *Connecting…* while the agent is held (default off) |
 | `PredictivePacingModel` | `ReservedPerCall` (default) or `OverDial` |
@@ -124,7 +124,7 @@ await _activityWriter.ScheduleUpdateAsync(activityItemId, activity =>
 
 A profile names no queue or campaign. **Load Activities** with the **Dialer** source picks the campaign and profile; activities load unassigned and are queued on the campaign's virtual queue (`__campaign-queue__{campaignId}`). A campaign's waiting records must share one profile. Turning a profile off holds its records in the queue.
 
-- Dialer loads skip and count contacts with no number to dial (`TotalSkippedForNoDestination`), and **Change Dialer Profile** leaves such activities unchanged. When an activity has no destination, the eligibility check dials the contact's current preferred phone number instead and runs every check on it.
+- Dialer loads skip and count contacts with no number to dial (`TotalSkippedForNoDestination`). **Change Dialer Profile** dials the activity's own number when it is a phone activity with one; otherwise it looks up the contact's preferred phone number (unless the contact opted out of calls) and turns the record into a phone call (`Channel` Phone, `Kind` Call), as a dialer load does. A record with no number to dial is left unchanged, and failed records are reopened and queued again. When an activity has no destination, the eligibility check dials the contact's current preferred phone number instead and runs every check on it.
 - An activity load's **Schedule at** is stored in UTC and shown in local time.
 - Opening the Complete screen gives a pending preview offer its full offer time again, and the screen pings a keep-alive every minute (`IActivityOfferKeepAlive`, `IActivityReservationService.ExtendPendingAsync`, never shortening). An agent who lost the record is redirected with a reason instead of a 403. `ContactCenterActivityOwnershipAuthorizationHandler` grants **Complete activity** from the work state's `ReservedById`/`AssignedToId`, so a just-offered record opens before the activity projection catches up.
 
@@ -138,7 +138,7 @@ A profile names no queue or campaign. **Load Activities** with the **Dialer** so
 - A dial is dispatched only while its reservation is accepted, the agent is still held for it (`Reserved` with that dial hold for paced modes, `Busy` for preview and callback dials) and on no other voice call, so a restart cannot ring two customers for one agent.
 - `ReserveAsync` cancels an orphaned pending or accepted reservation left on an activity whose queue item is waiting before it creates the new one, so one stuck activity cannot stall a campaign queue.
 - When a dialed call connects, the docked agent bar opens and the activity's **Complete activity** page opens on its own (`activeInteraction.autoOpenActivity`, once per call per browser tab, never over unsaved changes), and again when the call ends.
-- Every cycle writes a `DialerPacingCycle` record (`Placed`, `NothingDue`, `NoAgents`, `HeldBack`, `LockNotAcquired`, `TimeBudgetExceeded`, `Failed`, `WriteConflict`). `IDialerPacingHealthService` turns them into `NothingToCall`, `Starting`, `Dialing`, `Idle`, `HeldBack`, `Stalled` or `LockNotAcquired` (the most severe: misses longer than the larger of the cycle timeout and twice `LockExpiration`; the banner reads **Dialer not pacing**).
+- Every cycle writes a `DialerPacingCycle` record (`Placed`, `NothingDue`, `NoAgents`, `HeldBack`, `LockNotAcquired`, `TimeBudgetExceeded`, `Failed`, `WriteConflict`). `IDialerPacingHealthService` turns them into `NothingToCall`, `Starting`, `Dialing`, `Idle`, `HeldBack`, `Stalled` or `LockNotAcquired` (the most severe: misses longer than the larger of the cycle timeout and twice `LockExpiration`; the banner reads **Dialer not pacing**). When campaigns with dialer work lie outside the viewer's **Allowed campaigns**, the banner says so instead of **Nothing to call**, and it shows the pacing-lock time in the site time zone.
 
 ## Outbound Compliance Gate
 

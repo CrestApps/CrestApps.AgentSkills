@@ -16,7 +16,7 @@ Recipes are JSON documents that configure a tenant through ordered steps. Use a 
 - Place an extension recipe at `Recipes/<name>.recipe.json` in a module or theme. The extension's manifest makes that extension discoverable; there is no separate recipe manifest file.
 - `RecipeHarvester` iterates enabled extensions and reads each extension's `Recipes` folder. The application recipe harvester also contributes application-level recipes.
 - Set `issetuprecipe` to `true` only for recipes intended to appear during tenant setup.
-- Run a discovered recipe from **Configuration → Recipes**, during setup, or from another recipe using the `Recipes` step. A data migration may execute a recipe in its module/theme `Migrations` folder through `IRecipeMigrator`.
+- Run a discovered recipe from **Tools → Recipes**, during setup, or from another recipe using the `Recipes` step. A data migration may execute a recipe in its module/theme `Migrations` folder through `IRecipeMigrator`.
 - Programmatic execution uses `IRecipeExecutor.ExecuteAsync(executionId, recipeDescriptor, environment, cancellationToken)`. A `RecipeDescriptor` carries the recipe metadata, base path, file provider, and recipe file.
 - The cancellation token also bounds the `[js: ...]` expressions of each step: cancelling while a step's script runs stops the script and fails that step with a `RecipeExecutionException` wrapping the `OperationCanceledException`. Only setup passes a cancellable token (the application stopping token). The recipe `variables()` are not bounded by cancellation.
 - Running recipes from the admin requires `RecipePermissions.ManageRecipes`.
@@ -165,7 +165,7 @@ Order the steps so each one finds what it needs:
 
 - Enable the site theme's feature in the `Feature` step. Setting it in `Themes` alone leaves the front end without its layout.
 - Name the file in lowercase (`mysite.recipe.json`) and use a PascalCase `name`, which is what the `Recipes` step and `IRecipeHarvester` match on.
-- Test by setting up a fresh tenant with the recipe (or with `orchardcore-auto-setup`). Recipes without `issetuprecipe` run from **Configuration > Recipes** on an existing tenant.
+- Test by setting up a fresh tenant with the recipe (or with `orchardcore-auto-setup`). Recipes without `issetuprecipe` run from **Tools > Recipes** on an existing tenant.
 - Create index profiles before the `Content` step so imported items are indexed as they are created.
 
 ## Common built-in steps
@@ -327,7 +327,7 @@ Some settings are cached at tenant start (for example CORS policies written by `
 | `MediaApiPkce` | `OrchardCore.Media` | Provisions a public `media_gallery` PKCE client so the Media Gallery can call `api/media` with bearer tokens (see `orchardcore-media-gallery`). |
 | `MediaApiStandalone` | `OrchardCore.Media` | Configures the gallery as a standalone app on its own origin, with interactive login and CORS. |
 
-The PKCE recipes contain a `https://localhost:5001` origin in `RedirectUris`/`PostLogoutRedirectUris` and `Default` as the validation `Tenant`; copy the recipe and replace both before running it on a real tenant. Run them with the `Recipes` step or from **Configuration → Recipes**.
+The PKCE recipes contain a `https://localhost:5001` origin in `RedirectUris`/`PostLogoutRedirectUris` and `Default` as the validation `Tenant`; copy the recipe and replace both before running it on a real tenant. Run them with the `Recipes` step or from **Tools → Recipes**.
 
 ### Content definitions and features in 4.0
 

@@ -1,0 +1,148 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TicketBoards",
+      "description": "Recipe step discriminator. Must be \u0027TicketBoards\u0027."
+    },
+    "Boards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The board id; omit it to create one."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the board is for."
+          },
+          "Columns": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The column id, unique on the board; omit it to have one made."
+                },
+                "Name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The column\u0027s name."
+                },
+                "StatusIds": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The ids of the ticket statuses the column holds; a status is in one column of a board only."
+                },
+                "DefaultStatusId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The status a card dropped on the column gets when it has several; empty asks which one."
+                },
+                "Limit": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ],
+                  "minimum": 1,
+                  "description": "The most tickets the column should hold; the header shows when it holds more."
+                }
+              },
+              "required": [
+                "Name",
+                "StatusIds"
+              ],
+              "additionalProperties": true
+            },
+            "description": "The columns, from left to right."
+          },
+          "Query": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Which tickets it shows: DeskIds, TeamIds, ContentTypes, PriorityIds, Assignee, Search, Requester, AccountId, DueWithin and Sort. The columns decide the statuses."
+          },
+          "OwnerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user who keeps it; empty for a shared board. Prefer OwnerUserName, since user ids differ from site to site."
+          },
+          "OwnerUserName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name of the user who keeps a personal board."
+          },
+          "SharedWithTeamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team it is shared with."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "Where it is listed."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was created, in UTC."
+          },
+          "ModifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it last changed, in UTC."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "More values of the board, by name."
+          }
+        },
+        "required": [
+          "Name",
+          "Columns"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The boards to create or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Boards"
+  ],
+  "additionalProperties": true
+}

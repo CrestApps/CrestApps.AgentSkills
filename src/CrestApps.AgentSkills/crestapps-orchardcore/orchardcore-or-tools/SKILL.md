@@ -1,6 +1,6 @@
 ---
 name: orchardcore-or-tools
-description: Skill for the CrestApps Orchard Core OR-Tools add-on module (CrestApps.OrchardCore.OrTools), which adds Google OR-Tools solvers to Workforce and Dispatch. Covers the OR-Tools Shift Scheduling feature (a CP-SAT model registered as the IShiftScheduleSolver named OR-Tools and set as ShiftPlanningOptions DefaultSolver) and the OR-Tools Dispatch feature (a routing model registered as the last IDispatchOptimizer), how each solver starts from the built-in answer, time limits and seeds, why the package is not in the CMS targets (native libraries per platform), installing it in the web project, and writing your own solver around the public DefaultShiftScheduleSolver and DefaultDispatchOptimizer. Use this skill when requests mention OR-Tools, CP-SAT, vehicle routing, optimizing a dispatch day or auto-scheduling shifts with a better solver. Strong matches include OrToolsShiftScheduleSolver, OrToolsDispatchOptimizer, OrToolsConstants, IShiftScheduleSolver, IDispatchOptimizer and ShiftPlanningOptions.
+description: Skill for the CrestApps Orchard Core OR-Tools add-on module (CrestApps.OrchardCore.OrTools), which adds Google OR-Tools solvers to Workforce and Dispatch. Covers the OR-Tools Shift Scheduling feature (a CP-SAT model registered as the IShiftScheduleSolver named OR-Tools and set as ShiftPlanningOptions DefaultSolver) and the OR-Tools Dispatch feature (a routing model registered as the last IDispatchOptimizer), how each solver starts from the built-in answer, time limits and seeds, solver telemetry, why the package is not in the CMS targets (native libraries per platform), installing it in the web project, and writing your own solver around the public DefaultShiftScheduleSolver and DefaultDispatchOptimizer. Use this skill when requests mention OR-Tools, CP-SAT, vehicle routing, optimizing a dispatch day or auto-scheduling shifts with a better solver. Strong matches include OrToolsShiftScheduleSolver, OrToolsDispatchOptimizer, OrToolsConstants, IShiftScheduleSolver, IDispatchOptimizer and ShiftPlanningOptions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,7 +19,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 - Make sure the deployment target's runtime identifier is one OR-Tools ships native libraries for. The solvers don't catch a native library load failure, so on an unsupported platform **Auto-schedule** or **Optimize the day** fails with the exception instead of falling back; turn the feature off there.
 - Enable only the feature you need. Each depends on the module it improves: Workforce Shift Planning or Dispatch.
 - Turning a feature on never makes a schedule or a day worse: each solver runs the built-in solver first, gives its answer to OR-Tools as the starting point (a hint), and keeps the better of the two.
-- No settings, permissions, admin pages, recipe steps or deployment steps of its own. The time limit and seed come from the problem the host module builds.
+- No settings, permissions, admin pages, recipe steps or deployment steps of its own, and no solver options to tune: the time limit and seed come from the problem the host module builds (`ShiftPlanningOptions.SolverTimeLimitSeconds`, the dispatch setting `OptimizerSeconds`). Thread count (up to eight) and search strategy are fixed in code.
 - Shift planning itself is covered by `orchardcore-workforce`; visits and the board by `orchardcore-dispatch`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
@@ -86,6 +86,20 @@ Both solvers are named `OR-Tools` (`OrToolsConstants.SolverName`); the built-in 
 
 Nothing is changed until the dispatcher applies the proposal; every applied move still goes through the locked `IDispatchService.AssignAsync` checks.
 
+## Telemetry
+
+Each solve is counted on the `CrestApps.OrchardCore.Solver` meter as `crestapps.solver.runs` (`SolverTelemetry`, `SolverRun`), tagged with:
+
+| Tag | Values |
+|---|---|
+| `solver` | `shift_schedule` or `dispatch` |
+| `size` | `le_10`, `le_100`, `le_1000`, `le_10000`, `le_100000` or `gt_100000`: the size class of the problem (workers x days x templates for shifts, visits for dispatch) |
+| `status` | `optimal`, `feasible`, `timed_out`, `infeasible`, `cancelled`, `skipped` (nothing to solve), or `error` |
+| `result` | `solver` when the OR-Tools answer was kept, `builtin` when the built-in answer stayed |
+| `outcome` | `ok`, `error` or `cancelled`, plus the tenant tag |
+
+The routing search never proves optimality, so a dispatch answer it found is `feasible` unless the solver reports `RoutingOptimal`; the shift CP-SAT model reports `optimal` when proved. A high share of `result=builtin` or `timed_out` means the time limit is too short for the problem size. Export the meter with the Orchard Core OpenTelemetry setup (see `orchardcore-opentelemetry`).
+
 ## Writing Your Own Solver
 
 `DefaultShiftScheduleSolver` (`CrestApps.OrchardCore.Workforce.Core`) and `DefaultDispatchOptimizer` (`CrestApps.OrchardCore.Dispatch.Core`) are public, so a custom solver can start from their answer the way the OR-Tools solvers do.
@@ -141,6 +155,7 @@ public sealed class LoggedDispatchOptimizer : IDispatchOptimizer
 | The message still names the built-in solver | The feature isn't enabled, or another module set `ShiftPlanningOptions.DefaultSolver` later. When OR-Tools finds nothing better it keeps the built-in answer but still reports itself as the solver. |
 | `DllNotFoundException` or `TypeInitializationException` on a server | The platform's OR-Tools native library isn't deployed; publish for a supported runtime identifier or disable the feature. |
 | Optimize the day takes the full time limit | Expected: guided local search uses the remaining `OptimizerSeconds`. Lower it in **Settings > Dispatch**. |
+| Runs always report `result=builtin` | OR-Tools found nothing cheaper in the time left; raise the time limit, or check `status` for `infeasible` (windows, skills or fixed visits that can't all fit). |
 | Package not found after adding the CMS targets | The add-on isn't in the targets; reference `CrestApps.OrchardCore.OrTools` directly. |
 
 Related skills: `orchardcore-dispatch`, `orchardcore-workforce`, `orchardcore-scheduling`.

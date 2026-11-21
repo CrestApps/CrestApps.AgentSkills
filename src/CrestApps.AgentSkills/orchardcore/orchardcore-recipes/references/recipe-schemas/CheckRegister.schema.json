@@ -1,0 +1,128 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "CheckRegister",
+      "description": "Recipe step discriminator. Must be \u0027CheckRegister\u0027."
+    },
+    "Checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The check\u0027s id."
+          },
+          "bankAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the bank account the check is drawn on."
+          },
+          "bankAccountName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The bank account\u0027s name."
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The check number."
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payee\u0027s name."
+          },
+          "amount": {
+            "type": "number",
+            "description": "The amount."
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The three-letter currency code."
+          },
+          "checkDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The check date, yyyy-MM-dd."
+          },
+          "memo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The memo."
+          },
+          "sourceKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The kind of record the check paid."
+          },
+          "sourceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the record the check paid."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Issued",
+              "Printed",
+              "Voided",
+              "StopPayment",
+              "Cleared",
+              "Reissued",
+              "Stale"
+            ],
+            "description": "The status."
+          },
+          "issuedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the check was issued (UTC)."
+          },
+          "clearedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The date the bank paid it, yyyy-MM-dd."
+          }
+        },
+        "required": [
+          "bankAccountId",
+          "number"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The checks to add to the register as history. They are never printed or changed."
+    }
+  },
+  "required": [
+    "name",
+    "Checks"
+  ],
+  "additionalProperties": true
+}

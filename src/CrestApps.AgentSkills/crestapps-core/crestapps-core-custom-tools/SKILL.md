@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-custom-tools
-description: Skill for code-defined AI tools in CrestApps.Core 2.0. Covers implementing AIFunction tools with a JSON schema, registering them with AddCoreAITool and the AIToolBuilder (WithTitle, WithDescription, WithCategory, WithPurpose, WithDependency, Selectable, Hidden), system versus selectable versus hidden tools, AIToolPurposes values, tool dependencies, returning errors instead of throwing, rich MCP results with IAIToolContentProvider, custom IToolRegistryProvider sources and ToolRegistryEntry, tool authorization where the AI Profile is the boundary for sessions and IAIToolAccessEvaluator re-checks Chat Interaction tools, IUserAccessor for the caller, and how tools relate to tool instances, agents and MCP server exposure. Use it when giving the model a new callable function, controlling which tools a profile or user can reach, or troubleshooting tools that never reach the model.
+description: Skill for code-defined AI tools in CrestApps.Core 2.0. Covers implementing AIFunction tools with a JSON schema, registering them with AddCoreAITool and the AIToolBuilder (WithTitle, WithDescription, WithCategory, WithPurpose, WithDependency, Selectable, Hidden, RequireApproval), tools a person must approve (RequiresApproval, SupportsToolApproval), system versus selectable versus hidden tools, AIToolPurposes values, tool dependencies, returning errors instead of throwing, rich MCP results with IAIToolContentProvider, custom IToolRegistryProvider sources and ToolRegistryEntry, tool authorization where the AI Profile is the boundary for sessions and IAIToolAccessEvaluator re-checks Chat Interaction tools, IUserAccessor for the caller, and how tools relate to tool instances, agents and MCP server exposure. Use it when giving the model a new callable function, controlling which tools a profile or user can reach, or troubleshooting tools that never reach the model.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,7 @@ A code-defined tool is a Microsoft.Extensions.AI `AIFunction` registered under a
 - Purpose values are snake case strings (`content_generation`, not `ContentGeneration`); always use the `AIToolPurposes` constants.
 - Resolve scoped services from `AIFunctionArguments.Services`, not from the constructor (the tool is a singleton).
 - The deployment must declare `toolCalling`, or capability enforcement removes every tool from the request.
+- Call `.RequireApproval()` on a tool that changes or deletes data, sends a message, or is otherwise hard to undo. It then runs only after a person approves the call, and is left out of every request that cannot ask (see [Tools That Need Approval](#tools-that-need-approval)).
 
 ## Registration
 
@@ -42,6 +43,7 @@ builder.Services
 | `.WithoutDependency(...)` / `.WithoutDependencies(...)` | Remove registered dependencies |
 | `.Selectable()` | User-assignable |
 | `.Hidden()` | Only for profiles or agents that name it |
+| `.RequireApproval()` | A person approves each call before it runs (`AIToolDefinitionEntry.RequiresApproval`); `.RequireApproval(false)` clears it |
 
 `AddCoreAIToolServices<TTool>(name)` registers the singleton and keyed service without a definition, for tools resolved only in code.
 
@@ -120,6 +122,21 @@ builder.Services
 
 Profiles store only the top-level name. Missing dependencies are ignored, and shared or circular graphs are deduplicated.
 
+## Tools That Need Approval
+
+```csharp
+builder.Services
+    .AddCoreAITool<DeleteArticleTool>(DeleteArticleTool.TheName)
+        .WithDescription("Deletes an article.")
+        .Selectable()
+        .RequireApproval();
+```
+
+- `DefaultToolMaterializer` reads `ToolRegistryEntry.RequiresApproval`. When `ToolMaterializationOptions.SupportsToolApproval` is `true` (an AG-UI chat run, where `AIChatResponseHandler` sets `AICompletionContextKeys.ToolApprovalSupported`), the tool is wrapped in Microsoft.Extensions.AI's `ApprovalRequiredAIFunction`: the run pauses with an interrupt and the chat shows **Allow** / **Deny**. See `crestapps-core-ag-ui`.
+- When `SupportsToolApproval` is `false` (the text-only `SendMessage` stream, agents running inside a tool call, realtime sessions, the Claude orchestrator, background work, MCP and other channels), the tool is left out of the request, so the model never sees it and it never runs unasked. Each skip counts on `crestapps.core.ai.tool.denied` with `reason=approval`.
+- A custom `IToolRegistryProvider` sets `RequiresApproval = true` on its own `ToolRegistryEntry` values.
+- If an agent, realtime profile or background job needs the tool, either give that work to an AG-UI chat that can ask, or register the tool without `RequireApproval()` if running it unasked is acceptable.
+
 ## Rich Results for MCP Clients
 
 A result that is more than text can implement `IAIToolContentProvider` (`IReadOnlyList<AIContent> ToContents()`); the MCP server maps it to content blocks (for example text plus resource links) instead of one text block. A plain string is still one text block.
@@ -169,7 +186,7 @@ public sealed class FeatureFlagToolRegistryProvider : IToolRegistryProvider
 builder.Services.AddScoped<IToolRegistryProvider, FeatureFlagToolRegistryProvider>();
 ```
 
-`IFeatureFlags` stands for the host's own service. `IToolRegistry.GetAllAsync(context)` concatenates every provider; the built-ins are `SystemToolRegistryProvider`, `ProfileToolRegistryProvider`, `AgentToolRegistryProvider` and, with tool instances, `ToolInstanceRegistryProvider`. `ToolRegistryEntrySource` is `Local`, `McpServer`, `System` or `Agent`.
+`IFeatureFlags` stands for the host's own service. `IToolRegistry.GetAllAsync(context)` concatenates every provider; the built-ins are `SystemToolRegistryProvider`, `ProfileToolRegistryProvider`, `AgentToolRegistryProvider`, `ToolInstanceRegistryProvider`, `SharedStateToolRegistryProvider` (`update_shared_state` when an AG-UI run shares state) and `ClientToolRegistryProvider` (an AG-UI client's frontend tools), plus `McpToolRegistryProvider`, `A2AToolRegistryProvider` and `WebMcpPageToolRegistryProvider` from their packages. `ToolRegistryEntrySource` is `Local`, `McpServer`, `System` or `Agent`.
 
 ## Tool Authorization
 
@@ -208,6 +225,10 @@ The caller comes from `IUserAccessor.User` (namespace `CrestApps.Core.Security`)
 ## MCP Server Exposure
 
 An MCP server built on CrestApps.Core publishes registered tools through its own allow-list (`ExposeAllTools` or a list of tool names) and agents through a separate `Agents`/`ExposeAllAgents` switch. Hidden tools are not listed. Each MCP tool call runs inside an `AIInvocationScope`. See `crestapps-core-mcp`.
+
+## Upgrading Within 2.0 Previews
+
+- A tool marked `RequireApproval()` is no longer handed to the model unwrapped when the request cannot ask for an approval; it is left out. Agents, realtime profiles and background requests that relied on such a tool no longer see it.
 
 ## Upgrading from 1.x
 

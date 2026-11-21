@@ -1,51 +1,34 @@
 ---
 name: orchardcore-notifications
-description: Skill for Orchard Core notifications. Covers sending notification messages, email and SMS delivery methods, lifecycle events, NotificationOptions, using the notification center as the inbox of a module (URLs, notification types, reference ids, INotificationManager, display drivers per type, visibility handlers, preferences per type), workflow tasks, the notification center admin list, and permissions, plus the difference with INotifier UI messages. Use this skill when requests mention Orchard Core Notifications, sending notifications with INotificationService, notification center, unread notifications navbar, a custom notification type, mentions or assigned-task notifications, or closely related Orchard Core implementation or troubleshooting work. Strong matches include OrchardCore.Notifications, OrchardCore.Notifications.Email, OrchardCore.Notifications.Sms, INotificationMethodProvider, AddNotificationType, INotificationManager, NotificationFilter, and INotificationVisibilityHandler.
+description: Skill for Orchard Core notifications. Covers the Notifications, Email and SMS Notifications features, the bell and Notification Center, sending messages with INotificationService and NotificationSendResult, notification types with AddNotificationType, per-type preferences and DisabledMethods, URLs and reference ids, INotificationManager and NotificationFilter, display drivers per type and the Header, SummaryAdmin, SummaryAdminGrid and DetailAdmin display types, visibility handlers, method providers, events, NotificationOptions, the navbar cache, admin list filters, NotificationIndex, workflow tasks, ManageNotifications, and INotifier UI messages. Use it for Orchard Core notifications, the notification center, unread notifications, or a custom notification type. Strong matches include OrchardCore.Notifications, INotificationService, INotificationMethodProvider, AddNotificationType, INotificationManager, NotificationFilter, and INotificationVisibilityHandler.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
   version: "1.0"
 ---
 
-# Orchard Core Notifications - Prompt Templates
+# Orchard Core Notifications
 
-## Create and Manage Notifications
+You are an Orchard Core expert. Send persistent notifications to users, give each module its own notification types, and keep the notification center in sync with the records notifications are about.
 
-Use `INotificationService` to create a persistent notification and dispatch it
-through every delivery method available for the recipient. The service contract
-is `SendAsync(object notify, INotificationMessage message, CancellationToken)`;
-it returns a `NotificationSendResult`.
+## Guidelines
 
-### Guidelines
+- Use `INotificationService` for persistent notifications stored in the user's notification center (and optionally sent by email or SMS). Use `INotifier` (`OrchardCore.DisplayManagement.Notify`) for transient per-request messages such as "Saved".
+- Send a `NotificationMessage` (or any `INotificationMessage`); the service creates and stores the `Notification`.
+- Pass an `OrchardCore.Users.Models.User` as the recipient. The notification's `UserId` is only set for a `User`, so any other object gets a stored notification that no notification center shows.
+- Every notification is stored first; methods (email, SMS, custom) only send copies. `NotificationSendResult.Status == None` means no method ran, not that the notification was lost.
+- Give each kind of notification a **type**: set `Type`, `ReferenceId` and `Url` on the message, register the type with `services.AddNotificationType(...)`, and keep sent notifications in sync with `INotificationManager`. There are no built-in types; each module registers its own.
+- Keep type names in constants; they are stored on notifications (max 64 characters; reference ids max 255). Longer values throw `ArgumentException` from `SendAsync`.
+- The only permission is `ManageNotifications`. Do not invent others.
+- Declare display drivers `internal sealed` unless another assembly must reference the type.
 
-- Enable `OrchardCore.Notifications` before using notification services.
-- Enable `OrchardCore.Notifications.Email` (requires a configured email
-  provider) and/or `OrchardCore.Notifications.Sms` (requires a configured SMS
-  provider) for out-of-band delivery. Users opt in or out of each enabled method
-  in their profile.
-- Use `INotificationService` for persistent notifications in the notification
-  center; use `INotifier` (`OrchardCore.DisplayManagement.Notify`) for
-  transient per-request UI messages such as "Saved successfully".
-- Send a `NotificationMessage`, not a `Notification`; the service creates the
-  `Notification` entity.
-- Pass the recipient as the `notify` object. Use application users when sending
-  user notifications.
-- Inspect `NotificationSendResult.Status`, counts, and errors when delivery
-  outcomes affect application flow.
-- Implement `INotificationMethodProvider` for a delivery method. Its `SendAsync`
-  returns `Task<Result>`.
-- Derive lifecycle handlers from `NotificationEventsHandler`.
-- The module provides the `ManageNotifications` permission. Do not invent
-  additional notification permissions.
-- `NotifyUserTask` and `NotifyContentOwnerTask` are workflow activities
-  registered when their required features are enabled.
-- When a module notifies users about events aimed at them (mentions, assigned
-  tasks, approvals), use the notification center as its inbox instead of
-  building a page: set `Url`, `Type` and `ReferenceId` on the message, register
-  the type with `services.AddNotificationType(...)`, and keep sent
-  notifications in sync with `INotificationManager`.
+## Features
 
-### Enabling Notifications
+| Feature | ID | Depends on |
+|---|---|---|
+| Notifications | `OrchardCore.Notifications` | `OrchardCore.Liquid` |
+| Email Notifications | `OrchardCore.Notifications.Email` | `OrchardCore.Notifications`, `OrchardCore.Email` |
+| SMS Notifications (declared in the `OrchardCore.Sms` module) | `OrchardCore.Notifications.Sms` | `OrchardCore.Notifications`, `OrchardCore.Sms` |
 
 ```json
 {
@@ -55,17 +38,26 @@ it returns a `NotificationSendResult`.
       "enable": [
         "OrchardCore.Notifications",
         "OrchardCore.Notifications.Email"
-      ],
-      "disable": []
+      ]
     }
   ]
 }
 ```
 
-### Configuration
+The email method (`Method` = `Email`) needs a configured email provider and sends `Subject` with `HtmlBody` when `IsHtmlPreferred` and an HTML body exist, otherwise `TextBody`; it fails for a user without an email address. The SMS method (`Method` = `SMS`) needs an SMS provider and sends `TextBody` to the user's `PhoneNumber`, failing when it is empty.
 
-`NotificationOptions` binds `OrchardCore:Notifications` (also per tenant under
-`OrchardCore:{TenantName}:Notifications`):
+## Where Users See Notifications
+
+- **Bell**: `NotificationNavbarDisplayDriver` adds `UserNotificationNavbar` to the `Navbar` (`Content:9`, `Detail` and `DetailAdmin`) for users with `ManageNotifications`. It lists up to `TotalUnreadNotifications` unread notifications, each built with the `Header` display type, a badge with the unread count, and a **Notification Center** link. Below 576px the menu spans the screen under the bell (`.notification-navbar[data-bs-popper]` is `position: fixed`); restyle it after `UserNotificationNavbarStyles`.
+- **Notification Center**: admin route `ListNotifications` at `/Admin/notifications`, reached from the bell (there is no admin menu item). It lists only the current user's notifications (the always-run `owner` default term). Each notification has a page at `/Admin/notifications/{notificationId}` (`DisplayNotification`).
+- **Profile**: the user editor shows **Notification Methods** (`UserNotificationPreferencesPart_Edit`, `Content:11`) when at least one method feature is enabled: order the methods, opt out of some, and, when types are registered, a **Notification Types** grid with a checkbox per type and method.
+- Opening a notification goes through `GET /Notifications/Open/{notificationId}`, which marks it read and redirects to its `Url` (or to its notification center page when it has none). `POST /Notifications/MarkAsRead` marks one read from the bell.
+
+`ManageNotifications` is granted by default to Administrator, Editor, Moderator, Author, Contributor and Authenticated, so every signed-in user has a bell.
+
+## Configuration
+
+`NotificationOptions` binds `OrchardCore:Notifications` (the deprecated `OrchardCore_Notifications` still binds):
 
 ```json
 {
@@ -74,7 +66,7 @@ it returns a `NotificationSendResult`.
       "TotalUnreadNotifications": 10,
       "MaxEvaluatedUnreadNotifications": 100,
       "DisableNotificationHtmlBodySanitizer": false,
-      "AbsoluteCacheExpirationSeconds": 3600,
+      "AbsoluteCacheExpirationSeconds": 0,
       "SlidingCacheExpirationSeconds": 1800
     }
   }
@@ -83,222 +75,76 @@ it returns a `NotificationSendResult`.
 
 | Option | Default | Purpose |
 |---|---|---|
-| `TotalUnreadNotifications` | `10` | Unread notifications shown in the navbar. |
-| `MaxEvaluatedUnreadNotifications` | `100` | Unread notifications checked by visibility handlers to compute the navbar count; a larger count shows as `100+`. Only used when a handler is registered. |
-| `DisableNotificationHtmlBodySanitizer` | `false` | Skips sanitizing `HtmlBody` of workflow notifications. |
-| `AbsoluteCacheExpirationSeconds` | `0` | Absolute lifetime of the cached unread list; `0` means no absolute expiration. |
-| `SlidingCacheExpirationSeconds` | `1800` | Sliding lifetime of the cached unread list; `0` disables it. |
+| `TotalUnreadNotifications` | `10` | Unread notifications shown in the bell menu. |
+| `MaxEvaluatedUnreadNotifications` | `100` | With a visibility handler registered, the most recent unread notifications evaluated to count the badge; more shows as `100+`. |
+| `DisableNotificationHtmlBodySanitizer` | `false` | Skips sanitizing the **HTML Body** of the notify workflow tasks when they are saved. |
+| `AbsoluteCacheExpirationSeconds` | `0` | Absolute lifetime of the cached bell menu; `0` means none. |
+| `SlidingCacheExpirationSeconds` | `1800` | Sliding lifetime of the cached bell menu; `0` disables it. |
 
-The unread list is cached only when one of the expirations is greater than `0`.
+The bell menu is cached per user (tags `top-unread-user-notifications` and per-user keys from `NotificationsHelper`) only when one expiration is greater than `0`. `INotificationManager` and the built-in actions clear it; a visibility change alone shows when the entry expires.
 
-### Notification and Message Models
-
-`NotificationMessage` supplies the delivery content:
-
-| Property | Purpose |
-|---|---|
-| `Subject` | Delivery subject, such as an email subject. |
-| `Summary` | Short persistent notification summary. |
-| `TextBody` | Plain-text body. |
-| `HtmlBody` | HTML body when a provider supports it. |
-| `IsHtmlPreferred` | Requests HTML when `HtmlBody` is available. |
-| `Url` | Page the notification opens: `~/` application-relative, a local `/` path, or an absolute `http`/`https` URL. Other schemes (for example `javascript:`) are ignored with a warning. |
-| `Type` | Kind of notification, for example `Mention` (max 64 characters, indexed). |
-| `ReferenceId` | Id of the record the notification is about (max 255 characters, indexed). |
-
-Only `Subject` is required; it cannot contain HTML. `Summary` may contain HTML,
-sanitized when shown. `NotificationMessage` is an `Entity`: data stored on it
-with `Put()` is copied to the stored notification for its display drivers.
-
-The persisted `Notification` entity has `NotificationId`, `Subject`, `Summary`,
-`UserId`, `CreatedUtc`, `Type`, `ReferenceId` and `Url`. The core event handler
-stores the message text and HTML body as notification metadata.
-`NotificationSendResult.Notification` returns the stored notification.
-
-### Sending Notifications with INotificationService
-
-```csharp
-using OrchardCore.Notifications;
-using OrchardCore.Notifications.Models;
-using OrchardCore.Users;
-
-public sealed class ContentApprovalHandler
-{
-    private readonly INotificationService _notificationService;
-    private readonly IStringLocalizer S;
-
-    public ContentApprovalHandler(
-        INotificationService notificationService,
-        IStringLocalizer<ContentApprovalHandler> stringLocalizer)
-    {
-        _notificationService = notificationService;
-        S = stringLocalizer;
-    }
-
-    public async Task NotifyAuthorAsync(IUser user, string contentItemId)
-    {
-        var result = await _notificationService.SendAsync(user, new NotificationMessage
-        {
-            Subject = S["Content approved"],
-            Summary = S["Your content has been approved"],
-            TextBody = S["The content item {0} was reviewed and approved.", contentItemId],
-        });
-
-        if (result.Status is NotificationSendStatus.Failed or NotificationSendStatus.None)
-        {
-            throw new InvalidOperationException("The notification was not delivered.");
-        }
-    }
-}
-```
-
-### Sending Notifications to a Role
-
-Use `UserManager<IUser>.GetUsersInRoleAsync` to find recipients. Each call to
-`INotificationService.SendAsync` creates a notification for one recipient.
-
-```csharp
-using Microsoft.AspNetCore.Identity;
-using OrchardCore.Notifications;
-using OrchardCore.Notifications.Models;
-using OrchardCore.Users;
-
-public sealed class BulkNotificationSender
-{
-    private readonly INotificationService _notificationService;
-    private readonly UserManager<IUser> _userManager;
-    private readonly IStringLocalizer S;
-
-    public BulkNotificationSender(
-        INotificationService notificationService,
-        UserManager<IUser> userManager,
-        IStringLocalizer<BulkNotificationSender> stringLocalizer)
-    {
-        _notificationService = notificationService;
-        _userManager = userManager;
-        S = stringLocalizer;
-    }
-
-    public async Task NotifyEditorsAsync(string contentItemDisplayText)
-    {
-        var editors = await _userManager.GetUsersInRoleAsync("Editor");
-
-        foreach (var editor in editors)
-        {
-            await _notificationService.SendAsync(editor, new NotificationMessage
-            {
-                Subject = S["Content requires review"],
-                Summary = S["New content requires review: {0}", contentItemDisplayText],
-                TextBody = S["A new content item was submitted for editorial review."],
-            });
-        }
-    }
-}
-```
-
-### Handling Notification Events
-
-`NotificationEventsHandler` provides virtual lifecycle methods. Override the
-event that corresponds to the information needed by the handler.
-
-```csharp
-using OrchardCore.Notifications;
-using OrchardCore.Notifications.Services;
-
-public sealed class NotificationAuditEvents : NotificationEventsHandler
-{
-    private readonly ILogger _logger;
-
-    public NotificationAuditEvents(ILogger<NotificationAuditEvents> logger)
-    {
-        _logger = logger;
-    }
-
-    public override Task SentAsync(
-        INotificationMethodProvider provider,
-        NotificationContext context,
-        CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation(
-            "Notification '{NotificationId}' was sent using '{Method}'.",
-            context.Notification.NotificationId,
-            provider.Method);
-
-        return Task.CompletedTask;
-    }
-}
-```
-
-### Creating a Notification Method Provider
-
-Implement `INotificationMethodProvider` for a delivery channel. Return
-`Result.Success()` or `Result.Failed(...)` so `INotificationService` can
-aggregate the results from every available method.
+## Sending a Notification
 
 ```csharp
 using Microsoft.Extensions.Localization;
-using OrchardCore.Infrastructure;
 using OrchardCore.Notifications;
+using OrchardCore.Notifications.Models;
+using OrchardCore.Users.Models;
 
-public sealed class AuditNotificationMethodProvider : INotificationMethodProvider
+namespace MyModule.Services;
+
+public sealed class ApprovalNotifier
 {
-    private readonly ILogger _logger;
+    private readonly INotificationService _notificationService;
+    private readonly IStringLocalizer S;
 
-    internal readonly IStringLocalizer S;
-
-    public AuditNotificationMethodProvider(
-        ILogger<AuditNotificationMethodProvider> logger,
-        IStringLocalizer<AuditNotificationMethodProvider> stringLocalizer)
+    public ApprovalNotifier(
+        INotificationService notificationService,
+        IStringLocalizer<ApprovalNotifier> stringLocalizer)
     {
-        _logger = logger;
+        _notificationService = notificationService;
         S = stringLocalizer;
     }
 
-    public string Method => "Audit";
-
-    public LocalizedString Name => S["Audit notification"];
-
-    public Task<Result> SendAsync(
-        object notify,
-        INotificationMessage message,
-        CancellationToken cancellationToken = default)
+    public async Task<NotificationSendResult> NotifyAuthorAsync(User author, string contentItemId, string title)
     {
-        _logger.LogInformation(
-            "Recorded notification '{Subject}' for {RecipientType}.",
-            message.Subject,
-            notify.GetType().Name);
-
-        return Task.FromResult(Result.Success());
+        return await _notificationService.SendAsync(author, new NotificationMessage
+        {
+            Subject = S["Your article was approved"],
+            Summary = S["'{0}' is now published.", title],
+            TextBody = S["Your article '{0}' was reviewed and published.", title],
+            Url = $"~/Admin/Contents/ContentItems/{contentItemId}/Edit",
+            Type = "Approval",
+            ReferenceId = contentItemId,
+        });
     }
 }
 ```
 
-### Registering Notification Extensions
+| Message property | Purpose |
+|---|---|
+| `Subject` | Required title; no HTML. Email subject. |
+| `Summary` | Short text under the subject in the bell and the center; HTML is sanitized when shown. |
+| `TextBody`, `HtmlBody`, `IsHtmlPreferred` | Body sent by the methods and shown on the notification page (stored as `NotificationBodyInfo`). |
+| `Url` | `~/` app-relative (resolved with the tenant prefix when opened), a local `/` path, or an absolute `http`/`https` URL. Anything else, such as `javascript:`, is dropped with a warning. |
+| `Type` | Kind of notification (indexed). |
+| `ReferenceId` | Id of the record it is about (indexed). |
+
+`NotificationMessage` is an `Entity`: data added with `message.Put(new MyInfo { ... })` is copied to the stored `Notification` for display drivers and visibility handlers. `Notification` has `NotificationId`, `Subject`, `Summary`, `Type`, `ReferenceId`, `Url`, `UserId`, `CreatedUtc`, plus `NotificationBodyInfo` and `NotificationReadInfo` (`IsRead`, `ReadAtUtc`). Notifications are stored in the YesSql `Notification` collection.
+
+`NotificationSendResult` has `Notification`, `SuccessfulCount`, `FailedCount`, `Errors`, and `Status`: `Success`, `PartiallySuccessful`, `Failed` (every method that ran failed), or `None` (no method ran, for example no method feature enabled or the user opted out of all).
+
+To notify a role, resolve its users with `UserManager<IUser>.GetUsersInRoleAsync("Editor")` and call `SendAsync` once per user (see [references/notifications-examples.md](references/notifications-examples.md)).
+
+## Notification Types
 
 ```csharp
+using Microsoft.Extensions.DependencyInjection;
+using OrchardCore.Localization;
 using OrchardCore.Modules;
-using OrchardCore.Notifications;
 
-public sealed class Startup : StartupBase
-{
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services.AddScoped<INotificationEvents, NotificationAuditEvents>();
-        services.AddScoped<INotificationMethodProvider, AuditNotificationMethodProvider>();
-    }
-}
-```
+namespace MyModule;
 
-### Using the Notification Center as the Inbox of a Module
-
-Every addition below is optional; existing senders keep working, and a
-migration adds the `Type` and `ReferenceId` columns to `NotificationIndex`.
-
-1. **Register the type** (namespace `Microsoft.Extensions.DependencyInjection`,
-   package `OrchardCore.Notifications.Abstractions`). Keep the name in a
-   constant; it is stored on notifications and must not change.
-
-```csharp
 public static class TaskNotificationConstants
 {
     public const string TaskAssigned = "TaskAssigned";
@@ -315,51 +161,29 @@ public sealed class Startup : StartupBase
             {
                 type.Description = LocalizationSource.Create("When a task is assigned to you.", typeof(Startup));
 
-                // Off by default for this type until the user turns it on.
+                // Off for this type until a user turns it on.
                 type.DisabledMethods.Add("SMS");
             });
-
-        services.AddDisplayDriver<Notification, TaskAssignedNotificationDisplayDriver>();
-        services.AddScoped<INotificationVisibilityHandler, TaskVisibilityHandler>();
     }
 }
 ```
 
-   A registered type gets a badge, a value in the **Type** filter of the
-   notification center (also `?q=type:TaskAssigned status:Unread`), and a row
-   in each user's notification preferences, with a checkbox per method.
-   Preferences only store choices that differ from the type defaults
-   (`UserNotificationPreferencesPart.Types`).
+`AddNotificationType` (namespace `Microsoft.Extensions.DependencyInjection`, package `OrchardCore.Notifications.Abstractions`) adds a `NotificationTypeDescriptor` (`Name`, `DisplayName`, `Description`, `DisabledMethods`, case-insensitive) to `NotificationTypeOptions.Types`; registering a name again replaces it. A registered type gets, with no more code:
 
-2. **Send** with `Type`, `ReferenceId`, `Url`, and extra data via `Put()`:
+- Its display name as a badge in the center, in the bell's meta line, and on the notification page (`NotificationsType_Header`, `NotificationsType_SummaryAdmin`).
+- A value in the center's **Type** filter and the `type:` search term, so links can open it filtered: `~/Admin/notifications?q=type:TaskAssigned status:Unread`.
+- A row in each user's **Notification Types** preferences. `UserNotificationPreferencesPart.Types` stores only choices that differ from the type defaults (`NotificationTypePreference.Optin` for methods the type disables, `Optout` for methods it enables); a method in the part's global `Optout` stays off for every type. `NotificationTypePreferences.IsMethodEnabledForType(part, type, method)` applies these rules, and `INotificationMethodProviderAccessor.GetProvidersAsync(notify, message)` uses them when sending.
 
-```csharp
-var message = new NotificationMessage
-{
-    Subject = $"{currentUserName} assigned you a task",
-    Summary = task.DisplayText,
-    Url = $"~/tasks/{task.ContentItemId}",
-    Type = TaskNotificationConstants.TaskAssigned,
-    ReferenceId = task.ContentItemId,
-};
+Unregistered types still work (filter, index, queries) but show no badge or preferences row.
 
-message.Put(new TaskAssignedInfo { ProjectName = project.DisplayText, AssignedBy = currentUserName });
-
-await _notificationService.SendAsync(assignee, message);
-```
-
-   The subject links through `/Notifications/Open/{notificationId}`, which
-   marks the notification as read and redirects to `Url`. A notification
-   without a URL opens its own page (`DetailAdmin`) in the notification center.
-
-3. **Keep sent notifications in sync** with `INotificationManager`
-   (`FindByIdAsync`, `ListAsync`, `UpdateAsync`, `DeleteAsync`,
-   `MarkAsReadAsync`, `MarkAsUnreadAsync`, `IsRead`). Filter overloads take a
-   `NotificationFilter` (`UserId`, `Type`, `ReferenceId`, `IsRead`, `Skip`,
-   `Take`); at least one of `UserId`, `Type` or `ReferenceId` is required. Each
-   call refreshes the cached navbar of the affected users.
+## Managing Sent Notifications
 
 ```csharp
+using OrchardCore.ContentManagement.Handlers;
+using OrchardCore.Notifications;
+
+namespace MyModule.Handlers;
+
 public sealed class TaskNotificationsContentHandler : ContentHandlerBase
 {
     private readonly INotificationManager _notificationManager;
@@ -383,107 +207,193 @@ public sealed class TaskNotificationsContentHandler : ContentHandlerBase
 }
 ```
 
-4. **Customize the display** with a `DisplayDriver<Notification>` whose
-   `CanHandleModel` checks the type, or replace the template with the
-   `Notification__{Type}` / `Notification_{DisplayType}__{Type}` alternates
-   (for example `Notification-TaskAssigned.Header.cshtml`).
+`INotificationManager`: `FindByIdAsync`, `ListAsync(filter)` (most recent first), `UpdateAsync`, `DeleteAsync(notification)`, `DeleteAsync(filter)` (returns the count), `MarkAsReadAsync(notification)` / `MarkAsUnreadAsync(notification)` (return whether the state changed), `MarkAsReadAsync(filter)`, and `IsRead`. `NotificationFilter` combines `UserId`, `Type`, `ReferenceId`, `IsRead`, plus `Skip`/`Take` for `ListAsync`; at least one of `UserId`, `Type` or `ReferenceId` is required (`HasCriteria`). Filter deletes and marks run in batches inside the request's transaction, and every change refreshes the affected users' bell menu. The module also has `FindForUserAsync` and `FindVisibleForUserAsync` extension methods that check ownership (and visibility).
+
+## Display
+
+Notifications render through `IDisplayManager<Notification>`:
 
 | Display type | Where | Zones |
 |---|---|---|
-| `Header` (`NotificationConstants.DisplayTypes.Header`) | Navbar item | `Content`, `Meta`, `Actions` |
-| `SummaryAdmin` | Notification center row, List layout | `Checkbox`, `Content`, `Tags`, `Meta`, `Actions`, `ActionsMenu` |
-| `SummaryAdminGrid` | Notification center row, Grid layout | `Select`, `Subject`, `Received`, `Actions`, `ActionsMenu` |
+| `Header` (`NotificationConstants.DisplayTypes.Header`) | Bell menu item | `Content`, `Meta`, `Actions` |
+| `SummaryAdmin` | Center row, List layout | `Checkbox`, `Content`, `Tags`, `Meta`, `Actions`, `ActionsMenu` |
+| `SummaryAdminGrid` | Center row, Grid layout | `Select`, `Subject`, `Received`, `Actions`, `ActionsMenu` |
 | `DetailAdmin` | Notification page | `Content`, `Meta`, `Actions` |
 
-   The navbar `Meta` zone is one line of muted text; render plain text there and
-   keep buttons for `Actions`.
+Built-in shapes (move, hide or override them): `NotificationsSubject_Header`, `NotificationsSubject_SummaryAdmin`, `NotificationsBody_DetailAdmin`, `NotificationsRestricted_SummaryAdmin` (restricted notifications), `NotificationsType_Header`, `NotificationsType_SummaryAdmin`, `NotificationsMeta_Header`, `NotificationsMeta_SummaryAdmin`, `NotificationsCheckbox_SummaryAdmin`, `NotificationsActions_SummaryAdmin`, `NotificationsButtonActions_SummaryAdmin`, `NotificationsActions_DetailAdmin`.
 
-5. **Hide what the user can no longer see** with an
-   `INotificationVisibilityHandler`. `EvaluateAsync` receives every
-   notification shown together (one user), so skip other types and load data in
-   one query. Call `context.Hide()` (not listed, counted or openable) or
-   `context.Restrict()` (listed with a "no longer has access" message); the most
-   restrictive decision wins. A driver that shows record data must return
-   `null` when `INotificationVisibilityEvaluator.EvaluateAsync(notification, user)`
-   returns `NotificationVisibility.Restricted`. Handlers run on every display;
-   also delete or update notifications with `INotificationManager` when the
-   change is known.
+Add data per type with a driver whose `CanHandleModel` checks the type:
 
-`INotificationMethodProviderAccessor.GetProvidersAsync(notify, message)` honors
-the per-type preferences. See the full walkthrough in
-[references/notifications-examples.md](references/notifications-examples.md#example-6-a-custom-notification-type-as-a-module-inbox).
+```csharp
+using Microsoft.AspNetCore.Http;
+using OrchardCore.DisplayManagement.Handlers;
+using OrchardCore.DisplayManagement.Views;
+using OrchardCore.Notifications;
 
-### Notification Permissions
+namespace MyModule.Drivers;
 
-`ManageNotifications` is the notification permission exposed by the module.
-Use it to protect administration UI or application operations that manage
-notifications.
+internal sealed class TaskAssignedNotificationDisplayDriver : DisplayDriver<Notification>
+{
+    private readonly INotificationVisibilityEvaluator _visibilityEvaluator;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TaskAssignedNotificationDisplayDriver(
+        INotificationVisibilityEvaluator visibilityEvaluator,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _visibilityEvaluator = visibilityEvaluator;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public override bool CanHandleModel(Notification notification)
+        => notification.Type == TaskNotificationConstants.TaskAssigned;
+
+    public override async Task<IDisplayResult> DisplayAsync(Notification notification, BuildDisplayContext context)
+    {
+        // A restricted notification must not show the data of its record.
+        if (!notification.TryGet<TaskAssignedInfo>(out var info) ||
+            await _visibilityEvaluator.EvaluateAsync(notification, _httpContextAccessor.HttpContext?.User) == NotificationVisibility.Restricted)
+        {
+            return null;
+        }
+
+        return View("TaskAssignedNotificationProject", info)
+            .Location(NotificationConstants.DisplayTypes.Header, "Meta:5")
+            .Location(OrchardCoreConstants.DisplayType.SummaryAdmin, "Tags:10")
+            .Location(OrchardCoreConstants.DisplayType.SummaryAdminGrid, "Subject:10")
+            .Location(OrchardCoreConstants.DisplayType.DetailAdmin, "Meta:5");
+    }
+}
+```
+
+Register with `services.AddDisplayDriver<Notification, TaskAssignedNotificationDisplayDriver>()`. The bell's `Meta` zone is one line of small muted text separated by dots: render plain text there and keep buttons for `Actions`. To replace a whole template, use the alternates `Notification__{Type}` or `Notification_{DisplayType}__{Type}` (for example `Notification-TaskAssigned.Header.cshtml`); restricted notifications always use the default templates. Templates read `Model.Notification` and `Model.NotificationVisibility`.
+
+## Visibility Handlers
+
+When a user can lose access to the record after the notification was sent, implement `INotificationVisibilityHandler`. It runs whenever notifications are shown (bell, badge count, center, opening):
 
 ```csharp
 using OrchardCore.Notifications;
 
-if (!await authorizationService.AuthorizeAsync(
-    user,
-    NotificationPermissions.ManageNotifications))
+namespace MyModule.Services;
+
+public sealed class TaskVisibilityHandler : INotificationVisibilityHandler
 {
-    return Forbid();
-}
-```
+    private readonly IProjectMembershipService _membershipService;
 
-### Notification Workflow Activities
-
-Enable Workflows with Notifications to use the built-in `NotifyUserTask`.
-The activity targets the configured users by name and sends the configured
-subject and message. Enable Contents and Users as well to use
-`NotifyContentOwnerTask`. Both tasks also have optional **URL** (Liquid) and
-**Type** fields.
-
-```json
-{
-  "steps": [
+    public TaskVisibilityHandler(IProjectMembershipService membershipService)
     {
-      "name": "Feature",
-      "enable": [
-        "OrchardCore.Notifications",
-        "OrchardCore.Workflows"
-      ],
-      "disable": []
+        _membershipService = membershipService;
     }
-  ]
+
+    public async Task EvaluateAsync(IReadOnlyList<NotificationVisibilityContext> contexts, CancellationToken cancellationToken = default)
+    {
+        // Every handler sees every shown notification (one user): skip other types and query once.
+        var tasks = contexts.Where(context => context.Notification.Type == TaskNotificationConstants.TaskAssigned).ToList();
+
+        if (tasks.Count == 0)
+        {
+            return;
+        }
+
+        var projectIds = tasks.Select(context => context.Notification.GetOrCreate<TaskAssignedInfo>().ProjectId).ToHashSet();
+        var memberOf = await _membershipService.GetProjectsOfUserAsync(projectIds, contexts[0].User);
+
+        foreach (var context in tasks)
+        {
+            if (!memberOf.Contains(context.Notification.GetOrCreate<TaskAssignedInfo>().ProjectId))
+            {
+                context.Hide();
+            }
+        }
+    }
 }
 ```
 
-### Administration
+- `context.Restrict()` keeps it listed and counted but replaces subject, summary, body and URL with "You no longer have access to this notification."; the user can still mark it read or delete it. `context.Hide()` removes it from lists and counts and blocks opening. The most restrictive decision of all handlers wins (`NotificationVisibility.Visible`, `Restricted`, `Hidden`) and is cached for the request.
+- A handler that throws is retried with smaller groups; notifications it still fails on are hidden and logged, repeated failures stop calling it, and the bell is cached for at most one minute after a failure.
+- With a handler registered, the badge counts the most recent `MaxEvaluatedUnreadNotifications` unread notifications; the center removes hidden ones from the current page. Without handlers, counting and paging stay in the database.
+- `INotificationVisibilityEvaluator` (`HasHandlers`, `HasFailures`, `EvaluateAsync`, `FilterAsync`) exposes the decisions to drivers and controllers.
+- A handler is a safety net: when the change is known (a user leaves a project), also delete or update the notifications with `INotificationManager`.
 
-The notification center and notification list are administered through the
-built-in module UI. The list renders with the shared `AdminList` shape, so it
-follows the site's List/Grid layout and page size settings (see
-`orchardcore-admin-lists`); unread rows carry the `notification-is-unread` CSS
-class and read rows `notification-is-read`. `INotificationService` only
-delivers; use `INotificationManager` to find, update, delete or mark
-notifications as read/unread. The notification center has a **Type** filter
-(and `type:` in the search text) and a page per notification. Filter the list
-with custom `INotificationAdminListFilterProvider` implementations.
+## Method Providers and Events
 
-Transient `INotifier` messages survive redirects in a cookie that is now
-`HttpOnly`, and `Secure` over HTTPS.
+```csharp
+using Microsoft.Extensions.Localization;
+using OrchardCore.Infrastructure;
+using OrchardCore.Notifications;
 
-### Upgrading from 3.x
+namespace MyModule.Services;
 
-- The `OrchardCore_Notifications` section is now `OrchardCore:Notifications`;
-  the old name still binds but is deprecated.
-- `NotificationPermissions.ManageNotifications` has a `LocalizationSource`
-  description translated with PO files.
-- `INotificationMessage` gained default `Type`, `ReferenceId` and `Url`
-  members, so custom implementations keep compiling; `NotificationMessage` now
-  derives from `Entity`.
-- The `NotificationMethodProviderAccessor` constructor takes an
-  `IOptions<NotificationTypeOptions>` parameter; code constructing it directly
-  must pass it.
-- The navbar items are now built by `Notification` display drivers (`Header`
-  display type). Overrides of `UserNotificationNavbar` or
-  `Notification.Header` should be reviewed. Since 2.0 the shipped
-  `UserNotificationNavbar` views rendered `data-mark-as-read-url` with a stray
-  `)`, which broke marking as read from the navbar; theme overrides copied from
-  them must drop it.
-- The bulk **Mark as read** action now records when notifications were read.
+public sealed class WebhookNotificationMethodProvider : INotificationMethodProvider
+{
+    internal readonly IStringLocalizer S;
+
+    public WebhookNotificationMethodProvider(IStringLocalizer<WebhookNotificationMethodProvider> stringLocalizer)
+    {
+        S = stringLocalizer;
+    }
+
+    // Stored in user preferences and type DisabledMethods: keep it stable.
+    public string Method => "Webhook";
+
+    public LocalizedString Name => S["Webhook Notifications"];
+
+    public Task<Result> SendAsync(object notify, INotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        // Deliver message.Subject / TextBody; return Result.Failed(...) on error.
+        return Task.FromResult(Result.Success());
+    }
+}
+```
+
+Register with `services.AddScoped<INotificationMethodProvider, WebhookNotificationMethodProvider>()`, normally in its own feature so users see it only when enabled. Methods are ordered by the user's preference, then by `Name`.
+
+`INotificationEvents` has `CreatingAsync`, `CreatedAsync` (around saving), `SendingAsync`/`SentAsync` (whole send), and per-method `SendingAsync`, `SentAsync`, `FailedAsync`. Derive from `NotificationEventsHandler` (`OrchardCore.Notifications.Services`) and override what you need; register with `services.AddScoped<INotificationEvents, MyEvents>()`. A failing handler is logged and does not stop the send.
+
+## Notification Center Admin List
+
+The center renders with the shared `AdminList` shape (list name `Notifications`), so it follows the List/Grid and actions layout settings (see `orchardcore-admin-lists`). Rows carry `notification-is-unread` or `notification-is-read` (`NotificationsAdminList.UnreadCssClass`, `ReadCssClass`).
+
+| Search term | Values |
+|---|---|
+| `status:` | `Read`, `Unread` (the **Show** filter: All, Read, Unread) |
+| `sort:` | `Latest` (**Recently created**, default), `Oldest` (**Previously created**) |
+| `type:` | A type name (the **Type** filter, shown when types are registered) |
+| text | Bare text searches `NotificationIndex.Content` (summary plus text body, HTML stripped, 705 characters) |
+
+Bulk actions (`NotificationBulkAction`): **Mark as read**, **Mark as unread**, **Remove**, plus **Mark All as Read**. Add terms with an `INotificationAdminListFilterProvider` (builds the `QueryEngineBuilder<Notification>`); filter on `NotificationIndex`.
+
+`NotificationIndex` (`NotificationId`, `UserId`, `IsRead`, `ReadAtUtc`, `CreatedAtUtc`, `Type`, `ReferenceId`, `Content`) is declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`, so counts read the index table without joining documents. Query it with `collection: NotificationConstants.NotificationCollection`.
+
+## Workflow Tasks
+
+With `OrchardCore.Workflows`, the **Notifications** category adds **Notify Specific Users Task** (`NotifyUserTask`, **User names** comma-separated, Liquid allowed) and, with `OrchardCore.Users` and `OrchardCore.Contents`, **Notify Content's Owner Task** (`NotifyContentOwnerTask`). Both have **Subject** (required, Liquid), **Summary**, **URL** (Liquid), **Type**, **Text Body**, **HTML Body** and **Use HTML Body when possible**, with outcomes **Done**, **Failed** and **Failed: no user found**.
+
+## Permissions
+
+| Permission | Purpose | Default roles |
+|---|---|---|
+| `ManageNotifications` (`NotificationPermissions.ManageNotifications`) | The bell, the center, opening and marking one's own notifications | Administrator, Editor, Moderator, Author, Contributor, Authenticated |
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| No bell | Feature disabled, or the role lacks `ManageNotifications`. |
+| Notification sent but not in the center | The recipient was not a `User`, so `UserId` is empty. |
+| No email or SMS | Method feature disabled, provider not configured, user opted out, or the type disables the method (`Status` is `None`). |
+| Bell count stale | Cached menu: change notifications through `INotificationManager`, or lower the cache expirations. |
+| Type shows as raw name | The type is not registered with `AddNotificationType` in an enabled feature. |
+| `ArgumentException` on send | `Type` over 64 or `ReferenceId` over 255 characters. |
+
+## Upgrading from 3.x
+
+- Rename `OrchardCore_Notifications` to `OrchardCore:Notifications`.
+- `INotificationMessage` gained default `Type`, `ReferenceId` and `Url` members; `NotificationMessage` derives from `Entity`. A migration adds `Type` and `ReferenceId` to `NotificationIndex`.
+- `NotificationMethodProviderAccessor` takes `IOptions<NotificationTypeOptions>`.
+- Bell items are built by `Notification` display drivers (`Header`); review overrides of `UserNotificationNavbar` and `Notification.Header`, and drop the stray `)` in `data-mark-as-read-url` copied from 2.x/3.x views.
+- `ManageNotifications` has a `LocalizationSource` description translated with PO files.
+- The bulk **Mark as read** records `ReadAtUtc`. Transient `INotifier` messages survive redirects in an `HttpOnly` cookie, `Secure` over HTTPS.
+
+See [references/notifications-examples.md](references/notifications-examples.md) for role notifications, partial delivery, custom methods and events, workflow tasks, and the full custom type walkthrough.

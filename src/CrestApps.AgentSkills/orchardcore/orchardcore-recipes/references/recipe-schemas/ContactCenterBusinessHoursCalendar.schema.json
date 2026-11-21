@@ -4,7 +4,7 @@
     "name": {
       "type": "string",
       "const": "ContactCenterBusinessHoursCalendar",
-      "description": "Recipe step discriminator. Must be \u0027ContactCenterBusinessHoursCalendar\u0027."
+      "description": "Recipe step discriminator. Must be \u0027ContactCenterBusinessHoursCalendar\u0027. Older recipes use this step; each calendar is imported as a Business Hours schedule. New recipes use the BusinessHoursSchedules step."
     },
     "Calendars": {
       "type": "array",

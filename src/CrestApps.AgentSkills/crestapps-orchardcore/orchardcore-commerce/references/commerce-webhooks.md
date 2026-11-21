@@ -4,7 +4,7 @@
 | --- | --- |
 | Feature | `CrestApps.OrchardCore.Commerce.Webhooks` (depends on Commerce and Webhooks, `CrestApps.OrchardCore.Webhooks`) |
 | Contracts | `CrestApps.OrchardCore.Webhooks.Abstractions`, namespace `CrestApps.OrchardCore.Webhooks` (publisher, events); event names (`CommerceWebhookEvents`) in `CrestApps.OrchardCore.Abstractions`, namespace `CrestApps.OrchardCore.Commerce.Webhooks` |
-| Admin | **Configuration > Webhooks** (`/Admin/webhooks`), permission **Manage webhooks** (`WebhookPermissions.ManageWebhooks`, which keeps the name `ManageCommerceWebhooks` so existing roles keep it) |
+| Admin | **Settings > Webhooks** (`/Admin/webhooks`), permission **Manage webhooks** (`WebhookPermissions.ManageWebhooks`, which keeps the name `ManageCommerceWebhooks` so existing roles keep it) |
 
 Subscriptions, signing, the delivery outbox and the admin belong to the generic Webhooks building block (see [orchardcore-webhooks](../../orchardcore-webhooks/SKILL.md)), which Commerce Webhooks turns on. Commerce Webhooks is the switch the commerce modules gate their events on: Orders, Customers, Inventory and Shipping declare and publish from startups behind `[RequireFeatures(CommerceConstants.Features.Webhooks)]`, so nothing is queued while it is off.
 

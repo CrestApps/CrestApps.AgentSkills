@@ -1,0 +1,137 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayrollFilings",
+      "description": "Recipe step discriminator. Must be \u0027PayrollFilings\u0027."
+    },
+    "Filings": {
+      "type": "array",
+      "description": "The filings to create, or update by id.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The filing\u0027s 26-character id."
+          },
+          "EmployerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The employer."
+          },
+          "Form": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The form, such as US-941 or US-W2."
+          },
+          "Year": {
+            "type": "integer"
+          },
+          "Quarter": {
+            "type": "integer",
+            "description": "1 to 4 for a quarterly form, 0 for a year."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Filed",
+              "Amended"
+            ]
+          },
+          "Boxes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "The form\u0027s boxes, by number."
+          },
+          "People": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "StaffMemberId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The staff member."
+                },
+                "ProfileId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The pay profile."
+                },
+                "Name": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The name as printed."
+                },
+                "TaxIdHint": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The last characters of the tax id."
+                },
+                "Boxes": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "number"
+                  },
+                  "description": "The form\u0027s boxes, by number."
+                }
+              }
+            }
+          },
+          "FiledOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "Reference": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The agency\u0027s confirmation number."
+          },
+          "AmendsId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The filing this one corrects."
+          }
+        },
+        "required": [
+          "EmployerId",
+          "Form",
+          "Year"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "name",
+    "Filings"
+  ],
+  "additionalProperties": true
+}

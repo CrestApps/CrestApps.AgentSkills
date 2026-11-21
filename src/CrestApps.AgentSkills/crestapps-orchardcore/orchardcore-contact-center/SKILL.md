@@ -36,7 +36,7 @@ You are an Orchard Core expert. Generate accurate feature selections, recipes, c
 | Contact Center Agent Services | `CrestApps.OrchardCore.ContactCenter.AgentServices` | none | Dependency-only agent profile directory (also used by the messaging workspace) |
 | Contact Center Agents | `CrestApps.OrchardCore.ContactCenter.Agents` | Contact Center, Agent Services, `CrestApps.OrchardCore.Users`, `CrestApps.OrchardCore.Skills` | Agent profiles, presence, reason codes, sessions, heartbeat, after-call recovery. Agent skills come from the shared Skills catalog (Skills module) |
 | Contact Center Agent Entitlements | `CrestApps.OrchardCore.ContactCenter.AgentEntitlements` | Agents | Restricts which queues and campaigns an agent may join. Disabled means any agent may join any queue |
-| Contact Center Business Hours | `CrestApps.OrchardCore.ContactCenter.BusinessHours` | none | Business-hours calendars, a schedule source of the shared Business Hours building block (`IOpenHoursService`) that queues, entry points, the dialer and automated Omnichannel sends read |
+| Contact Center Business Hours | `CrestApps.OrchardCore.ContactCenter.BusinessHours` | `CrestApps.OrchardCore.BusinessHours` | The open-hours gate (`IBusinessHoursService`, `IBusinessHoursGate`) that queues, entry points, the dialer and automated Omnichannel sends use to read Business Hours schedules (edited under **Content → Business Hours**). It keeps no calendars of its own |
 | Contact Center Work Distribution | `CrestApps.OrchardCore.ContactCenter.Queues` | Agents, Business Hours | Queues, queue groups, skills, reservations, routing strategies |
 | Contact Center Interval Statistics | `CrestApps.OrchardCore.ContactCenter.IntervalStatistics` | Queues | 15-minute queue and agent statistics (`IIntervalStatisticsReader`), the **Queue intervals** and **Agent intervals** report data sets, and **Interaction Center → Management → Interval statistics** |
 | Contact Center Outbound Dialer | `CrestApps.OrchardCore.ContactCenter.Dialer` | Voice, Queues | Dialer profiles, callbacks, Preview batches, mandatory compliance gate, manual soft-phone screening |
@@ -64,6 +64,7 @@ Activated automatically (no feature ID):
 | Workflow activities | `OrchardCore.Workflows` + the capability that owns each task |
 | Health checks and probes | `OrchardCore.HealthChecks` |
 | Report Builder data sources | `OrchardCore.DataPipelines.Core` |
+| Staff integration (agents are staff members with the **Contact Center agent** capability, a Contact Center card on the staff editor, and a person who leaves is signed out of every queue) | Agents + `CrestApps.OrchardCore.Staff` (see `orchardcore-staff`) |
 
 ## Enable via Recipe
 
@@ -128,7 +129,7 @@ An `AgentProfile` links an Orchard user to capacity (`MaxConcurrentInteractions`
 
 ### Queues, reservations and routing
 
-A queue owns priority, SLA threshold, reservation timeout, unanswered-offer action (`Requeue`, `Voicemail`, `Reject`), required skills with proficiency, business-hours calendar, overflow chain, max wait, queue size, and caller treatment. Routing runs a chain of `IActivityRoutingStrategy` implementations: required skills, preferred skills, capacity, sticky agent, then the queue's scoring strategy (`LongestIdle` default, `RoundRobin`, `LeastBusy`). A reservation offers one activity to one agent under distributed locks plus database compare-and-set, so work is never offered twice. Every assignment publishes an auditable `RoutingDecisionMade` event.
+A queue owns priority, SLA threshold, reservation timeout, unanswered-offer action (`Requeue`, `Voicemail`, `Reject`), required skills with proficiency, Business Hours schedule (`BusinessHoursCalendarId` holds a schedule id), overflow chain, max wait, queue size, and caller treatment. Routing runs a chain of `IActivityRoutingStrategy` implementations: required skills, preferred skills, capacity, sticky agent, then the queue's scoring strategy (`LongestIdle` default, `RoundRobin`, `LeastBusy`). A reservation offers one activity to one agent under distributed locks plus database compare-and-set, so work is never offered twice. Every assignment publishes an auditable `RoutingDecisionMade` event.
 
 ### Work state
 
@@ -167,7 +168,7 @@ Each `CallSession` carries legs, bridges with append-only membership, consults, 
 
 ### Domain events
 
-Every change is an immutable `InteractionEvent` published through `IContactCenterEventPublisher` and dispatched at least once by the outbox to `IContactCenterEventHandler` implementations, each with a stable `HandlerId` and a declared `ContactCenterHandlerReplaySafety`. Failed handlers retry with back-off and dead-letter after ten attempts.
+Every change is an immutable `InteractionEvent` published through `IContactCenterEventPublisher` and dispatched at least once by the outbox to `IContactCenterEventHandler` implementations, each with a stable `HandlerId` and a declared `ContactCenterHandlerReplaySafety`. Failed handlers retry with back-off and dead-letter after ten attempts; a `ConcurrencyException` in a handler is rolled back, retried and logged as a warning.
 
 ## Admin Locations
 
@@ -175,7 +176,7 @@ Every change is an immutable `InteractionEvent` published through `IContactCente
 |---|---|
 | **Interaction Center → Management → Agent states** | Agents |
 | **Interaction Center → Management → Agent entitlements** | Agent Entitlements |
-| **Interaction Center → Management → Business hours** | Business Hours |
+| **Content → Business Hours** (schedules from the Business Hours module; the old **Interaction Center → Management → Business hours** page is gone) | Business Hours (`CrestApps.OrchardCore.BusinessHours`) |
 | **Interaction Center → Management → Queues**, **Queue groups** | Queues |
 | **Content → Skills** (the old Contact Center skills page redirects there; `ManageContactCenterSkills` still manages them) | Skills catalog |
 | **Interaction Center → Management → Interval statistics** | Interval Statistics |
@@ -197,7 +198,8 @@ Campaigns, channel endpoints, subject flows and dispositions are Omnichannel scr
 |---|---|---|
 | `ManageContactCenter` | Administrator | Implies every manage permission below |
 | `ManageInteractions`, `ViewInteractions` | Agent and Supervisor get `ViewInteractions` | Interaction access, generic voice ingress, recording erasure |
-| `ManageContactCenterAgents`, `ManageContactCenterQueues`, `ManageContactCenterQueueGroups`, `ManageContactCenterSkills`, `ManageContactCenterBusinessHours`, `ManageContactCenterDialer`, `ManageContactCenterVoiceMedia` | Administrator | Configuration screens |
+| `ManageContactCenterAgents`, `ManageContactCenterQueues`, `ManageContactCenterQueueGroups`, `ManageContactCenterSkills`, `ManageContactCenterDialer`, `ManageContactCenterVoiceMedia` | Administrator | Configuration screens |
+| `ManageBusinessHoursSchedules` (`BusinessHoursPermissions`, Business Hours module) | Administrator | **Content → Business Hours**. Replaces the removed `ManageContactCenterBusinessHours`; the upgrade grants it to roles that held that permission or `ManageContactCenter` |
 | `ContactCenterSignIntoQueues` | Agent | Sign in, presence, My workspace, My voicemail greeting |
 | `ContactCenterSecurePauseRecording`, `ContactCenterInitiateSecureCapture` | Agent | Pause recording or start a secure capture on own live interaction |
 | `MonitorContactCenter` | Supervisor | Live dashboard, listen, whisper, barge, message, dependency probe |
@@ -214,6 +216,7 @@ Supervisors see only the queues and campaigns on their own agent entitlement rec
 | Contract | Use it to |
 |---|---|
 | `IContactCenterEventHandler` | React to domain events (projections, integrations). Declare `HandlerId` and `ReplaySafety` |
+| `IContactCenterRealTimeEventHandler` | Mark a cheap, naturally idempotent handler that pushes to a screen; it runs for every event of a change as soon as it commits, before all other handlers |
 | `IActivityRoutingStrategy` | Add a filter or score to candidate agents (`Order`, `ApplyAsync(ActivityRoutingContext)`) |
 | `IEntryPointResolver` | Contribute an entry-point source; resolvers are asked in order and the first plan wins |
 | `IDialerStrategy` | Implement a dialing mode |
@@ -279,7 +282,8 @@ Contact Center is new in 3.0. Code from 3.0 previews or neighboring modules must
 - Play voice media through `IVoiceMediaProvisioningService.ResolveAsync(...)` instead of reading `VoiceMediaItem.MediaReference`. `VoiceMediaItem` gains `MasterStorageReference`, `ContentType` and `ProviderReferences`.
 - Admin lists render through Orchard Core `AdminList`. A driver that adds a shape to a Contact Center row must also place it for `SummaryAdminGrid` (see `orchardcore-admin-lists`).
 - `crestapps-bootstrap-select` was removed; views use Orchard Core's `bootstrap-select` resource (also for the **Call recordings** list filters).
-- Admin create and edit forms (queues, entry points, dialer profiles, and the rest) render **Save**, **Cancel** and **Delete** in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; update theme overrides and UI tests. Less used buttons move into the bar's ellipsis menu when **Settings → Admin → Actions layout** is **Menu**.
+- Admin create and edit forms (queues, entry points, dialer profiles, and the rest) render their actions in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row: **Cancel** first, then secondary actions such as **Delete** (`action-bar-secondary`), and **Save** (`btn-primary`) last. Buttons that only had a confirm message now ask through the confirm dialog. Update theme overrides and UI tests. Less used buttons move into the bar's ellipsis menu when **Settings → Admin → Actions layout** is **Menu**.
+- Contact Center business-hours calendars became Business Hours schedules (`orchardcore-business-hours`). A data migration copies each calendar to a schedule with the same id, so queues, entry points, dialer profiles and loads keep their hours. `BusinessHoursCalendar`, `IBusinessHoursCalendarManager`, `IBusinessHoursCalendarStore`, the calendar index, the admin page and `ManageContactCenterBusinessHours` are gone; the `ContactCenterBusinessHoursCalendar` recipe step is read only for older recipes, so write `BusinessHoursSchedules` instead.
 - `RoutingDecisionMade` repeats are coalesced. Sum `ActivityRoutingDecisionEventData.OccurrenceCount` and read `LastSeenUtc`.
 - The provider webhook inbox moved to the Webhooks module: `IProviderWebhookInbox`, `IProviderWebhookInboxHandler`, `IProviderWebhookIngressLimiter` and their models are in namespace `CrestApps.OrchardCore.Webhooks` (package `CrestApps.OrchardCore.Webhooks.Abstractions`), and a handler's `ReplaySafety` is a `WebhookHandlerReplaySafety` with the same values as `ContactCenterHandlerReplaySafety`. The feature ID and the `CrestApps:ContactCenter:WebhookIngress` section are unchanged.
 - Contact Center skills are the shared Skills catalog (`CrestApps.OrchardCore.Skills`, enabled by Agents); existing skills are copied once with their ids. The `ContactCenterSkill` recipe step still imports them.
@@ -289,7 +293,7 @@ Contact Center is new in 3.0. Code from 3.0 previews or neighboring modules must
 ## Troubleshooting Pointers
 
 - **Agent never receives offers**: check sign-in to the queue on the **Work** tab, `Available` presence, live session and heartbeat, entitlements, skills and proficiency, and the queue's business hours. The **Agent availability and wait time** report states the exact reason.
-- **Dialer not calling**: read the Live dashboard **Why isn't this dialing?** card, the **Dialer decision log** and **Dialer activity and health** reports, and the `contactcenter-dialer-pacing` health check.
+- **Dialer not calling**: read the Live dashboard **Why isn't this dialing?** card (the dialer banner says when the campaigns with work are outside the viewer's **Allowed campaigns**), the **Dialer decision log** and **Dialer activity and health** reports, and the `contactcenter-dialer-pacing` health check.
 - **Agent stuck Busy or Reserved**: use **Free agent** on the Live dashboard; it never ends a call the provider confirms is alive. When the agent still holds dialer work, **Open activity** on their card opens it so a supervisor with **Complete activity** can disposition it for them.
 - **Offers ring nowhere**: the agent bar warns when the state's `phoneOpen` is `false` and links to `/softphone`. A ringing offer whose leg is refused as unavailable is released at once and the agent set **Away** (*Phone unreachable*).
 - **Preview agents refused the disposition**: raise the Preview profile's **Offer time (seconds)** (`PreviewOfferTimeoutSeconds`); an agent who lost the record is redirected with a reason instead of a 403.
@@ -319,4 +323,6 @@ Full diagnostics and runbooks are in [references/production-support.md](referenc
 - `orchardcore-dnc-registry`, `orchardcore-phone-numbers` - do-not-call screening and E.164 handling
 - `orchardcore-reports` - the Reports framework
 - `orchardcore-webhooks` - the Webhooks module that ships the provider webhook inbox
+- `orchardcore-business-hours` - the Business Hours schedules queues, entry points and dialer profiles name
+- **Tickets for Contact Center** (`CrestApps.OrchardCore.Tickets.ContactCenter`, depends on Tickets and Queues) offers a desk's new tickets to agents through a queue and gives the ticket to the agent who accepts it; see `orchardcore-tickets`
 - `orchardcore-workflows`, `orchardcore-health-checks`, `orchardcore-redis` - Orchard Core framework features used here

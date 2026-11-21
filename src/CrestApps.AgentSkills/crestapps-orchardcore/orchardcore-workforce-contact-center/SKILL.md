@@ -1,6 +1,6 @@
 ---
 name: orchardcore-workforce-contact-center
-description: Skill for the CrestApps Orchard Core Workforce for Contact Center module (CrestApps.OrchardCore.Workforce.ContactCenter), which joins Workforce to the Contact Center. Covers a worker for every agent, Contact Center Sign-in Punches, Workforce Adherence (live board, rule sets, exceptions, daily adherence and conformance, the Agent Out Of Adherence event), Workforce Forecasting (planning groups, Holt-Winters, Erlang C and Erlang A staffing, coverage from the active forecast, capacity plans with hiring classes), Workforce Intraday (reforecast and the My Work Offers page), the Contact Center Time Tracker stages, the Interval Statistics feature it reads, report data sets, AI tools and the WorkforceForecasting and WorkforceAdherence recipe steps. Use this skill when requests mention contact center WFM, agent schedules, adherence, call volume forecasting, Erlang, intraday or capacity planning. Strong matches include AgentWorkerService, AdherenceService, ForecastService, ErlangCalculator and IntradayService.
+description: Skill for the CrestApps Orchard Core Workforce for Contact Center module (CrestApps.OrchardCore.Workforce.ContactCenter), which joins Workforce to the Contact Center. Covers a staff record with the Agent capability for every agent, Contact Center Sign-in Punches, Workforce Adherence (live board, rule sets, exceptions, daily adherence and conformance, the Agent Out Of Adherence event), Workforce Forecasting (planning groups, Holt-Winters, Erlang C and Erlang A staffing, coverage from the active forecast, capacity plans), Workforce Intraday (reforecast and the My Work Offers page), the Contact Center Time Tracker stages, report data sets, AI tools and the WorkforceForecasting and WorkforceAdherence recipe steps. Use this skill when requests mention contact center WFM, agent schedules, adherence, call volume forecasting, Erlang, intraday or capacity planning. Strong matches include AgentWorkerService, AdherenceService, ForecastService, ErlangCalculator and IntradayService.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,15 +11,15 @@ metadata:
 
 ## Schedule, Forecast and Track Agents Like Every Other Worker
 
-You are an Orchard Core expert. Generate accurate setup, recipes and extension guidance for the CrestApps Workforce for Contact Center module. Workforce never references the Contact Center; this module references both. It gives every agent a worker, clocks agents in when they sign in, compares their states with their published shifts, forecasts queue work into coverage for the auto-scheduler, manages the day as it happens, and keeps agent states in Time Tracker.
+You are an Orchard Core expert. Generate accurate setup, recipes and extension guidance for the CrestApps Workforce for Contact Center module. Workforce never references the Contact Center; this module references both. It makes every agent a worker (a Staff member, see `orchardcore-staff`), clocks agents in when they sign in, compares their states with their published shifts, forecasts queue work into coverage for the auto-scheduler, manages the day as it happens, and keeps agent states in Time Tracker.
 
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Workforce.ContactCenter` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle, which includes it) in the web/startup project.
 - Forecasting, Intraday and Adherence are features of **this** module even though their IDs read `CrestApps.OrchardCore.Workforce.Forecasting`, `CrestApps.OrchardCore.Workforce.Intraday` and `CrestApps.OrchardCore.Workforce.Adherence`.
 - The 15-minute queue and agent statistics they read come from the Contact Center feature **Contact Center Interval Statistics** (`CrestApps.OrchardCore.ContactCenter.IntervalStatistics`, which depends on Work Distribution (Queues)). It is enabled for you as a dependency.
-- An agent and a worker are the same person when they share a user account. Shifts must be **published** (Workforce Shift Planning) before adherence has anything to compare.
-- Workers, shifts, the time clock and My Work are covered by `orchardcore-workforce`; agents, queues and presence by `orchardcore-contact-center`; Time Tracker by `orchardcore-time-tracker`.
+- An agent and a worker are the same person when they share a user account: the worker is the staff member linked to the agent's user. Shifts must be **published** (Workforce Shift Planning) before adherence has anything to compare.
+- Staff members are covered by `orchardcore-staff`; shifts, the time clock and My Work by `orchardcore-workforce`; agents, queues and presence by `orchardcore-contact-center`; Time Tracker by `orchardcore-time-tracker`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -56,7 +56,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 
 ## Agents and Workers
 
-- `AgentWorkerService` lists agents with their worker, finds the agent of a worker, and creates workers (`EnsureWorkerAsync`, `CreateMissingAsync`). A catalog handler on `AgentProfile` creates the worker when an agent is **created** (not on updates, so frequent presence saves never look it up).
+- `AgentWorkerService` lists agents with their staff member (`(AgentProfile, StaffMember)` pairs), finds the agent of a staff member, and makes workers (`EnsureWorkerAsync`, `CreateMissingAsync`) through Staff's `IStaffAccountService.EnsureAsync`: a new staff member gets the `Agent` capability (`AgentWorkerService.AgentCapability`) and the job title "Agent", and someone who is already staff only gains the capability. The Contact Center module itself (with Staff on) also makes every new agent a staff member and adds an **Agent** card to the staff editor (`orchardcore-contact-center`). A catalog handler on `AgentProfile` creates the worker when an agent is **created** (not on updates, so frequent presence saves never look it up).
 - Agents created before the feature was on get workers from **Workforce > Contact Center Agents** (`Admin/workforce/agents`, **Create workers**), which can put them in a team. Needs `ManageWorkers`.
 
 ## Sign-in Punches
@@ -167,9 +167,10 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 | `IContactCenterEventHandler` | Contact Center | React to `AgentStateChanged` and other outbox events, as the punch and Time Tracker handlers do. |
 | `IAgentStateHistory` | Contact Center Core | Read an agent's state spans for a range. |
 | `IIntervalStatisticsReader` | Contact Center Core | Read the 15-minute queue and agent statistics. |
-| `IWorkerTimeZoneService` | Workforce | A worker's zone (theirs, the team's, the site's). |
+| `IWorkerTimeZoneService` | Workforce | A worker's zone (`GetAsync(StaffMember, teamId)`: theirs, the team's, the site's). |
+| `IStaffMemberManager`, `IStaffDirectory` | Staff | Read workers (agents' staff members); `StaffQuery { HasUser = true }` lists the ones agents can be. |
 | `ITimePunchSourceProvider` | Workforce | Describe a new punch source for policies and timesheets. |
-| `IMyWorkLinkProvider` | Workforce | Add a page to the My Work menu (Offers and Adherence use it). |
+| `IMyWorkLinkProvider` | Workforce | Add a page to the My Work menu (Offers and Adherence use it); `GetLinksAsync` receives the `StaffMember`. |
 
 ```csharp
 public sealed class ChatPunchSourceProvider : ITimePunchSourceProvider
@@ -193,15 +194,20 @@ public sealed class ChatPunchSourceProvider : ITimePunchSourceProvider
 
 Punches with your source then go through `ITimeClockService.PunchAsync` with one idempotency key per event, as `SignInPunchHandler` does with `contact-center:<event id>`.
 
+## Telemetry and Indexes
+
+- The adherence background tasks report each run (items raised or saved, errors) to the background task telemetry, and out-of-adherence alerts are counted on the `CrestApps.OrchardCore.Workforce` meter (`WorkforceTelemetry.RecordAdherenceAlert`, tagged with the scheduled activity kind and status). See `orchardcore-observability`.
+- Every index of the module (adherence rule sets, exceptions, days and alerts, forecasts, planning groups, capacity plans, forecast events and intraday offers) declares `.ExclusiveToDocumentType()` and `.SingleRecordPerDocument()`.
+
 ## Gotchas
 
 | Symptom | Check |
 |---|---|
-| Adherence board empty | No published shifts for the agents' workers, or agents have no worker (create them on Contact Center Agents). |
+| Adherence board empty | No published shifts for the agents' workers, agents have no staff record (create them on Contact Center Agents), or their staff member isn't `Active`. |
 | Agents not clocked in on sign-in | Sign-in Punches off, no time clock policy on the worker's team, or the policy doesn't allow the contact center source. |
 | Forecast is flat or empty | The planning group's queues have no interval statistics yet; Interval Statistics needs history (rebuild it from its page). |
 | Auto-scheduler ignores the forecast | Activate the forecast; only the active one writes coverage. |
 | Offers don't appear in My Work | Intraday and the My Work Portal must be on and the worker on the staffing team. |
 | Agent time shows twice in reports | Contact Center Time Tracker overrides the time clock only while signed in; check the stage mapping. |
 
-Related skills: `orchardcore-workforce`, `orchardcore-contact-center`, `orchardcore-time-tracker`, `orchardcore-teams`, `orchardcore-skills`, `orchardcore-report-builder`.
+Related skills: `orchardcore-workforce`, `orchardcore-staff`, `orchardcore-contact-center`, `orchardcore-time-tracker`, `orchardcore-teams`, `orchardcore-skills`, `orchardcore-report-builder`.

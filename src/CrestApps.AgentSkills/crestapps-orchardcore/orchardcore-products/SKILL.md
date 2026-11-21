@@ -1,6 +1,6 @@
 ---
 name: orchardcore-products
-description: Skill for the CrestApps Orchard Core Products module and its search modules. Covers ProductPart and ProductPartSettings (price, currency, SKU, sales mode, price display), the Currencies catalog and recipe step, ProductPricePart for one-time or recurring prices, ProductVariantsPart, IProductSnapshotResolver, IPriceResolver, IBuyerPriceProvider, IProductAvailabilityProvider, merchandising (sales, quantity rules, discounts, add-ons), Product Listing pages with filters, sorts, ProductFacetStyleOptions and shapes, IProductSearchDocumentContributor, IProductListingEntryProvider, IProductSearchIndexRefresher, Product Recommendations, Comparison, Grouped Products, Bundles, Product Feeds, the Catalog API, and product search on Lucene, Elasticsearch and Azure AI Search (CrestApps.OrchardCore.Products.Lucene, Products.Elasticsearch, Products.AzureAI). Use it when requests mention Orchard Core products, a product catalog, product listings, variants, prices, currencies or product search.
+description: Skill for the CrestApps Orchard Core Products module and its search modules. Covers ProductPart and ProductPartSettings (price, currency, SKU, sales mode, price display, PriceOptional), the Currencies catalog, ProductPricePart, ProductVariantsPart, IProductSnapshotResolver, IPriceResolver, IBuyerPriceProvider, IProductAvailabilityProvider, merchandising (sales, quantity rules, discounts, add-ons), Product Listing pages with filters, sorts and shapes, IProductSearchDocumentContributor, Product Recommendations, Comparison, Grouped Products, Bundles, Product Feeds with AI agent fields (IProductFeedService, IProductFeedItemContributor, ProductFeedItemIds, IProductItemIdResolver), the Catalog API, and product search on Lucene, Elasticsearch and Azure AI Search. Use it when requests mention Orchard Core products, a product catalog, product listings, variants, prices, currencies, product feeds or product search.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,6 +23,7 @@ Products (new in CrestApps.OrchardCore 3.0) turns any content type into a produc
 | Shipping (`orchardcore-shipping`) | Adds weights and classes through `ShippingPart` |
 | Taxation (`orchardcore-taxation`) | Classifies products through `TaxationPart`; `ProductTaxableItemProvider` |
 | Accounts B2B (`CrestApps.OrchardCore.Accounts.B2B`, replaces Companies) | Implements `IBuyerPriceProvider` for business account price lists |
+| Learning Commerce (`orchardcore-learning`) | Puts `ProductPart` and `LearningProductPart` on courses and learning paths; a paid order enrolls the buyer or gives an account course seats |
 
 ## Features
 
@@ -65,7 +66,7 @@ Products (new in CrestApps.OrchardCore 3.0) turns any content type into a produc
 | `AddOns` | `ProductAddOn` text or checkbox extras priced per unit, per person or as a percent |
 | `ExternalUrl`, `ExternalButtonText` | External product; can't be bought here |
 
-`ProductPartSettings`: `Type` (`ProductType`: `Undefined`, `Good`, `Service`, `Digital`), `DefaultCurrency`, `SalesMode` (`Purchasable`, `ListingOnly`, `PerItem`), `PriceDisplay` (`Show`, `OnRequest`, `Hidden`), `OnRequestLabel`, `AllowPriceDisplayOverride`. `ProductPart` and its settings live in `CrestApps.OrchardCore.Products.Core` (namespace `CrestApps.OrchardCore.Products.Core.Models`).
+`ProductPartSettings`: `Type` (`ProductType`: `Undefined`, `Good`, `Service`, `Digital`), `DefaultCurrency`, `SalesMode` (`Purchasable`, `ListingOnly`, `PerItem`), `PriceDisplay` (`Show`, `OnRequest`, `Hidden`), `OnRequestLabel`, `AllowPriceDisplayOverride`, `PriceOptional` (a product of the type may be saved without a price; such a product cannot be bought and shows no price, `CanBePurchased` false and `GetPriceDisplay` `Hidden`; Learning Commerce turns it on for courses and learning paths). `ProductPart` and its settings live in `CrestApps.OrchardCore.Products.Core` (namespace `CrestApps.OrchardCore.Products.Core.Models`).
 
 ```csharp
 internal sealed class ProductTypeMigrations : DataMigration
@@ -254,6 +255,8 @@ The samples need a Bootstrap 5 front-end theme such as TheTheme.
 
 Products use Orchard Core content permissions. `ManageProductFeeds` (Product Feeds) opens **Settings > Commerce > Product feeds**.
 
+For other modules' line editors (such as an invoice's product picker), `GET {admin}/api/crestapps/products/{contentItemId}/line` (route `CrestApps.Products.ProductLine`, needs **Edit content**) returns the product as a document line: `id`, `name`, `sku`, `price`, `currency` and `taxCategoryCode` (when the Taxation part is taxable).
+
 ## Upgrading within the 3.0 line
 
 - `IProductPositionProvider` was removed; use `ProductPart.Featured` and `ProductPart.Position`, or set `ProductSearchDocument.Position` from a contributor.
@@ -262,3 +265,6 @@ Products use Orchard Core content permissions. `ManageProductFeeds` (Product Fee
 - The product picker search endpoint (`Admin/api/crestapps/products/search`) moved to the Product Listing feature.
 - `CurrencyScale` moved to `CrestApps.OrchardCore.Abstractions` (namespace `CrestApps.OrchardCore.Currencies`), so the catalog rounds prices without referencing payments.
 - A product picked on a bundle with the **How many** box left empty now counts as one instead of failing validation.
+- `ProductFeedItem` and the feed contracts moved to `CrestApps.OrchardCore.Products.Core.Feeds` (`IProductFeedService`, `IProductFeedItemContributor`, `ProductFeedItemIds`, `IProductItemIdResolver`), so other modules read the feed without referencing the Products module. See [references/merchandising-and-feeds.md](references/merchandising-and-feeds.md).
+- The `ProductPricePart` editor shows and takes offer dates (`EffectiveFrom`, `EffectiveTo`) in the site's time zone; they are stored in UTC as before.
+- A product page without images no longer shows an empty picture frame.

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-roles
-description: Skill for the CrestApps Enhanced Roles module in Orchard Core and its RolePickerPart. Covers role selection on content types with the bootstrap-select editor, RolePickerPartSettings for required, single or multiple and excluded roles, migrations, recipe schema support, content item payloads, and the 3.0 dependency on OrchardCore.Resources. Use this skill when requests mention CrestApps RolePickerPart, Enhanced Roles, a content role picker, role selection content part, role-based content metadata, RolePickerPartSettings, or closely related Orchard Core implementation, setup, upgrade or troubleshooting work. Strong matches include CrestApps.OrchardCore.Roles, RolePickerPart, RolePickerPartDisplayDriver, RolePickerPartSettingsDisplayDriver, RolePickerPartSchemaDefinition, RoleManager<IRole>, OrchardCore.Roles and OrchardCore.Resources.
+description: Skill for the CrestApps Enhanced Roles module in Orchard Core and its RolePickerPart. Covers role selection on content types with the bootstrap-select editor, RolePickerPartSettings for required, single or multiple and excluded roles, the editor labels of a picker that restricts content, the shared ContentAccessRoles helper and ContentAccessRoleIndex in Roles.Core, migrations, recipe schema support, content item payloads, and the 3.0 dependency on OrchardCore.Resources. Use this skill when requests mention CrestApps RolePickerPart, Enhanced Roles, a content role picker, role selection content part, filtering a list by the reader's roles, RolePickerPartSettings or related setup and troubleshooting. Strong matches include CrestApps.OrchardCore.Roles, RolePickerPart, RolePickerPartDisplayDriver, RolePickerPartSettingsDisplayDriver, RolePickerPartSchemaDefinition, ContentAccessRoles, ContentAccessRoleIndex, RoleManager<IRole>, OrchardCore.Roles and OrchardCore.Resources.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,6 +28,8 @@ You are an Orchard Core expert. Use the CrestApps Roles module when a content it
 - Excluded roles are removed from submitted selections by the driver. They are not a security authorization mechanism.
 - On its own, a role-picker value is content metadata, not an access-control grant. To restrict who can view an item by these roles, enable Content Access Control (see the `orchardcore-content-access-control` skill), which builds on this part.
 - The editor lists role names from `RoleManager<IRole>`, removes excluded names, and orders the choices.
+- When Content Access Control marks the picker as restricting the content (`RolePickerPartContentAccessControlSettings.IsContentRestricted`), the editor label defaults to **Which roles can see this content**, the empty text reads **Any role** and the hint defaults to **Leave empty so everyone can see it.**; a display name or hint set on the part attachment still wins. Other pickers use the part's display name as label and empty text.
+- To filter lists by the reader's roles, use `ContentAccessRoles` and `ContentAccessRoleIndex` from `CrestApps.OrchardCore.Roles.Core`, never a per-item check over a large list.
 - Enable `CrestApps.OrchardCore.Recipes` when recipe JSON Schema support for settings and the `RoleNames` payload is needed.
 - Use sealed classes and file-scoped namespaces in generated C# examples.
 
@@ -125,7 +127,7 @@ public sealed class Startup : StartupBase
 ## Configure it through the admin UI
 
 1. Enable **Enhanced Roles**.
-2. Navigate to **Content Definition → Content Types** and edit the target type.
+2. Navigate to **Design → Content Definition → Content Types** and edit the target type.
 3. Add the **Role Picker** part.
 4. Set its display name, hint, required setting, selection mode, and excluded role names.
 5. Save the content definition.
@@ -215,6 +217,58 @@ public sealed class ProductRoleReader
 }
 ```
 
+## Reader roles for restricted content
+
+`CrestApps.OrchardCore.Roles.Core` (namespace `CrestApps.OrchardCore.Roles.Core`) holds the building blocks Content Access Control and modules such as Knowledge Base share:
+
+| Member | Purpose |
+|---|---|
+| `ContentAccessRoles.GetReaderRoles(user)` | `Anonymous` for a visitor; `Authenticated` plus the role claims for a signed-in user (Orchard Core never puts those two roles in claims) |
+| `ContentAccessRoles.IsInAnyRole(user, roleNames)` | Whether the reader holds any of the roles, `Authenticated` and `Anonymous` included |
+| `ContentAccessRoles.SeesEverything(user)` | `true` for the Administrator role; skip role filtering for them |
+| `ContentAccessControlConstants.Feature` / `.RolesFeature` | `CrestApps.OrchardCore.ContentAccessControl` / `CrestApps.OrchardCore.Roles` |
+| `ContentAccessRoleIndex` (`.Indexes`) | One row (`ContentItemId`, `ContentType`, `RoleName`) per picked role of each published item of a restricted type; an item with no role picked gets `Anonymous` and `Authenticated` rows. Drafts and unrestricted types get none |
+
+The Content Access Control module owns the index provider and table (it declares `.ExclusiveToDocumentType()` only, since an item has one row per role); see `orchardcore-content-access-control`. Filter a published-item query in SQL:
+
+```csharp
+using CrestApps.OrchardCore.Roles.Core;
+using CrestApps.OrchardCore.Roles.Core.Indexes;
+using OrchardCore.ContentManagement;
+using OrchardCore.ContentManagement.Records;
+using System.Security.Claims;
+using YesSql;
+using YesSql.Services;
+
+namespace MyModule.Services;
+
+public sealed class RestrictedArticleQuery
+{
+    private readonly ISession _session;
+
+    public RestrictedArticleQuery(ISession session)
+    {
+        _session = session;
+    }
+
+    public Task<IEnumerable<ContentItem>> ListAsync(ClaimsPrincipal reader)
+    {
+        var query = _session.Query<ContentItem, ContentItemIndex>(index => index.ContentType == "Article" && index.Published);
+
+        if (!ContentAccessRoles.SeesEverything(reader))
+        {
+            var roles = ContentAccessRoles.GetReaderRoles(reader).ToArray();
+
+            query = query.Where(index => index.ContentItemId.IsIn<ContentAccessRoleIndex>(
+                row => row.ContentItemId,
+                row => row.RoleName.IsIn(roles)));
+        }
+
+        return query.ListAsync();
+    }
+}
+```
+
 ## Upgrading from 2.x
 
 - The editors no longer use the removed `crestapps-bootstrap-select` resource. They request Orchard Core's `bootstrap-select`, and the module now depends on `OrchardCore.Resources`. Theme overrides of `RolePickerPart.Edit.cshtml` or `RolePickerPartSettings.Edit.cshtml` must switch to `<style asp-name="bootstrap-select">` and `<script asp-name="bootstrap-select" at="Foot">`.
@@ -226,3 +280,4 @@ public sealed class ProductRoleReader
 - If single-select has no options, create roles first in the Orchard Core role administration UI and ensure they are not in `ExcludedRoles`.
 - If excluded values appear in imported content JSON, review settings and application logic. The normal editor strips them, but imports should only use allowed roles.
 - A missing `RolePickerPartSettings` recipe schema means the Roles and Recipes features were not enabled together.
+- A restricted picker shows **Which roles can see this content** instead of the part name: give the part attachment a display name to override it.

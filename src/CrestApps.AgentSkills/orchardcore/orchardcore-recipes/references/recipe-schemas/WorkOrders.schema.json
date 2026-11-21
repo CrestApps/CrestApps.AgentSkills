@@ -38,7 +38,7 @@
                     "null",
                     "string"
                   ],
-                  "description": "The question\u0027s id within the checklist, which ShowWhen refers to."
+                  "description": "The question\u0027s id within the checklist, which the conditions of later questions read."
                 },
                 "Section": {
                   "type": [
@@ -120,12 +120,68 @@
                   ],
                   "description": "The asset meter a MeterReading question records."
                 },
+                "Rule": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "description": "When the question shows; null for always.",
+                  "properties": {
+                    "Match": {
+                      "type": "string",
+                      "enum": [
+                        "All",
+                        "Any"
+                      ],
+                      "description": "All: every condition must be met. Any: one is enough."
+                    },
+                    "Conditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "One test of the rule.",
+                        "properties": {
+                          "Source": {
+                            "type": "string",
+                            "description": "The id of an earlier question of the checklist."
+                          },
+                          "Operator": {
+                            "type": "string",
+                            "enum": [
+                              "Is",
+                              "IsNot",
+                              "IsOneOf",
+                              "IsNoneOf",
+                              "IsEmpty",
+                              "IsNotEmpty",
+                              "Contains",
+                              "GreaterThan",
+                              "LessThan",
+                              "IsOrUnder"
+                            ],
+                            "description": "How the source\u0027s values are compared."
+                          },
+                          "Values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "description": "The conditions. A rule without any always applies."
+                    }
+                  },
+                  "additionalProperties": true
+                },
                 "ShowWhen": {
                   "type": [
                     "null",
                     "object"
                   ],
-                  "description": "Shows the question only after another was answered a certain way; null for always.",
+                  "description": "Deprecated: the older form of Rule (one question and the answer that shows it), still read and saved as a rule.",
                   "properties": {
                     "QuestionId": {
                       "type": [
@@ -158,7 +214,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "description": "A service level policy: how fast work orders must be answered and resolved, by priority.",
+        "description": "Deprecated: a service level policy as older recipes carried it. Each one is copied to a shared policy with the same id; new recipes use the ServiceLevelPolicies step.",
         "properties": {
           "ItemId": {
             "type": [
@@ -277,7 +333,7 @@
         },
         "additionalProperties": true
       },
-      "description": "The service level policies."
+      "description": "Deprecated: Work Orders\u0027 own service level policies, as older recipes carried them. Each one becomes a shared policy; use the ServiceLevelPolicies step instead."
     },
     "SubStatuses": {
       "type": "array",
@@ -571,6 +627,7 @@
             "enum": [
               "Draft",
               "Active",
+              "Paused",
               "Expired",
               "Canceled"
             ],
@@ -854,7 +911,7 @@
         },
         "additionalProperties": true
       },
-      "description": "The service agreements. Read only when the service agreements feature is on; their customers, accounts and assets must be on the site too."
+      "description": "Agreements with visits, made as agreements of the Agreements module with their visits as Work Orders terms. Read only when the service agreements feature is on; their customers, accounts and assets must be on the site too."
     }
   },
   "required": [

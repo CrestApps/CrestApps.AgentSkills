@@ -480,9 +480,10 @@ builder.Services.AddOrchardCms();
 - Enabling this store doesn't move existing `Database` secrets. Use
   **Secret Stores** to move them.
 
-## Example 5: Custom Store and Custom Secret Type
+## Example 5: Custom Store
 
 ```csharp
+using System.Text.Json;
 using OrchardCore.Secrets;
 
 namespace MyModule.Secrets;
@@ -493,46 +494,37 @@ public sealed class VaultSecretStore : ISecretStore
 
     public bool IsReadOnly => false;
 
-    public Task<T> GetSecretAsync<T>(string name) where T : class, ISecret
-        => throw new NotImplementedException();
+    public async Task<Secret> GetSecretAsync(string name)
+    {
+        var entry = await ReadEntryAsync(name);
+
+        // Return default (a null Value) when the secret is not found.
+        if (entry is null || !Secret.TryGetType(entry.TypeName, out var type))
+        {
+            return default;
+        }
+
+        return Secret.FromValue(JsonSerializer.Deserialize(entry.Json, type));
+    }
 
     // Complete only after the value is persisted, not merely staged.
-    public Task SaveSecretAsync<T>(string name, T secret, SecretSaveOptions options = null) where T : class, ISecret
-        => throw new NotImplementedException();
+    public Task SaveSecretAsync(string name, Secret secret, SecretSaveOptions options = null)
+        => WriteEntryAsync(name, secret.Value.GetType().Name, JsonSerializer.Serialize(secret.Value, secret.Value.GetType()), options);
 
     public Task RemoveSecretAsync(string name)
         => throw new NotImplementedException();
 
     public Task<IEnumerable<SecretInfo>> GetSecretInfosAsync()
         => throw new NotImplementedException();
-}
-```
 
-```csharp
-using Microsoft.Extensions.Localization;
-using OrchardCore.Secrets;
+    // Calls to the vault.
+    private Task<VaultEntry> ReadEntryAsync(string name)
+        => throw new NotImplementedException();
 
-namespace MyModule.Secrets;
+    private Task WriteEntryAsync(string name, string typeName, string json, SecretSaveOptions options)
+        => throw new NotImplementedException();
 
-public sealed class OAuthClientSecret : ISecret
-{
-    public string ClientId { get; set; }
-
-    public string ClientSecret { get; set; }
-}
-
-public sealed class OAuthClientSecretTypeProvider : SecretTypeProvider<OAuthClientSecret>
-{
-    private readonly IStringLocalizer S;
-
-    public OAuthClientSecretTypeProvider(IStringLocalizer<OAuthClientSecretTypeProvider> stringLocalizer)
-    {
-        S = stringLocalizer;
-    }
-
-    public override string DisplayName => S["OAuth Client"];
-
-    public override string Description => S["Stores an OAuth client identifier and secret."];
+    private sealed record VaultEntry(string TypeName, string Json);
 }
 ```
 
@@ -549,13 +541,16 @@ public sealed class SecretsStartup : StartupBase
     public override void ConfigureServices(IServiceCollection services)
     {
         services.AddSecretStore<Secrets.VaultSecretStore>();
-        services.AddSecretType<Secrets.OAuthClientSecretTypeProvider>();
-        services.AddJsonDerivedTypeInfo<Secrets.OAuthClientSecret, ISecret>();
     }
 }
 ```
 
-Stores and type providers are tenant singletons: make them thread-safe and
-don't inject scoped services. Add a `DisplayDriver<ISecret>` for the admin
-editor of a custom type, and register the type provider on every instance that
-imports it. Override `Serialize`/`Deserialize` for a custom wire format.
+Persist
+the type name with the value so `Secret.TryGetType` can restore it. Stores are
+tenant singletons: make them thread-safe and don't inject scoped services.
+
+The secret types are the closed set of the `Secret` union (`TextSecret`,
+`RsaKeySecret`, `X509Secret`): there is no `ISecret` interface to implement and
+no custom secret type to register. To keep structured values, such as an OAuth
+client id and secret, save two `TextSecret` entries or a JSON payload in one
+`TextSecret`.

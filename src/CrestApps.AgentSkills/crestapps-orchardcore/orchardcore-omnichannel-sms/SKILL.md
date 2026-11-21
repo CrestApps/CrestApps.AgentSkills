@@ -26,9 +26,11 @@ reach the AI.
   dependency-only **Provider Webhook Inbox**
   (`CrestApps.OrchardCore.ContactCenter.ProviderInbox`, from the Webhooks
   module), which stores every inbound text before the provider is answered.
-- It no longer enables Contact Center Business Hours. Enable
-  `CrestApps.OrchardCore.ContactCenter.BusinessHours` yourself to define the
-  calendars that keep background follow-ups within hours.
+- It does not enable any business hours feature. Enable the Business Hours
+  feature (`CrestApps.OrchardCore.BusinessHours`, which Contact Center Business
+  Hours also pulls in) to define the schedules, under **Content > Business
+  Hours**, that keep background follow-ups within hours (see
+  `orchardcore-business-hours`).
 - An AI provider connection and a chat deployment must exist (see
   `orchardcore-ai` and `orchardcore-ai-connections`).
 - Configure at least one Orchard Core SMS provider (Twilio, Azure, or Telnyx from
@@ -74,7 +76,7 @@ be able to hand SMS conversations to people (see Live Agent Handoff).
 4. Connect the provider webhook (below).
 5. Create an **Automatic** activity load: subject, campaign, AI profile (or
    leave empty to use the subject's), channel **SMS**, the sending address,
-   reply delay, optional cadence and business-hours calendar. Run **Actions >
+   reply delay, optional cadence and Business Hours schedule. Run **Actions >
    Load activities**.
 
 `AutomatedActivitiesProcessorBackgroundTask` (every five minutes) hands each due
@@ -138,7 +140,7 @@ Twilio number's *A message comes in* to that URL with HTTP POST.
 
 | Task | Schedule | Purpose |
 |---|---|---|
-| `SmsReEngagementBackgroundTask` (**Automated SMS Re-Engagement**) | `*/5 * * * *` | Sends due cadence follow-ups while the load's business-hours calendar is open in the contact's time zone. |
+| `SmsReEngagementBackgroundTask` (**Automated SMS Re-Engagement**) | `*/5 * * * *` | Sends due cadence follow-ups while the load's Business Hours schedule is open in the contact's time zone. |
 | `SmsOwedReplyRecoveryBackgroundTask` (**Automated SMS Owed-Reply Recovery**) | `*/10 * * * *` | Sends a reply that was owed but lost, for example after a restart, when the contact's last message is recent. |
 
 ## Live Agent Handoff
@@ -166,6 +168,10 @@ deleted. Entry points are covered by `orchardcore-contact-center`.
 - To send through another carrier, implement an Orchard Core `ISmsProvider`
   (see `orchardcore-sms`) and pin it on the SMS address.
 
+## Monitoring
+
+AI SMS conversations report on the messaging meter `CrestApps.OrchardCore.Messaging` (see `orchardcore-omnichannel-messaging`, matched by `CrestApps.OrchardCore.*`): `crestapps.messaging.ai.turn.duration` (`result`: `replied`, `no_reply`, `not_owed`, `superseded`, `lock_timeout`, `completion_failed`, `empty_reply`, `send_failed`, `error`, `cancelled`), `crestapps.messaging.ai.handoff`, `crestapps.messaging.ai.respond_decision` (`respond`, `skip`, `fallback`), `crestapps.messaging.activity.start` (`trigger` `entry_point` or `automated`) and `crestapps.messaging.send.duration` for every automated text. The span `crestapps.messaging.ai.turn` parents the AI completion and send spans, and the conclusion check after a turn runs as the deferred task `sms_conversation_conclusion`. `SmsReEngagementBackgroundTask` reports items by result (`sent`, `send_failed`, `no_content`, `opted_out`, `outside_hours`, `busy`, `error`; `budget_exceeded` when it stops on its budget) and `SmsOwedReplyRecoveryBackgroundTask` reports `redriven` or `error` on `crestapps.background_task.items`. Log event ids 18200-18299 (18201 owed-reply recovery summary, 18202 AI turn ended).
+
 ## Upgrading from 2.x
 
 - The Twilio webhook moved from `Omnichannel/webhook/Twilio` to
@@ -175,5 +181,5 @@ deleted. Entry points are covered by `orchardcore-contact-center`.
   part settings, and the per-run campaign, channel and address are chosen on the
   activity load (see `orchardcore-omnichannel-management`).
 - Enabling the feature enables the **Provider Webhook Inbox**, not **Contact
-  Center Business Hours**; turn Business Hours on explicitly when loads or
-  cadences pick a business-hours calendar.
+  Center Business Hours**; turn the Business Hours feature on explicitly when loads or
+  cadences pick a Business Hours schedule.

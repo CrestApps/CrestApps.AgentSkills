@@ -1,0 +1,145 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "AgentPlatforms",
+      "description": "Recipe step discriminator. Must be \u0027AgentPlatforms\u0027."
+    },
+    "Platforms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The platform\u0027s 26-character id; omit it to create a new one."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The business whose AI agents buy from the store."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes about the platform."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether its agents may buy."
+          },
+          "TestMode": {
+            "type": "boolean",
+            "description": "Whether its agents may only pay with test credentials."
+          },
+          "Protocols": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ucp",
+                "acp"
+              ]
+            },
+            "description": "The protocols its agents use."
+          },
+          "OAuthClientId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The client ID of its OAuth client on the store\u0027s OpenID server."
+          },
+          "ProfileUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address of its UCP profile, whose keys verify its signed requests."
+          },
+          "WebhookUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where its ACP order updates go."
+          },
+          "AllowedPaymentHandlers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The payment handlers its agents may pay through; empty allows all."
+          },
+          "AllowedIpRanges": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The IP addresses and CIDR ranges its requests come from; empty allows any."
+          },
+          "EmbeddedCheckoutOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The https origins whose pages may show the store\u0027s checkout in a frame (UCP embedded checkout)."
+          },
+          "AcpOrderCreatedEvent": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ACP event name a new order sends; order_create when empty."
+          },
+          "AcpOrderUpdatedEvent": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The ACP event name a changed order sends; order_update when empty."
+          },
+          "AcpRequireSignedRequests": {
+            "type": "boolean",
+            "description": "Whether its ACP requests must carry a valid Signature and Timestamp."
+          },
+          "AcpSignatureAlgorithm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The algorithm its ACP requests are signed with; ES256 when empty."
+          },
+          "AcpSignaturePublicKey": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The P-256 public key that verifies its signed ACP requests: an EC JSON Web Key or a PEM PUBLIC KEY block."
+          },
+          "AcpSignatureClockSkewSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "minimum": 1,
+            "maximum": 3600,
+            "description": "How many seconds a signed request\u0027s Timestamp may be from the store\u0027s clock; 300 when empty."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The AI agent platforms to create or update. API keys and webhook secrets are never imported; give them new ones in the admin."
+    }
+  },
+  "required": [
+    "name",
+    "Platforms"
+  ],
+  "additionalProperties": true
+}

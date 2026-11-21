@@ -32,7 +32,10 @@ The `calendars-external-sync` health check (tag `calendars`) reports **Degraded*
 public interface ICalendarProvider
 {
     string Name { get; }
+
+    [JsonIgnore]
     LocalizationSource DisplayName { get; }
+
     bool UsesAddress => true;
     bool IsConfigured(Calendar calendar, CalendarSubscription subscription)
         => !string.IsNullOrWhiteSpace(subscription?.Url);
@@ -83,6 +86,7 @@ public sealed class PartnerCalendarProvider : ICalendarProvider
 
     public string Name => ProviderName;
 
+    [JsonIgnore]
     public LocalizationSource DisplayName { get; } = LocalizationSource.Create<PartnerCalendarProvider>("Partner calendar");
 
     public async Task<IReadOnlyList<ICalendarEventData>> PullAsync(Calendar calendar, CalendarSubscription subscription, CancellationToken cancellationToken = default)

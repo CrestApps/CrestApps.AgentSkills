@@ -157,6 +157,15 @@ replies with `SmsKeywordReplySettings`:
   `unread=true`, `MessagingWorkspaceBuilder.BuildInboxAsync(..., unreadOnly, ...)`)
   narrows any filter and its counts to conversations whose `IsRead` is off, the
   same rule as the **Messaging** menu badge; the open customer keeps their row.
+- **More filters** narrows the list and its tab counts further: **Assigned to**
+  (`agent=`, an agent profile id; only for `ViewAllMessagingConversations`),
+  **Queue** (`queue=`; every enabled queue for a supervisor, the agent's own
+  queues otherwise) and **Campaign** (`campaign=`). They only narrow what the
+  viewer may already see, carry through links, live refresh and the open
+  conversation, and show as removable chips. The campaign filter reads
+  `MessagingConversation.CampaignId`, recorded from the activity a conversation
+  was handed off from (indexed by messaging migration 7; step 8 adds the column
+  and index where they are missing); older conversations have none.
 - The thread header shows the customer and their number; when the conversation
   is linked to a contact or a lead, the name opens it with a **Contact** or
   **Lead** badge, and **Our number** shows the service address. The **Customer**
@@ -208,8 +217,21 @@ if (!await _authorizationService.AuthorizeConversationAsync(User, conversation, 
 
 ## Templates, Broadcasts and Workflows
 
-- **Templates** (`ManageMessaging`) are canned responses with a **Name** and
-  **Body**, exported by the **Messaging Templates** deployment step.
+- **Templates** (`ManageMessaging`) are reply templates with a **Name** and
+  **Body**, exported by the **Messaging Templates** deployment step. With
+  **Fill in placeholders** (`FillsPlaceholders`, on for new templates) the body's
+  Liquid placeholders, such as `{{ Contact.DisplayName }}`, are filled in by
+  `IMessageTemplateRenderer.RenderAsync(template, models)` in restricted Liquid
+  that reads only the given models (never the request or site); a body whose
+  placeholders don't parse is refused on save and import. Templates written
+  before placeholders keep `FillsPlaceholders` off and are inserted verbatim.
+- A template's `Scope` is empty for the messaging workspace, which offers only
+  unscoped templates. Another module offers its own templates from the same
+  page by registering a scope (the editor then shows **Used for**); an unknown
+  scope from another site's recipe is kept. Register one with
+  `services.AddMessageTemplateScope("Tickets", LocalizationSource.Create<Startup>("Tickets"))`
+  and render with the record under the name the body reads, such as
+  `Contact` or `Ticket`.
 - **Broadcasts** (`SendGroupMessages`) send one message to many recipients
   (contacts and leads reachable on the channel, plus typed addresses) as
   individual 1:1 threads from one sending address, in the background, on any
@@ -239,7 +261,8 @@ if (!await _authorizationService.AuthorizeConversationAsync(User, conversation, 
         {
           "ItemId": "2hb7c4x9m1q6z3v8k5r0t2n7y",
           "Name": "Opening hours",
-          "Body": "We are open Monday to Friday, 8am to 6pm."
+          "Body": "Hi {{ Contact.DisplayName }}, we are open Monday to Friday, 8am to 6pm.",
+          "FillsPlaceholders": true
         }
       ]
     },
@@ -274,6 +297,22 @@ deployment step (`orchardcore-contact-center`).
 In the root `appsettings.json` put these under the `OrchardCore` key; a tenant
 file starts at `CrestApps`. Routed distribution pushes conversations only to
 agents who are **Available** with the inbox open, and re-pools unpicked ones.
+
+## Monitoring
+
+The meter and activity source `CrestApps.OrchardCore.Messaging` (matched by
+`CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`) emit
+`crestapps.messaging.*`: `send.duration` (`channel`, `provider`, `result`),
+`outbox.retry`, `optout`, `delivery` and `delivery.latency` (Telnyx receipts
+only), `inbound.duration` and `inbound.lag`, `route`, `assignment`,
+`sla.breached`, `reassigned`, `first_response.duration`, `broadcast` and
+`broadcast.recipient`, plus the AI SMS instruments (`ai.turn.duration`,
+`ai.handoff`, `ai.respond_decision`, `activity.start`). Spans:
+`crestapps.messaging.send`, `.inbound`, `.route`, `.ai.turn`. No metric carries
+a phone number, an id or a body. Log event ids: 18000-18099 Messaging.Core,
+18100-18199 Messaging.Sms.Core. The background tasks report on
+`crestapps.background_task.*`. Delivery and assignment counters are approximate
+(recorded before commit).
 
 ## Real Time
 
@@ -319,3 +358,11 @@ entry point channel. Inbound receivers call
 - The Broadcasts and Templates lists render through Orchard Core's `AdminList`
   (list names `MessagingBroadcasts`, `MessagingTemplates`; see
   `orchardcore-admin-lists`).
+- `MessagingFileFormat`, `MessagingFileFormats` and `MessagingFileSignature`
+  moved to `CrestApps.OrchardCore.Attachments.Models` as `FileFormat`,
+  `FileFormats` and `FileSignature`; Messaging attachments keep their own store.
+- `MessagingWorkspaceBuilder` takes `IMessageTemplateRenderer`; a migration adds
+  the template `Scope` column.
+- Messaging references Outreach with `PrivateAssets="none"`, so a site that
+  installs Messaging loads Outreach as a module; before the fix the broadcast
+  task failed every minute resolving `IOutreachEngine`.

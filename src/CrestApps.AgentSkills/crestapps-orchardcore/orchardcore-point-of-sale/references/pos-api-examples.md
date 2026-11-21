@@ -163,7 +163,7 @@ Omit `amount` to refund everything. The card is refunded first and cash last; `c
 POST pos/shifts/9s4m2k7x/close
 Content-Type: application/json
 
-{ "countedCash": 124.50, "note": "Short 1.48" }
+{ "countedCash": 124.50, "note": "Short 1.48", "cardTips": 6.00, "cashTips": 4.00 }
 ```
 
 ```json
@@ -178,7 +178,11 @@ Content-Type: application/json
   "card": { "amount": 0.0, "currency": "USD" },
   "expectedCash": { "amount": 125.98, "currency": "USD" },
   "countedCash": { "amount": 124.5, "currency": "USD" },
-  "difference": { "amount": -1.48, "currency": "USD" }
+  "difference": { "amount": -1.48, "currency": "USD" },
+  "tax": { "amount": 1.98, "currency": "USD" },
+  "departments": [],
+  "cardTips": { "amount": 6.0, "currency": "USD" },
+  "cashTips": { "amount": 4.0, "currency": "USD" }
 }
 ```
 

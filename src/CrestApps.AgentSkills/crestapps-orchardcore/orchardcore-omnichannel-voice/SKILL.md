@@ -74,7 +74,7 @@ Enabling the provider feature enables Automated Voice and its dependencies.
 
 Voice settings (`AutomatedVoiceActivitySettings`: profile, speech-to-text and
 text-to-speech deployments, voice, ambience, AI update permissions, reply delay,
-business-hours calendar, cadence) are resolved by
+Business Hours schedule, cadence) are resolved by
 `IAutomatedVoiceActivitySettingsResolver` from the activity, then the subject's
 flow settings, then the default AI deployment site settings. In the admin, the
 profile, update permissions and reply delay come from the load (an outbound
@@ -219,6 +219,21 @@ Use the Telnyx provider (`TelnyxVoiceAgentMediaProvider`,
 `TelnyxAiVoiceConversationHandler`, `VoiceOmnichannelProcessor`) as the
 reference. For bidirectional audio and realtime sessions, the provider must
 also integrate with Contact Center Voice Media.
+
+## Monitoring
+
+`VoiceTelemetry` publishes the meter and activity source `CrestApps.OrchardCore.Voice` (matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`). Calls are counted once, where the call's usage summary is written:
+
+| Instrument | Tags | Measures |
+|---|---|---|
+| `crestapps.voice.ai.sessions` | `engine` (`realtime`, `turn_based`), `outcome` (`completed_by_ai`, `handed_to_agent`, `voicemail`, `no_answer`, `caller_hung_up`, `failed`, `transferred`, `unknown`), `deployment`, `provider` | Automated calls summarized |
+| `crestapps.voice.ai.response.latency`, `.model.latency`, `.first_audio.latency`, `.detector.wait` | `engine`, `deployment` | Per-answer latencies |
+| `crestapps.voice.ai.session.reconnects`, `.session.errors`, `.session.summary.lost` | `outcome`, `kind`, `reason` | Live session health |
+| `crestapps.voice.ai.voicemail.machine_detected`, `.idle_prompts`, `.barge_ins`, `.guardrail.refusals` | `source`, `engine`, `action`, `direction` | Call-handling decisions |
+| `crestapps.voice.ai.turn.duration` | `outcome` | Turn-based loop: final transcript to reply audio |
+| `crestapps.voice.media.streams`, `crestapps.voice.media.stream.lost` | `provider` | Live media streams |
+
+Spans: `crestapps.voice.ai.session` (children `crestapps.voice.ai.session.setup`, `.reconnect`, `.handover` and `crestapps.voice.ai.voicemail`) and `crestapps.voice.ai.turn`. Transcripts are never logged or tagged; log event ids are 18500-18999. The per-call cost estimate uses the AI deployment's prices plus the carrier's per-minute price from the **Costs** tab of **Settings → Communication → Telephony** (`TelephonyCostSettings`, see `orchardcore-telephony`).
 
 ## Upgrading from 2.x
 

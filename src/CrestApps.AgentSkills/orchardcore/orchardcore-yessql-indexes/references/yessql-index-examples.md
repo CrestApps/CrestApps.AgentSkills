@@ -26,6 +26,12 @@ When drills can target many skills, project one DrillsIndex row per selected ski
 - Store enum values directly with `.Column<YourEnum>("Status")` when the index needs enum-based filtering.
 - Return the next migration version after the index table is created.
 
+## Index Declarations Checklist
+
+- `ClubTeamsIndex` (one row per team version): `.ExclusiveToDocumentType().SingleRecordPerDocument()`.
+- `DrillsIndex` (one row per selected skill): `.ExclusiveToDocumentType()` only.
+- Use `SkipDeduplication()` instead of the obsolete `NoDuplicates()`, and `NoIndexOptimizations()` for a query the declarations make slower.
+
 ## Startup Checklist
 
 - Register the provider with services.AddIndexProvider<TProvider>().

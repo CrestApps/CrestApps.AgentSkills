@@ -249,6 +249,10 @@ provider has tenant settings. It adds the keyed provider and an
 provider is selectable. Keep the provider key and keyed-service registration
 identical.
 
+## Monitoring
+
+`PhoneNumberVerificationTelemetry` publishes the meter and activity source `CrestApps.OrchardCore.PhoneNumbers` (matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`): `crestapps.phonenumbers.verification.duration` (histogram, seconds; `provider` key, `result` `verified`, `invalid`, `failed` or `unverified`, `outcome`, `error.type`) measures one lookup, and the span `crestapps.phonenumbers.verification` carries `crestapps.content_item.id`. Looking up again a record whose last lookup failed counts on `crestapps.retry.attempts` with `area` = `phone_verification`, `reason` = `previous_failure`. No metric carries a phone number. Verification dates are shown in the site time zone.
+
 ## Upgrading from 2.x
 
 - `PhoneNumberVerificationRecord` moved from view models to `Models` and is the queue's row display model; the queue uses `AdminList`, so overrides of the old list markup must move to `SummaryAdmin` and `SummaryAdminGrid` placement.

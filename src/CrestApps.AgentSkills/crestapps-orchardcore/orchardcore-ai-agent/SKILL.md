@@ -155,6 +155,7 @@ Agent profiles can be exposed outside the site:
 - An agent adds no access the calling profile could not have had by ticking the same tools, but an **Always available** agent is offered to every profile on the site, including public chat widgets. Keep agents that change the site **On demand**.
 - Background callers (workflows, recipes) have no user and skip tool access checks.
 - Keep destructive groups (tenants, features, content deletion, recipe import) on dedicated, tightly permissioned profiles.
+- These tools are registered with `.RequireApproval()`, so in the chat UI and the admin widget the user must **Allow** each call first: `deleteContentItem`, `removeContentTypeDefinition`, `removeContentPartDefinition`, `disableSiteFeature`, `disableTenant`, `removeTenant`, `setupTenant`, `importOrchardCoreRecipe`, `executeNonStartupRecipe`, `sendEmail` and `sendSmsMessage`. Workflows, SMS and voice conversations cannot ask and run them as before.
 
 ## Troubleshooting
 

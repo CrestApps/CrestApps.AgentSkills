@@ -26,21 +26,29 @@
                     "AIPersonaDeploymentStep",
                     "AccessGrantsDeploymentStep",
                     "AccountsDeploymentStep",
+                    "AgreementsDeploymentStep",
                     "AllAdminTemplatesDeploymentStep",
                     "AllContentDeploymentStep",
                     "AllFeaturesDeploymentStep",
                     "AllRateLimitPoliciesDeploymentStep",
                     "AllTemplatesDeploymentStep",
+                    "ApprovalPoliciesDeploymentStep",
+                    "ApprovalRequestsDeploymentStep",
                     "AssetsDeploymentStep",
                     "AzureAISearchIndexDeploymentStep",
                     "AzureAISearchIndexRebuildDeploymentStep",
                     "AzureAISearchIndexResetDeploymentStep",
+                    "BankAccountsDeploymentStep",
                     "BookingDatesDeploymentStep",
+                    "BusinessHoursSchedulesDeploymentStep",
                     "CalendarsDeploymentStep",
+                    "CheckLayoutsDeploymentStep",
+                    "CheckRegisterDeploymentStep",
                     "ContentDefinitionDeploymentStep",
                     "ContentDeploymentStep",
                     "ContentItemDeploymentStep",
                     "CouponsDeploymentStep",
+                    "CreditNotesDeploymentStep",
                     "CustomFileDeploymentStep",
                     "CustomSettingsDeploymentStep",
                     "CustomUserSettingsDeploymentStep",
@@ -48,14 +56,33 @@
                     "DataPipelinesDeploymentStep",
                     "DeleteContentDefinitionDeploymentStep",
                     "DeploymentPlanDeploymentStep",
+                    "DisbursementsDeploymentStep",
                     "ElasticsearchIndexDeploymentStep",
                     "ElasticsearchIndexRebuildDeploymentStep",
                     "ElasticsearchIndexResetDeploymentStep",
+                    "EmployersDeploymentStep",
+                    "EstimatesDeploymentStep",
+                    "ExchangeRatesDeploymentStep",
                     "ExemptionCertificateDeploymentStep",
                     "FileSourcesDeploymentStep",
+                    "GarnishmentsDeploymentStep",
                     "GeoDeploymentStep",
+                    "IncomeTaxRulesDeploymentStep",
                     "IndexProfileDeploymentStep",
+                    "InvoicesDeploymentStep",
                     "JsonRecipeDeploymentStep",
+                    "LateFeePoliciesDeploymentStep",
+                    "LearningAttemptsDeploymentStep",
+                    "LearningCertificationPathsDeploymentStep",
+                    "LearningCredentialAwardsDeploymentStep",
+                    "LearningCreditTypesDeploymentStep",
+                    "LearningEnrollmentsDeploymentStep",
+                    "LearningExternalToolsDeploymentStep",
+                    "LearningGradeScalesDeploymentStep",
+                    "LearningPackageRuntimeStatesDeploymentStep",
+                    "LearningRequirementsDeploymentStep",
+                    "LearningStatementsDeploymentStep",
+                    "LearningSubmissionsDeploymentStep",
                     "LocalDncListsDeploymentStep",
                     "LoyaltyAccountsDeploymentStep",
                     "LuceneIndexDeploymentStep",
@@ -67,10 +94,18 @@
                     "MembershipsDeploymentStep",
                     "MerchantTaxRegistrationDeploymentStep",
                     "MessagingBroadcastsDeploymentStep",
+                    "PayCodesDeploymentStep",
+                    "PayHistoryDeploymentStep",
+                    "PayProfilesDeploymentStep",
+                    "PaySchedulesDeploymentStep",
+                    "PaymentTermsDeploymentStep",
+                    "PayrollFilingsDeploymentStep",
+                    "PosDepartmentsDeploymentStep",
                     "PriceListsDeploymentStep",
                     "QueryBasedContentDeploymentStep",
                     "RebuildIndexDeploymentStep",
                     "RecipeFileDeploymentStep",
+                    "RecurringPlansDeploymentStep",
                     "ReferralProfilesDeploymentStep",
                     "RegistersDeploymentStep",
                     "ReplaceContentDefinitionDeploymentStep",
@@ -78,14 +113,26 @@
                     "ResetIndexDeploymentStep",
                     "SchedulingDeploymentStep",
                     "SecretsDeploymentStep",
+                    "ServiceLevelPoliciesDeploymentStep",
                     "ShippingZonesDeploymentStep",
                     "SiteSettingsDeploymentStep",
                     "SkillsDeploymentStep",
+                    "StaffDeploymentStep",
                     "StockLocationsDeploymentStep",
                     "StoreCreditAccountsDeploymentStep",
                     "TeamsDeploymentStep",
+                    "TicketBoardsDeploymentStep",
+                    "TicketDesksDeploymentStep",
+                    "TicketPrioritiesDeploymentStep",
+                    "TicketStatusesDeploymentStep",
+                    "TicketViewsDeploymentStep",
                     "TimeTrackerDeploymentStep",
+                    "TimelineEntriesDeploymentStep",
+                    "TransactionsDeploymentStep",
                     "TranslationsDeploymentStep",
+                    "UsageMetersDeploymentStep",
+                    "UserAudiencesDeploymentStep",
+                    "UserCohortsDeploymentStep",
                     "VendorsDeploymentStep",
                     "WebCrawlersDeploymentStep",
                     "WebhookSubscriptionsDeploymentStep",
@@ -188,6 +235,27 @@
                             "description": "Whether the records the accounts hold, such as their contacts and opportunities, are exported too."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "AgreementsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Agreements step. Exports every agreement with accounts. Payload for the \u0027AgreementsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -317,6 +385,48 @@
                             "description": "When true, exports each template as a separate file rather than embedding them in the recipe."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ApprovalPoliciesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Approval policies step. Exports every approval policy. Payload for the \u0027ApprovalPoliciesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ApprovalRequestsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Approval requests step. Exports the approval requests the person running the plan may see; the importing site keeps them as history. Payload for the \u0027ApprovalRequestsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -470,6 +580,33 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "BankAccountsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Bank accounts step. Exports every bank account, without its routing and account numbers unless IncludeSensitiveData is on. Payload for the \u0027BankAccountsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeSensitiveData": {
+                            "type": "boolean",
+                            "description": "Whether the routing and account numbers and the status are exported, in clear text."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "BookingDatesDeploymentStep"
                       }
                     },
@@ -482,6 +619,27 @@
                       "Step": {
                         "type": "object",
                         "description": "Booking dates step. Exports the booking products\u0027 upcoming open dates with their capacity and price. Payload for the \u0027BookingDatesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "BusinessHoursSchedulesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Business hours schedules step. Exports every business hours schedule. Payload for the \u0027BusinessHoursSchedulesDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -513,6 +671,48 @@
                             "description": "When true (the default), exports everyone\u0027s categories too, so the events keep their colors."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CheckLayoutsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Check layouts step. Exports every check layout, without its signature images or check line font. Payload for the \u0027CheckLayoutsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CheckRegisterDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Check register step. Exports every check of the register; the importing site keeps them as history. Payload for the \u0027CheckRegisterDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -560,6 +760,7 @@
                                 "AccountLocationsPart",
                                 "AccountMembersPart",
                                 "AccountPart",
+                                "AccountTeamPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
@@ -690,6 +891,27 @@
                       "Step": {
                         "type": "object",
                         "description": "Coupons step. Exports every coupon and automatic discount, without how often it was used. Payload for the \u0027CouponsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "CreditNotesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Credit notes step. Exports every credit note, drafts and issued, with its number, lines, totals and history. Payload for the \u0027CreditNotesDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -890,6 +1112,7 @@
                                 "AccountLocationsPart",
                                 "AccountMembersPart",
                                 "AccountPart",
+                                "AccountTeamPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
@@ -964,6 +1187,27 @@
                             "description": "The names of the deployment plans to export."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "DisbursementsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Disbursements step. Exports the disbursements the person running the plan may see, without account numbers; the importing site keeps them as history. Payload for the \u0027DisbursementsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -1090,6 +1334,69 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "EmployersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Employers step. Exports every employer with its registrations. No person\u0027s data is in it. Payload for the \u0027EmployersDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "EstimatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Estimates step. Exports every estimate, drafts and sent, with its number, lines, totals, acceptance and history. Payload for the \u0027EstimatesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "ExchangeRatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Exchange rates step. Exports every exchange rate. Payload for the \u0027ExchangeRatesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "ExemptionCertificateDeploymentStep"
                       }
                     },
@@ -1132,6 +1439,33 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "GarnishmentsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Garnishment orders step. Exports the garnishment orders of the employers the user may export. Case numbers and payee bank accounts only with IncludeSensitiveData. Payload for the \u0027GarnishmentsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeSensitiveData": {
+                            "type": "boolean",
+                            "description": "Whether case numbers and payee bank accounts are written."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "GeoDeploymentStep"
                       }
                     },
@@ -1144,6 +1478,27 @@
                       "Step": {
                         "type": "object",
                         "description": "Service territories step. Exports every service territory, with its shape or postal codes, parent and time zone. Payload for the \u0027GeoDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "IncomeTaxRulesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Income tax rules step. Exports every income tax rule, with its dated versions. Payload for the \u0027IncomeTaxRulesDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -1192,6 +1547,34 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "InvoicesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Invoices step. Exports every invoice, drafts and issued, with its number, lines, totals and history, and optionally the transactions they posted. Payload for the \u0027InvoicesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeTransactions": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether the transactions the invoices posted are exported too, in a Transactions step before the invoices, so an open invoice can be paid where it is imported."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "JsonRecipeDeploymentStep"
                       }
                     },
@@ -1208,6 +1591,292 @@
                           "Json": {
                             "type": "string",
                             "description": "The raw JSON, containing one or more recipe steps, added to the deployment package."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LateFeePoliciesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Late-fee policies step. Exports every late-fee policy. Payload for the \u0027LateFeePoliciesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningAttemptsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning quiz attempts (learner records) step. Exports quiz attempts, quiz overrides and quiz access codes (as hashes), naming people by user name. Needs the Export learner records permission. Payload for the \u0027LearningAttemptsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "QuizId": {
+                            "type": "string",
+                            "description": "The content item id of the quiz to export. Empty for every quiz."
+                          },
+                          "IncludeOverrides": {
+                            "type": "boolean",
+                            "description": "When true, exports the quiz overrides too."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningCertificationPathsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning certification paths step. Exports every certification path with the name of its certification. Payload for the \u0027LearningCertificationPathsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningCredentialAwardsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Credential awards (learner records) step. Exports every digital credential award as it was issued, with the signed credential, 500 a page. People are named by user name. Needs the Export learner records permission. Payload for the \u0027LearningCredentialAwardsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningCreditTypesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Education credit types step. Exports every education credit type. Payload for the \u0027LearningCreditTypesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningEnrollmentsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning enrollments (learner records) step. Exports enrollments with their progress, naming people by user name. Needs the Export learner records permission. Payload for the \u0027LearningEnrollmentsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "CourseId": {
+                            "type": "string",
+                            "description": "The content item id of the course to export. Empty for every course."
+                          },
+                          "FromUtc": {
+                            "type": "string",
+                            "description": "The earliest enrollment date to export, an ISO 8601 UTC time."
+                          },
+                          "ToUtc": {
+                            "type": "string",
+                            "description": "The latest enrollment date to export, an ISO 8601 UTC time."
+                          },
+                          "IncludeProgress": {
+                            "type": "boolean",
+                            "description": "When true, exports the progress on each course item too."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningExternalToolsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "External tools step. Exports Learning\u0027s settings of every external tool (LTI 1.3). The tools\u0027 OpenID applications move with the OpenID steps. Payload for the \u0027LearningExternalToolsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningGradeScalesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning grade scales step. Exports every grade scale with its bands. Payload for the \u0027LearningGradeScalesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningPackageRuntimeStatesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning package runtime states (learner records) step. Exports learners\u0027 SCORM runtime states on learning packages, naming people by user name. The package files stay in the protected store. Needs the Export learner records permission. Payload for the \u0027LearningPackageRuntimeStatesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningRequirementsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Required learning step. Exports every required learning rule, without the states of people. Payload for the \u0027LearningRequirementsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningStatementsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning statements (learner records) step. Exports the xAPI statements of the Learning Record Store as they were stored, 500 a page. The content of attachments stays in the protected store. Needs the Export learner records permission. Payload for the \u0027LearningStatementsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "LearningSubmissionsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Learning coursework submissions (learner records) step. Exports coursework submissions with their grades, naming people by user name. The files stay in the protected store. Needs the Export learner records permission. Payload for the \u0027LearningSubmissionsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "CourseworkId": {
+                            "type": "string",
+                            "description": "The content item id of the coursework to export. Empty for every coursework item."
                           }
                         },
                         "additionalProperties": true
@@ -1524,6 +2193,165 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "PayCodesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Pay codes step. Exports every pay code, with the settings modules keep on it. Payload for the \u0027PayCodesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PayHistoryDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Pay history step. Exports the final pay statements of the employers the user may export, for another site to import as history. Bank accounts, runs, disbursements and checks are left out. Payload for the \u0027PayHistoryDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PayProfilesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Pay profiles and pay items step. Exports the pay profiles and pay items of the employers the user may export. Tax ids only with IncludeSensitiveData. Payload for the \u0027PayProfilesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeSensitiveData": {
+                            "type": "boolean",
+                            "description": "Whether tax ids are written in clear."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PaySchedulesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Pay schedules step. Exports every pay schedule. Payload for the \u0027PaySchedulesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PaymentTermsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Payment terms step. Exports every payment term of the store. Payload for the \u0027PaymentTermsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PayrollFilingsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Tax deposits and filings step. Exports the tax deposits and filings of the employers the user may export. People\u0027s wage statements only with IncludeSensitiveData. Payload for the \u0027PayrollFilingsDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeSensitiveData": {
+                            "type": "boolean",
+                            "description": "Whether each filing\u0027s people (names, addresses and wage statements) are written."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "PosDepartmentsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Register departments step. Exports every department registers ring amounts up in, with its number, tax category, key color and limits. Payload for the \u0027PosDepartmentsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "PriceListsDeploymentStep"
                       }
                     },
@@ -1678,6 +2506,27 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "RecurringPlansDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Recurring invoices step. Exports every recurring plan with its schedule, lines and runs. Payload for the \u0027RecurringPlansDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "ReferralProfilesDeploymentStep"
                       }
                     },
@@ -1758,6 +2607,7 @@
                                 "AccountLocationsPart",
                                 "AccountMembersPart",
                                 "AccountPart",
+                                "AccountTeamPart",
                                 "AliasPart",
                                 "AuditTrailPart",
                                 "AutoroutePart",
@@ -1945,6 +2795,27 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "ServiceLevelPoliciesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Service level policies step. Exports every service level policy. Payload for the \u0027ServiceLevelPoliciesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "ShippingZonesDeploymentStep"
                       }
                     },
@@ -2027,6 +2898,33 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "StaffDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Staff step. Exports every staff member, with teams by name and the user by user name. Payload for the \u0027StaffDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "IncludeSensitiveData": {
+                            "type": "boolean",
+                            "description": "Whether the date of birth is exported."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "StockLocationsDeploymentStep"
                       }
                     },
@@ -2090,6 +2988,111 @@
                   "if": {
                     "properties": {
                       "Type": {
+                        "const": "TicketBoardsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Ticket boards step. Exports every ticket board. Payload for the \u0027TicketBoardsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TicketDesksDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Desks step. Exports every desk. Payload for the \u0027TicketDesksDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TicketPrioritiesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Ticket priorities step. Exports every ticket priority. Payload for the \u0027TicketPrioritiesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TicketStatusesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Ticket statuses step. Exports every ticket status. Payload for the \u0027TicketStatusesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TicketViewsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Ticket views step. Exports every ticket view. Payload for the \u0027TicketViewsDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
                         "const": "TimeTrackerDeploymentStep"
                       }
                     },
@@ -2114,6 +3117,54 @@
                             "description": "How many days back entries are exported."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TimelineEntriesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Timeline entries step. Exports the timeline entries of some kinds of records, oldest first. Payload for the \u0027TimelineEntriesDeploymentStep\u0027 deployment step.",
+                        "properties": {
+                          "SubjectKinds": {
+                            "type": "string",
+                            "description": "The record kinds whose entries are exported, comma-separated, such as WorkOrder,Order. Nothing is exported when it is empty."
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "TransactionsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Transactions step. Exports the whole ledger: every transaction with its timeline, and the payment attempts, refunds and payment issues. Payload for the \u0027TransactionsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }
@@ -2161,6 +3212,69 @@
                             "description": "The translation categories to export."
                           }
                         },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "UsageMetersDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Usage meters step. Exports every usage meter, without its usage. Payload for the \u0027UsageMetersDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "UserAudiencesDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "User audiences step. Exports every audience administrators defined, with its rules. Payload for the \u0027UserAudiencesDeploymentStep\u0027 deployment step.",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "Type": {
+                        "const": "UserCohortsDeploymentStep"
+                      }
+                    },
+                    "required": [
+                      "Type"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "Step": {
+                        "type": "object",
+                        "description": "Cohorts step. Exports every cohort with its people, by user name. Payload for the \u0027UserCohortsDeploymentStep\u0027 deployment step.",
                         "additionalProperties": true
                       }
                     }

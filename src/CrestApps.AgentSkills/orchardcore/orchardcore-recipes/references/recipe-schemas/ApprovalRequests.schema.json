@@ -1,0 +1,195 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ApprovalRequests",
+      "description": "Recipe step discriminator. Must be \u0027ApprovalRequests\u0027."
+    },
+    "Requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The request\u0027s id; one already on the site is skipped."
+          },
+          "subjectKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The kind of record the request is about, such as PayRun."
+          },
+          "subjectId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of that record."
+          },
+          "accessScope": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The access scope within the subject kind."
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What was asked."
+          },
+          "policyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy\u0027s id."
+          },
+          "policyTitle": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The policy\u0027s name when it was asked."
+          },
+          "requiredApprovals": {
+            "type": "integer",
+            "description": "How many approvals it needed, for a request without stages."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "What people saw, such as Manager."
+                },
+                "approvers": {
+                  "type": "array",
+                  "description": "Who could decide the stage: kind and value."
+                },
+                "requiredApprovals": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "How many approvals the stage needed."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The stages the request went through, copied from its policy."
+          },
+          "currentStage": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The index of the last stage decided, from 0."
+          },
+          "requesterName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who asked."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Approved",
+              "Rejected",
+              "Canceled"
+            ],
+            "description": "Where it ended. A pending request is imported as canceled."
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The approver\u0027s user id."
+                },
+                "userName": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The approver\u0027s user name."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "Approve",
+                    "Reject"
+                  ],
+                  "description": "The decision."
+                },
+                "note": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The approver\u0027s note."
+                },
+                "stage": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The index of the stage it was made in, from 0."
+                },
+                "decidedUtc": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "When it was decided (UTC)."
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "The decisions, in order."
+          },
+          "createdUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was asked (UTC)."
+          },
+          "closedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was decided (UTC)."
+          }
+        },
+        "required": [
+          "subjectKind",
+          "subjectId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "Approval requests to add as history: they are never decided again and send no notice."
+    }
+  },
+  "required": [
+    "name",
+    "Requests"
+  ],
+  "additionalProperties": true
+}

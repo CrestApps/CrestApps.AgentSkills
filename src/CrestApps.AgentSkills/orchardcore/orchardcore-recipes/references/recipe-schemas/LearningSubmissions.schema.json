@@ -1,0 +1,133 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningSubmissions",
+      "description": "Recipe step discriminator. Must be \u0027LearningSubmissions\u0027."
+    },
+    "Submissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The submission id, a generated unique id. A submission with this id is updated."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The user name of the learner. A row whose user is not on the site is reported and skipped."
+          },
+          "EnrollmentId": {
+            "type": "string",
+            "description": "The enrollment the work was handed in under."
+          },
+          "CourseId": {
+            "type": "string",
+            "description": "The content item id of the course."
+          },
+          "CourseworkId": {
+            "type": "string",
+            "description": "The content item id of the coursework."
+          },
+          "CourseworkTitle": {
+            "type": "string",
+            "description": "The title of the coursework when the work was handed in."
+          },
+          "Attempt": {
+            "type": "integer",
+            "description": "The attempt number, from one."
+          },
+          "Current": {
+            "type": "boolean",
+            "description": "Whether it is the learner\u0027s latest submission."
+          },
+          "Text": {
+            "type": "string",
+            "description": "The text the learner typed."
+          },
+          "Files": {
+            "type": "array",
+            "description": "The files: FileId, FileName and Size. The files themselves stay in the protected store of the site they were handed in on."
+          },
+          "SubmittedUtc": {
+            "type": "string",
+            "description": "When the work was handed in, in UTC."
+          },
+          "DueUtc": {
+            "type": "string",
+            "description": "The due date of the coursework when the work was handed in, in UTC; the late flag and penalty are worked out from it."
+          },
+          "Late": {
+            "type": "boolean",
+            "description": "Whether it came after the due date."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Submitted",
+              "Graded",
+              "Returned"
+            ],
+            "description": "The state."
+          },
+          "Score": {
+            "type": "number",
+            "description": "The grade as a percentage."
+          },
+          "Points": {
+            "type": "number",
+            "description": "The points given."
+          },
+          "MaxPoints": {
+            "type": "number",
+            "description": "The points the work was graded out of."
+          },
+          "RubricId": {
+            "type": "string",
+            "description": "The content item id of the rubric it was graded against."
+          },
+          "RubricChoices": {
+            "type": "object",
+            "description": "The level id chosen for each rubric criterion id."
+          },
+          "Feedback": {
+            "type": "string",
+            "description": "The grader\u0027s feedback."
+          },
+          "GraderUserName": {
+            "type": "string",
+            "description": "The user name of the grader."
+          },
+          "GradedUtc": {
+            "type": "string",
+            "description": "When it was graded, in UTC."
+          },
+          "ReturnedByUserName": {
+            "type": "string",
+            "description": "The user name of the person who returned it."
+          },
+          "ReturnedUtc": {
+            "type": "string",
+            "description": "When it was returned, in UTC."
+          },
+          "History": {
+            "type": "array",
+            "description": "The earlier grades: Score, Points, MaxPoints, RubricChoices, Feedback, GraderUserName, GradedUtc, ReplacedByUserName, ReplacedUtc, Reason."
+          }
+        },
+        "required": [
+          "UserName",
+          "CourseworkId",
+          "EnrollmentId"
+        ]
+      },
+      "description": "The submissions to create, or update by id."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

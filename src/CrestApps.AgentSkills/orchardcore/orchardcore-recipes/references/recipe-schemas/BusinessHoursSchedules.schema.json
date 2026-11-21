@@ -1,0 +1,122 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "BusinessHoursSchedules",
+      "description": "Recipe step discriminator. Must be \u0027BusinessHoursSchedules\u0027."
+    },
+    "Schedules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The schedule id; omit to match by name."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The unique schedule name."
+          },
+          "Description": {
+            "type": "string",
+            "description": "A description for administrators."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the schedule is used. A disabled schedule counts around the clock."
+          },
+          "Hours": {
+            "type": "object",
+            "properties": {
+              "TimeZoneId": {
+                "type": "string",
+                "description": "The IANA time zone the hours are in, such as America/New_York. Empty means UTC."
+              },
+              "Windows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Day": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 6,
+                      "description": "The day of the week, 0 for Sunday to 6 for Saturday."
+                    },
+                    "OpenMinute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1440,
+                      "description": "The local opening time, in minutes from midnight."
+                    },
+                    "CloseMinute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1440,
+                      "description": "The local closing time, in minutes from midnight (exclusive). The same as the opening time means all day; earlier runs past midnight."
+                    }
+                  },
+                  "required": [
+                    "Day",
+                    "OpenMinute",
+                    "CloseMinute"
+                  ]
+                },
+                "description": "The open windows of the week; a day can have several or none."
+              },
+              "DateExceptions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Date": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "The local date."
+                    },
+                    "Name": {
+                      "type": "string",
+                      "description": "What the date is, such as New Year\u0027s Day."
+                    },
+                    "Closed": {
+                      "type": "boolean",
+                      "description": "Whether the date is closed all day; otherwise it is open only in its special hours."
+                    },
+                    "OpenMinute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1440,
+                      "description": "The special opening time, in minutes from midnight."
+                    },
+                    "CloseMinute": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1440,
+                      "description": "The special closing time, in minutes from midnight."
+                    }
+                  },
+                  "required": [
+                    "Date"
+                  ]
+                },
+                "description": "Holidays and days with special hours."
+              }
+            },
+            "description": "The hours."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The schedules to create, or update by id or name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

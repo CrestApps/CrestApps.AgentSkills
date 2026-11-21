@@ -101,7 +101,7 @@ Durations are `Histogram<double>` instruments in seconds with advised bucket bou
 | Area | Main instruments (tags) |
 |---|---|
 | Orchestration and completions | `crestapps.core.ai.orchestration.duration` and `crestapps.core.ai.orchestration.time_to_first_token` (`orchestrator`, `outcome`), `crestapps.core.ai.completion.time_to_first_token` and `crestapps.core.ai.completion.errors` (`client`, `error.type`), `crestapps.core.ai.planning.duration` |
-| Tools and handlers | `crestapps.core.ai.tool.duration` (`tool.source`, `outcome`), `crestapps.core.ai.tools.scoped_count`, `crestapps.core.ai.handler.errors` (`handler`) |
+| Tools and handlers | `crestapps.core.ai.tool.duration` (`tool.source`, `outcome`), `crestapps.core.ai.tool.denied` (`reason`: `access` when `IAIToolAccessEvaluator` refused a Chat Interaction tool, `approval` when a tool that requires approval was left out of a request that cannot ask), `crestapps.core.ai.tools.scoped_count`, `crestapps.core.ai.handler.errors` (`handler`) |
 | Safety and limits | `crestapps.core.ai.security.prompt_checks` (`decision`, `direction`), `crestapps.core.ai.guardrail.duration`, `crestapps.core.ai.ratelimit.rejections` (`limiter`), `crestapps.core.ai.resilience.retries`, `crestapps.core.ai.resilience.stream_failures` |
 | Retrieval and ingestion | `crestapps.core.ai.retrieval.duration` (`mode`, `outcome`), `crestapps.core.ai.retrieval.fallbacks`, `crestapps.core.ai.embedding.fallbacks`, `crestapps.core.ai.ingestion.duration`, `crestapps.core.ai.ingestion.run.items` (`result`), `crestapps.core.ai.webcrawler.crawl.duration` |
 | Chat, voice and MCP | `crestapps.core.chat.turn.duration`, `crestapps.core.realtime.session.duration` (`end_reason`), `crestapps.core.realtime.sessions.active`, `crestapps.core.realtime.first_audio_latency`, `crestapps.core.mcp.client.connect.duration` (`transport`, `outcome`) |
@@ -335,6 +335,7 @@ ActivitySource.AddActivityListener(activityListener);
 - **A span sits beside the span that should contain it**: an async iterator did not restore `Activity.Current` after `yield return`.
 - **Queued work is in another trace**: this is by design. Follow the link on `crestapps.background.item`.
 - **Log lines have no `SessionId`**: `IncludeScopes` is off, or the OpenTelemetry log provider was added before `ClearProviders()`.
+- **A tool is missing from an agent, realtime or background request**: it was registered with `RequireApproval()` and the request cannot ask for an approval; `crestapps.core.ai.tool.denied` counts it with `reason=approval`. See `crestapps-core-ag-ui`.
 - **Token totals look doubled**: a chart adds `crestapps.core.ai.usage.tokens` to `gen_ai.client.token.usage`, or adds every `token.type`. See `crestapps-core-ai-usage-metering`.
 
 ## Upgrading Within 2.0 Previews

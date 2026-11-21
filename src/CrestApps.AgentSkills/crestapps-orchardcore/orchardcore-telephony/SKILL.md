@@ -1,6 +1,6 @@
 ---
 name: orchardcore-telephony
-description: Skill for configuring and extending the provider-agnostic CrestApps Orchard Core Telephony module and its soft phone. Covers the Telephony, Soft Phone, Soft Phone Extension and Azure Blob Storage features, provider selection, capability-gated provider contracts, TelephonyHub events, dial destination safety, incoming-call cards, call history, extension dialing, encrypted recording storage, TelephonyProviderOptions read through IOptionsMonitor, configuration sections, and upgrading from 2.x. Use this skill when requests mention CrestApps Telephony, soft phone, click-to-dial, extensions, call history, recording storage, or writing a custom telephony provider. Strong matches include CrestApps.OrchardCore.Telephony, CrestApps.OrchardCore.Telephony.Azure, ITelephonyProvider, TelephonyCapabilities, ITelephonyService, TelephonyHub, TelephonySettings, IIncomingCallContextProvider, IDialDestinationPolicy, IRecordingMediaStore, and ProviderVoiceEvent.
+description: Skill for configuring and extending the provider-agnostic CrestApps Orchard Core Telephony module and its soft phone. Covers the Telephony, Soft Phone, Soft Phone Extension and Azure Blob Storage features, provider selection, capability-gated provider contracts, TelephonyHub events, dial destination safety, incoming-call cards, call history, extension dialing, encrypted recording storage, carrier call costs (TelephonyCostSettings), telemetry, TelephonyProviderOptions read through IOptionsMonitor, configuration sections, and upgrading from 2.x. Use this skill when requests mention CrestApps Telephony, soft phone, click-to-dial, extensions, call history, recording storage, or writing a custom telephony provider. Strong matches include CrestApps.OrchardCore.Telephony, CrestApps.OrchardCore.Telephony.Azure, ITelephonyProvider, TelephonyCapabilities, ITelephonyService, TelephonyHub, TelephonySettings, IIncomingCallContextProvider, IDialDestinationPolicy, IRecordingMediaStore, and ProviderVoiceEvent.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -111,7 +111,8 @@ For the full provider walkthrough, event normalization rules, and transport mode
 Settings live under **Settings → Communication → Telephony** (group `TelephonyConstants.SettingsGroupId`, value `telephony`) and require `ManageTelephonySettings`. The **Soft Phone** tab selects the default provider and lists **Allowed short codes**; every enabled provider adds its own tab through a `SiteDisplayDriver<TSettings>` whose `SettingsGroupId` is `TelephonyConstants.SettingsGroupId`.
 
 - Enabling the only configured provider makes it the default. Disabling the default provider clears `TelephonySettings.DefaultProviderName` and the soft phone is disabled until a new default is chosen.
-- Settings export through the **Telephony Settings** and **Soft Phone Widget Settings** deployment steps and import through the built-in `Settings` recipe step. Provider credentials travel through each provider's own step.
+- The **Costs** tab (`TelephonyCostSettings` in `CrestApps.OrchardCore.Telephony.Abstractions`: `Currency`, default `USD`, and `PerMinute`, the carrier's price of a phone-call minute) feeds the AI voice usage report's per-call cost estimate: the call's minutes at this price plus the AI deployment's prices. It replaces the removed **Costs** card and `AICostSettings` of **Settings → Artificial Intelligence**; a Telephony migration moves an existing per-minute price and currency once. There is no per-text price.
+- Settings export through the **Telephony Settings** and **Soft Phone Widget Settings** deployment steps and import through the built-in `Settings` recipe step. Provider credentials travel through each provider's own step. No deployment step exports `TelephonyCostSettings`; set it with the `Settings` step, which stores any named site setting.
 
 ```json
 {
@@ -121,6 +122,10 @@ Settings live under **Settings → Communication → Telephony** (group `Telepho
       "TelephonySettings": {
         "DefaultProviderName": "Telnyx",
         "AllowedShortCodes": ["611"]
+      },
+      "TelephonyCostSettings": {
+        "Currency": "USD",
+        "PerMinute": 0.012
       },
       "SoftPhoneWidgetSettings": {
         "Enabled": true,
@@ -167,6 +172,7 @@ With `CrestApps.OrchardCore.Telephony.SoftPhone` enabled, the **Soft Phone** tab
 - The keypad normalizes a valid national number to E.164 using intl-tel-input so outbound compliance screening (`orchardcore-dnc-registry`, `orchardcore-phone-numbers`) sees a canonical number. The **Dial extension** toggle sends `DialRequest.IsExtension` and skips that screening.
 - The Phone Field editor and display expose a `data-phone-dial` placeholder; the soft phone attaches a **Call with the soft phone** button that posts to `softphone/dial`. A call started there is a manual call, screened by the Contact Center Dialer's `IOutboundCallScreener` (do-not-call, unreadable numbers, an optional manual calling window) when Contact Center is enabled. With the Extension feature, `SoftPhoneExtensionDialerFilter` enables the button on admin pages and the hub sends `DialRequested` to the standalone phone.
 - Modules add footer tabs with a `DisplayDriver<SoftPhoneWidget>`; Contact Center adds the **Work** tab this way.
+- The phone rings for one incoming call at a time: a new leg is declined while another call rings or the agent is on a call (unless the agent is answering, when a late leg of that call may arrive), and a Contact Center offer declines a different leg still ringing. Each platform leg is tied to the first call reported live on it, so a call-ended report or an empty active-calls refresh hangs up only the leg of the call it names; the diagnostics tab reports `platform-leg-hangup` when the server ends a leg.
 - Browser audio providers register `window.telephonySoftPhone.mediaAdapters[adapterName]`; the server provider must implement `ITelephonyAudioProvider`, advertise `Browser`, and return the same `BrowserMediaAdapterName`.
 
 ### Hub and Client Events
@@ -210,7 +216,7 @@ Register it with `services.AddScoped<IIncomingCallContextProvider, CustomerIncom
 
 ## Extensions
 
-The tenant-scoped extension registry maps a dialed number to an Orchard user, managed under **Interaction Center → Management → Extensions** with `ManageTelephonyExtensions`. The editor picks the user with the searchable user picker, which searches on the server instead of listing every user. The list is an Orchard Core `AdminList` named `TelephonyExtensions` with `Name`, `Number`, and `User` grid columns, so other modules can add columns through `IAdminListColumnsProvider` (see `orchardcore-admin-lists`). Extensions import through the `TelephonyExtension` recipe step. Details, the provider contract, and the recipe shape are in [references/extension-dialing.md](references/extension-dialing.md).
+The tenant-scoped extension registry maps a dialed number to an Orchard user, managed under **Interaction Center → Management → Extensions** when Contact Center is enabled, otherwise **Settings → Communication → Extensions**, with `ManageTelephonyExtensions`. With `CrestApps.OrchardCore.Staff` enabled, the staff editor shows a **Phone** card and a person who leaves has their extension freed (`TelephonyStaffLifecycleObserver`, see `orchardcore-staff`). The editor picks the user with the searchable user picker, which searches on the server instead of listing every user. The list is an Orchard Core `AdminList` named `TelephonyExtensions` with `Name`, `Number`, and `User` grid columns, so other modules can add columns through `IAdminListColumnsProvider` (see `orchardcore-admin-lists`). Extensions import through the `TelephonyExtension` recipe step. Details, the provider contract, and the recipe shape are in [references/extension-dialing.md](references/extension-dialing.md).
 
 ## Recording Storage
 
@@ -241,6 +247,21 @@ The tenant-scoped extension registry maps a dialed number to an Orchard user, ma
 
 Environment variables keep the single underscore, for example `OrchardCore__CrestApps_Telephony__Commands__Timeout=00:00:15`. Options are validated on tenant activation, and each lease expiration must exceed its lock timeout.
 
+## Monitoring
+
+`TelephonyTelemetry` publishes the meter and activity source `CrestApps.OrchardCore.Telephony` (matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry` and `orchardcore-observability`) for every provider:
+
+| Instrument | Tags | Measures |
+|---|---|---|
+| `crestapps.telephony.command.duration` | `command`, `provider`, `outcome` (`ok`, `error`, `timeout`, `cancelled`, `not_admitted`), `reason`, `error.type` | One provider mutation run by `DefaultTelephonyCommandExecutor` |
+| `crestapps.telephony.dial.screenings` | `stage` (`destination_policy`, `compliance`), `result`, `reason` | Soft-phone dials screened |
+| `crestapps.telephony.softphone.credentials` | `provider`, `operation` (`issue`, `revoke`), `outcome` | Browser SIP credentials |
+| `crestapps.telephony.reconcile.corrections` | `provider`, `action` | Orphaned calls ended by a sweep; any steady rate means lost events |
+| `crestapps.telephony.recording.ingest.duration`, `.lag`, `.backlog_age` | `provider`, `result` | Recording ingest jobs |
+| `crestapps.telephony.voice_event.discards` | `provider`, `reason` | Stale or out-of-order provider voice events |
+
+Spans: `crestapps.telephony.command`, `crestapps.telephony.recording.ingest`. No metric carries a call id, phone number or SIP URI. Pass the provider to the `ITelephonyCommandExecutor.ExecuteAsync(providerName, command, operation)` overload so commands are tagged; the old overload records `command` = `unknown`.
+
 ## Permissions
 
 | Permission | Name | Use |
@@ -261,7 +282,8 @@ Environment variables keep the single underscore, for example `OrchardCore__Cres
 - The CrestApps SignalR module is deprecated in favor of `OrchardCore.SignalR`; replace `HubRouteManager` with `SignalRHubRoutes.GetHubPath<T>()` and `Html.SignalRHubUrl<T>()`.
 - The extension list renders through the Orchard Core `AdminList` shape; whole-row template overrides only apply to the List layout. Use `SummaryAdminGrid` placement for the Grid layout.
 - Modules that pushed to `TelephonyHub` clients directly should call `ISoftPhoneClientNotifier`; read `SoftPhoneWidgetSettings` from `CrestApps.OrchardCore.Telephony.Abstractions` rather than the Telephony module.
-- Admin edit forms render their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`); theme overrides or UI tests that look for the old `ocat-wrapper` button row must update.
+- Admin edit forms render their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`): **Cancel** first, secondary actions next, the primary **Save** last. Theme overrides or UI tests that look for the old `ocat-wrapper` button row must update.
+- `AICostSettings` was removed from the AI module; read the carrier price from `TelephonyCostSettings` (`site.GetOrCreate<TelephonyCostSettings>()`). `AICallMetrics.EstimateCost` takes the per-minute price and its currency instead of a settings object.
 
 ## Troubleshooting
 

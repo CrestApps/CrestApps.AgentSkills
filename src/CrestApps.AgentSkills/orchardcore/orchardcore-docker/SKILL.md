@@ -21,7 +21,8 @@ You are an Orchard Core expert. Generate Dockerfiles, docker-compose configurati
 - Use `docker-compose` to orchestrate Orchard Core with database services (SQL Server, MySQL, PostgreSQL).
 - For HTTPS in containers, mount ASP.NET Core developer certificates or use production certificates.
 - Prune intermediate images after building to reclaim disk space.
-- Target the appropriate .NET base images for your environment and framework version.
+- Orchard Core 4.0 targets `net11.0`: build with `mcr.microsoft.com/dotnet/sdk:11.0` and run on `mcr.microsoft.com/dotnet/aspnet:11.0` (or their `-alpine`/`-nanoserver-ltsc2025` variants).
+- `dotnet publish` of an app referencing `OrchardCore.Application.Cms.Targets` or `OrchardCore.Application.Mvc.Targets` always creates a `wwwroot` folder in the output, even when the project has none, so static files and the resized image cache work in the container. If a published app has no `wwwroot`, update the Orchard Core packages.
 - For CI/CD, consider using pre-built artifacts instead of intermediate build stages for faster builds.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier.
@@ -32,7 +33,7 @@ Use a multi-stage Dockerfile to build and publish the Orchard Core application w
 
 ```dockerfile
 # TARGETARCH and TARGETOS are set automatically when --platform is provided.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build-env
 ARG TARGETOS
 LABEL stage=build-env
 WORKDIR /source
@@ -42,11 +43,11 @@ COPY ./src ./src
 COPY Directory.Build.props .
 COPY Directory.Packages.props .
 
-RUN dotnet publish src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj -c Release -o /app --framework net10.0 /p:RunAnalyzers=false
+RUN dotnet publish src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj -c Release -o /app --framework net11.0 /p:RunAnalyzers=false
 
 # Pick the runtime image for the target OS.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025 AS build_windows
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS build_linux
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-nanoserver-ltsc2025 AS build_windows
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS build_linux
 FROM build_${TARGETOS} AS aspnet
 
 EXPOSE 80
@@ -66,7 +67,7 @@ platform with `docker buildx build --platform linux/amd64 -t orchardcore-app .`.
 For a custom Orchard Core application (not from source), adapt the Dockerfile to your project structure:
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build-env
 LABEL stage=build-env
 WORKDIR /app
 
@@ -81,7 +82,7 @@ COPY . .
 RUN dotnet publish src/MyOrchardApp.Web -c Release -o /app/publish --no-restore
 
 # Runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
 WORKDIR /app
@@ -309,7 +310,7 @@ For HTTPS deployment in Docker containers, refer to the ASP.NET Core documentati
 Example with a PFX certificate:
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 EXPOSE 80
 EXPOSE 443
 ENV ASPNETCORE_URLS="https://+:443;http://+:80"
@@ -334,9 +335,9 @@ Target specific .NET base images for different environments:
 
 | Environment | SDK Image | Runtime Image |
 |-------------|-----------|---------------|
-| Linux x64 | `mcr.microsoft.com/dotnet/sdk:10.0` | `mcr.microsoft.com/dotnet/aspnet:10.0` |
-| Linux Alpine | `mcr.microsoft.com/dotnet/sdk:10.0-alpine` | `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` |
-| Windows | `mcr.microsoft.com/dotnet/sdk:10.0-nanoserver-ltsc2025` | `mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025` |
+| Linux x64 | `mcr.microsoft.com/dotnet/sdk:11.0` | `mcr.microsoft.com/dotnet/aspnet:11.0` |
+| Linux Alpine | `mcr.microsoft.com/dotnet/sdk:11.0-alpine` | `mcr.microsoft.com/dotnet/aspnet:11.0-alpine` |
+| Windows | `mcr.microsoft.com/dotnet/sdk:11.0-nanoserver-ltsc2025` | `mcr.microsoft.com/dotnet/aspnet:11.0-nanoserver-ltsc2025` |
 
 Alpine-based images produce the smallest containers but may have compatibility
 differences. Image resizing uses NetVips; its native libvips binaries come from
@@ -349,7 +350,7 @@ The .NET 8+ images include an `app` user. To run without root, listen on an
 unprivileged port and make the volumes writable by that user:
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 WORKDIR /app
@@ -368,8 +369,8 @@ For CI/CD pipelines (e.g., GitHub Actions), the application is typically built o
 FROM --platform=$BUILDPLATFORM golang:alpine AS build
 ARG TARGETOS
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-nanoserver-ltsc2025 AS build_windows
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS build_linux
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-nanoserver-ltsc2025 AS build_windows
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS build_linux
 FROM build_${TARGETOS} AS aspnet
 
 EXPOSE 80
@@ -381,7 +382,7 @@ ENTRYPOINT ["dotnet", "OrchardCore.Cms.Web.dll"]
 
 This mirrors the repository's `Dockerfile-CI`; the small `golang:alpine` stage
 only lets BuildKit resolve `TARGETOS`. A single-platform pipeline can simply use
-`FROM mcr.microsoft.com/dotnet/aspnet:10.0` and `COPY ./publish .`.
+`FROM mcr.microsoft.com/dotnet/aspnet:11.0` and `COPY ./publish .`.
 
 This avoids the intermediate build stage and produces faster image builds in the pipeline.
 

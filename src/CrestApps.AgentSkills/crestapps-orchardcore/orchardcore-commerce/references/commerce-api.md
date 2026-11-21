@@ -1,6 +1,6 @@
 # Commerce JSON API
 
-Base path `api/commerce/v1` (with a tenant prefix first, such as `shop/api/commerce/v1`). JSON over HTTPS, `camelCase` names, ISO 8601 UTC dates in fields ending in `Utc`, problems as RFC 9457. Shared code lives in `CrestApps.OrchardCore.Commerce.Api.Core`.
+Base path `api/commerce/v1` (with a tenant prefix first, such as `shop/api/commerce/v1`). JSON over HTTPS, `camelCase` names, ISO 8601 UTC dates in fields ending in `Utc`, problems as RFC 9457. Shared commerce code lives in `CrestApps.OrchardCore.Commerce.Api.Core` (`MapCommerceApi`, `AllowGuests`, `ApiMoney`, `ApiPage<T>`, `CommerceProblemCodes`, `ApiAddress`); `ApiProblems`, `WithIdempotency`, `IdempotencyPolicy`, `IdempotentOperation` and `MapModuleApi` are shared by every module API in `CrestApps.OrchardCore.Api` (`CrestApps.OrchardCore.Core`).
 
 ## API features
 

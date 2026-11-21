@@ -248,7 +248,7 @@ public sealed class ApiEndpointResourceHandler : McpResourceTypeHandlerBase
 
 ## Recipe: create MCP resources
 
-`Uri` may be the path portion; the import expands it to `{source}://{itemId}/{path}`.
+`Uri` may be the path portion; the import expands it to `{source}://{itemId}/{path}`. A `file` resource reads only the tenant's `App_Data/Sites/{tenant}/McpFiles` folder, or, with a `{providerName}/{fileName}` template, the provider the client names from those registered with `McpFileProviderOptions` (a literal provider name in the template is only part of the path).
 
 ```json
 {
@@ -258,12 +258,12 @@ public sealed class ApiEndpointResourceHandler : McpResourceTypeHandlerBase
       "Resources": [
         {
           "Source": "file",
-          "DisplayText": "Site configuration",
+          "DisplayText": "Shared files",
           "Resource": {
-            "Uri": "{providerName}/{fileName}",
-            "Name": "site-config",
-            "Description": "Files from a named file provider",
-            "MimeType": "application/json"
+            "Uri": "{fileName}",
+            "Name": "shared-files",
+            "Description": "Files placed in the tenant McpFiles folder",
+            "MimeType": "text/markdown"
           }
         },
         {

@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-mcp-file-resources
-description: Skill for exposing FTP, FTPS and SFTP files as CrestApps.Core MCP resource types with the consolidated CrestApps.Core.AI.Ftp and CrestApps.Core.AI.Sftp packages. Covers AddFtpResources, AddSftpResources, AddCoreAIFtpMcpResources and AddCoreAISftpMcpResources, FtpResourceTypeHandler and SftpResourceTypeHandler, the path URI variable and its sanitization, FtpConnectionMetadata and SftpConnectionMetadata with Data Protection purposes, the matching file source ingestion connectors in the same packages, and upgrading from CrestApps.Core.AI.Mcp.Ftp and CrestApps.Core.AI.Mcp.Sftp.
+description: Skill for exposing FTP, FTPS and SFTP files as CrestApps.Core MCP resource types with the consolidated CrestApps.Core.AI.Ftp and CrestApps.Core.AI.Sftp packages. Covers AddFtpResources, AddSftpResources, AddCoreAIFtpMcpResources and AddCoreAISftpMcpResources, FtpResourceTypeHandler and SftpResourceTypeHandler, the path URI variable and its sanitization, FtpConnectionMetadata and SftpConnectionMetadata with Data Protection purposes, SFTP host key fingerprints with SftpHostKeys, FtpOptions AllowAnyCertificate and AllowUnencrypted, MaxResourceBytes and RemoteFileResourceHandlerBase, the matching file source ingestion connectors in the same packages, and upgrading from CrestApps.Core.AI.Mcp.Ftp and CrestApps.Core.AI.Mcp.Sftp.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -49,6 +49,7 @@ Both registration methods take an optional `Action<McpResourceTypeEntry>` to cha
 - Both expose one optional `path` variable, for example a resource URI template `ftp://reports/{path}`. An omitted value becomes `/`.
 - `SanitizePath` rejects null bytes and `.` or `..` segments, normalizes `\` to `/` and collapses empty segments, and the handler prefixes the result with `/`.
 - Content is returned as `TextResourceContents` with the resource's MIME type, or one detected from the file extension, falling back to `application/octet-stream`.
+- Both derive from `RemoteFileResourceHandlerBase<TMetadata>`, which stops reading at the metadata's `MaxResourceBytes` (5 MB when not set) and answers with an error instead of buffering a larger file. Derive a custom remote-file handler from it to get the same limit.
 
 ## Attach FTP Metadata
 
@@ -73,7 +74,18 @@ resource.Put(new FtpConnectionMetadata
 });
 ```
 
-`ValidateAnyCertificate` disables TLS certificate validation; use it only against a server you control.
+A connection with a `Username` must use `EncryptionMode` `Explicit` or `Implicit`; unset, `None` and `Auto` can run in plain text and are refused unless the host sets `FtpOptions.AllowUnencrypted`. `ValidateAnyCertificate` is honored only when the host sets `FtpOptions.AllowAnyCertificate`; otherwise the connection is refused with `FtpOptions.AnyCertificateNotAllowedMessage`. Anonymous connections are not affected. Both checks are `FtpOptions.GetPolicyViolation(metadata)`, used by the resource handler and the ingestion connector:
+
+```csharp
+using CrestApps.Core.AI.Ftp;
+
+// Development servers only.
+builder.Services.Configure<FtpOptions>(options =>
+{
+    options.AllowAnyCertificate = true;
+    options.AllowUnencrypted = true;
+});
+```
 
 ## Attach SFTP Metadata
 
@@ -91,12 +103,13 @@ resource.Put(new SftpConnectionMetadata
     Username = "reader",
     PrivateKey = protector.Protect(privateKeyPem),
     Passphrase = protector.Protect(passphrase),
+    HostKeyFingerprint = "SHA256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU", // as ssh-keygen -lf prints it
     ConnectionTimeout = 30,
     KeepAliveInterval = 30,
 });
 ```
 
-The handler requires `Host` and at least one protected `Password` or `PrivateKey`, and reads `Username` for the SSH authentication methods. `SftpConnectionMetadata` declares `ProxyType`, `ProxyHost`, `ProxyPort`, `ProxyUsername` and `ProxyPassword`, but the resource handler does not apply them to its `ConnectionInfo`.
+The handler requires `Host`, at least one protected `Password` or `PrivateKey`, and `HostKeyFingerprint` (`SHA256:...` or the legacy MD5 hex form; separate several with commas to rotate a key). `SftpHostKeys` refuses the connection when no fingerprint is stored or the server presents a different key, so credentials never reach an unverified server (the factory throws `InvalidOperationException`, the handler returns an error result). It reads `Username` for the SSH authentication methods. `SftpConnectionMetadata` declares `ProxyType`, `ProxyHost`, `ProxyPort`, `ProxyUsername` and `ProxyPassword`, but the resource handler does not apply them to its `ConnectionInfo`.
 
 | Constant | Value |
 |---|---|
@@ -108,6 +121,13 @@ The ingestion connectors decrypt with the same purposes, so a file source and an
 ## Resource Records
 
 Create an `McpResource` whose `Source` is `ftp` or `sftp` and whose `Resource.Uri` is a fixed URI or a template containing `{path}`, then `Put(...)` the connection metadata on it. The metadata is read at resource-read time and is never shown to the MCP client. Use an `IMcpResourceHandler.Exporting` handler to remove credentials when resources are exported.
+
+## Upgrading Within 2.0 Previews
+
+- Store `HostKeyFingerprint` on every SFTP resource and file source, or those connections stop working.
+- Set `EncryptionMode` to `Explicit` or `Implicit` on FTP connections with credentials, or allow plain FTP with `FtpOptions.AllowUnencrypted`; `ValidateAnyCertificate` needs `FtpOptions.AllowAnyCertificate`.
+- `FtpRemoteFileClientFactory` and `FtpResourceTypeHandler` take an `IOptions<FtpOptions>`; only code that constructs them changes.
+- Reads above `MaxResourceBytes` (resources, 5 MB) or `MaxFileBytes` (ingestion, 100 MB) are refused instead of buffered.
 
 ## Upgrading from 1.x
 

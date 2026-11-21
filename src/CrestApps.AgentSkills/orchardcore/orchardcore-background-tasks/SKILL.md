@@ -1,6 +1,6 @@
 ---
 name: orchardcore-background-tasks
-description: Skill for creating background tasks and scheduled jobs in Orchard Core. Covers IBackgroundTask implementation, the BackgroundTask attribute (Title, Schedule, Description, Enable, LockTimeout, LockExpiration, UsePipeline), atomic tasks with distributed locks, BackgroundServiceOptions, IBackgroundTaskEventHandler, the Background Tasks admin list with execution state, details page, Run now and bulk actions, IBackgroundTaskMonitor, and web farm behavior. Use this skill when requests mention Orchard Core Background Tasks, creating or registering a background task, task schedules or lock settings, running a task on demand, why a task failed, cron expressions, or closely related setup or troubleshooting work. Strong matches include OrchardCore.BackgroundTasks, IBackgroundTask, BackgroundTaskAttribute, BackgroundTaskSettings, BackgroundServiceOptions, MaxRecentRuns, IBackgroundTaskMonitor, BackgroundTaskState, RequestRunAsync, ManageBackgroundTasks.
+description: Skill for creating background tasks and scheduled jobs in Orchard Core. Covers IBackgroundTask implementation, long-running and never-completing tasks bounded by PollingTime, the BackgroundTask attribute (Title, Schedule, Description, Enable, LockTimeout, LockExpiration, UsePipeline), atomic tasks with distributed locks, BackgroundServiceOptions, IBackgroundTaskEventHandler, the Background Tasks admin list with execution state, details page, Run now and bulk actions, IBackgroundTaskMonitor, and web farm behavior. Use this skill when requests mention Orchard Core Background Tasks, creating or registering a background task, task schedules or lock settings, running a task on demand, why a task failed, cron expressions, or closely related setup or troubleshooting work. Strong matches include OrchardCore.BackgroundTasks, IBackgroundTask, BackgroundTaskAttribute, BackgroundTaskSettings, BackgroundServiceOptions, MaxRecentRuns, IBackgroundTaskMonitor, BackgroundTaskState, RequestRunAsync, ManageBackgroundTasks.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -28,6 +28,7 @@ You are an Orchard Core expert. Generate background task implementations for Orc
 - A task without a `Title` is shown with a title built from its type name (`ChunkFileUploadBackgroundTask` → **Chunk File Upload**). Prefer setting `Title` explicitly.
 - The editor rejects a schedule that is not a valid cron expression. An unusable schedule (for example `0 0 31 2 *`) shows the next run as **never** and only stops that task from running on schedule.
 - Use `ILogger` for logging task execution and errors, and honor the `CancellationToken`.
+- A task that takes longer than the polling time (`PollingTime`, one minute by default, or `MinimumIdleTime` if longer), or never completes, no longer blocks the background tasks of all tenants: it keeps running, the other tasks run without waiting for it, a warning is logged once, and it is not run again (on schedule or on demand) until it completes. See [Long-Running Tasks](#long-running-tasks).
 - Tasks should be idempotent and handle concurrent execution gracefully.
 - Always seal classes.
 
@@ -199,7 +200,17 @@ The host polls every tenant's tasks. Configure it in `appsettings.json` of the s
 }
 ```
 
-`MaxRecentRuns` (default `10`) is the number of completed runs kept in memory per task for the details page.
+`PollingTime` (default `00:01:00`) is the time between two executions of a tenant's tasks, and also bounds how long the service waits for one task before running the others. `MinimumIdleTime` (default `00:00:10`) is the idle time before a tenant's tasks are triggered and between tasks. `MaxRecentRuns` (default `10`) is the number of completed runs kept in memory per task for the details page.
+
+### Long-Running Tasks
+
+The background service runs the due tasks of a tenant one after the other, and the tenants in parallel. It waits for each task at most for `PollingTime` (or `MinimumIdleTime` if longer):
+
+- A task still running after that time keeps running while the other tasks run; a warning is logged once for the run.
+- Until it completes, the task is not run again, neither on schedule nor with **Run now**. Once it completes, it runs again if a scheduled occurrence passed meanwhile.
+- When the application stops, the token passed to `DoWorkAsync` is cancelled and running tasks are awaited up to the host shutdown timeout.
+
+The service can't stop a task that ignores its `CancellationToken` or blocks its thread. Give calls to services that may not respond a timeout so the task completes. Several long tasks due at the same time in one tenant are still awaited one after the other, so they can delay the others by several polling times.
 
 ### Reading the Execution State from Code
 

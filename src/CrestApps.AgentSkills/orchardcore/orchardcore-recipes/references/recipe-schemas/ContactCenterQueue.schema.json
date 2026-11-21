@@ -86,7 +86,7 @@
               "null",
               "string"
             ],
-            "description": "Identifier of the business-hours calendar that gates when the queue routes work. When empty, the queue routes around the clock."
+            "description": "Identifier of the Business Hours schedule that gates when the queue routes work. When empty, the queue routes around the clock."
           },
           "AfterHoursAction": {
             "type": "string",
@@ -94,7 +94,7 @@
               "HoldInQueue",
               "Overflow"
             ],
-            "description": "Action taken for waiting items while the queue\u0027s business-hours calendar reports closed."
+            "description": "Action taken for waiting items while the queue\u0027s Business Hours schedule reports closed."
           },
           "OverflowQueueId": {
             "type": [

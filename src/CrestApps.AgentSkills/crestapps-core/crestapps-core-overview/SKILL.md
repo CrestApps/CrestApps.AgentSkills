@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-overview
-description: Entry point for CrestApps.Core 2.0 in any ASP.NET Core or generic .NET host. Covers the full NuGet package map, the AddCrestAppsCore and AddAISuite builder chain, the CrestApps AI Connections and Deployments configuration layout, declaring deployment model capabilities (Features) and resolving deployments through slots with ResolveSlotAsync and AIDeploymentSlotNames, choosing a storage backend and sample host, the cross-cutting 2.0 breaking changes (AIDeploymentPurpose removal, Indexers renamed to FileSources, the new Ingestion package, consolidated FTP and SFTP packages, Vite-built chat assets), and an index of every crestapps-core skill. Use this skill first when a request mentions CrestApps.Core packages, getting started, which package or skill to use, or upgrading a CrestApps.Core 1.x host.
+description: Entry point for CrestApps.Core 2.0 in any ASP.NET Core or generic .NET host. Covers the full NuGet package map, the AddCrestAppsCore and AddAISuite builder chain, the CrestApps AI Connections and Deployments configuration layout, declaring deployment model capabilities (Features) and resolving deployments through slots with ResolveSlotAsync and AIDeploymentSlotNames, choosing a storage backend and sample host, the cross-cutting 2.0 breaking changes (AIDeploymentPurpose removal, Indexers renamed to FileSources, the new Ingestion package, consolidated FTP and SFTP packages, Vite-built chat assets), the net10.0 and net11.0 targets, the November 2026 security changes, and an index of every crestapps-core skill. Use this skill first when a request mentions CrestApps.Core packages, getting started, which package or skill to use, or upgrading a CrestApps.Core 1.x host.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,6 +19,7 @@ You are a CrestApps.Core expert. Start here to pick packages, compose the builde
 - A deployment declares what its model can do (**capabilities**, the `Features` list). Code asks for a **slot** (`chat`, `utility`, `embedding`, `image`, `vision`, `speechToText`, `textToSpeech`, `realtime`) and lets `IAIDeploymentManager.ResolveSlotAsync(...)` pick the deployment. Never select deployments by a purpose or type; those APIs are gone in 2.0.
 - Without a store package, connections and deployments come only from configuration, and nothing stores AI Profiles, chat sessions or Chat Interactions. Add `CrestApps.Core.Data.EntityCore` or `CrestApps.Core.Data.YesSql` (see `crestapps-core-data-storage`) before using those features.
 - Use the MVC sample host (`CrestApps.Core.Mvc.Web`) as the broadest reference and the Blazor host (`CrestApps.Core.Blazor.Web`) for an Entity Framework Core composition.
+- The packages target `net10.0` and `net11.0` (each NuGet package has both builds). Building the CrestApps.Core repository needs the .NET 11 SDK; the sample hosts, Aspire host, end-to-end tests and benchmarks build for `net10.0` only.
 
 ## Smallest Useful Setup
 
@@ -151,6 +152,7 @@ Resolution order for a slot is: the explicit deployment name, the slot's site de
 | Foundation | `CrestApps.Core.Abstractions`, `CrestApps.Core`, `CrestApps.Core.Infrastructure.Abstractions`, `CrestApps.Core.Infrastructure`, `CrestApps.Core.Support` | `crestapps-core-foundations` |
 | AI runtime | `CrestApps.Core.AI.Abstractions`, `CrestApps.Core.AI` | `crestapps-core-ai-runtime` |
 | Chat and sessions | `CrestApps.Core.AI.Chat` | `crestapps-core-chat`, `crestapps-core-chat-interactions` |
+| AG-UI | `CrestApps.Core.AI.AGUI` (plus `CrestApps.Core.AI.Chat` for `RunAgent` and `MapAGUIChat`) | `crestapps-core-ag-ui` |
 | Realtime voice | `CrestApps.Core.AI.WebRTC` (plus `CrestApps.Core.AI.Chat`) | `crestapps-core-realtime-voice` |
 | SignalR hubs | `CrestApps.Core.SignalR` | `crestapps-core-signalr` |
 | Templates | `CrestApps.Core.Templates` | `crestapps-core-templates`, `crestapps-core-ai-templates` |
@@ -184,6 +186,7 @@ Resolution order for a slot is: the explicit deployment name, the slot's site de
 | Conversation privacy | `.AddConversationPrivacy()` | `CrestApps.Core.AI.Chat` |
 | Profile versions | `.AddProfileVersions(v => v.AddYesSqlStores())` | store packages |
 | Browser tools (WebMCP) | `.AddWebMcp(webMcp => webMcp.AddPageTools<THub>())` and `app.MapWebMcpTools()` | `CrestApps.Core.AI.WebMcp` |
+| AG-UI over HTTP for other clients | `app.MapAGUIChat<THub>()` (the chat hub's `RunAgent` needs nothing) | `CrestApps.Core.AI.Chat` |
 | ElevenLabs or Cartesia voices | `.AddElevenLabs()`, `.AddCartesia()` | `CrestApps.Core.AI.ElevenLabs`, `CrestApps.Core.AI.Cartesia` |
 | Personas | `.AddPersonas(personas => personas.AddYesSqlStores())` | `CrestApps.Core.AI` |
 | User-configured tool instances | `.AddToolInstances(...)` | `CrestApps.Core.AI` |
@@ -224,6 +227,7 @@ AI runtime
 Chat and voice
 
 - `crestapps-core-chat`, `crestapps-core-chat-interactions`, `crestapps-core-external-relays`, `crestapps-core-realtime-voice`.
+- `crestapps-core-ag-ui` - the chat as an AG-UI agent: tool calls, tool approvals, page context, shared state, frontend tools.
 - `crestapps-core-speech-voices` - ElevenLabs and Cartesia speech, the voice library and speech markup.
 
 Knowledge and documents
@@ -248,7 +252,13 @@ For Orchard Core modules built on CrestApps.Core, use the `orchardcore-ai` famil
 - **Memory indexing is part of `AddAIMemory()`**; remove a host-registered indexing handler. See `crestapps-core-ai-memory`.
 - **`TopP` and the penalties default to `null`, and 30 tool-calling iterations are allowed per request.** See `crestapps-core-orchestration`.
 - **PDFsharp and MigraDoc are removed** from `CrestApps.Core.AI.Documents.Pdf`. See `crestapps-core-document-agents`.
-- Package floor: Fluid.Core 3.0.0-beta.9, YesSql 6.1.0, ModelContextProtocol 2.3.1.
+- **AG-UI is the chat UI's default protocol** (`RunAgent`); set `protocol: 'legacy'` to keep `SendMessage`. See `crestapps-core-ag-ui`.
+- **Tools marked `RequireApproval()` are left out of requests that cannot ask** (agents, realtime, background, other channels). See `crestapps-core-custom-tools`.
+- **Security hardening** (November 2026 review): the visitor resolver ignores `X-Forwarded-For` (configure `UseForwardedHeaders`); document upload and remove endpoints validate antiforgery and each document `Add*Endpoint()` returns `RouteHandlerBuilder`; chat answers draw images only from `allowedImageHosts` and lose ids, `data-coreai-*` attributes and positioning styles; SFTP needs a host key fingerprint and FTP with credentials needs TLS (`FtpOptions`); remote reads are size-bounded; HTTP API OAuth tokens are bound to their addresses. See `crestapps-core-chat-interactions`, `crestapps-core-prompt-security`, `crestapps-core-mcp-file-resources` and `crestapps-core-tool-instances`.
+- **`AIChatSessionIndex.ClientId`** needs a column migration on existing YesSql databases. See `crestapps-core-yessql-stores`.
+- **File source and web crawler JSON imports apply `Properties`.** See `crestapps-core-file-sources`.
+- **Target frameworks**: `net10.0` and `net11.0`. On `net11.0` the Microsoft.Extensions, ASP.NET Core and EF Core dependencies resolve to 11.0.0 (`Microsoft.Extensions.AI` 11.0.0, `Microsoft.Extensions.AI.OpenAI` stays 10.9.0); on `net10.0` they stay on 10.x.
+- Package floor: Fluid.Core 3.0.0-beta.9, YesSql 6.3.0, ModelContextProtocol 2.4.0, AGUI.Abstractions and AGUI.Formatting 1.0.1, OpenTelemetry.Extensions.Hosting 1.21.0.
 
 ## Upgrading from 1.x
 

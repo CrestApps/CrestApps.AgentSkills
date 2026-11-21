@@ -1,0 +1,125 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TimelineEntries",
+      "description": "Recipe step discriminator. Must be \u0027TimelineEntries\u0027."
+    },
+    "Entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The entry id; omit for a new entry."
+          },
+          "Subject": {
+            "type": "string",
+            "examples": [
+              "WorkOrder:4abc",
+              "Order:4def"
+            ],
+            "description": "The record the entry is on, as Kind:Id."
+          },
+          "Kind": {
+            "type": "string",
+            "examples": [
+              "Comment",
+              "Note",
+              "Event"
+            ],
+            "description": "What the entry is. Modules add their own kinds."
+          },
+          "Visibility": {
+            "type": "string",
+            "enum": [
+              "Public",
+              "Internal"
+            ],
+            "description": "Who may read the entry."
+          },
+          "Author": {
+            "type": "object",
+            "properties": {
+              "Kind": {
+                "type": "string",
+                "examples": [
+                  "User",
+                  "Contact",
+                  "Customer",
+                  "Guest"
+                ],
+                "description": "The party kind."
+              },
+              "Id": {
+                "type": "string",
+                "description": "The party id."
+              }
+            },
+            "description": "Who wrote the entry; omit for the site itself."
+          },
+          "AuthorName": {
+            "type": "string",
+            "description": "The author\u0027s name, for an author no party source knows."
+          },
+          "Body": {
+            "type": "string",
+            "description": "The text."
+          },
+          "Changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Field": {
+                  "type": "string",
+                  "description": "The field."
+                },
+                "From": {
+                  "type": "string",
+                  "description": "The value before."
+                },
+                "To": {
+                  "type": "string",
+                  "description": "The value after."
+                }
+              },
+              "required": [
+                "Field"
+              ]
+            },
+            "description": "The field changes the entry records."
+          },
+          "AttachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of its attachments."
+          },
+          "Channel": {
+            "type": "string",
+            "description": "The channel it came in or went out on, such as Email."
+          },
+          "CreatedUtc": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was written, in UTC."
+          }
+        },
+        "required": [
+          "Subject",
+          "Kind"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The entries to add. An entry whose ItemId is already stored is left as it is."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -146,11 +146,11 @@ await TryUpdateModelAsync(posted, "Address");
 var result = await _addressEditor.ValidateAsync(posted, ModelState, "Address", options);
 ```
 
-A display driver can return `Initialize<AddressEditorViewModel>("AddressEditor", ...)` with its own prefix. `CreateAddressDisplayAsync(address)` gives the `AddressDisplay` shape. When the country changes, the editor script fetches `~/addresses/formats/{countryCode}` (anonymous, cached an hour); without script the server re-lays the form on post. `AddressEditorViewModel.HasAnyValue()` tells a blank optional address from one started.
+A display driver can return `Initialize<AddressEditorViewModel>("AddressEditor", ...)` with its own prefix. `CreateAddressDisplayAsync(address)` gives the `AddressDisplay` shape. When the country changes, the editor script fetches `~/addresses/formats/{countryCode}` (anonymous, cached an hour); without script the server re-lays the form on post. `AddressEditorViewModel.HasAnyValue()` tells a blank optional address from one started; `AddressEditorViewModel.From(address)` copies a stored `Address` into an editor model (`null` for none) and `ToAddress()` turns a posted model back into an `Address`, for editors that bind the view model directly.
 
 ## Country lists
 
-`ICountryService.GetCountriesAsync()` returns the ISO list from the .NET runtime, or with **Address Countries** on, the published `Country` content items (seeded from the ISO list, unique codes in `CountryPart`'s `Code` field, `CountryIndex`), falling back to ISO while there are none. Read and write the code with `GetCountryCode()` and `SetCountryCode()`; `CountryCodeUtility` normalizes codes. Managed countries decide which countries are offered and their names, not how addresses are written. Taxation stores codes, so toggling either feature never orphans tax data.
+`ICountryService.GetCountriesAsync()` returns the ISO list from the .NET runtime, or with **Address Countries** on, the published `Country` content items (seeded from the ISO list, unique codes in `CountryPart`'s `Code` field, `CountryIndex`: one row per `Country` content item, declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`), falling back to ISO while there are none. Read and write the code with `GetCountryCode()` and `SetCountryCode()`; `CountryCodeUtility` normalizes codes. Managed countries decide which countries are offered and their names, not how addresses are written. Taxation stores codes, so toggling either feature never orphans tax data.
 
 ## Address suggestions
 

@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "UserAudiences",
+      "description": "Recipe step discriminator. Must be \u0027UserAudiences\u0027."
+    },
+    "Audiences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The technical name: letters, digits, dots, dashes and underscores."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The name shown to people."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description."
+          },
+          "join": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "All (0): a person matches every rule; Any (1): one rule."
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "The rule source, such as Role, Team, StaffHireDate, StaffEmploymentType, SkillHolder, CertificationHolder, CourseLearner or CohortMember."
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The values chosen, such as role names or team ids; a person matches any of them."
+                },
+                "number": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ],
+                  "description": "A number the source asks for, such as days since hire."
+                }
+              },
+              "required": [
+                "source"
+              ]
+            },
+            "description": "The rules."
+          }
+        },
+        "required": [
+          "name",
+          "rules"
+        ]
+      },
+      "description": "The audiences to create, or update by name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

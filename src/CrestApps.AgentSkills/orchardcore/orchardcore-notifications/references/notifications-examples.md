@@ -190,9 +190,14 @@ public sealed class Startup : StartupBase
 ## Example 5: Built-In Workflow Tasks
 
 Enable `OrchardCore.Notifications` and `OrchardCore.Workflows`, then add the
-built-in **Notify User** task to a workflow. It is implemented by
-`NotifyUserTask`; do not duplicate it with a custom activity when its
-user-name, subject, and message fields meet the workflow requirement.
+built-in **Notify Specific Users Task** (`NotifyUserTask`, **User names**
+accepts Liquid and a comma-separated list) or, with `OrchardCore.Users` and
+`OrchardCore.Contents`, **Notify Content's Owner Task**
+(`NotifyContentOwnerTask`) from the **Notifications** category. Both have
+**Subject** (required), **Summary**, **URL**, **Type**, **Text Body**,
+**HTML Body** and **Use HTML Body when possible**, and the outcomes **Done**,
+**Failed** and **Failed: no user found**. Do not duplicate them with a custom
+activity when these fields meet the requirement.
 
 ## Example 6: A Custom Notification Type as a Module Inbox
 

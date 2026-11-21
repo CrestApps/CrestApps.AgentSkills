@@ -142,28 +142,53 @@ services.AddScoped<IPermitStore, PermitStore>();
 services.AddDisplayDriver<WorkOrder, PermitNumberDisplayDriver>();
 ```
 
-## Other Seams
+## Bill Somewhere Else
+
+`WorkOrderService.CompleteAsync` bills through the registered `IWorkOrderBilling` with the highest `Priority` (Invoicing's is 10, Transactions' is the default 0). It passes a `WorkOrderBillingRequest`: `WorkOrder`, `Amount` (before tax), `Currency`, `Lines` (`WorkOrderBillingLine`: `Kind`, `Description`, `Quantity`, `UnitPrice`, `ProductId`, `TaxCategoryCode`), `Payer` (a `PartyRef`: the account, else the customer user, else the contact), `PaymentTermId` and `TaxCategoryCode`. The returned `WorkOrderBillingResult` is stored on the work order (`InvoiceTransactionId`, `InvoiceId`).
 
 ```csharp
-// A calendar source for the service level "Hours calendar" picker.
-public sealed class DepotHoursProvider : IServiceHoursProvider
+using CrestApps.OrchardCore.WorkOrders.Models;
+using CrestApps.OrchardCore.WorkOrders.Services;
+
+// Your module's client for an external accounting system.
+public interface IAccountingClient
 {
-    public Task<IReadOnlyList<TimeWindow>> GetOpenAsync(string calendarId, string timeZoneId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default)
-    {
-        if (calendarId != "depot")
-        {
-            return Task.FromResult<IReadOnlyList<TimeWindow>>([]);
-        }
-
-        // Return the open windows between fromUtc and toUtc in UTC (TimeWindow is in CrestApps.OrchardCore.Calendars).
-        return Task.FromResult<IReadOnlyList<TimeWindow>>([new TimeWindow(fromUtc, toUtc)]);
-    }
-
-    public Task<IReadOnlyList<ServiceHoursCalendar>> ListCalendarsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyList<ServiceHoursCalendar>>([new ServiceHoursCalendar("depot", "Depot hours")]);
+    Task<(string Id, string Number)> CreateInvoiceAsync(WorkOrderBillingRequest request, CancellationToken cancellationToken);
 }
 
-// services.TryAddEnumerable(ServiceDescriptor.Scoped<IServiceHoursProvider, DepotHoursProvider>());
+public sealed class AccountingWorkOrderBilling : IWorkOrderBilling
+{
+    private readonly IAccountingClient _client;
+
+    public AccountingWorkOrderBilling(IAccountingClient client)
+    {
+        _client = client;
+    }
+
+    // Wins over Invoicing (10) and Transactions (0).
+    public int Priority => 20;
+
+    public async Task<WorkOrderBillingResult> InvoiceAsync(WorkOrderBillingRequest request, CancellationToken cancellationToken = default)
+    {
+        var (id, number) = await _client.CreateInvoiceAsync(request, cancellationToken);
+
+        return new WorkOrderBillingResult { InvoiceId = id, InvoiceNumber = number };
+    }
+
+    // The older amount-only overload, still part of the interface.
+    public async Task<string> InvoiceAsync(WorkOrder workOrder, decimal amount, string currency, CancellationToken cancellationToken = default)
+        => (await InvoiceAsync(new WorkOrderBillingRequest { WorkOrder = workOrder, Amount = amount, Currency = currency }, cancellationToken)).TransactionId;
+}
+
+// Startup (a feature that depends on CrestApps.OrchardCore.WorkOrders):
+// services.AddScoped<IWorkOrderBilling, AccountingWorkOrderBilling>();
 ```
 
-Implement `IWorkOrderPartsService.UseAsync(workOrder, line, quantity, actor)` to take parts off another stock system, and `IWorkOrderBilling.InvoiceAsync(workOrder, amount, currency)` (returning the invoice id stored in `InvoiceTransactionId`) to invoice somewhere other than Transactions.
+A billing that only posts an amount can implement just `InvoiceAsync(workOrder, amount, currency)` (returning the transaction id); the request overload's default implementation calls it.
+
+## Other Seams
+
+- `IWorkOrderPartsService.UseAsync(workOrder, line, quantity, actor)` takes parts off another stock system.
+- Business hours for the timers come from the shared Business Hours schedules that a policy names (`HoursScheduleId`); there is no Work Orders hours provider any more. Add a schedule source to Business Hours instead.
+- `IAgreementObserver` (Agreements) hears when any agreement is about to end (`OnExpiringAsync`) or passes 80% and 100% of its hours (`OnHoursUsedAsync`); check `agreement.TryGet<WorkOrderAgreementTerms>(out var terms)` to act only on agreements with visits. `IAgreementTermsValidator` checks your own terms on the agreement.
+- Notes: write internal notes with `WorkOrderService.AddNoteAsync`; to add other entries (with field changes or attachments), call `ITimelineService.AddAsync` with `Subject = new RecordRef(WorkOrdersConstants.RecordKind, workOrder.ItemId)`.

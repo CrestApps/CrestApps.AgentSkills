@@ -1,6 +1,6 @@
 ---
 name: orchardcore-assets
-description: Skill for the CrestApps Orchard Core Assets module (CrestApps.OrchardCore.Assets) and its Fleet feature. Covers asset types with categories, attributes and meters, numbered assets with an owner, a parent hierarchy, a location, warranty and documents, append-only meter readings where a cumulative meter can not go back, owners picked through the shared party sources (IPartySource) as a user, account or CRM contact, Fleet vehicles and equipment booked on their own Equipment calendars, vans that carry stock at their own Inventory StockLocation, the Assets recipe and deployment steps, permissions, and adding sections to the asset editor with DisplayDriver of Asset. Use this skill when requests mention equipment, installed customer units, vehicles, fleet, meter readings, warranties or van stock in Orchard Core. Strong matches include Asset, AssetType, AssetMeterReading, AssetFleet, AssetService, AssetManager, AssetOwnerDirectory, FleetCalendarHandler, ManageAssets and ViewAssets.
+description: Skill for the CrestApps Orchard Core Assets module (CrestApps.OrchardCore.Assets) and its Fleet feature. Covers asset types with categories, attributes and meters, numbered assets with an owner, a parent hierarchy, a location, warranty and documents, append-only meter readings, owners picked through shared party sources as a user, account or CRM contact, Fleet vehicles and equipment booked on their own Equipment calendars, a default driver picked from staff, vans that carry stock at their own Inventory StockLocation, the Asset record source, the Assets recipe and deployment steps, permissions, and adding sections to the asset editor with DisplayDriver of Asset. Use this skill when requests mention equipment, installed customer units, vehicles, fleet, meter readings, warranties or van stock in Orchard Core. Strong matches include Asset, AssetType, AssetMeterReading, AssetFleet, AssetService, AssetManager, AssetOwnerDirectory, AssetRecordSource, FleetCalendarHandler, ManageAssets and ViewAssets.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,7 +20,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension c
 - Save assets through `AssetManager` (a `CatalogManager<Asset>`) so `AssetHandler` numbers, validates and stamps them, and Fleet handlers run. Record readings through `AssetService.RecordReadingAsync`.
 - An asset's `OwnerKind` `Customer` holds a **user id** (party kind `User`), not a Customers record id. `Account` holds an Accounts content item id, `Contact` a CRM contact content item id.
 - Fleet needs `CrestApps.OrchardCore.Calendars.Resources`; van stock also needs `CrestApps.OrchardCore.Inventory`.
-- Work orders on assets are in `orchardcore-work-orders`; equipment booked for visits in `orchardcore-dispatch`; geocoding in `orchardcore-geo`.
+- Work orders on assets are in `orchardcore-work-orders`; equipment booked for visits in `orchardcore-dispatch`; geocoding in `orchardcore-geo`; drivers and technicians are staff members (see `orchardcore-staff`).
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -51,7 +51,8 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension c
 |---|---|
 | `OrchardCore.Users` | The `Customer` owner kind (`UserPartySource`, search by user name or email). |
 | `CrestApps.OrchardCore.Accounts` | The `Account` owner kind (Accounts registers `AccountPartySource`) and an **Assets** card on the account page. |
-| `CrestApps.OrchardCore.Omnichannel.Managements` | The `Contact` owner kind (`ContactPartySource`) and an **Assets** card on CRM contacts. |
+| `CrestApps.OrchardCore.Omnichannel.Managements` | The `Contact` owner kind (the CRM's `ContactPartySource`, in `CrestApps.OrchardCore.Omnichannel.Core`) and an **Assets** card on CRM contacts. |
+| `CrestApps.OrchardCore.Staff` with Fleet | A **Driver** card (`AssetFleetDriver_Edit`, `Content:6`) on vehicles and equipment with a staff picker for `Fleet.DefaultDriverWorkerId`; the technician app shows that vehicle and its stock as the driver's own. |
 | `CrestApps.OrchardCore.Inventory` with Fleet | A stock location per asset that carries stock (`FleetStockLocationHandler`). |
 | `CrestApps.OrchardCore.Dispatch.Api` | `api/assets/v1` endpoints (see `orchardcore-dispatch`). |
 
@@ -64,12 +65,16 @@ All records live in the `Assets` YesSql collection.
 | `AssetType` | `Name`, `Category` (`Equipment`, `Vehicle`, `Tool`, `CustomerUnit`, `Component`, `Facility`), `Description`, `Attributes` (`Name`, `Kind` `Text`/`Number`/`Date`/`YesNo`), `Meters` (`Name`, `Unit`, `Cumulative` true by default). Names are unique within a type. |
 | `Asset` | `Number` (next `A-00042` when empty, unique), `Name`, `AssetTypeId`, `ProductId`, `SerialNumber`, `Manufacturer`, `Model`, `OwnerKind` (`Internal`, `Customer`, `Account`, `Contact`), `OwnerId` (required unless internal), `Location` (an `Address`, coordinates once geocoded), `ParentAssetId`, `Status` (`Active`, `InService`, `OutOfService`, `Retired`), `InstallDate`, `Warranty` (`StartDate`, `EndDate`, `Provider`, `Terms`, `Covers(date)`), `Attributes` (name to value), `Documents` (media paths), `Fleet` |
 | `AssetMeterReading` | `AssetId`, `Meter`, `Value`, `Utc`, `Source` (`Manual`, `WorkOrder`, `Api`), `SourceId`, `RecordedBy`. Only ever added. |
-| `AssetFleet` | `Schedulable`, `CalendarId`, `Plate`, `Vin`, `Capacity`, `FuelType`, `HomeBase`, `DefaultDriverWorkerId`, `CarriesStock`, `StockLocationId` |
+| `AssetFleet` | `Schedulable`, `CalendarId`, `Plate`, `Vin`, `Capacity`, `FuelType`, `HomeBase`, `DefaultDriverWorkerId` (a staff member id), `CarriesStock`, `StockLocationId` |
 
 `AssetService`:
 
 - `RecordReadingAsync(reading)` refuses a meter the type doesn't have and a cumulative reading lower than the last one before it; returns the errors.
 - `ReadingsAsync(assetId, take)`, `ChildrenAsync(assetId)` and `AncestorsAsync(asset)` read history and hierarchy. An asset can't be inside itself, directly or further up.
+
+## Linking to Assets From Other Modules
+
+Assets registers `AssetRecordSource` (`services.AddRecordSource<AssetRecordSource>()`), the shared `IRecordSource` for record kind `Asset` (`AssetsConstants.RecordKind`). Any module can search assets by name, number or serial number (`AssetStore.SearchAsync`), show their titles (number, type and serial as the description) and link to `assets/view/{id}` without referencing Assets; `CanSearchAsync` requires `ViewAssets`.
 
 ## Owners
 
@@ -240,10 +245,11 @@ To react whenever an asset is saved (from the editor, a recipe or code), add an 
 | Symptom | Check |
 |---|---|
 | Owner kind missing in the editor | Its party source isn't registered: enable `OrchardCore.Users`, Accounts, or Omnichannel Management. |
+| No **Driver** card on a vehicle | Enable `CrestApps.OrchardCore.Staff` with Fleet; the card shows only for assets with Fleet details. |
 | "Choose who owns the asset." | Non-internal owners need an `OwnerId`. |
 | Reading refused | The meter isn't on the type, or a cumulative value is lower than the previous reading. |
 | No Equipment calendar | Enable Fleet (and Calendars Resources) and set `Fleet.Schedulable`. |
 | No van stock location | Enable Inventory with Fleet and set `Fleet.CarriesStock`. |
 | Coordinates vanished | A changed address drops its old coordinates until it is geocoded again. |
 
-Related skills: `orchardcore-work-orders`, `orchardcore-dispatch`, `orchardcore-geo`, `orchardcore-inventory`, `orchardcore-calendars`, `orchardcore-accounts`, `orchardcore-addresses`, `orchardcore-report-builder`.
+Related skills: `orchardcore-work-orders`, `orchardcore-dispatch`, `orchardcore-staff`, `orchardcore-geo`, `orchardcore-inventory`, `orchardcore-calendars`, `orchardcore-accounts`, `orchardcore-addresses`, `orchardcore-report-builder`.

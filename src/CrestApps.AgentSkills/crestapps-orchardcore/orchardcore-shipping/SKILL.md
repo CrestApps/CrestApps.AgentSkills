@@ -1,6 +1,6 @@
 ---
 name: orchardcore-shipping
-description: Skill for the CrestApps Orchard Core Shipping module (CrestApps.OrchardCore.Shipping, Shipping.EasyPost, Shipping.Api). Covers ShippingZone and ShippingMethod with the Flat, Table, Free, LocalDelivery and Carrier rate providers, IShippingRateService, IShippingRateProvider with ShippingRateContext and CreateRate, ShippingPart weights and classes, ShippingSettings (weight unit, classes, carriers and tracking templates, pickup locations, ship-from address and parcel defaults), the checkout Shipping step and CheckoutShippingInfo, store pickup, shipments with IShipmentService and IShipmentEventHandler, ICarrierProvider and EasyPost labels, tracking and webhook, the ShippingZones recipe and deployment step, shipment workflow events, and the Shipping API. Use it when requests mention Orchard Core shipping rates, shipping zones, carriers, labels, tracking, store pickup, local delivery or fulfilment.
+description: Skill for the CrestApps Orchard Core Shipping module (CrestApps.OrchardCore.Shipping, Shipping.EasyPost, Shipping.Api). Covers ShippingZone and ShippingMethod with the Flat, Table, Free, LocalDelivery and Carrier rate providers, IShippingRateService, IShippingRateProvider with ShippingRateContext and CreateRate, ShippingPart weights, dimensions and classes, the product feed contributor, ICheckoutFulfillmentStep, ShippingSettings (weight unit, classes, carriers and tracking templates, pickup locations, ship-from address and parcel defaults), the checkout Shipping step and CheckoutShippingInfo, store pickup, shipments with IShipmentService and IShipmentEventHandler, ICarrierProvider and EasyPost labels, tracking and webhook, the ShippingZones recipe and deployment step, shipment workflow events, and the Shipping API. Use it when requests mention Orchard Core shipping rates, shipping zones, carriers, labels, tracking, store pickup, local delivery or fulfilment.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -94,7 +94,7 @@ The `ShippingZones` step creates or updates zones by `ItemId` or `Name` (names a
 | --- | --- |
 | `ShippingZone` (`INamedCatalog<ShippingZone>`) | `Name`, `Position`, `Countries` (ISO alpha-2), `Regions` (ISO 3166-2 such as `US-AK`), `RestOfWorld`, `Methods` |
 | `ShippingMethod` | `MethodId`, `Name`, `Description`, `ProviderName`, `Enabled`, `Position`, `Currency` (empty for any), `TaxCategoryCode`, `ClassSurcharges`; provider settings in its properties |
-| `ShippingPart` | `Weight` (site unit), `ShippingClass`, `VariantWeights`; `GetWeight(variantId)` |
+| `ShippingPart` | `Weight` (site unit), `ShippingClass`, `VariantWeights`, `Length`, `Width`, `Height`, `VariantDimensions` (`ShippingDimensions` by variant id); `GetWeight(variantId)`, `HasWeight(variantId)`, `GetDimensions(variantId)` (a variant's own first) |
 | `ShippingSettings` (group `shipping`) | `WeightUnit` (`Kilogram`, `Pound`), `ShippingClasses`, `Carriers`, `SendShippedEmails`, `PickupLocations` (up to 20, with `Fee`, `Instructions`, `StockLocationId`), `ShipFrom` (falls back to the store profile address when empty), default parcel size, `PackagingWeight` |
 
 Provider settings: `FlatRateSettings` (`Amount`, `PerItemAmount`), `TableRateSettings` (`Basis`, `Rows` of `From` and `Amount`, `Maximum`), `FreeShippingSettings` (`MinimumSubtotal`), `LocalDeliverySettings` (`PostalCodes` with `981*` wildcards, `Amount`, `FreeFromSubtotal`, `MinimumSubtotal`), `CarrierRateSettings` (`Carriers`, `MaxRates`, `MarkupPercent`, `MarkupAmount`, `FallbackAmount`).
@@ -143,6 +143,7 @@ Register with `services.AddScoped<IShippingRateProvider, PerKiloShippingProvider
 ## Checkout
 
 - `ShippingCheckoutHandler` adds the **Shipping** step (`ShippingConstants.CheckoutStepKey`, after Contact) when a line is a `ProductType.Good`. The step finishes only with a rate priced on the server.
+- From code (an API or an AI agent), use `ICheckoutFulfillmentStep` (Checkout.Abstractions, implemented by `ShippingCheckoutFulfillmentStep`): `QuoteAsync(flow, address)` returns the ways to ship, cheapest first, without saving; `GetPickupOptionsAsync(flow)` the pickup places; `SaveAsync(flow, CheckoutFulfillmentChoice)` saves the choice with the page's rules, puts its cost on the checkout and marks the step done (see `orchardcore-checkout`).
 - The choice is kept as `CheckoutShippingInfo` (address, rate, method, zone, amount) and becomes a billing line with `TaxableKind = Shipping` and the method's `TaxCategoryCode`.
 - The address comes from the buyer's address book, from an `IShippingAddressSource`, or the address editor. Shipping reads and saves the book through `IShippingAddressBook` (Addresses.Abstractions: `GetAsync(userId)`, `AddAsync(userId, address)`), which the Customers feature implements; without it buyers have no address book and Shipping never references Customers. An `IShippingAddressSource` (Shipping.Core) offers a signed-in buyer more addresses, such as a business account's locations; they are listed after the book with their source, shipped to as they are and never saved to the book.
 
@@ -170,7 +171,7 @@ public sealed class DepotShippingAddressSource : IShippingAddressSource
 
 ## Shipments
 
-`IShipmentService` (in the caller's unit of work): `GetRemainingAsync(order)`, `CreateAsync(order, lines, details, ship)` for a paid order, `ShipAsync`, `DeliverAsync`, `ReturnAsync`, `DeleteAsync`. Each change updates `Order.FulfillmentStatus` (`Unfulfilled`, `PartiallyFulfilled`, `Fulfilled`). A tracking link must be `http` or `https`; an empty one comes from the carrier's `TrackingUrlTemplate` (`{0}` is the number).
+`IShipmentService` (in the caller's unit of work): `GetRemainingAsync(order)`, `CreateAsync(order, lines, details, ship)` for a paid order (`ship: false` keeps a pending shipment that reserves the units, as Fulfillment Partners does before calling a partner, see `orchardcore-fulfillment`), `ShipAsync`, `DeliverAsync`, `ReturnAsync`, `DeleteAsync`. Each change updates `Order.FulfillmentStatus` (`Unfulfilled`, `PartiallyFulfilled`, `Fulfilled`). A tracking link must be `http` or `https`; an empty one comes from the carrier's `TrackingUrlTemplate` (`{0}` is the number).
 
 ```csharp
 public sealed class WarehouseShipmentHandler : ShipmentEventHandlerBase
@@ -214,6 +215,12 @@ Saving a deployment plan with the **Shipping zones** step returned a 500 before 
 | Permission | Allows | Default roles |
 | --- | --- | --- |
 | `ManageShipping` | Zones, methods and **Settings > Commerce > Shipping** | Administrator, Store manager |
-| `FulfillOrders` | Shipments on an order's page, labels | Administrator, Store manager, Warehouse |
+| `FulfillOrders` | Shipments on an order's page, labels, and (with Fulfillment Partners) sending orders to partners and **Commerce > Fulfillment requests** | Administrator, Store manager, Warehouse |
 
-Not included: return labels, dimensional weight, postal-code zones (use local delivery), pick lists.
+`ShippingPermissions` moved from the module to `CrestApps.OrchardCore.Shipping.Core` (same namespace `CrestApps.OrchardCore.Shipping`), so other modules can check `FulfillOrders` without referencing the Shipping module.
+
+## Product feeds
+
+With Product Feeds on, `ShippingProductFeedContributor` adds to every feed item `Weight` (`kg` or `lb`, the store's unit) and `Length`, `Width`, `Height` (`cm` for kilograms, `in` otherwise) from `ShippingPart`, and `ShippingPrice`: the cheapest flat, table or free rate of the zone covering the store's own country (ship-from address, else the store profile) in the item's currency. Carrier rates are never asked; downloads and services get no shipping price. The Merchant Center feed writes `shipping_weight`, `shipping_length`, `shipping_width` and `shipping_height`; the AI agent feeds use the same values (see `orchardcore-products`, `orchardcore-agentic-commerce`).
+
+Not included: return labels, dimensional-weight pricing, postal-code zones (use local delivery), pick lists.
