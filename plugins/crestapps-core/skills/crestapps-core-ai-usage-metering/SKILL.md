@@ -158,6 +158,24 @@ builder.Services.AddScoped<IAICompletionUsageObserver, UsageBudgetObserver>();
 
 Keep observers fast and non-throwing; they run as each response finishes.
 
+## Usage Metrics
+
+`AddCoreAIUsageTracking()` also registers an observer that emits each record as OpenTelemetry metrics on the `CrestApps.Core` meter, for every client kind:
+
+| Instrument | Tags |
+|---|---|
+| `crestapps.core.ai.usage.requests` | `operation`, `client`, `deployment`, `purpose`, `streaming` |
+| `crestapps.core.ai.usage.tokens` | The same, plus `token.type`: `input`, `output`, `cached`, `reasoning` or `audio` |
+| `crestapps.core.ai.usage.duration` | The same as requests; the response latency in seconds |
+
+- Session, user and profile ids stay in the stored records. They never reach a metric.
+- `input` and `output` already include the `cached`, `reasoning` and `audio` tokens. A total is `input` plus `output`; never add up every `token.type`.
+- While `EnableOpenTelemetry` is on, `gen_ai.client.token.usage` counts the same chat tokens again. Chart one of the two, never their sum: the usage metrics cover every client kind and carry the purpose, and `gen_ai.client.token.usage` follows the OpenTelemetry conventions that other tools read.
+- A host that registers only its own observer, without `AddCoreAIUsageTracking()`, gets no usage metrics.
+- The metrics carry no prices. Estimate cost from the stored records with the reports below.
+
+See `crestapps-core-observability` for collecting them.
+
 ## Reports
 
 ```csharp

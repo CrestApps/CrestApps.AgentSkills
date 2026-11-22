@@ -24,6 +24,7 @@ You are an Orchard Core expert. Generate code that declares translatable text wh
 - Store sources in `static readonly` fields (or static get-only properties). They are safe to share across instances, tenants, and cultures.
 - Translate with `IStringLocalizerFactory.Localize()` for text and attributes, and `IHtmlLocalizerFactory.Localize()` only for trusted translation markup. The display call site picks the encoding, not the declaration.
 - Do not use a generic type as `Type`; its `FullName` does not make a usable PO context.
+- Always decorate every instance property of type `LocalizationSource` with `[JsonIgnore]` (`System.Text.Json.Serialization`), on any class, record, override, descriptor or provider, even one you never expect to save. A source must never be serialized or deserialized: it would lose its `Type` (its PO context) on the way back, and `[JsonIgnore]` is not inherited by overrides, so repeat it on each one. Keep the persisted data a plain `string` key and map it to a static source at display time.
 - All C# classes must use the `sealed` modifier, except View Models.
 
 ### Why Deferred Sources Exist
@@ -241,7 +242,7 @@ public sealed class WidgetsDeploymentStep : DeploymentStep
 {
     public override string Name => "Widgets";
 
-    // [JsonIgnore] is not inherited by overrides, and a LocalizationSource can't be serialized.
+    // [JsonIgnore] is not inherited by overrides, and a LocalizationSource must never be serialized.
     [JsonIgnore]
     public override LocalizationSource Category => CommonLocalizationSources.Content;
 
@@ -283,7 +284,7 @@ The category is translated with `msgctxt "OrchardCore.Localization.CommonLocaliz
 | A permission description stays in English with a PO entry | The source has no `Type`, or `msgctxt` does not equal the type's full name. |
 | A permission translation from Data Localization stopped working | The built-in description now has a `Type`; translate it with a PO file. |
 | Placeholders appear unformatted | Pass the arguments to `Localize()`/`Plural()`, not to `Create()`. |
-| Saving a deployment plan throws a serialization error | A `Category` or `Title` override lacks `[JsonIgnore]`. |
+| A deployment plan or other saved document holds label text such as `"Content"`, or a label read back is untranslated | A `LocalizationSource` property (for example a `Category` or `Title` override) lacks `[JsonIgnore]`. System.Text.Json writes a source as its `Value` and reads it back without its `Type`, so it is never translated with its PO context. Add `[JsonIgnore]` to every `LocalizationSource` property. |
 | A deployment step category or title lost its translation after upgrading | Its PO entry still uses the step-type `msgctxt`; use `OrchardCore.Localization.CommonLocalizationSources` or the module's `*LocalizationSources` class. |
 | `OCLOC101` on a declaration | Add the context: `Create<T>(value)` or `Create(value, typeof(T))`. |
 | Plural form is wrong in a language with several forms | The source has no `Type`, so the English rule applied. |

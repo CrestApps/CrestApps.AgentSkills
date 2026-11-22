@@ -218,6 +218,42 @@ The Web source registers its own resolver, so crawled pages link back to their U
 - Creating or updating a data source queues a full sync; deleting one removes its chunks with `IDataSourceContentManager.DeleteByDataSourceIdAsync`.
 - External `Elasticsearch`, `AzureAISearch`, and `PostgreSQL` sources are not touched by Orchard content events. Re-sync them with **Sync index** or the nightly task.
 
+### Restricted content stays out
+
+A knowledge base answers anyone allowed to query its profiles, without the source's own access checks, so `DataSourceIndexingService` indexes only documents everyone may read. Before indexing a source document (full and targeted syncs), it asks every `IIndexedDocumentVisibility` (`CrestApps.OrchardCore.Indexing`, registered with `services.AddIndexedDocumentVisibility<T>()`) through `IsForEveryoneAsync(documentId)`; a document that is not for everyone is skipped and its chunks are deleted, so a record restricted after indexing leaves at its next sync. Content Access Control registers one for content items (an item restricted to roles that leave out `Anonymous`). The check uses the reference id, so keep a content index's key field as the content item id.
+
+### Per-request result filters
+
+`IAIDataSourceResultFilter` (`CrestApps.OrchardCore.AI.Core.DataSources`) decides per request which retrieved chunks a person may receive, with what the index does not know. `FilterAsync(AIDataSourceResultFilterContext, IReadOnlyList<DataSourceSearchResult>)` gets `User`, `Resource` (the AI profile or chat interaction), `ProfileId`, `DataSourceId`, `IndexProfile` and `CancellationToken`, and returns the chunks to keep. Learning AI uses it to keep exam content away from models and to scope a tutor to the learner's enrollments.
+
+```csharp
+public sealed class InternalOnlyResultFilter : IAIDataSourceResultFilter
+{
+    public Task<IReadOnlyList<DataSourceSearchResult>> FilterAsync(
+        AIDataSourceResultFilterContext context,
+        IReadOnlyList<DataSourceSearchResult> results)
+    {
+        if (context.User?.Identity?.IsAuthenticated == true)
+        {
+            return Task.FromResult(results);
+        }
+
+        IReadOnlyList<DataSourceSearchResult> kept = results
+            .Where(result => result.ReferenceType != "InternalArticle")
+            .ToList();
+
+        return Task.FromResult(kept);
+    }
+}
+
+// In the module's startup:
+services.AddAIDataSourceResultFilter<InternalOnlyResultFilter>();
+```
+
+- AI Data Sources wraps every keyed `IDataSourceContentManager` in `FilteringDataSourceContentManager` in `ResultFiltersStartup` (order 10,000, after the providers), so preemptive retrieval, the search tool, search tool instances and any other caller pass through the filters. A module that registers its own content manager later calls `services.DecorateDataSourceContentManagers()`.
+- With filters registered, the search over-fetches (`AIDataSourceResultFilterOptions.OverfetchFactor`, 4, at most `MaxCandidates`, 200) and returns the caller's count of what the filters keep. Filters run one at a time, so a filter may use the request's YesSql session. With no filter it is a pass-through.
+- The static filter of a data source or profile still narrows the search inside the index; a result filter decides afterwards.
+
 ### Extend with a custom source type
 
 A source type is a keyed `IAIDataSourceSourceHandler`, an entry in `AIDataSourceSourceOptions`, and a display driver for its editor section. Opt into the shared field mapping with `AIDataSourceFieldMappingOptions.Require`:
@@ -275,3 +311,5 @@ The handler returns its key from `SourceType`, validates its settings (`Validate
 | *The selected source index provider cannot read source documents* | The source index is Lucene. Use an Elasticsearch or Azure AI Search index. |
 | Filter has no effect | The knowledge base is Azure AI Search, or the string needs `.keyword` on Elasticsearch. |
 | External source misses changes | External sources sync only on **Sync index**, on save, or nightly. |
+| A content item is missing from the knowledge base | It is restricted (an `IIndexedDocumentVisibility`, such as Content Access Control, says it is not for everyone), or the index key is not the content item id. |
+| Monitoring syncs | `crestapps.ai.datasource.sync.duration` (`outcome` `partial` when some documents failed) and `crestapps.ai.datasource.documents` on the `CrestApps.OrchardCore.AI` meter; see `orchardcore-observability`. |

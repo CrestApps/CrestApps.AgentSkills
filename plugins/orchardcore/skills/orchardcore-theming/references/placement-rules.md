@@ -51,7 +51,7 @@ Placement controls where shapes render, whether they render, and which alternate
   "HtmlBodyPart": [
     { "place": "/Content:1", "displayType": "Detail" }
   ],
-  "Parts_Contents_Publish": [
+  "TitlePart": [
     { "place": "/Sidebar:5", "displayType": "Detail" }
   ]
 }

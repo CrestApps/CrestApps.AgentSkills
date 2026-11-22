@@ -13,7 +13,7 @@ Step-by-step creation of a theme project for an Orchard Core site built on NuGet
 
 ## Prerequisites
 
-- .NET SDK 10.0+.
+- .NET 11 SDK. Orchard Core 4.0 targets `net11.0` only.
 - An Orchard Core web project (startup project) that references `OrchardCore.Application.Cms.Targets` (see `orchardcore-setup`).
 - Node.js and Yarn only when the theme compiles SCSS or scripts (see `orchardcore-asset-manager`).
 
@@ -40,7 +40,7 @@ The theme project references `OrchardCore.Theme.Targets`, which marks the assemb
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 

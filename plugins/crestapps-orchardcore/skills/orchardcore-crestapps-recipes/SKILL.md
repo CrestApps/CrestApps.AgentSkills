@@ -54,6 +54,8 @@ You are an Orchard Core expert. The CrestApps Recipes module publishes JSON Sche
 - Content part and field schemas for Orchard Core parts and fields, plus contributions registered by CrestApps modules themselves when Recipes is enabled (for example `PhoneField`, `AddressField`, `RolePickerPart`, `UserFullNamePart`, `AIProfilePart`, `OmnichannelContactPart`, `ProductPart`, `SubscriptionPart`, `TaxationPart`, and the `RolePickerPartContentAccessControlSettings` envelope).
 - About 80 `Settings` step contributions (`ISiteSettingsSchemaDefinition`) for Orchard Core and CrestApps site settings, such as `DisplayNameSettings` and `UserAvatarOptions`.
 - CrestApps step schemas, each gated on its feature: `AIProfile`, `CreateAIProfileFromTemplate`, `AIProfileTemplate`, `AIDeployment`, `DeleteAIDeployments`, `AIProviderConnections`, `AIDataSource`, `AIToolInstances`, `McpConnection`, `McpPrompt`, `McpResource`, `A2AConnection`, `AIPersonas`, `TimeZoneMaps`, `IndexUsers`, `Currencies`, `StripeSettings`, and the Contact Center, Omnichannel, Telephony, Telnyx and Asterisk configuration steps. See [references/crestapps-step-schemas.md](references/crestapps-step-schemas.md).
+- Most other CrestApps modules register the schemas of their own steps next to their recipe handlers, gated on their feature and on `CrestApps.OrchardCore.Recipes` (for example Business Hours, Tickets, Knowledge Base, Service Levels, Timeline, Invoicing, Payroll, Banking, Approvals, Learning, Staff, Reports, Webhooks and Tenant Hierarchy), so they appear in the composed schema only when both are on.
+- Recent schema changes: `ContactCenterBusinessHoursCalendar` is kept only for older recipes (each calendar is imported as a Business Hours schedule with the same id; new recipes use `BusinessHoursSchedules`); `OmnichannelLeadStatus` gained `IsContacted`; `OmnichannelMessageTemplate` gained `Scope` and `FillsPlaceholders`; the `AIChatAdminWidgetSettings` section gained `SendPageContext`; the `AICostSettings` section is gone (the carrier price is `TelephonyCostSettings`, set through the `Settings` step with no schema).
 
 ### Schema-aware JSON import
 
@@ -170,6 +172,16 @@ public sealed class ProductSettingsSchema : SiteSettingsSchemaBase
 ```
 
 Register it with `services.AddScoped<ISiteSettingsSchemaDefinition, ProductSettingsSchema>();` behind the feature whose `SiteDisplayDriver<TSettings>` owns the settings.
+
+### Condition rules
+
+A step or settings property that holds a "match all/any of these conditions" rule (`CrestApps.OrchardCore.Conditions`) describes it with `ConditionRuleSchema.Build(description, sourceDescription)` (namespace `CrestApps.OrchardCore.Recipes.Core.Schemas`). The schema is an object (or `null`) with `Match` (`ConditionMatch`: `All` or `Any`) and `Conditions`, each with `Source`, `Operator` (`ConditionOperator` names) and string `Values` in the invariant culture. Conditional fields (`ShowWhen`) and work order rules use it.
+
+```csharp
+("ShowWhen", ConditionRuleSchema.Build(
+    "When the field is shown. Empty shows it always.",
+    "The technical name of the field whose value is tested."))
+```
 
 ## Extend content definition and content item schemas
 

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-downloads
-description: Skill for the CrestApps Orchard Core Digital Downloads commerce module. Covers the DigitalFilesPart, the private IDigitalFileStore under the tenant App_Data scanned through the Orchard Core file creation pipeline, DownloadEntitlement records granted when an order is paid and revoked on cancel or full refund, signed expiring download links with a download limit, DownloadSettings, order page and confirmation email sections, and the DigitalFiles recipe step. Use this skill when requests mention Orchard Core digital downloads, selling ebooks or files, download links, download limits, or digital product delivery. Strong matches include CrestApps.OrchardCore.Downloads, DigitalFilesPart, IDigitalFileStore, DownloadEntitlement, DownloadService, DownloadSettings, DownloadOrderEventHandler, DownloadEmailSectionProvider, ManageDigitalDownloads and DigitalFiles.
+description: Skill for the CrestApps Orchard Core Digital Downloads commerce module. Covers the DigitalFilesPart, the private protected file area IProtectedFileStore<DigitalDownloadFiles> (formerly IDigitalFileStore) under the tenant App_Data scanned through the Orchard Core file creation pipeline, DownloadEntitlement records granted when an order is paid and revoked on cancel or full refund, signed expiring download links with a download limit, DownloadSettings, order page and confirmation email sections, and the DigitalFiles recipe step. Use this skill when requests mention Orchard Core digital downloads, selling ebooks or files, download links, download limits, or digital product delivery. Strong matches include CrestApps.OrchardCore.Downloads, DigitalFilesPart, IProtectedFileStore, DigitalDownloadFiles, DownloadEntitlement, DownloadService, DownloadSettings, DownloadOrderEventHandler, DownloadEmailSectionProvider, ManageDigitalDownloads and DigitalFiles.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -18,7 +18,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 - Install `CrestApps.OrchardCore.Downloads` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle) in the web/startup project.
 - Enable `CrestApps.OrchardCore.Downloads`. It depends on `CrestApps.OrchardCore.Commerce`, `CrestApps.OrchardCore.Products`, `CrestApps.OrchardCore.Orders` and `OrchardCore.Contents`. Selling also needs Carts and `CrestApps.OrchardCore.Checkout` with a payment provider (see `orchardcore-products`, `orchardcore-checkout` and `orchardcore-payments`).
 - Enable `CrestApps.OrchardCore.Customers` so a guest's Contact step asks for the email the links go to (see `orchardcore-customers`).
-- Never put sellable files in the media library. Files go to `IDigitalFileStore`, which no URL serves.
+- Never put sellable files in the media library. Files go to the protected file area `IProtectedFileStore<DigitalDownloadFiles>`, which no URL serves.
 - Enable an antivirus feature such as `OrchardCore.Antivirus.ClamAV` to scan uploads. Uploads run through Orchard Core's `FileCreationService` and every `IFileEventHandler` (see `orchardcore-file-upload-security` and `orchardcore-antivirus`).
 - Set the site's **Base URL** so links in emails work outside a request.
 - Orders and carts are covered by `orchardcore-orders` and `orchardcore-carts`; the shared Commerce menu and storefront account by `orchardcore-commerce`.
@@ -31,7 +31,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 |---|---|
 | Feature ID | `CrestApps.OrchardCore.Downloads` |
 | Content part | `DigitalFilesPart` (`Files`, `DownloadLimit`, `LinkLifetimeDays`) |
-| File store | `IDigitalFileStore` (`SaveAsync`, `FindAsync`, `OpenAsync`), folder `App_Data/.../DigitalFiles/{fileId}/{fileName}` |
+| File store | `IProtectedFileStore<DigitalDownloadFiles>` (`CrestApps.OrchardCore.FileStorage`: `SaveAsync`, `FindAsync`, `OpenAsync`, `DeleteAsync`, returning `ProtectedFile`), registered with `services.AddProtectedFileArea<DigitalDownloadFiles>(DownloadsConstants.StoreFolder)`; folder `App_Data/.../DigitalFiles/{fileId}/{fileName}`. `IDigitalFileStore`, `DigitalFileStore` and `StoredDigitalFile` were removed; stored files are unchanged |
 | Entitlements | `DownloadEntitlement` in collection `Downloads`, `DownloadEntitlementIndex` |
 | Service | `DownloadService` (`GrantAsync`, `ListAsync`, `CreateUrlAsync`, `ResolveAsync`, `RecordDownloadAsync`, `RevokeOrderAsync`, `RevokeAsync`, `ResetAsync`) |
 | Site settings | `DownloadSettings` (group `downloads`, **Settings > Commerce > Downloads**): `DownloadLimit` 5, `LinkLifetimeDays` 30 |

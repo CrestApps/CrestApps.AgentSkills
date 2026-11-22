@@ -1,6 +1,6 @@
 ---
 name: orchardcore-pay-later
-description: Skill for the CrestApps Orchard Core Pay Later module (CrestApps.OrchardCore.PayLater), the offline payment methods of the checkout. Covers the Pay Later, Bank transfer and Cash on delivery providers (keys pay-later, bank-transfer, cash-on-delivery) built on OfflineCheckoutPaymentProvider with DefersPayment, PayLaterSettings, BankTransferSettings and CashOnDeliverySettings under Settings > Commerce > Offline payments, net terms and due dates, PayLaterTransactionCheckoutHandler recording each commitment as an outstanding transaction, recurring Pay Later commitments and PayLaterRenewalBackgroundTask, why deferred providers never settle an existing balance, ICheckoutPaymentProviderAvailability and ICheckoutPaymentProviderDescription, the confirmation and order display drivers, and adding a custom offline method such as purchase orders. Use it when requests mention pay later, invoicing at checkout, bank transfer, cash on delivery, offline payments, or a balance owed after checkout.
+description: Skill for the CrestApps Orchard Core Pay Later module (CrestApps.OrchardCore.PayLater), the offline payment methods of the checkout. Covers the Pay Later, Bank transfer and Cash on delivery providers (keys pay-later, bank-transfer, cash-on-delivery) built on OfflineCheckoutPaymentProvider with DefersPayment, PayLaterSettings, BankTransferSettings and CashOnDeliverySettings under Settings > Commerce > Offline payments, net terms, payment terms and due dates (PayLaterDueDateResolver), Invoicing invoices for Pay Later balances, PayLaterTransactionCheckoutHandler recording outstanding transactions, recurring commitments and PayLaterRenewalBackgroundTask, why deferred providers never settle an existing balance, and adding a custom offline method such as purchase orders. Use it when requests mention pay later, invoicing at checkout, bank transfer, cash on delivery, offline payments, payment terms, or a balance owed after checkout.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -31,7 +31,7 @@ Install `CrestApps.OrchardCore.PayLater` in the web project. Enabling the featur
     },
     {
       "name": "Settings",
-      "PayLaterSettings": { "Enabled": true, "NetTermDays": 30 },
+      "PayLaterSettings": { "Enabled": true, "NetTermDays": 30, "PaymentTermId": null },
       "BankTransferSettings": { "Enabled": true, "Instructions": "Contoso Bank, account 000123456, transit 00011.", "NetTermDays": 7 },
       "CashOnDeliverySettings": { "Enabled": false, "Instructions": "Pay the courier in cash or by card." }
     }
@@ -43,7 +43,7 @@ Install `CrestApps.OrchardCore.PayLater` in the web project. Enabling the featur
 
 | Provider | Key | Offered when | Settings (defaults) |
 | --- | --- | --- | --- |
-| `PayLaterCheckoutPaymentProvider` | `pay-later` | `PayLaterSettings.Enabled` | `Enabled` (false), `NetTermDays` (30; `0` means no due date) |
+| `PayLaterCheckoutPaymentProvider` | `pay-later` | `PayLaterSettings.Enabled` | `Enabled` (false), `NetTermDays` (30; `0` means no due date), `PaymentTermId` (a Payment Terms term, shown when that feature is on) |
 | `BankTransferCheckoutPaymentProvider` | `bank-transfer` | `Enabled` and `Instructions` set | `Enabled`, `Instructions` (bank details), `NetTermDays` (7) |
 | `CashOnDeliveryCheckoutPaymentProvider` | `cash-on-delivery` | `Enabled` and the checkout has a `CheckoutShippingInfo` address | `Enabled`, `Instructions` |
 
@@ -53,10 +53,24 @@ Settings live on **Settings > Commerce > Offline payments** (group `paylater`), 
 
 ## What happens at completion
 
-`PayLaterTransactionCheckoutHandler` records, for every succeeded attempt of an `OfflineCheckoutPaymentProvider`, one outstanding `Transaction` per obligation: titled after the order (`ICheckoutReferenceDescriber`), `Source` equal to the provider key, the guest's name and email from `CheckoutContactInfo`, due `NetTermDays` after checkout. Recording is idempotent per obligation. Sources `pay-later`, `bank-transfer` and `cash-on-delivery` are registered with `AddTransactionSource`.
+`PayLaterTransactionCheckoutHandler` records, for every succeeded attempt of an `OfflineCheckoutPaymentProvider`, one outstanding `Transaction` per obligation: titled after the order (`ICheckoutReferenceDescriber`), `Source` equal to the provider key, the guest's name and email from `CheckoutContactInfo`, due when `GetDueUtcAsync(now, payer, cancellationToken)` says. Recording is idempotent per obligation. Sources `pay-later`, `bank-transfer` and `cash-on-delivery` are registered with `AddTransactionSource`.
 
 - `OfflinePaymentConfirmationDisplayDriver` shows the instructions and the reference on the confirmation, which says *your order is placed* instead of *paid*.
 - With Orders, `OrderOfflinePaymentDisplayDriver` shows what is owed on the order: how to pay for the buyer, a **Record payment** link to the transaction for the store.
+
+### When a Pay Later balance is due
+
+`PayLaterDueDateResolver` picks the most specific term, for the first balance and every renewal cycle:
+
+1. **The payer's own payment term**, from their billing profile (`PartyBillingProfile.PaymentTermId`, such as an account on Net 60). A guest has none.
+2. **The term chosen for Pay Later** (`PayLaterSettings.PaymentTermId`, **Settings > Commerce > Offline payments > Payment term**), shown when the Payment Terms feature of Transactions is on (Invoicing turns it on).
+3. **`NetTermDays`** (30): days after checkout or after the cycle starts; `0` records no due date.
+
+A payment term gives a date (Net 15, end of month, a day of next month), due at the end of that day in the site's time zone. Disabled or deleted terms are skipped. A trial or delayed start counts from the first real cycle. `OfflineCheckoutPaymentProvider.GetDueUtcAsync(DateTime now, PartyRef payer, CancellationToken)` (virtual, defaults to `GetDueUtcAsync(now)`) is what the checkout handler asks; Pay Later overrides it, while Bank transfer and Cash on delivery keep their own number of days.
+
+### With Invoicing
+
+With Invoicing on, every Pay Later balance gets an invoice that takes the debt over: an order's balance gets the order's invoice (from its lines), what another checkout left owing (a subscription's first cycle, a membership) gets a one-line invoice, and each renewal cycle gets an invoice for its period. The invoice is due when the balance is, its number is the one reminders give, and paying it settles the balance. An invoice never offers Pay Later as a way to pay it (`DefersPayment`).
 
 ### Never for an existing balance
 
@@ -152,4 +166,6 @@ The panel driver returns `View("PurchaseOrderCheckoutPaymentMethod", method).Loc
 | Method not on the payment step | Not enabled in settings, bank transfer without instructions, cash on delivery without a shipping address, or the checkout settles an existing balance |
 | No transaction after checkout | The checkout did not complete, or the method is not registered as `OfflineCheckoutPaymentProvider` |
 | Recurring Pay Later invoiced once | Background tasks not running |
+| Due date ignores **Net term (days)** | The payer's billing profile or `PayLaterSettings.PaymentTermId` names a payment term, which wins |
+| **Payment term** field missing in Offline payments | Enable the Payment Terms feature (Invoicing turns it on) |
 | Receipts or reminders never reach a guest | No email service, or the Contact step was off so no email was collected |

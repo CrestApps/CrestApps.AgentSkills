@@ -123,12 +123,12 @@ YesSql hosts must also create every index table for the stores they registered; 
 
 Implement the catalog interfaces (`ICatalog<T>` and, where the model supports it, `INamedCatalog<T>`, `ISourceCatalog<T>`, `INamedSourceCatalog<T>`) and the store interfaces the features resolve (for example `IAIChatSessionManager`, `IAIDocumentStore`), register them as scoped, and register a scoped `IStoreCommitter` when writes are staged. Register `AddCatalogManagers()` so managers and handlers run over your catalogs.
 
-A custom `IAIChatSessionStore` must implement `ListByLastActivityAsync(profileId, afterUtc, beforeUtc, count, cancellationToken)` (a profile's sessions with `LastActivityUtc` after the optional time and before the other, oldest first, up to `count`) and `DeleteAsync(sessionId, cancellationToken)` (delete the session and its prompts, leave its documents to the caller, return `false` when it does not exist). Conversation privacy and retention use them for sessions of any user, visitor or system channel. A custom `IAIChatSessionManager.PageAsync` should also honor `AIChatSessionQueryContext.UserId`, which past-conversation memory sets.
+A custom `IAIChatSessionStore` must implement `ListByLastActivityAsync(profileId, afterUtc, beforeUtc, count, cancellationToken)` (a profile's sessions with `LastActivityUtc` after the optional time and before the other, oldest first, up to `count`) and `DeleteAsync(sessionId, cancellationToken)` (delete the session and its prompts, leave its documents to the caller, return `false` when it does not exist). Conversation privacy and retention use them for sessions of any user, visitor or system channel. A custom `IAIChatSessionManager.PageAsync` should also honor `AIChatSessionQueryContext.UserId`, which past-conversation memory sets, and `AIChatSessionQueryContext.ClientId` (one anonymous visitor's sessions).
 
 ## Upgrading Within 2.0 Previews
 
 - `IAIChatSessionStore` gained `ListByLastActivityAsync` and `DeleteAsync`. The YesSql and EntityCore stores implement them; a host with its own store must add both or it no longer compiles.
-- `AIChatSessionQueryContext` gained `UserId`; the built-in session managers filter on it.
+- `AIChatSessionQueryContext` gained `UserId` and `ClientId`; the built-in session managers filter on both. YesSql databases add the `AIChatSessionIndex.ClientId` column with `AddAIChatSessionIndexClientIdColumnAsync` (see `crestapps-core-yessql-stores`).
 - New opt-in store: AI profile versions (`AddProfileVersions(v => v.AddYesSqlStores())` or `.AddEntityCoreStores()`). It is not part of the `AddEntityCoreStores()` service-collection shortcut.
 
 ## Upgrading from 1.x

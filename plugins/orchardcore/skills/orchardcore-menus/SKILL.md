@@ -1,6 +1,6 @@
 ---
 name: orchardcore-menus
-description: Skill for creating and managing menus in Orchard Core. Covers menu content types, link, content, and HTML menu item types, the menu Razor tag helper and Liquid shape with caching, menu permissions (ManageMenu, MenuItemPermissionPart), render-time URL validation and HTML sanitization of menu items, navigation rendering, menu shape differentiators and alternates, and recipes. Use this skill when requests mention Orchard Core Menus, Create and Manage Navigation Menus, Enabling Menu Features, Menu Item Types, Creating a Menu via Recipe, Multi-Level Navigation Menu, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
+description: Skill for creating and managing menus in Orchard Core. Covers menu content types, menu item identifiers in recipes, the menu editor actions, link, content, and HTML menu item types, the menu Razor tag helper and Liquid shape with caching, menu permissions (ManageMenu, MenuItemPermissionPart), render-time URL validation and HTML sanitization of menu items, navigation rendering, menu shape differentiators and alternates, and recipes. Use this skill when requests mention Orchard Core Menus, Create and Manage Navigation Menus, Enabling Menu Features, Menu Item Types, Creating a Menu via Recipe, Multi-Level Navigation Menu, or closely related Orchard Core implementation, setup, extension, or troubleshooting work.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -79,6 +79,45 @@ Wrap every menu item in a complete root recipe document:
   ]
 }
 ```
+
+### Menu Item Identifiers
+
+The menu editor finds a menu item by its `ContentItemId`, so every menu item (at any depth) needs one that is unique in its menu. For an item without one (for example from a recipe that omits it), **Edit** and **Delete** return _Not Found_; before 4.0 they matched the menu itself and failed with an `ArgumentNullException` or `NullReferenceException`. Nothing repairs such items automatically, so always set `ContentItemId` in recipes, either a fixed id or `"[js: uuid()]"`:
+
+```json
+{
+  "steps": [
+    {
+      "name": "content",
+      "data": [
+        {
+          "ContentItemId": "4footermenu0000000000000a",
+          "ContentType": "Menu",
+          "DisplayText": "Footer Menu",
+          "Latest": true,
+          "Published": true,
+          "TitlePart": { "Title": "Footer Menu" },
+          "AliasPart": { "Alias": "footer-menu" },
+          "MenuItemsListPart": {
+            "MenuItems": [
+              {
+                "ContentItemId": "[js: uuid()]",
+                "ContentType": "LinkMenuItem",
+                "DisplayText": "Contact",
+                "LinkMenuItemPart": { "Url": "~/contact" }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Menu Editor
+
+In the menu editor each item row (`MenuItem.Admin`) adds its **Edit**, **Add** and **Delete** buttons to its `Actions` zone and renders them through `AdminListActions`, so they follow **Settings → Admin → Actions layout** (Buttons or one ellipsis Menu) like admin list rows. An override of `MenuItem.Admin.cshtml` should keep rendering `@await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))` (see `orchardcore-admin-lists`). The permission picker of `MenuItemPermissionPart` loads the `vue-multiselect` styles itself.
 
 Render a menu directly from a Liquid theme layout with its alias handle:
 

@@ -30,7 +30,7 @@ You are an Orchard Core expert. Generate code and configuration for registering 
 - All C# classes must use the `sealed` modifier except View Models.
 - Use file-scoped namespaces in C# examples.
 
-### Resource Settings (Admin Configuration)
+### Resource Settings (Admin Settings)
 
 | Setting           | Description                                                                                  |
 |-------------------|----------------------------------------------------------------------------------------------|

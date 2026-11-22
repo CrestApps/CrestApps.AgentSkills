@@ -189,6 +189,19 @@ OrchardCore__OrchardCore_Sms_Telnyx__ApiKey=<telnyx-api-key>
 
 The source reads `OrchardCore_Sms_Telnyx` exactly; it does not use the Orchard Core 4.0 grouped `Sms:*` naming. In a tenant's own `App_Data/Sites/{tenant}/appsettings.json`, omit the `OrchardCore` wrapper. Set Telnyx as the default SMS provider on the SMS settings screen, and point the messaging profile webhook at `https://<your-site>/api/telnyx/webhook/sms`. See `orchardcore-sms` and `orchardcore-omnichannel-sms`.
 
+## Monitoring
+
+`TelnyxTelemetry` publishes the `CrestApps.OrchardCore.Telnyx` meter (no spans of its own; matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`):
+
+| Instrument | Tags | Measures |
+|---|---|---|
+| `crestapps.telnyx.webhooks` | `kind` (`call`, `sms`), `type`, `result` (`accepted`, `duplicate`, `rejected_signature`, `rejected_stale`, `rejected_rate`, `rejected_size`, `disabled`, `parse_error`, `store_failed`, `error`) | Webhook deliveries received |
+| `crestapps.telnyx.webhook.lag` | `kind`, `type` | The event's own time to the delivery arriving |
+| `crestapps.telnyx.voicemail.record_start.latency` | `outcome` | Greeting ended to `record_start` accepted |
+| `crestapps.telnyx.media.stream.failures`, `.reconnects`, `.reconnect.duration` | `result` | `streaming.failed` reports and media streams that came back |
+
+Each webhook puts `crestapps.telnyx.webhook.type` and `crestapps.telnyx.webhook.result` on the ASP.NET Core request span; queued call events run under the webhook inbox's `crestapps.webhook.inbox.dispatch` span. REST retries count on `crestapps.retry.attempts` (`area` = `telnyx`, `reason` = `status_429`, `status_408`, `status_5xx`, `network`, `timeout`). Log event ids 19000-19199 (for example 19011 `record_start` refused). Telephony-wide commands and recordings are on the `CrestApps.OrchardCore.Telephony` meter, Telnyx SMS on `crestapps.messaging.*`, and AI calls on `crestapps.voice.*`.
+
 ## Upgrading from 2.x
 
 - Telnyx replaces the removed Dialpad provider; set `TelephonySettings.DefaultProviderName` to `Telnyx`.
@@ -201,7 +214,7 @@ The source reads `OrchardCore_Sms_Telnyx` exactly; it does not use the Orchard C
 | Symptom | Check |
 |---|---|
 | Connect fails with `Not authorized` (10006) | Create the API key from an Owner or Admin member, or grant Voice and Connections permissions |
-| Inbound calls never arrive | Webhook public key missing or wrong, number not assigned to the Call Control application, or `/api/telnyx/webhook/call` not publicly reachable over HTTPS |
+| Inbound calls never arrive | Read `crestapps.telnyx.webhooks` by `result` (`rejected_signature` means a wrong public key); webhook public key missing or wrong, number not assigned to the Call Control application, or `/api/telnyx/webhook/call` not publicly reachable over HTTPS |
 | Soft phone socket closes with `1006` | **SIP WebSocket URL** must use port `7443` |
 | One-way audio | Leave **ICE URLs** empty or include a TURN URL; a STUN-only list is ignored |
 | Calls flagged as spam | Use a Telnyx-owned **Default outbound caller id** |

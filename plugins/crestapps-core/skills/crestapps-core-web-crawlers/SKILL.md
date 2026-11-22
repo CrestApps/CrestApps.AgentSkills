@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-web-crawlers
-description: Skill for CrestApps.Core web crawlers that scrape public websites into a Web AI data source. Covers CrestApps.Core.AI.WebCrawlers with AddCoreWebCrawlers and AddCoreWebCrawlerStoresYesSql or AddCoreWebCrawlerStoresEntityCore, WebCrawler records with SitemapWebCrawlerMetadata, the Sitemap strategy for urlset, sitemapindex, gzip, text sitemaps, feeds and robots.txt, WebCrawlerOptions, the re-index planner and background service with lastmod-based incremental updates, PartiallyDiscovered results that never delete pages, page URL citations, HtmlIngestionDocumentReader from CrestApps.Core.DataIngestion, crawlers that feed a File data source, and custom IWebCrawlerStrategy implementations.
+description: Skill for CrestApps.Core web crawlers that scrape public websites into a Web AI data source. Covers CrestApps.Core.AI.WebCrawlers with AddCoreWebCrawlers and AddCoreWebCrawlerStoresYesSql or AddCoreWebCrawlerStoresEntityCore, WebCrawler records with SitemapWebCrawlerMetadata, the Sitemap strategy for urlset, sitemapindex, gzip, text sitemaps, feeds and robots.txt, WebCrawlerOptions with MaxResponseBytes, SitemapCrawlRequest size limits, Properties merged from recipe and API JSON, the re-index planner and background service with lastmod-based incremental updates, PartiallyDiscovered results that never delete pages, page URL citations, HtmlIngestionDocumentReader from CrestApps.Core.DataIngestion, crawlers that feed a File data source, and custom IWebCrawlerStrategy implementations.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -31,6 +31,7 @@ builder.Services.AddCoreWebCrawlerStoresYesSql(); // or AddCoreWebCrawlerStoresE
 builder.Services.Configure<WebCrawlerOptions>(options =>
 {
     options.DefaultMaxPages = 500;
+    options.MaxResponseBytes = 10 * 1024 * 1024; // page bodies; also feeds the sitemap request
     options.DefaultMaxConcurrentRequests = 4;
     options.DefaultRequestTimeoutSeconds = 30;
     options.DefaultReindexIntervalMinutes = 1440;
@@ -72,6 +73,10 @@ crawler.Put(new SitemapWebCrawlerMetadata
 
 await webCrawlerStore.CreateAsync(crawler, cancellationToken);
 ```
+
+Creating or updating a crawler from JSON (recipes, deployment imports, `NewAsync`/`UpdateAsync` with a `JsonNode`) merges the incoming `Properties` over the stored ones: omitted entries and fields keep their stored values, keys match without regard to case, and an entry sent as `null` is removed.
+
+Reads are bounded through `BoundedHttpContent`: page bodies stop at `WebCrawlerOptions.MaxResponseBytes` (10 MB), a sitemap or `robots.txt` at `SitemapCrawlRequest.MaxResponseBytes` (10 MB) and a gzip sitemap at `SitemapCrawlRequest.MaxDecompressedBytes` (50 MB). An oversized page is skipped; an oversized sitemap makes discovery incomplete, so nothing is deleted. A leading byte order mark is dropped and picks the encoding when the response has no charset.
 
 A base URL or a sitemap URL is required. The Sitemap strategy follows flat `urlset`, nested `sitemapindex`, gzip and plain-text sitemaps, RSS and Atom feeds and `robots.txt` advertisements, and skips non-HTML responses. Pages are cleaned with `HtmlIngestionDocumentReader` (AngleSharp HTML5 parsing that removes `script`, `style` and other non-content nodes), then normalized, chunked and embedded by the data source pipeline. The page URL is each chunk's reference id and the citation link.
 
@@ -191,3 +196,5 @@ Strategies are keyed singletons, so inject only singleton-safe services (`IHttpC
 - `IWebCrawlerStrategy.DiscoverDetailedAsync` and `ISitemapCrawler.DiscoverDetailedAsync` are default-implemented, so older strategies still compile. Override them to report incomplete discovery, or a strategy whose `DiscoverAsync` returns any pages is treated as complete.
 - File sources are separate `FileSource` records now; a crawler record is never also run as a file source.
 - YesSql hosts with crawlers but no file sources must still create the `IngestionItemStateIndex` table.
+- Recipe and API payloads that carry `Properties` now apply them (strategy settings such as `SitemapWebCrawlerMetadata`); before, only top-level fields were copied.
+- Responses above the size limits are no longer read whole; raise `WebCrawlerOptions.MaxResponseBytes` for sites with very large pages.

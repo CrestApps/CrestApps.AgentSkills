@@ -145,7 +145,7 @@ public sealed class Permissions : IPermissionProvider
 }
 ```
 
-Register it with `services.AddPermissionProvider<Permissions>();`. The third constructor argument lists permissions that imply this one. Display a description with `IStringLocalizerFactory.Localize(permission.Description)`; read the raw text with `permission.Description.Value`.
+Register it with `services.AddPermissionProvider<Permissions>();` (an `internal sealed` provider works too). The third constructor argument lists permissions that imply this one. Stereotypes are granted when the feature is installed and when a matching role is created; a role created while an installed feature is disabled gets them when the feature is enabled again, including for internal providers since 4.0 (see `orchardcore-permission-providers`). Display a description with `IStringLocalizerFactory.Localize(permission.Description)`; read the raw text with `permission.Description.Value`.
 
 ### Checking Permissions in a Controller
 

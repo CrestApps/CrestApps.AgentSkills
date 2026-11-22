@@ -112,6 +112,8 @@ public sealed class Startup : StartupBase
 }
 ```
 
+Default stereotypes are granted to the roles of the same name when the feature is installed (first enabled), and to a role when it is created, for the enabled features. A role created while an installed feature is disabled remembers that feature, and gets its stereotype permissions when the feature is enabled again. Since Orchard Core 4.0 this also works for `internal` providers: every installed but disabled feature is tracked when a role is created, and its providers are resolved when it is re-enabled (previously only features whose public types included an `IPermissionProvider` were tracked, so the stereotypes of an internal provider were never granted to such roles).
+
 ### Displaying and Translating Descriptions
 
 `Permission.Description` is a `LocalizationSource`, not a `string`. Show it with `stringLocalizerFactory.Localize(permission.Description)?.Value ?? permission.Name`, and read `permission.Description?.Value` for the original text. The roles editor and the admin menu and menu item permission pickers translate typed descriptions with PO files, using the type's full name as `msgctxt`:

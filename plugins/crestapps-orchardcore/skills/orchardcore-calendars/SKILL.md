@@ -1,6 +1,6 @@
 ---
 name: orchardcore-calendars
-description: Skill for the CrestApps Orchard Core Calendars module (CrestApps.OrchardCore.Calendars) and its Team, Resource, Office, Reminders, Invitations, Feeds, External Calendars and API features. Covers calendar types from AddCalendarType (owners, visibility, LimitConcurrent, ManagedByCode, event types), events with IANA time zones and RFC 5545 recurrence, occurrence overrides, attendees, locked overlap checks, free/busy and sharing levels, categories, reminders, the dashboard widget, iCalendar feeds, external sync providers, workflows, api/calendars/v1, AI tools, the Report Builder data source and the Calendars recipe step. Use this skill when requests mention Orchard Core calendars, room or desk booking, free/busy time, recurring events, calendar sharing or syncing an external calendar. Strong matches include ICalendarService, ICalendarEventManager, ICalendarAvailabilityService, ICalendarBusyTimeSource, ICalendarEventSource, ICalendarAccessContributor, ICalendarProvider and CalendarPermissions.
+description: Skill for the CrestApps Orchard Core Calendars module (CrestApps.OrchardCore.Calendars) and its Team, Resource, Office, Reminders, Invitations, Feeds, External Calendars and API features. Covers calendar types from AddCalendarType (owners, visibility, LimitConcurrent, ManagedByCode, event types, MarksAbsence), events with IANA time zones and RFC 5545 recurrence, ToUtcLenientAsync, occurrence overrides, attendees, locked overlap checks, free/busy and sharing, the CalendarAbsences availability source, the user search, reminders, the dashboard widget, iCalendar feeds, external sync, workflows, api/calendars/v1, AI tools, the Report Builder data source and the Calendars recipe step. Use this skill when requests mention Orchard Core calendars, room or desk booking, free/busy time, recurring events, calendar sharing or syncing an external calendar. Strong matches include ICalendarService, ICalendarEventManager, ICalendarAvailabilityService, ICalendarBusyTimeSource and ICalendarProvider.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -21,7 +21,8 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 - Always write events through `ICalendarEventManager` and calendars through `ICalendarService`, never through a store: validation, handlers, overlap checks and after-commit observers run there.
 - `CalendarEvent.Start`/`End` are **wall-clock** times in the event's IANA `TimeZoneId`. Never set `StartUtc`/`EndUtc` yourself.
 - Our calendar service is `ICalendarService`, not Orchard Core's `ICalendarManager` (culture calendars). Alias `Calendar` (`using Calendar = CrestApps.OrchardCore.Calendars.Models.Calendar;`) in files that import `System.Globalization`.
-- Shifts, time off and team calendars for staff come from `orchardcore-workforce`; appointments from `orchardcore-scheduling`; commerce bookings from `orchardcore-bookings`.
+- Show event times in the local time zone (`ILocalClock`); convert a wall-clock time a person entered in the site or user zone to UTC with `ILocalClock.ToUtcLenientAsync(local)` (`LocalClockExtensions` in `CrestApps.OrchardCore.Calendars`, Calendars.Abstractions), which moves a time a DST change skips forward by the gap and takes the earlier of a repeated time instead of failing. See `orchardcore-time-zones`.
+- Shifts, time off and team calendars for staff come from `orchardcore-workforce`; the people themselves from `orchardcore-staff`; appointments and dated sessions from `orchardcore-scheduling`; commerce bookings from `orchardcore-bookings`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -67,7 +68,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 | `CrestApps.OrchardCore.AI` | Six calendar AI tools (`AIToolsStartup`) |
 | `OrchardCore.DataPipelines.Core` | The **Calendars** Report Builder data source |
 | `OrchardCore.AdminDashboard` | The **Calendar** dashboard widget (`CalendarWidget` content type) |
-| `CrestApps.OrchardCore.Teams` | Members of the team linked to a Team calendar's role get **Write** |
+| `CrestApps.OrchardCore.Teams` | Members of the team linked to a Team calendar's role get **Write** (with Team Calendars); the `CalendarAbsences` team availability source ("Not out of office or on time off in the calendar", honored by default) keeps team assignment from picking people while an absence event is happening on their own calendar or on one they attend and haven't declined. See `orchardcore-teams`. |
 | `OrchardCore.Recipes.Core` / `OrchardCore.Deployment` | The `Calendars` recipe step / deployment step |
 | `CrestApps.OrchardCore.Recipes` | JSON schemas for the step (`CalendarsRecipeStepSchema`, `CalendarsDeploymentStepSchema`) |
 
@@ -83,6 +84,10 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 | Feed and files | `calendars/{id}/feed` (Manage), `calendars/{id}/export` (Read), `calendars/{id}/import` (Write) (Calendar Feeds) | per-calendar level |
 
 Scheduling adds Appointments, Appointment Types, Scheduling Resources and Waitlist under the same **Calendars** menu; Workforce adds its shift planning pages there.
+
+The user search behind the calendar user pickers (`GET Admin/api/calendars/users/search?query=`, route name `CalendarsUserSearch`) is a minimal API, so it checks access itself: the caller needs both `AccessCalendars` and `AccessAdminPanel`, else `403` (a signed-in storefront customer can't list users). It returns up to 30 enabled users matched by user name; emails are matched and returned only to callers with `ViewUsers` (`UsersPermissions.ViewUsers`, implied by Manage Users). Build its URL with `Url.RouteUrl("CalendarsUserSearch")` so tenants with a URL prefix work.
+
+The calendar view uses FullCalendar 7.1.4 from CrestApps Resources (`fullcalendar`, `fullcalendar-locales`, `fullcalendar-theme` scripts, minified locally unless resource debug mode is on; CDN URLs carry SRI hashes). See `orchardcore-crestapps-resources`.
 
 ## Permissions and Access
 
@@ -118,7 +123,9 @@ A type is a `CalendarTypeDescriptor` registered with `services.AddCalendarType(n
 | `WithVisibility` | Default `Private`, `Shared` or `Public` |
 | `LimitConcurrent(capacity = 1)` | New calendars refuse a busy event when `capacity` busy events already overlap |
 | `ManagedByCode()` | Not in **Add calendar**; only code creates calendars of it |
-| `AddEventType(name, displayName, e => ...)` | `Color`, `Icon`, `RemindBefore(minutes)`, `Busy()`/`Free()`, `AllDayByDefault()`, `Lasts(minutes)` (60), `NeedsApproval()` (created Tentative), `RequiresAttendee()`, `IgnoresCapacity()`. A type with none gets `Event`. |
+| `AddEventType(name, displayName, e => ...)` | `Color`, `Icon`, `RemindBefore(minutes)`, `Busy()`/`Free()`, `AllDayByDefault()`, `Lasts(minutes)` (60), `NeedsApproval()` (created Tentative), `RequiresAttendee()`, `IgnoresCapacity()`, `MarksAbsence()` (its people are away while it lasts: team assignment passes them over). A type with none gets `Event`. |
+
+The `LocalizationSource` properties of the descriptors (`CalendarTypeDescriptor.DisplayName` and `Description`, `CalendarEventTypeDescriptor.DisplayName`, a provider's `DisplayName`) are `[JsonIgnore]`; do the same on your own. `OutOfOffice` (`CalendarsConstants.EventTypes.OutOfOffice`) on Personal and Team calendars and Workforce `TimeOff` mark absence.
 
 | Type | Registered by | Owner | Overlaps | Event types (technical names) |
 |---|---|---|---|---|
@@ -158,6 +165,7 @@ Module-managed calendars, writing events from code, type-specific fields and eve
 - A changed or cancelled occurrence is an **override** (its own event with `SeriesId` + `OriginalStartUtc`). **This and following** ends the master with `UNTIL` and starts a new master. Use `UpdateOccurrenceAsync` / `CancelOccurrenceAsync` with `CalendarEditScope` `ThisOccurrence`, `ThisAndFollowing` or `AllOccurrences`.
 - On every create, change and move to a `LimitConcurrent` calendar (or an invited room/equipment calendar), the manager takes the distributed lock `CALENDAR_{id}` (`CalendarLockKeys.Calendar`) on each target in id order, checks overlaps (`CalendarConflictChecker`, next 366 days and up to 500 occurrences for a series), bumps each calendar's `BookingVersion` with YesSql's concurrency check, then stages the event. A refusal is a `CalendarError` with `Code == CalendarError.ConflictCode`.
 - Every write takes `CalendarChangeOptions`: `Actor`, `Reason`, `SkipConflictCheck`, `CalendarLocksHeld`, `Notify` (true), `SendInvitations` (true).
+- Every index provider is declared `.ExclusiveToDocumentType()`; all but `CalendarEventAttendeeIndex` (one row per attendee) and `CalendarShareIndex` (one row per share) are also `.SingleRecordPerDocument()`.
 - Queries are bounded by `CalendarOptions`: `MaxOccurrencesPerQuery` 5000, `MaxEventsPerQuery` 5000, `MaxQueryDays` 400; `DefaultReminderMinutes` 10. Reminder choices are 0, 5, 10, 15, 30, 60, 120 or 1440 minutes.
 
 ## Services and Extension Points
@@ -241,7 +249,7 @@ public sealed class CancelledMeetingObserver : ICalendarEventObserver
 
 ## Reminders, Invitations and Feeds
 
-- **Reminders.** `CalendarReminderBackgroundTask` runs every minute, raises each offset once per occurrence through `CalendarReminderLog`, and turns event reminders into a `CalendarUserReminder` per person. Every full admin page polls `GET Admin/api/calendars/reminders` and dismisses with `POST Admin/api/calendars/reminders/{id}/dismiss`.
+- **Reminders.** `CalendarReminderBackgroundTask` runs every minute, raises each offset once per occurrence through `CalendarReminderLog`, and turns event reminders into a `CalendarUserReminder` per person. Every full admin page polls `GET Admin/api/calendars/reminders` and dismisses with `POST Admin/api/calendars/reminders/{id}/dismiss`. Each reminder carries `start`/`end` as UTC instants plus `startText`, the start already formatted in the local zone (date only for all-day events), so an all-day event keeps its date in a browser in another zone.
 - **Invitations.** After commit, attendees with an email (not the organizer, not decliners) get an invitation (`.ics` `REQUEST`), update or cancellation (`CANCEL`). Answers go to the anonymous `calendars/respond/{eventId}/{token}/{response}`. Writes with `SendInvitations = false` (recipes, imports) send nothing.
 - **Feeds.** `GET /calendars/feed/{token}.ics` (anonymous, private events as busy only); import reads up to 10,000 VEVENTs (with `RRULE`, `EXDATE`, `RECURRENCE-ID`, `TZID`) and matches by UID.
 - **Choosing a time from any page.** Render the `CalendarPicker` shape and call `CrestAppsCalendarPicker.open({ date, durationMinutes, title })`; it resolves with `{ start, end, local }` or `null`.
@@ -253,6 +261,7 @@ External Calendars keeps a calendar in step with an outside calendar through an 
 - The subscription is a `CalendarSubscription` in the calendar's properties: `Provider` (`ics`), `Url`, `IntervalMinutes` (60, 5 to 10,080), `Enabled`, `TwoWay`, `ConflictPolicy` (`ExternalWins` default, `LocalWins`), plus sync bookkeeping (`SyncToken`, `PendingPush`, `PendingDeletes`, `NeedsReconnect`, `LastSyncedUtc`, `LastError`, `Failures`, `LastResult`).
 - `CalendarSyncBackgroundTask` runs every five minutes, each calendar in its own scope; failures back off up to 32 times the interval; an authorization failure pauses the subscription (`NeedsReconnect`) until it is saved again.
 - The `calendars-external-sync` health check (tag `calendars`) reports **Degraded** while a subscription needs reconnecting or has failed three times in a row.
+- Telemetry (meter `Calendars`): each sync is a `crestapps.calendars.sync` span with the `crestapps.calendars.sync.duration` histogram (provider, mode incremental or full, outcome) and the `crestapps.calendars.sync.events` counter; `crestapps.calendars.observer.failures` counts failing observers. See `orchardcore-opentelemetry`.
 
 Building a provider (contracts, registration with `services.AddCalendarProvider<T>()`, event mapping, OAuth, tests) is in [references/external-calendar-providers.md](references/external-calendar-providers.md).
 
@@ -346,5 +355,7 @@ The **Calendars** deployment step (category **Calendar**, `CalendarsDeploymentSt
 | Someone sees busy blocks only | Their level is FreeBusy, or the event is `Private`. |
 | Workflow loops | Keep `IgnoreWorkflowChanges` on; task changes use actor `workflow`. |
 | Google or Outlook calendar can't be connected | No such provider ships; subscribe to its `.ics` address with the `ics` provider, or build a provider. |
+| User picker returns `403` or no emails | The search needs `AccessCalendars` and `AccessAdminPanel`; emails need `ViewUsers`. |
+| Work still assigned to someone out of office | The event type must call `MarksAbsence()`, the event must be happening now on their own calendar or one they attend (not declined), and Teams must be on. |
 
-Related skills: `orchardcore-scheduling`, `orchardcore-bookings`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-contact-center`, `orchardcore-omnichannel-management`, `orchardcore-report-builder`, `orchardcore-ai-tools`, `orchardcore-time-zones`.
+Related skills: `orchardcore-staff`, `orchardcore-scheduling`, `orchardcore-bookings`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-contact-center`, `orchardcore-omnichannel-management`, `orchardcore-report-builder`, `orchardcore-ai-tools`, `orchardcore-time-zones`.

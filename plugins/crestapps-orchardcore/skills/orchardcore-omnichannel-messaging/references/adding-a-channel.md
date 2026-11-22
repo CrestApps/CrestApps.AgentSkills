@@ -20,9 +20,15 @@ add `if (channel == "X")` to the workspace; extend `IMessagingChannel` or
 | `SendAsync(MessagingOutboundMessage, cancellationToken)` | Hand one message (`ServiceAddress`, `ContactAddress`, `Subject`, `Body`, `MediaUrls`) to the provider; return `MessageDispatchResult.Success(providerMessageId)` or `Failed(...)`. |
 | `IsOptedOut`, `GetContactAddresses`, `FindContactIdsAsync`, `SearchContactIdsByAddressAsync` | How a CRM contact is reached, recognized and opted out. Read addresses through `IContactMethodsAccessor`. |
 
-`MessagingAttachmentCapabilities` lists `Formats` (from `MessagingFileFormats`,
-such as `Images` or `Documents`), `MaxCount`, `MaxTotalBytes` and
-`ShrinkImagesToFit`. The composer and server enforce exactly those formats.
+`MessagingAttachmentCapabilities` lists `Formats` (from the shared
+`FileFormats` of the Attachments building block, such as `Images` or
+`Documents`, or a `FileFormat` of your own), `MaxCount`, `MaxTotalBytes` and
+`ShrinkImagesToFit`. The composer and server enforce exactly those formats; a
+format with a signature is matched by the file's bytes, one without by its
+extension. `FileFormat`, `FileFormats` and `FileSignature` live in
+`CrestApps.OrchardCore.Attachments.Models` (package
+`CrestApps.OrchardCore.Attachments.Abstractions`); they replace
+`MessagingFileFormat`, `MessagingFileFormats` and `MessagingFileSignature`.
 
 ## Skeleton
 

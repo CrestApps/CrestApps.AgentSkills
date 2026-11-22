@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-aspnet-hosting
-description: Skill for composing CrestApps.Core 2.0 into ASP.NET Core MVC, Razor Pages, Blazor Web App, Minimal API, and .NET MAUI hybrid hosts. Covers Program.cs ordering, AddCrestAppsCore with a store and commit filters, middleware order (UseWebSockets before UseRouting, UseAIAnonymousVisitorCookie, rate limiting), chat hub classes derived from AIChatHubCore and ChatInteractionHubBase with ConfigureCrestAppsChatHubOptions, the WebRTC realtime transport, the document and knowledge-figure endpoints with their resource-based authorization handlers, MCP endpoint mapping, the @crestapps/ai-chat-ui browser assets, live site-settings options through IOptionsMonitor, and which helpers are sample-host code rather than package APIs. Use it when wiring CrestApps.Core into a new or existing web application or troubleshooting host startup.
+description: Skill for composing CrestApps.Core 2.0 into ASP.NET Core MVC, Razor Pages, Blazor Web App, Minimal API, and .NET MAUI hybrid hosts. Covers Program.cs ordering, AddCrestAppsCore with a store and commit filters, middleware order (UseWebSockets before UseRouting, UseAIAnonymousVisitorCookie, rate limiting), chat hub classes derived from AIChatHubCore and ChatInteractionHubBase with ConfigureCrestAppsChatHubOptions, the WebRTC realtime transport, the document and knowledge-figure endpoints (each returning a RouteHandlerBuilder) with their resource-based authorization handlers and antiforgery, forwarded headers behind a proxy, the AG-UI endpoint, MCP endpoint mapping, the @crestapps/ai-chat-ui browser assets, live site-settings options through IOptionsMonitor, and which helpers are sample-host code rather than package APIs. Use it when wiring CrestApps.Core into a new or existing web application or troubleshooting host startup.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,6 +20,8 @@ You are a CrestApps.Core expert. Register host services first, compose CrestApps
 - Call `UseAIAnonymousVisitorCookie()` (from `CrestApps.Core.AI.Chat`) after routing and before authentication when anonymous visitors chat, so rate limiting and session reuse get a stable visitor key.
 - Every hub type that is mapped needs `ConfigureCrestAppsChatHubOptions<THub>()` (or `ConfigureChatHubOptions<THub>()` on the Chat Interactions builder). `HubOptions<THub>` is per hub type; an unconfigured hub runs on SignalR defaults (one parallel invocation per client), which deadlocks the realtime WebRTC handshake.
 - The document and figure endpoints authorize against resources through `IAuthorizationService`. Register `IAuthorizationHandler` implementations that grant the requirements, or every download and upload is forbidden.
+- Each document `Add*Endpoint()` returns its `RouteHandlerBuilder`, so call them one per statement and add filters or rate limiting to the result. Cookie-authenticated pages render the antiforgery token (`<meta name="RequestVerificationToken" ...>` or `antiforgeryToken` in the chat config) for the upload and remove endpoints.
+- Behind a reverse proxy, call `UseForwardedHeaders()` with `ForwardedHeadersOptions.KnownProxies`/`KnownNetworks`. The visitor identity resolver never reads `X-Forwarded-For` itself, so without it every visitor shares the proxy's address for rate limiting.
 
 ## MVC Program.cs
 
@@ -27,6 +29,7 @@ You are a CrestApps.Core expert. Register host services first, compose CrestApps
 using CrestApps.Core;
 using CrestApps.Core.AI;
 using CrestApps.Core.AI.Chat;
+using CrestApps.Core.AI.Chat.AGUI;
 using CrestApps.Core.AI.Documents;
 using CrestApps.Core.AI.Documents.Endpoints;
 using CrestApps.Core.AI.Documents.OpenXml;
@@ -78,13 +81,17 @@ app.UseHttpsRedirection()
 app.MapHub<AIChatHub>("/hubs/ai-chat");
 app.MapHub<ChatInteractionHub>("/hubs/chat-interaction");
 
-app.AddDownloadAIDocumentEndpoint()
-    .AddDownloadAIDocumentFigureEndpoint()
-    .AddDownloadKnowledgeFigureEndpoint()
-    .AddUploadChatInteractionDocumentEndpoint()
-    .AddRemoveChatInteractionDocumentEndpoint()
-    .AddUploadChatSessionDocumentEndpoint()
-    .AddRemoveChatSessionDocumentEndpoint();
+// Optional: other AG-UI clients over HTTP (see crestapps-core-ag-ui).
+app.MapAGUIChat<AIChatHub>()
+    .RequireAuthorization();
+
+app.AddDownloadAIDocumentEndpoint();
+app.AddDownloadAIDocumentFigureEndpoint();
+app.AddDownloadKnowledgeFigureEndpoint();
+app.AddUploadChatInteractionDocumentEndpoint();
+app.AddRemoveChatInteractionDocumentEndpoint();
+app.AddUploadChatSessionDocumentEndpoint();
+app.AddRemoveChatSessionDocumentEndpoint();
 
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 
@@ -197,7 +204,14 @@ When admin-managed settings feed options (for example `DefaultAIDeploymentSettin
 
 ## Sample-Host Code, Not Package APIs
 
-Do not tell users to call these from a package; they live in `src/Startup` and must be copied or rewritten: `AddSharedSampleHostDefaults()`, `AddSharedSiteSettings(...)`, `AddMvcSampleHostServices(...)`, `AddBlazorSampleHostServices(...)`, `AddSharedAIChatProtection()`, `UseSharedAIChatProtection()`, `AddA2AHost()`, `MapA2AHost()`, `AddChatApiEndpoints()`, `InitializeYesSqlSchemaAsync()`, `SeedArticlesAsync()`, and `SampleHostContentRootResolver`. `InitializeEntityCoreSchemaAsync()`, `ConfigureCrestAppsChatHubOptions<THub>()`, `UseAIAnonymousVisitorCookie()`, `AddWebRtcRealtimeTransport()` and the `Add*Endpoint()` document extensions are package APIs. See `crestapps-core-sample-hosts`.
+Do not tell users to call these from a package; they live in `src/Startup` and must be copied or rewritten: `AddSharedSampleHostDefaults()`, `AddSharedSiteSettings(...)`, `AddMvcSampleHostServices(...)`, `AddBlazorSampleHostServices(...)`, `AddSharedAIChatProtection()`, `UseSharedAIChatProtection()`, `AddA2AHost()`, `MapA2AHost()`, `AddChatApiEndpoints()`, `InitializeYesSqlSchemaAsync()`, `SeedArticlesAsync()`, and `SampleHostContentRootResolver`. `InitializeEntityCoreSchemaAsync()`, `ConfigureCrestAppsChatHubOptions<THub>()`, `UseAIAnonymousVisitorCookie()`, `AddWebRtcRealtimeTransport()`, `MapAGUIChat<THub>()` and the `Add*Endpoint()` document extensions are package APIs. See `crestapps-core-sample-hosts`.
+
+## Upgrading Within 2.0 Previews
+
+- Document `Add*Endpoint()` methods return `RouteHandlerBuilder` instead of the route builder; split chained calls.
+- The upload and remove endpoints validate antiforgery for cookie and visitor-cookie requests. Add the token to the page, and add your API scheme's authentication type to `AntiforgeryEndpointFilterOptions.NonCookieAuthenticationTypes` if it is not `Bearer`, `Api`, `ApiKey` or `OpenIddict.Validation.AspNetCore`.
+- `DefaultAIVisitorIdentityResolver` uses the connection's remote address only; configure forwarded headers behind a proxy.
+- The packages target `net10.0` and `net11.0`; a `net11.0` host gets the 11.0 builds of the Microsoft.Extensions and EF Core packages.
 
 ## Upgrading from 1.x
 

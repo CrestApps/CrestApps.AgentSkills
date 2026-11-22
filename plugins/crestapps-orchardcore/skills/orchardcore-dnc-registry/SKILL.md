@@ -245,6 +245,20 @@ services.AddScoped<INationalDoNotCallRegistry, MyRegistry>();
 - Return only numbers from the input set; skip numbers the upstream API cannot express (for example non-NANP numbers on a North American registry) rather than sending an altered number.
 - Add a settings model, a display driver, and an admin menu entry under **Settings → DNC Registries** when the provider needs credentials.
 
+## Monitoring
+
+`DncRegistryTelemetry` publishes the meter and activity source `CrestApps.OrchardCore.DncRegistry` (matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`):
+
+| Instrument | Tags | Measures |
+|---|---|---|
+| `crestapps.dnc.screening.duration` | `registry` (`usa_ftc`, `canada_dncl`, `local`), `outcome` (`ok`, `error`, `skipped`, `cancelled`, `timeout`), `reason` (`not_configured`, when skipped) | One screening of numbers against one registry |
+| `crestapps.dnc.screening.size` | `registry` | Numbers one screening asked about |
+| `crestapps.dnc.screening.listed` | `registry` | Screened numbers reported as listed |
+| `crestapps.dnc.import.duration` | `outcome`, `reason` | One local list import run |
+| `crestapps.dnc.import.rows` | `result` (`imported`, `duplicate`, `invalid_number`, `blank`, `multiple_columns`, `header`) | File rows, counted once their batch is saved |
+
+Spans: `crestapps.dnc.screening`, `crestapps.dnc.import.run`, `crestapps.deferred.dnc_local_import`, `crestapps.deferred.dnc_local_delete`. A failed import retry counts on `crestapps.retry.attempts` (`area` = `dnc`), and `LocalDncImportBackgroundTask` on `crestapps.background_task.*`. Event id 16400 logs an import run ending, under a `DncListId` log scope. The Contact Center dial path adds `crestapps.contactcenter.dialer.dnc.lookup.duration` (`result` `listed`, `clear`, `error`).
+
 ## Upgrading from 2.x
 
 - The Local registry repair migration now resolves the prefixed table name, so it no longer throws on tenants with a table prefix and no longer rolls back other features' migrations in the same run (most visibly the Omnichannel contact migration).

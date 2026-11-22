@@ -85,7 +85,7 @@ using OrchardCore.DisplayManagement.Manifest;
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
@@ -278,7 +278,7 @@ Zone shapes support alternates for per-zone template overrides:
 
 ## Additional Features in a Theme Manifest
 
-A theme assembly can declare extra `[Feature]` attributes next to `[Theme]`. The theme stays listed on the Themes page, and the extra features appear in **Configuration → Features** with their category and Enable button:
+A theme assembly can declare extra `[Feature]` attributes next to `[Theme]`. The theme stays listed on the Themes page, and the extra features appear in **Tools → Features** with their category and Enable button:
 
 ```csharp
 using OrchardCore.DisplayManagement.Manifest;

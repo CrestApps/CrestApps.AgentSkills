@@ -1,6 +1,6 @@
 ---
 name: orchardcore-secrets
-description: Skill for the Orchard Core 4.0 Secrets module. Covers the OrchardCore.Secrets and OrchardCore.Secrets.AzureKeyVault features, ISecretManager, ISecretStore and ISecretStoreOperations, the TextSecret, RsaKeySecret and X509Secret types, the Database and AzureKeyVault stores, the secret-input tag helper and GetSecretValueAsync, the SecretName properties of built-in settings, the Migrate Secrets and Secret Stores screens, the Secrets recipe and deployment steps with encrypted exports, the LegacySecretConfiguration warning, and upgrading credentials of existing tenants. Use this skill when requests mention Orchard Core secrets, storing passwords or API keys securely, moving credentials to secrets, a secret store, Azure Key Vault secrets, or a module that keeps a credential in its settings. Strong matches include OrchardCore.Secrets, OrchardCore.Secrets.Abstractions, ISecretManager, TextSecret, X509Secret, RsaKeySecret, SecretInputViewModel, SecretMigration, and ManageSecrets.
+description: Skill for the Orchard Core 4.0 Secrets module. Covers the OrchardCore.Secrets and OrchardCore.Secrets.AzureKeyVault features, ISecretManager, ISecretStore and ISecretStoreOperations, the Secret union of the TextSecret, RsaKeySecret and X509Secret types, GetSecretAsync<T>, the Database and AzureKeyVault stores, the secret-input tag helper and GetSecretValueAsync, the SecretName properties of built-in settings, the Migrate Secrets and Secret Stores screens, the Secrets recipe and deployment steps with encrypted exports, the LegacySecretConfiguration warning, and upgrading credentials of existing tenants. Use this skill when requests mention Orchard Core secrets, storing passwords or API keys securely, moving credentials to secrets, a secret store, Azure Key Vault secrets, or a module that keeps a credential in its settings. Strong matches include OrchardCore.Secrets, OrchardCore.Secrets.Abstractions, ISecretManager, TextSecret, X509Secret, RsaKeySecret, SecretInputViewModel, SecretMigration, and ManageSecrets.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -84,11 +84,43 @@ public sealed class PaymentGatewayClient
 }
 ```
 
-`ISecretManager` members: `GetSecretAsync<T>(name)` and `GetSecretAsync<T>(name, storeName)`,
-`SaveSecretAsync<T>(name, secret, options)` and `SaveSecretAsync<T>(name, secret, storeName, options)`,
+`ISecretManager` members: `GetSecretAsync(name)` and `GetSecretAsync(name, storeName)`
+(return a `Secret`), `SaveSecretAsync(name, secret, options)` and
+`SaveSecretAsync(name, secret, storeName, options)` (take a `Secret`),
 `RemoveSecretAsync(name)` and `RemoveSecretAsync(name, storeName)`,
 `GetSecretInfosAsync()` (metadata only, as `SecretInfo`), and `GetStores()`.
+`GetSecretAsync<T>(name)` and `GetSecretAsync<T>(name, storeName)` are extension
+methods (`SecretManagerExtensions`, and `SecretStoreExtensions` for a store) that
+return the secret only when it is a `T`, otherwise `null`.
 `SecretSaveOptions` carries `Description` and `ExpiresUtc`.
+
+### The `Secret` Union
+
+Secrets are exchanged as `Secret`, a C# union (.NET 11) of a closed set of types:
+`public union Secret(TextSecret, RsaKeySecret, X509Secret)`. There is no `ISecret`
+marker interface anymore. A `TextSecret`, `RsaKeySecret` or `X509Secret`
+converts implicitly to a `Secret`, so `SaveSecretAsync("Name", new TextSecret { ... })`
+compiles as is. To handle every type, `switch` on the `Secret`; the compiler checks
+that the switch is exhaustive. A secret that is not found has a `null` `Value` and
+matches the `null` pattern:
+
+```csharp
+var secret = await _secretManager.GetSecretAsync("Signing.Key");
+
+using var rsa = secret switch
+{
+    RsaKeySecret rsaKey => CreateRsa(rsaKey),
+    X509Secret x509 => x509.GetCertificate()?.GetRSAPrivateKey(),
+    TextSecret => throw new InvalidOperationException("The secret is not a key."),
+    null => throw new InvalidOperationException("The secret was not found."),
+};
+```
+
+`Secret.Types` lists the three types, `Secret.FromValue(object)` wraps an instance
+(and throws for any other type), and `Secret.TryGetType(name, out type)` resolves a
+type from its name, which a store uses to restore what it persisted. `Secret` has
+the same name as `Microsoft.AspNetCore.DataProtection.Secret`: in a file importing
+both namespaces, add `using Secret = OrchardCore.Secrets.Secret;`.
 
 ## Secret Types and Stores
 
@@ -104,12 +136,13 @@ public sealed class PaymentGatewayClient
 | `AzureKeyVault` | `OrchardCore.Secrets.AzureKeyVault` | Uses a host-registered keyed `SecretClient`; names are namespaced by prefix, tenant, and a hash. Deletion is a soft delete, never a purge. |
 
 Add a store with `services.AddSecretStore<TStore>()` (implement `ISecretStore`:
-`Name`, `IsReadOnly`, `GetSecretAsync<T>`, `SaveSecretAsync<T>`,
-`RemoveSecretAsync`, `GetSecretInfosAsync`). Add a type with
-`services.AddSecretType<TProvider>()`, deriving from `SecretTypeProvider<TSecret>`,
-and register the same provider on every instance that imports it. See
+`Name`, `IsReadOnly`, `Task<Secret> GetSecretAsync(name)` returning `default` when
+not found, `SaveSecretAsync(name, Secret secret, options)`, `RemoveSecretAsync`,
+`GetSecretInfosAsync`). The secret types are the closed set of the `Secret` union:
+a module can't add its own secret type (`Secret.FromValue` rejects other types);
+store a JSON payload in a `TextSecret` instead. See
 [references/secrets-examples.md](references/secrets-examples.md) for the Key
-Vault configuration, a custom store, and a custom type.
+Vault configuration and a custom store.
 
 ## Keeping a Module's Credential in a Secret
 

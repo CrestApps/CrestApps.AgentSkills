@@ -23,6 +23,7 @@ You are an Orchard Core expert. Generate code and configuration for user managem
 - Customize login, logout, registration, and password recovery with `ILoginFormEvent`, `ILogoutFormEvent`, `IRegistrationFormEvents`, and `IPasswordRecoveryFormEvents`.
 - Read `RegistrationOptions` and `ExternalLoginOptions` through `IOptionsMonitor<T>.CurrentValue`; they refresh when site settings change.
 - Enable `OrchardCore.RateLimits` to throttle login, registration, password recovery, and confirmation-email endpoints (see `orchardcore-rate-limits`).
+- Passkeys, two-factor authentication and the user **Security** page (`/Security`) are covered by `orchardcore-passkeys`.
 - External authentication providers live in their own skills (`orchardcore-google`, `orchardcore-microsoft-auth`, `orchardcore-facebook`, `orchardcore-github-authentication`, `orchardcore-twitter`, `orchardcore-openid`).
 
 ### Enabling User and Role Features
@@ -45,7 +46,7 @@ You are an Orchard Core expert. Generate code and configuration for user managem
 }
 ```
 
-Other Users features include `OrchardCore.Users.ExternalAuthentication`, Users Change Email, User Time Zone, User Localization, Users Authentication Ticket Store (server-side tickets in memory or distributed cache), Users Audit Trail, and the Two-Factor Email, Authenticator App, and SMS methods.
+Other Users features include `OrchardCore.Users.ExternalAuthentication`, Users Change Email, User Time Zone, User Localization, Users Authentication Ticket Store (server-side tickets in memory or distributed cache), Users Audit Trail, the Two-Factor Email, Authenticator App, and SMS methods (`OrchardCore.Users.2FA.Email`, `OrchardCore.Users.2FA.AuthenticatorApp`, `OrchardCore.Users.2FA.Sms`), and Passkeys (`OrchardCore.Users.Passkeys`). The two-factor methods and Passkeys enable User Security (`OrchardCore.Users.Security`, the Security page) by dependency; see `orchardcore-passkeys`.
 
 ### Defining Custom Permissions
 
@@ -173,6 +174,8 @@ The `Administrator` role does not receive permission claims during login. Use `h
 }
 ```
 
+Login settings are edited in **Settings → Security → User Login**, whose tabs are **General**, **Two-Factor Authentication** (`TwoFactorLoginSettings`), **Security Page** (`UserSecuritySettings.UseSiteTheme`, the theme of the Security page and the pages it links to) and **External Login**. `UseSiteTheme` of `LoginSettings` only themes the login page; `TwoFactorLoginSettings.UseSiteTheme` was replaced by `UserSecuritySettings.UseSiteTheme`.
+
 `UsePersistentAuthenticationCookie` (**Use persistent authentication cookies by default**) controls whether local and external sign-ins survive browser restarts. With `AllowRememberMe` enabled it is the default value of the **Remember me** checkbox; with `AllowRememberMe` disabled it decides persistence for every sign-in.
 
 ### Registration and External Authentication Settings via Recipe
@@ -283,6 +286,7 @@ When `OrchardCore.RateLimits` is enabled, Users registers these route limits (pe
 | Resend confirmation email | 2 | User who passed the password check |
 | Two-factor code / recovery code | 5 / 3 | User who passed the password check |
 | Email or SMS authenticator send code | 2 | User who passed the password check |
+| Passkey login (`Passkeys/Login`, `password-authentication` policy) | 10, sliding window | IP address |
 
 See `orchardcore-rate-limits` to tune them.
 
@@ -297,6 +301,7 @@ See `orchardcore-rate-limits` to tune them.
       "ChangePasswordUrl": "ChangePassword",
       "ChangePasswordConfirmationUrl": "ChangePasswordConfirmation",
       "ExternalLoginsUrl": "ExternalLogins",
+      "SecurityPath": "Security",
       "TwoFactorAuthenticationPath": "TwoFactor"
     },
     "Roles": {
@@ -380,3 +385,5 @@ The **Generate password** button of the user editor uses the `generatePassword` 
 - Rename configuration sections `OrchardCore_Users` to `OrchardCore:Users` and `OrchardCore_Roles` to `OrchardCore:Roles` (old names still work but are deprecated).
 - Rate limits of the user endpoints were raised (login 10 to 100, registration 3 to 20, password recovery 5 to 20 per minute) and the confirmation-email and two-factor limits are counted per user instead of per IP. Re-check tenant policies that relied on the old values.
 - Stop depending on the `password-generator` script resource; use the Bloom `generatePassword` helper.
+- The two-factor page became a section of the Security page: `TwoFactorAuthentication/Index.cshtml` is now the `UserSecurityTwoFactor` shape, `UserMenuItems-TwoFactor` is `UserMenuItems-Security`, `/TwoFactor` redirects to `/Security`, and recipes set `UserSecuritySettings.UseSiteTheme` instead of `TwoFactorLoginSettings.UseSiteTheme` (see `orchardcore-passkeys`).
+- The users list rows changed: the user name is a title link, the email an outlined badge, and `UserRolesMeta` moved from the `Description` zone to `Meta` (`SummaryAdmin`). `UserDisplayName.SummaryAdminGrid` renders users as badges in Grid lists. Re-check overrides of `UserFields.cshtml` and `UserRolesMeta.cshtml`.

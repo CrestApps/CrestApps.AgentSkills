@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-webmcp
-description: Skill for WebMCP in CrestApps.Core 2.0, the proposed W3C standard that lets a page give tools to browser AI agents through document.modelContext. Covers CrestApps.Core.AI.WebMcp with AddWebMcp and AddCoreAIWebMcp, MapWebMcpTools list and invoke endpoints, WebMcpOptions ExposeAllTools and Tools, IWebMcpAccessEvaluator and IAIToolAccessEvaluator checks, the CrestApps.AI.WebMcp.Resources scripts and the @crestapps/webmcp npm package (webmcp.js, webmcp-page-tools.js, webmcp-polyfill.js) with the crestapps-webmcp-config block, built-in page tools, the AI chat as a WebMCP agent with AddPageTools, WebMcpProfileSettings AllowPageTools and AllowConsequentialPageTools, consequentialHint and untrustedContentHint, function-name mapping, pageToolOrigins for cross-origin frames, SetPageTools and ExecutePageTool client results, and the sample WebMCP Playground. Use it when exposing AI tools to browser agents, letting the chat drive the page a user has open, or troubleshooting page tools that never reach the model.
+description: Skill for WebMCP in CrestApps.Core 2.0, the proposed W3C standard that lets a page give tools to browser AI agents through document.modelContext. Covers AddWebMcp and AddCoreAIWebMcp, MapWebMcpTools endpoints, WebMcpOptions, IWebMcpAccessEvaluator, the webmcp.js, webmcp-page-tools.js and webmcp-polyfill.js scripts with the crestapps-webmcp-config block, the page tools (page_get_info, page_read_content, page_list_links, page_navigate, page_list_form_fields, page_set_form_field with previousValue), the AI chat as a WebMCP agent with AddPageTools, AllowPageTools and AllowConsequentialPageTools, consequentialHint tools that wait for approval in AG-UI runs, untrustedContentHint, page tool failure messages, function-name mapping, pageToolOrigins, SetPageTools and ExecutePageTool, and the WebMCP Playground. Use it when exposing AI tools to browser agents, letting the chat drive the page a user has open, or troubleshooting page tools that never reach the model.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -14,7 +14,7 @@ metadata:
 | Part | What it does |
 |---|---|
 | Your AI tools as WebMCP tools | `webmcp.js` registers the AI tools and tool instances you select; calling one posts to your app, which runs it as the signed-in user |
-| Page tools | `webmcp-page-tools.js` registers tools that read the page, list its links, open another page of the site, and read and fill forms |
+| Page tools | `webmcp-page-tools.js` registers tools that read the page and what it shows (text, tables, form values), list its links, open another page of the site, and read and fill forms |
 | The AI chat as a WebMCP agent | The AI Profile chat discovers and runs every WebMCP tool the tab exposes (yours, your own scripts', third-party scripts', shared frames'), only for profiles that allow it |
 
 ## Guidelines
@@ -128,15 +128,26 @@ Render the configuration block and the scripts for signed-in users, before the c
 
 `webmcp.js` marks each AI tool `untrustedContentHint`, never sets `exposedTo`, and rejects `execute` when the tool fails. It publishes `window.crestAppsWebMcp` (`config`, `ready` promise of registered names, `isSupported()`, `connectChat(connection)`) and raises `crestapps-webmcp-ready` on `document`. Register your own tools with the plain standard API; the chat finds them like any other. See [webmcp-examples.md](references/webmcp-examples.md).
 
-Built-in page tools: `page_get_info`, `page_list_links` (same-origin navigation links, optional `filter`), `page_navigate` (same-origin only), `page_list_form_fields` (skips hidden, password, file, button and disabled fields and the antiforgery token) and `page_set_form_field` (raises `input` and `change`, never submits).
+Built-in page tools:
+
+| Tool | Read-only | What it does |
+|---|---|---|
+| `page_get_info` | Yes | Title, address, description, the first 20 `h1`/`h2` headings, and `isAdmin` from the config |
+| `page_read_content` | Yes | What `main` (or `[role="main"]`, else the body) shows: text one line per block, cut to 8,000 characters, plus up to 10 tables (caption, headers, first 50 rows, cells cut to 300 characters) marked `[table N]`. Form fields show their values next to their labels (chosen option, `[x]`/`[ ]`, values cut to 500 characters); hidden, disabled, password, file and button fields and the antiforgery token show nothing. Menus, scripts, hidden parts, the chat and `data-webmcp-ignore` elements are skipped; `truncated` says whether something was cut |
+| `page_list_links` | Yes | Up to 200 same-origin links in `nav`, `header`, `aside`, `[role="navigation"]`; optional `filter` |
+| `page_navigate` | No | Opens a path starting with `/` or a full same-origin address. It first sends a `HEAD` request: a bare relative path such as `ArticlesAdmin`, a 404 or 410, other origins and script addresses are refused with a message telling the agent to call `page_list_links` (a 405 or a redirect is opened as asked). It answers first and opens the page 400 ms later (`navigateDelayMs`) |
+| `page_list_form_fields` | Yes | Up to 200 fields (name, id, label, type, value cut to 2,000 characters, required, choices); skips hidden, password, file, button and disabled fields and the antiforgery token |
+| `page_set_form_field` | No | Sets one listed field by name, id or label, raises `input` and `change`, never submits; answers the field as it is now and its `previousValue` so the agent can undo the change |
 
 ## The AI Chat as a WebMCP Agent
 
 1. Before each message, `ai-chat.js` reads `getTools()` and, when the list changed, calls the hub's `SetPageTools(WebMcpPageToolDescriptor[])`. It leaves out the AI tools `webmcp.js` registered, because the server already has those.
 2. `IWebMcpPageToolRegistry` keeps the tools per connection after `WebMcpPageToolValidator` checks them: at most 64, names matching `^[A-Za-z0-9_.-]{1,128}$`, descriptions up to 2,000 characters, object schemas up to 16 KB. `ClearPageTools()` and a closed connection forget them.
 3. `AIChatResponseHandler` puts the connection id in `AICompletionContextKeys.ChatConnectionId`.
-4. The page-tool registry provider adds a `WebMcpPageToolFunction` per tool when the session's profile has `WebMcpProfileSettings.AllowPageTools`; tools with `consequentialHint` also need `AllowConsequentialPageTools`.
-5. A call invokes the client method `ExecutePageTool` (`WebMcpConstants.ExecutePageToolMethod`) with SignalR client results; the tab runs `executeTool()` and returns `{ text, isError }` (`WebMcpPageToolResult`) within `WebMcpPageToolOptions.ToolCallTimeout` (60 s).
+4. The page-tool registry provider adds a `WebMcpPageToolFunction` per tool when the session's profile has `WebMcpProfileSettings.AllowPageTools`. A tool with `consequentialHint` is offered in an AG-UI run (the chat UI's default, see `crestapps-core-ag-ui`) as a tool that requires approval, so each call waits for the user's **Allow** or **Deny**; with `AllowConsequentialPageTools` it runs without asking. Other chat runs offer it only when `AllowConsequentialPageTools` is on.
+5. A call invokes the client method `ExecutePageTool` (`WebMcpConstants.ExecutePageToolMethod`) with SignalR client results and returns `{ text, isError }` (`WebMcpPageToolResult`) within `WebMcpPageToolOptions.ToolCallTimeout` (60 s). For a page tool that `webmcp-page-tools.js` registered in the same window, the tab runs the tool's own `execute` (found with `CrestAppsWebMcpPageTools.getRegisteredTool(modelContext, name)`), so the model reads the tool's real failure message (for example a 404 from `page_navigate`) instead of WebMCP's generic "Tool execution failed". Every other tool (third-party, frames, a tool registered first under a page tool's name) runs through `executeTool()`.
+
+In an AG-UI run on the chat hub, `page_navigate` ends the turn: the turn is saved with `ChatTurnToolActivity.ContinuesOnNextPage`, and the chat on the opened page continues it with that page's tools (`forwardedProps.continueRun`), up to five pages in a row. See `crestapps-core-ag-ui`.
 
 ```csharp
 using CrestApps.Core.AI.Models;
@@ -160,7 +171,8 @@ The MVC host renders the scripts in `Views/Shared/_WebMcp.cshtml` and the Blazor
 ## Troubleshooting
 
 - **Chat never calls page tools**: the profile lacks `AllowPageTools`, `AddPageTools<THub>()` names a different hub than the one mapped, the page loads the chat before `webmcp.js`, or the chat is a Chat Interaction.
-- **Consequential tool missing**: turn on `AllowConsequentialPageTools`.
+- **Consequential tool missing**: the run is not an AG-UI run (`protocol: 'legacy'`, a hub without `RunAgent`); turn on `AllowConsequentialPageTools`, or use the default AG-UI chat so the tool waits for approval.
+- **Model keeps guessing addresses**: `page_navigate` refuses bare relative paths and pages that answer 404/410; make sure the navigation links are in `nav`, `header`, `aside` or `[role="navigation"]` so `page_list_links` finds them.
 - **`400` on invoke**: the antiforgery header is missing or stale; render the config block per request.
 - **`404` on invoke**: the tool is not in `WebMcpOptions`, is a system or hidden tool, or `IAIToolAccessEvaluator` denies it for the user.
 - **No `document.modelContext`**: load `webmcp-polyfill.js` first and serve over HTTPS.

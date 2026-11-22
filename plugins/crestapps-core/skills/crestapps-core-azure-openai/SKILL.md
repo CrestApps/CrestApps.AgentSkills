@@ -221,6 +221,7 @@ The `AzureSpeech` text-to-speech client is wrapped in `SpeechMarkupTextToSpeechC
 
 - A chat request with function tools and a reasoning effort other than `None` goes to `/openai/v1/responses` (with `store: false`); every other request stays on Chat Completions. Set the connection's `ChatApi` to `ChatCompletions` to turn this off, for example in a region without the Responses API. The routing uses a temporary built-in client (`CrestApps.Core.AI.OpenAI.Azure.Responses`) because the pinned `Azure.AI.OpenAI` SDK throws `MissingMethodException` on its own Responses client.
 - A reasoning effort is sent only when the deployment declares `reasoning` and `reasoningEffort`. `None` is sent as `"none"`; `ExtraHigh` is clamped to `High` with a log entry.
+- Both the Chat Completions and Responses paths stream `FunctionCallContent` and `FunctionResultContent`, pause for approval-required tools in AG-UI runs, resume approved calls, offer AG-UI client tool declarations, and send replayed tool calls and results back to the service (see `crestapps-core-ag-ui`).
 - Realtime deployments connect to `/openai/v1/realtime` through a temporary WebSocket transport (`CrestApps.Core.AI.OpenAI.Azure.Realtime`) that supports API keys and Microsoft Entra ID. Voices are `OpenAIRealtimeVoices.All`. Add a speech-to-text deployment (for example `gpt-4o-transcribe`) on the same Azure provider so the user's realtime turns are transcribed.
 
 ## Troubleshooting

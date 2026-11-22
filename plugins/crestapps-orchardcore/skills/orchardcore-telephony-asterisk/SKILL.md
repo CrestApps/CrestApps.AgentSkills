@@ -191,11 +191,28 @@ These adapters are integration glue described here from the provider side; queue
 - `src/Startup/CrestApps.OrchardCore.Asterisk.Web` is a development-only dashboard and inbound simulator. It refuses to start outside `Development`; supply `AsteriskWeb:AsteriskUserName` and `AsteriskWeb:AsteriskPassword` through user secrets.
 - Quick checks against ARI are `GET /ari/asterisk/info`, `GET /ari/channels`, and `GET /ari/bridges`.
 
+## Monitoring
+
+`AsteriskDiagnostics` publishes the `CrestApps.OrchardCore.Asterisk` meter (no activity source; matched by `CrestApps.OrchardCore.*`, see `orchardcore-opentelemetry`). Every instrument is tagged `provider`, a technology name, so on a node hosting several Asterisk tenants the counts aggregate per process.
+
+| Instrument | Kind | Measures |
+|---|---|---|
+| `crestapps.asterisk.realtime.connected` | UpDownCounter | Listeners currently connected. Zero means call events are not arriving: alert on it |
+| `crestapps.asterisk.realtime.connections` | Counter | ARI event-stream connections made, first and every reconnection |
+| `crestapps.asterisk.realtime.reconnect_attempts` | Counter | Attempts to re-establish the stream; a steady rate means churn and possibly missed events between sweeps |
+| `crestapps.asterisk.realtime.ingestion.saturated` | Counter | Episodes where the ingestion buffer filled (`CrestApps:Asterisk:Coordination:RealtimeEventBufferCapacity`, default 1000) |
+| `crestapps.asterisk.realtime.events` | Counter | ARI events by `event_type` and `result` (`applied`, `ignored`, `failed`) |
+| `crestapps.asterisk.realtime.event.lag` | Histogram (s) | An event's timestamp to its dispatch |
+| `crestapps.asterisk.realtime.last_event_age`, `.ingestion.queue_depth` | ObservableGauge | Staleness and buffered events of the connected listeners |
+
+The Telephony meter adds `crestapps.telephony.reconcile.corrections` (calls the inbound channel sweep ended), `crestapps.telephony.softphone.credentials` (PJSIP credentials) and `crestapps.telephony.recording.ingest.*` (see `orchardcore-telephony`).
+
 ## Upgrading from 2.x
 
 - Remove `CrestApps.OrchardCore.Telephony.Admin` from recipes; the Asterisk tab is registered by the main Asterisk `Startup`, and `AsteriskAdminStartup` is gone.
 - The Default Asterisk provider is now available on every tenant, not only the default shell. A default-shell deployment that routes inbound calls must change its dialplan to `Stasis(<ApplicationName>-Default)`.
 - Code that reads `TelephonyProviderOptions` must use `IOptionsMonitor<TelephonyProviderOptions>`.
+- The old meter instruments `asterisk.realtime.connected`, `asterisk.realtime.reconnect_attempted` and `asterisk.realtime.ingestion.saturated` are no longer emitted. Use `crestapps.asterisk.realtime.connections` (connections made), `crestapps.asterisk.realtime.reconnect_attempts` and `crestapps.asterisk.realtime.ingestion.saturated`; `crestapps.asterisk.realtime.connected` is now an up-down count of connected listeners.
 
 ## Troubleshooting
 
@@ -203,7 +220,7 @@ These adapters are integration glue described here from the provider side; queue
 |---|---|
 | Provider missing from the default provider list | `IsEnabled`, base URL, user name, password, and application name are all required; for Default Asterisk all four configuration keys must be present |
 | No inbound calls or events | The dialplan must hand calls to the exact Stasis application (per tenant for Default Asterisk) and Orchard must reach ARI over `ws` or `wss` |
-| Calls stuck connected after a PBX hangup | Confirm the ARI listener connected (application logs) and only one node runs the provider |
+| Calls stuck connected after a PBX hangup | Confirm the ARI listener connected (`crestapps.asterisk.realtime.connected` above zero, application logs) and only one node runs the provider |
 | One-way or no browser audio | Configure TURN with a shared secret, or try `relay` to validate TURN |
 | Transfer or voicemail button missing | Use a `Local/...@context` endpoint template, and set the voicemail context and extension template |
 | Settings save refused | Calls are still bound to the old ARI identity; end or reconcile them first |

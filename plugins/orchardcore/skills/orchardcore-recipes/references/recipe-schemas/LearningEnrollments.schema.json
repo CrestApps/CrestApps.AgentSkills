@@ -1,0 +1,156 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningEnrollments",
+      "description": "Recipe step discriminator. Must be \u0027LearningEnrollments\u0027."
+    },
+    "Enrollments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The enrollment id, a generated unique id. An enrollment with this id is updated."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The user name of the learner. A row whose user is not on the site is reported and skipped."
+          },
+          "CourseId": {
+            "type": "string",
+            "description": "The content item id of the course."
+          },
+          "OfferingId": {
+            "type": "string",
+            "description": "The course offering, when the course has offerings."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Active",
+              "Suspended",
+              "Completed",
+              "Expired",
+              "Withdrawn"
+            ],
+            "description": "The state."
+          },
+          "Number": {
+            "type": "string",
+            "description": "The enrollment number."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the enrollment was created, in UTC."
+          },
+          "StartedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the learner started, in UTC."
+          },
+          "AccessEndsUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When access ends, in UTC."
+          },
+          "DueUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the course is due, in UTC."
+          },
+          "CompletedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When the course was completed, in UTC."
+          },
+          "ProgressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "The share of required items completed."
+          },
+          "Cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The pass number."
+          },
+          "PreviousEnrollmentId": {
+            "type": "string",
+            "description": "The enrollment this pass follows."
+          },
+          "Grants": {
+            "type": "array",
+            "description": "The reasons the learner has access: Source, SourceId, GrantedUtc, AccessEndsUtc."
+          },
+          "History": {
+            "type": "array",
+            "description": "The changes of state: From, To, ChangedUtc, Actor or ActorUserName, Reason."
+          },
+          "Completion": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The completion snapshot of a completed enrollment."
+          },
+          "Progress": {
+            "type": "object",
+            "description": "The progress on each course item: Items with ContentItemId, State, times, score and attestation."
+          }
+        },
+        "required": [
+          "UserName",
+          "CourseId",
+          "Status"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The enrollments to create, or update by id, with their progress."
+    },
+    "CourseKeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CourseId": {
+            "type": "string",
+            "description": "The content item id of the course."
+          },
+          "Hash": {
+            "type": "string",
+            "description": "The salted hash of the enrollment key, as exported. The key itself is never exported."
+          }
+        },
+        "required": [
+          "CourseId",
+          "Hash"
+        ]
+      },
+      "description": "The enrollment keys of courses, as hashes."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

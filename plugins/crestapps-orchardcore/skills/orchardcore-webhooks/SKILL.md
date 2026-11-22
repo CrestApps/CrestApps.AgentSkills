@@ -1,6 +1,6 @@
 ---
 name: orchardcore-webhooks
-description: Skill for the CrestApps Orchard Core Webhooks building block (CrestApps.OrchardCore.Webhooks), used in both directions. Covers outbound signed webhooks with IWebhookPublisher, declaring events with AddWebhookEvent or IWebhookEventProvider, signing, the retry schedule, AddWebhookSender and IWebhookSender for posting to a URL of your own, the WebhookSubscriptions recipe step and Webhook subscriptions deployment step, WebhookDeliveryRetentionOptions for delivery log retention, how Commerce Webhooks and AI Webhooks build on it, and the Provider Webhook Inbox (CrestApps.OrchardCore.ContactCenter.ProviderInbox) for durable, de-duplicated inbound provider callbacks with IProviderWebhookInbox, IProviderWebhookInboxHandler, WebhookHandlerReplaySafety and the shared signature validators. Use this skill when requests mention Orchard Core webhooks, webhook subscriptions, publishing a webhook event, webhook delivery retries or retention, receiving provider callbacks durably, or the webhooks admin.
+description: Skill for the CrestApps Orchard Core Webhooks building block (CrestApps.OrchardCore.Webhooks), used in both directions. Covers outbound signed webhooks with IWebhookPublisher, declaring events with AddWebhookEvent or IWebhookEventProvider, signing, the retry schedule, AddWebhookSender and IWebhookSender, direct deliveries with IWebhookOutbox, WebhookDirectDelivery and IWebhookDeliveryFormatter, the WebhookSubscriptions recipe step and deployment step, WebhookDeliveryRetentionOptions, how Commerce Webhooks and AI Webhooks build on it, and the Provider Webhook Inbox (CrestApps.OrchardCore.ContactCenter.ProviderInbox) for durable, de-duplicated inbound provider callbacks with IProviderWebhookInbox, IProviderWebhookInboxHandler and the shared signature validators. Use this skill when requests mention Orchard Core webhooks, webhook subscriptions, publishing a webhook event, delivery retries or retention, receiving provider callbacks durably, or the webhooks admin.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -22,12 +22,12 @@ The Webhooks module is the one webhooks system of CrestApps.OrchardCore: **outbo
 
 | Feature | ID | Notes |
 | --- | --- | --- |
-| Webhooks | `CrestApps.OrchardCore.Webhooks` | Subscriptions, delivery outbox, deliveries log, admin at **Configuration > Webhooks** (`/Admin/webhooks`). Depends on nothing. |
+| Webhooks | `CrestApps.OrchardCore.Webhooks` | Subscriptions, delivery outbox, deliveries log, admin at **Settings > Webhooks** (`/Admin/webhooks`). Depends on nothing. |
 | Provider Webhook Inbox | `CrestApps.OrchardCore.ContactCenter.ProviderInbox` | Enabled by dependency only. Keeps the ID it was released with inside Contact Center, but no longer depends on Contact Center. |
 
 Permission **Manage webhooks** keeps its technical name `ManageCommerceWebhooks` (security critical), so existing roles keep it.
 
-`CrestApps.OrchardCore.Commerce.Webhooks` and `CrestApps.OrchardCore.AI.Webhooks` keep their feature IDs and now depend on `CrestApps.OrchardCore.Webhooks`; neither keeps subscriptions, signing or retries of its own. The admin moved from **Commerce > Webhooks** to **Configuration > Webhooks**, and the old **Artificial Intelligence > Webhooks** page and **Manage AI webhooks** permission are gone. Stored subscriptions and deliveries keep their YesSql type names and the `Webhooks` collection, so nothing is rewritten on upgrade.
+`CrestApps.OrchardCore.Commerce.Webhooks` and `CrestApps.OrchardCore.AI.Webhooks` keep their feature IDs and now depend on `CrestApps.OrchardCore.Webhooks`; neither keeps subscriptions, signing or retries of its own. The admin moved from **Commerce > Webhooks** to **Settings > Webhooks**, and the old **Artificial Intelligence > Webhooks** page and **Manage AI webhooks** permission are gone. Stored subscriptions and deliveries keep their YesSql type names and the `Webhooks` collection, so nothing is rewritten on upgrade.
 
 ## Outbound webhooks
 
@@ -69,6 +69,44 @@ public sealed class InvoiceWebhookHandler : IInvoiceHandler
 A feature that posts to its own URL instead of to subscriptions (such as the AI **Send Signed Webhook** workflow task) calls `services.AddWebhookSender()` and sends through `IWebhookSender`, so it signs and guards egress the same way.
 
 Built-in events include the commerce events in `CommerceWebhookEvents` (`order.paid`, `stock.low`, ...) and the AI events in `AIWebhookEvents` (`conversation.started`, `conversation.ended`, `conversation.analyzed`, `conversation.transferred`, `conversation.evaluated`, `alert.triggered`, `alert.resolved`). The receiving side (body, headers, signature check) is the same for every event; see the commerce webhooks reference in [orchardcore-commerce](../orchardcore-commerce/SKILL.md).
+
+### Direct deliveries
+
+Some receivers are not subscriptions: an AI agent platform gets a protocol's order updates at an address its protocol names, signed the way that protocol asks (see `orchardcore-agentic-commerce`). Queue them with `IWebhookOutbox.EnqueueAsync(WebhookDirectDelivery)` (registered by `AddWebhooks` with the Webhooks feature) and sign them with an `IWebhookDeliveryFormatter` (`Name`, `FormatAsync(WebhookFormatContext)` returning `WebhookFormattedRequest.Headers`, or `WebhookFormattedRequest.Fail(message)` to fail the delivery). They are kept as `WebhookDelivery`s, sent in a deferred task after the work that raised them is saved, and retried by the same `WebhookDispatcher`, backoff and retention as subscription deliveries.
+
+`WebhookDirectDelivery` has `Url`, `EventName`, `Body` (sent byte for byte), optional `EventId` (`evt_` plus a new id when empty), `FormatterName`, `OwnerId` (such as the platform id) and `Data` for the formatter. Put ids only in `Data`, never secrets: the formatter reads secrets at each attempt, so a rotated secret is used by the next retry. `WebhookFormatContext` gives `Url`, `EventId`, `EventName`, `Body`, `Data` and the attempt's Unix `Timestamp`. A direct delivery is posted through the egress-guarded `IWebhookSender` with the formatter's headers and without the subscription signature; it fails unsent when no formatter of its name is registered (the feature that queued it is off) or the formatter returns an error.
+
+```csharp
+public sealed class ContosoOrderWebhookFormatter : IWebhookDeliveryFormatter
+{
+    public string Name
+        => "contoso-order";
+
+    public Task<WebhookFormattedRequest> FormatAsync(WebhookFormatContext context, CancellationToken cancellationToken = default)
+    {
+        var formatted = new WebhookFormattedRequest();
+
+        formatted.Headers["Webhook-Id"] = context.EventId;
+        formatted.Headers["Webhook-Timestamp"] = context.Timestamp.ToString(CultureInfo.InvariantCulture);
+
+        return Task.FromResult(formatted);
+    }
+}
+```
+
+```csharp
+services.AddScoped<IWebhookDeliveryFormatter, ContosoOrderWebhookFormatter>();
+
+// Elsewhere, with IWebhookOutbox injected:
+await _outbox.EnqueueAsync(new WebhookDirectDelivery
+{
+    OwnerId = platformId,
+    Url = "https://agents.contoso.com/orders",
+    EventName = "order.updated",
+    Body = body,
+    FormatterName = "contoso-order",
+}, cancellationToken);
+```
 
 ### Delivery log retention
 
@@ -115,5 +153,11 @@ Subscriptions travel with the **Webhook subscriptions** deployment step and the 
 Deliveries are items of the platform's leased work queue (`ILeasedWorkQueue<T>`), with a five-minute lease; completed deliveries are kept at least seven days as idempotency tombstones. Inbox documents keep the `ContactCenter` YesSql collection. A feature can hold the dispatcher back with `IProviderWebhookInboxDispatchGate`.
 
 Answer `2xx` for `Accepted` and `Duplicate`; for `Busy`, or when `AcceptAsync` throws, answer `409` or `503` so the provider sends again.
+
+A delivery can carry the `traceparent` of the request that received it (`ProviderWebhookInboxDelivery.TraceParent`, captured with `TraceContextPropagation.Capture()`); when empty the inbox captures the current trace at acceptance, and the dispatch span links back to it. A dead-lettered delivery is now logged as an error (event id 17950) instead of being dropped silently.
+
+## Monitoring
+
+On the `CrestApps.OrchardCore.Webhooks` meter: `crestapps.webhook.deliveries` (outbound attempts; `outcome` = `ok`, `retry`, `error`; `reason` such as `network`, `status_5xx`, `egress_refused`, `exhausted`, `deleted`, `disabled`, `no_secret`; `status_class`), `crestapps.webhook.inbox.accepted` (`result` = `accepted`, `duplicate`, `busy`), `crestapps.webhook.inbox.dispatches`, `crestapps.webhook.inbox.handler.duration`, `crestapps.webhook.inbox.lag`, `crestapps.webhook.inbox.dead_lettered` and `crestapps.webhook.inbox.pending.age`; span `crestapps.webhook.inbox.dispatch`. An outbound delivery that fails for good logs event id 17901. Both background tasks report on `crestapps.background_task.*`, so a swallowed failure shows as `error`. See `orchardcore-observability`.
 
 See [Webhooks examples](references/webhooks-examples.md) for a full inbox handler, the endpoint call and the signature validators.

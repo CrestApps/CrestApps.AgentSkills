@@ -90,7 +90,7 @@ public sealed class Startup : StartupBase
 
 ## Line details with `ICartLineHandler`
 
-Handlers run by `Order`, lowest first; product add-ons are the first handler (order 100). `PrepareAsync` keeps the details it owns from `PostedDetails` (anything no handler keeps is dropped) or calls `Refuse`. `EvaluateAsync` prices the line: change `UnitPrice`, lower `MaxQuantity`, set `PeoplePerUnit`, add `CartLineDetail`s, set `Problem`, or set `ExcludeFromDiscounts`. `ConvertAsync` converts from the product's currency into the line's.
+Handlers run by `Order`, lowest first; product add-ons are the first handler (order 100). `PrepareAsync` keeps the details it owns from `PostedDetails` (anything no handler keeps is dropped) or calls `Refuse`. `EvaluateAsync` prices the line: change `UnitPrice`, lower `MaxQuantity` (with `MaxQuantityReason`, a `LocalizedString` the shopper is told instead of *Only N left*, such as *A course is for one person*), set `PeoplePerUnit`, add `CartLineDetail`s, set `Problem`, or set `ExcludeFromDiscounts`. `ConvertAsync` converts from the product's currency into the line's.
 
 ```csharp
 public sealed class GiftWrapLineHandler : ICartLineHandler

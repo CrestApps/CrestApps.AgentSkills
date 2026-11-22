@@ -6,7 +6,7 @@ Run the steps in this order: `Workforce` (activity codes, teams, workers), then 
 
 ## The Workforce Sample
 
-This is the module's `WorkforceSample` recipe (**Workforce sample**), trimmed of its header. It is a good starting point to copy.
+This is the module's `WorkforceSample` recipe (**Workforce sample**), trimmed of its header. It still uses two legacy shapes the steps keep reading: a team's one-line `location.address` (prefer the team's structured `address`) and the `PayPeriods`/`PayCodes` sections of `WorkforceTimeClock`, which are saved as Payroll Pay Setup's pay schedules and pay codes (new recipes use Payroll's `PaySchedules` and `PayCodes` steps; see `orchardcore-payroll`). The six workers become staff members (`orchardcore-staff`).
 
 ```json
 {
@@ -127,8 +127,8 @@ This is the module's `WorkforceSample` recipe (**Workforce sample**), trimmed of
 ## Workforce Step Details
 
 - `ActivityCodes`: `name`, `code`, `kind` (`Work`, `Break`, `Meal`, `Meeting`, `Training`, `Coaching`, `OfflineWork`, `Travel`, `OnCall`, `TimeOff`, `Other`), `color`, `isPaid`, `countsAsWork`, `countsTowardCoverage`, `enabled`.
-- `Teams`: the Teams fields (`name`, `kind`, `parentName`, `description`, `linkedRoleName`, `timeZoneId`, `enabled`) plus the Workforce settings `location` (`address`, `latitude`, `longitude`), `leadWorkerId`, `openShiftClaimPolicy` (`ManagerApproves`, `FirstCome`, `BySeniority`), `shiftTradesNeedApproval`, `timeOffShiftHandling` (`Flag`, `Remove`) and `timeClockPolicyId`. The calendar is never imported; each new team gets its own.
-- `Workers`: the `WorkerProfile` fields in camelCase (`displayName`, `email`, `phone`, `employeeNumber`, `externalId`, `jobTitle`, `employmentType`, `status`, `hireDate`, `seniorityDate`, `timeZoneId`, `contractedHoursPerWeek`, `minHoursPerWeek`, `maxHoursPerWeek`, `maxHoursPerDay`, `availability`, `teamMemberships` with `teamName` and `role`). Matched by id, then `employeeNumber`, then `userId`.
+- `Teams`: the Teams fields (`name`, `kind`, `parentName`, `description`, `linkedRoleName`, `timeZoneId`, `enabled`) and the team's structured `address` (`addressLine1`, `city`, `region`, `postalCode`, `country`, ...), plus the Workforce settings `location` (`latitude`, `longitude` of the time clock geofence point; a legacy one-line `address` here is moved to the team's address when it has none), `leadWorkerId`, `openShiftClaimPolicy` (`ManagerApproves`, `FirstCome`, `BySeniority`), `shiftTradesNeedApproval`, `timeOffShiftHandling` (`Flag`, `Remove`) and `timeClockPolicyId`. The calendar is never imported; each new team gets its own.
+- `Workers`: read as Staff's `StaffMember`, in camelCase (`displayName`, `userId`, `email`, `phone`, `employeeNumber`, `externalId`, `jobTitle`, `employmentType`, `status`, `hireDate`, `seniorityDate`, `terminationDate`, `managerId`, `timeZoneId`, `homeBase`, `contractedHoursPerWeek`, `capabilities`, `teamMemberships` with `teamName` and `role`). Matched by id, then `employeeNumber`, then `userId`. The schema still lists `managerWorkerId`, `minHoursPerWeek`, `maxHoursPerWeek`, `maxHoursPerDay` and `availability`, but they are not `StaffMember` properties and are not saved: set hours and availability on the staff editor's **Scheduling** card. For new recipes prefer the `Staff` step (teams by name, manager by employee number, user by user name).
 
 ```json
 {
@@ -142,11 +142,7 @@ This is the module's `WorkforceSample` recipe (**Workforce sample**), trimmed of
           "email": "riley@example.com",
           "employmentType": "PartTime",
           "hireDate": "2025-04-01",
-          "maxHoursPerWeek": 30,
-          "availability": [
-            { "day": "Monday", "start": "08:00:00", "end": "16:00:00", "preference": "Preferred" },
-            { "day": "Friday", "start": "00:00:00", "end": "23:59:00", "preference": "Unavailable" }
-          ],
+          "contractedHoursPerWeek": 30,
           "teamMemberships": [ { "teamName": "Nursing", "role": "Member", "effectiveFrom": "2025-04-01" } ]
         }
       ]
@@ -209,16 +205,13 @@ A rotation's `workers` hold worker ids and the date each started week 1, so they
 
 Leave `teamName` out for every team, and `typeNames` out for every type. Allotments take `weekdaySlots` (Sunday first), `dates` (`date`, `slots`), `autoApprove` and `whenFull` (`Waitlist`, `Pending`).
 
-## Time Clock Kiosks and Payroll Columns
+## Time Clock Policies and Kiosks
 
 ```json
 {
   "steps": [
     {
       "name": "WorkforceTimeClock",
-      "PayCodes": [
-        { "code": "HOL", "name": "Holiday", "kind": "Holiday", "multiplier": 1.5 }
-      ],
       "Policies": [
         {
           "name": "Warehouse",
@@ -237,23 +230,14 @@ Leave `teamName` out for every team, and `typeNames` out for every type. Allotme
       ],
       "Kiosks": [
         { "name": "Warehouse door", "teamName": "Warehouse", "enabled": true }
-      ],
-      "PayrollCsv": {
-        "columns": [
-          { "header": "EmployeeId", "field": "WorkerExternalId" },
-          { "header": "Name", "field": "WorkerName" },
-          { "header": "Code", "field": "PayCode" },
-          { "header": "Date", "field": "Date" },
-          { "header": "Hours", "field": "Hours" }
-        ]
-      }
+      ]
     }
   ]
 }
 ```
 
-- Pay code kinds: `Regular`, `Overtime`, `DoubleTime`, `Holiday`, `PaidTimeOff`, `PredictabilityPay`, `CallBack`, `ShiftDifferential`, `Unpaid`, `Weekend`.
-- Payroll CSV fields: `WorkerExternalId`, `EmployeeNumber`, `WorkerName`, `PayCode`, `Date`, `Hours`, `Rate`, `Amount`, `PeriodStart`, `PeriodEnd`, `ActivityCode`, `Job`.
+- `payPeriodsName` names a Payroll Pay Setup pay schedule. Pay schedules and pay codes (kinds such as `Regular`, `Overtime`, `DoubleTime`, `Holiday`, `PaidTimeOff`, `PredictabilityPay`, `ShiftDifferential`, `Weekend`) belong to Payroll's `PaySchedules` and `PayCodes` steps; a shift differential's `windowStart`, `windowEnd` and `weekdays` are kept in the code's `WorkforcePayCodeSettings`.
+- A legacy `PayrollCsv` entry (`columns` with `header` and `field`) is turned into the draft data pipeline `workforcepayrollcsv0000001` when Data Pipelines is on (retried at the next start otherwise). The deployment step no longer writes it.
 - Punch sources are open strings: `Web`, `Mobile`, `Kiosk`, `Api`, `Manager`, and `ContactCenter` while Contact Center Sign-in Punches is on.
 - A policy with `teamNames` is set as those teams' `timeClockPolicyId`.
 - Kiosk tokens are never exported or changed by the step; open an imported kiosk and choose **Give it a new address**.
@@ -263,4 +247,4 @@ Leave `teamName` out for every team, and `typeNames` out for every type. Allotme
 | Deployment step | Category | Writes |
 |---|---|---|
 | **Workforce teams and workers** (`Workforce`) | Workforce | Activity codes and teams, and workers when `IncludeWorkers` is checked (never the date of birth). |
-| **Workforce settings** (`WorkforceSettings`) | Workforce | One step per enabled feature: `WorkforceShiftPlanning`, `WorkforceTimeOff`, `WorkforceTimeClock`, `WorkforceLaborRules`. |
+| **Workforce settings** (`WorkforceSettings`) | Workforce | One step per enabled feature: `WorkforceShiftPlanning`, `WorkforceTimeOff`, `WorkforceTimeClock` (policies and kiosks), `WorkforceLaborRules`. |

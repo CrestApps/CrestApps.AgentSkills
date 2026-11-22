@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "description": "Creates or updates the time clock settings: pay periods, policies and kiosks matched by itemId then name, and pay codes matched by itemId then code. Pay periods, pay codes and policies that are updated take every member of the entry, so a member left out goes back to its default.",
+  "description": "Creates or updates the time clock settings: pay periods, policies and kiosks matched by itemId then name, and pay codes matched by itemId then code. Pay periods and pay codes are saved as Pay Setup\u0027s pay schedules and pay codes; new recipes use the PaySchedules and PayCodes steps. Pay periods, pay codes and policies that are updated take every member of the entry, so a member left out goes back to its default.",
   "properties": {
     "name": {
       "type": "string",
@@ -33,7 +33,10 @@
               "Weekly",
               "Biweekly",
               "SemiMonthly",
-              "Monthly"
+              "Monthly",
+              "FourWeekly",
+              "Quarterly",
+              "Yearly"
             ],
             "description": "How often a pay period starts. Defaults to Biweekly."
           },
@@ -95,20 +98,11 @@
             "description": "The pay code name."
           },
           "kind": {
-            "type": "string",
-            "enum": [
-              "Regular",
-              "Overtime",
-              "DoubleTime",
-              "Holiday",
-              "PaidTimeOff",
-              "PredictabilityPay",
-              "CallBack",
-              "ShiftDifferential",
-              "Unpaid",
-              "Weekend"
+            "type": [
+              "null",
+              "string"
             ],
-            "description": "What the hours are. Defaults to Regular."
+            "description": "What the hours are: Regular, Overtime, DoubleTime, Holiday, PaidTimeOff, PredictabilityPay, CallBack, ShiftDifferential, Unpaid, Weekend, or a kind a module registers. Defaults to Regular."
           },
           "multiplier": {
             "type": "number",

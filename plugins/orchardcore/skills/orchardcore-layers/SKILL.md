@@ -18,8 +18,10 @@ You are an Orchard Core expert. Generate configuration and code for managing lay
 - Layers are provided by the `OrchardCore.Layers` module and control when widgets are displayed in theme zones.
 - A Layer has a name, description, and one or more **conditions** (rules) that determine when its widgets are visible.
 - Widgets placed in a zone must be associated with a Layer; the widget renders only when the Layer's rules evaluate to `true`.
-- Layers are managed from **Design > Widgets** in the admin panel.
-- Available zones are configured in **Design > Settings > Zones** and must match theme layout sections.
+- Layers are managed from **Design > Widgets** in the admin panel. The layers list is an admin list named `Layers` with an **Add Layer** button at its top (the `LayersCreateButton` shape, passed as `AdminListContext.Actions`); the old **Add** button under the list is gone. Checking a layer highlights its widgets in the zones beside the list.
+- The widgets in the zones render their **Edit**/**Delete** buttons through `AdminListActions`, so they follow **Settings → Admin → Actions layout** (Buttons or one ellipsis Menu), like admin list rows.
+- The layer Create/Edit pages and the condition editor put **Cancel** first and **Create**/**Save** (`btn-primary`) last in the bottom action bar.
+- Available zones are configured in **Settings > Zones** and must match theme layout sections.
 - Conditions can be combined using `All` (AND) and `Any` (OR) condition groups.
 - The `Always` layer uses a `Boolean` condition set to `true`, so widgets on this layer always render.
 - Enable `OrchardCore.Layers` and `OrchardCore.Widgets` features for full widget/layer support; Layers enables `OrchardCore.Rules`.
@@ -102,7 +104,7 @@ Zones must be declared as sections in the theme layout. Widgets are rendered in 
 
 ### Configuring Zones
 
-Set available zone names in **Design > Settings > Zones** in the admin. Common zone names include:
+Set available zone names in **Settings > Zones** in the admin. Common zone names include:
 
 - `Header`
 - `Navigation`
@@ -283,7 +285,7 @@ isAuthenticated() && url("/blog*")
 ### Widget Management Workflow
 
 1. Enable `OrchardCore.Layers` and `OrchardCore.Widgets` features.
-2. Configure zones in **Design > Settings > Zones**.
+2. Configure zones in **Settings > Zones**.
 3. Create layers with appropriate conditions in **Design > Widgets**.
 4. Create widget content types with the `Widget` stereotype.
 5. Add widgets to zones and associate them with layers.
@@ -296,3 +298,4 @@ isAuthenticated() && url("/blog*")
   now isolated; remove any reliance on values declared by another layer.
 - Invalid JavaScript conditions are rejected with a validation message on save
   instead of an unhandled exception.
+- The **Add** link below the layers list became an **Add Layer** button at the top of the list (`LayersCreateButton`). UI tests and overrides of `Views/Admin/Index.cshtml` that looked for the old link must update.

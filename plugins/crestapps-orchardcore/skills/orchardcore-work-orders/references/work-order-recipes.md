@@ -1,10 +1,12 @@
 # Work Orders Recipe Examples
 
-The `WorkOrders` step imports its sections in this order: `Checklists`, `ServiceLevels`, `SubStatuses`, `Types`, then `Agreements` (only when the Service Agreements feature is on). Each entry is matched by `ItemId`; a known id is updated, an unknown valid id is created with that id, and an invalid id is replaced with a new one. Each entry goes through the same validation as the admin editor, and a refused entry is reported as a recipe error while the others are still saved.
+The `WorkOrders` step imports its sections in this order: `Checklists`, `SubStatuses`, `Types`, then `Agreements` (only when the Service Agreements feature is on). Each entry is matched by `ItemId`; a known id is updated, an unknown valid id is created with that id, and an invalid id is replaced with a new one. Each entry goes through the same validation as the admin editor, and a refused entry is reported as a recipe error while the others are still saved.
 
 Property names are the model names (PascalCase). Enums are written as their names. `CreatedUtc`, `ModifiedUtc` and `OwnerId` are environment-owned and are not exported.
 
-## Checklists, Service Levels, Sub-statuses and Types
+Service level policies are the shared ones of the Service Levels module. Put the `ServiceLevelPolicies` step **before** the `WorkOrders` step so a type's `ServiceLevelPolicyId` points at an existing policy.
+
+## Policies, Checklists, Sub-statuses and Types
 
 ```json
 {
@@ -18,6 +20,31 @@ Property names are the model names (PascalCase). Enums are written as their name
       "disable": []
     },
     {
+      "name": "ServiceLevelPolicies",
+      "Policies": [
+        {
+          "ItemId": "4ff712gq9zvzfks9tqyqgawkmb",
+          "Name": "Standard service",
+          "Scope": "WorkOrders",
+          "HoursScheduleId": "",
+          "WarningPercent": 75,
+          "Targets": [
+            { "Metric": "FirstResponse", "Priority": "Urgent", "Minutes": 120 },
+            { "Metric": "Resolution", "Priority": "Urgent", "Minutes": 480 },
+            { "Metric": "FirstResponse", "Priority": "High", "Minutes": 240 },
+            { "Metric": "Resolution", "Priority": "High", "Minutes": 1440 },
+            { "Metric": "FirstResponse", "Priority": "Normal", "Minutes": 480 },
+            { "Metric": "Resolution", "Priority": "Normal", "Minutes": 2880 },
+            { "Metric": "FirstResponse", "Priority": "Low", "Minutes": 1440 },
+            { "Metric": "Resolution", "Priority": "Low", "Minutes": 7200 }
+          ],
+          "Properties": {
+            "WorkOrderServiceLevelSettings": { "PauseStatuses": [ "OnHold" ] }
+          }
+        }
+      ]
+    },
+    {
       "name": "WorkOrders",
       "Checklists": [
         {
@@ -25,27 +52,19 @@ Property names are the model names (PascalCase). Enums are written as their name
           "Name": "Boiler safety check",
           "Questions": [
             { "Id": "gas-smell", "Section": "Before", "Text": "Gas smell on arrival?", "Kind": "YesNo", "Required": true },
-            { "Id": "gas-action", "Section": "Before", "Text": "What did you do?", "Kind": "Choice", "Required": true, "Choices": [ "Isolated supply", "Called the gas emergency line" ], "ShowWhen": { "QuestionId": "gas-smell", "EqualsValue": "Yes" } },
+            {
+              "Id": "gas-action",
+              "Section": "Before",
+              "Text": "What did you do?",
+              "Kind": "Choice",
+              "Required": true,
+              "Choices": [ "Isolated supply", "Called the gas emergency line" ],
+              "Rule": { "Match": "All", "Conditions": [ { "Source": "gas-smell", "Operator": "Is", "Values": [ "Yes" ] } ] }
+            },
             { "Id": "flue-co", "Section": "After", "Text": "Flue gas CO reading", "Kind": "Number", "Required": true, "Min": 0, "Max": 1000, "Unit": "ppm" },
             { "Id": "pressure", "Section": "After", "Text": "System pressure", "Kind": "PassFailNA", "Required": true },
             { "Id": "run-hours", "Section": "After", "Text": "Run hours", "Kind": "MeterReading", "Meter": "Run hours" },
             { "Id": "photo", "Section": "After", "Text": "Photo of the data plate", "Kind": "Photo", "MinPhotos": 1 }
-          ]
-        }
-      ],
-      "ServiceLevels": [
-        {
-          "ItemId": "4ff712gq9zvzfks9tqyqgawkmb",
-          "Name": "Standard service",
-          "TimeZoneId": "America/New_York",
-          "WeeklyHours": { "Days": [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ], "Opens": "08:00:00", "Closes": "18:00:00" },
-          "WarningPercent": 75,
-          "PauseStatuses": [ "OnHold" ],
-          "Targets": [
-            { "Priority": "Urgent", "ResponseMinutes": 120, "ResolveMinutes": 480 },
-            { "Priority": "High", "ResponseMinutes": 240, "ResolveMinutes": 1440 },
-            { "Priority": "Normal", "ResponseMinutes": 480, "ResolveMinutes": 2880 },
-            { "Priority": "Low", "ResponseMinutes": 1440, "ResolveMinutes": 7200 }
           ]
         }
       ],
@@ -91,14 +110,18 @@ Property names are the model names (PascalCase). Enums are written as their name
 
 Notes:
 
-- `ShowWhen` shows a question only when an earlier question's answer equals `EqualsValue`; the editor refuses a condition on the question itself or on a later question.
-- Give a policy either `WeeklyHours` or `HoursCalendarId` (a calendar listed by an `IServiceHoursProvider`, such as a Contact Center business hours calendar). With neither, the clock runs around the clock.
+- A policy's `Scope` must be `WorkOrders` for a work order type to use it. `Targets` hold minutes per `Metric` (`FirstResponse`, `Resolution`) and `Priority` (`Urgent`, `High`, `Normal`, `Low`); a target with no `Priority` covers every other priority. `HoursScheduleId` names a Business Hours schedule; empty counts around the clock. The policy is refused when the schedule doesn't exist or is never open.
+- `WorkOrderServiceLevelSettings.PauseStatuses` are the work order statuses the timers stop in; a sub-status with `PausesSla` stops them too.
+- A question's `Rule` reads earlier questions of the same checklist by `Id` (`Source`); the editor refuses a condition on the question itself or on a later question. The older `"ShowWhen": { "QuestionId": "gas-smell", "EqualsValue": "Yes" }` is still accepted and saved as a rule.
 - A `Product` line can name `StockItemId` (an Inventory stock item) so parts used are taken off a stock location; `RequiredSkills` (`SkillId`, `MinProficiency`), `RequiredCertificationIds` and `RequiredEquipmentTypeIds` (asset type ids) are read by Dispatch.
 - `AppointmentTypeIds` lists Scheduling appointment types whose confirmed bookings make work orders of the type.
+- A `ServiceLevels` section (the older Work Orders policy shape with `Targets` of `Priority`, `ResponseMinutes`, `ResolveMinutes`, plus `WeeklyHours`, `HoursCalendarId`, `TimeZoneId`, `PauseStatuses`) is still read: each policy is copied to a shared policy with the same id, weekly hours becoming a Business Hours schedule. Don't write it in new recipes.
 
-## Service Agreements
+## Agreements With Visits
 
-Needs `CrestApps.OrchardCore.WorkOrders.Agreements`. The customer (`CustomerId`, a user id), account (`AccountId`) and assets must already exist on the target site.
+Needs `CrestApps.OrchardCore.WorkOrders.Agreements` (and therefore Agreements and Accounts). The account (`AccountId`), the customer (`CustomerId`, a user id) and the assets must already exist on the target site.
+
+The `WorkOrders` step's `Agreements` section uses Work Orders' own flat shape and makes an Agreements-module agreement with the visits stored as `WorkOrderAgreementTerms`:
 
 ```json
 {
@@ -131,10 +154,47 @@ Needs `CrestApps.OrchardCore.WorkOrders.Agreements`. The customer (`CustomerId`,
 }
 ```
 
-- `Rule` is an RFC 5545 rule expanded from `StartDate` in `TimeZoneId` with the Calendars recurrence engine. The editor offers `FREQ=WEEKLY`, `FREQ=WEEKLY;INTERVAL=2`, `FREQ=MONTHLY`, `FREQ=MONTHLY;INTERVAL=3` and `FREQ=MONTHLY;INTERVAL=6`.
+The same agreement in the Agreements module's own `Agreements` step, with the visits in `Properties` (use this to also set covered hours):
+
+```json
+{
+  "steps": [
+    {
+      "name": "Agreements",
+      "Agreements": [
+        {
+          "ItemId": "4fagr0000000000000000000a1",
+          "Name": "Boiler maintenance plan",
+          "Status": "Active",
+          "AccountId": "4facc0000000000000000000a1",
+          "StartDate": "2027-01-01",
+          "EndDate": "2027-12-31",
+          "TimeZoneId": "America/New_York",
+          "ExpiringNoticeDays": 30,
+          "Hours": { "Kind": "Block", "Hours": 20, "RoundingMinutes": 15 },
+          "Properties": {
+            "WorkOrderAgreementTerms": {
+              "Contact": { "Name": "Dana Reyes", "Phone": "+16175550100", "Email": "dana@example.com" },
+              "ServiceAddress": { "AddressLine1": "12 Elm Street", "City": "Boston", "Region": "MA", "PostalCode": "02118", "Country": "US" },
+              "AssetIds": [ "4fs9svm62gjxb5tzqxya3q8q20" ],
+              "Pricing": "Included",
+              "Schedules": [
+                { "Id": "semiannual", "Name": "Twice-yearly service", "TypeId": "4fsyaebpefs8a296tfsf55b5ec", "Rule": "FREQ=MONTHLY;INTERVAL=6", "LeadDays": 14 }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- `Status` is an Agreements `AgreementStatus`: `Draft`, `Active`, `Paused`, `Expired` or `Canceled`. Only an active agreement within its period makes visits.
+- `Rule` is an RFC 5545 rule expanded from `StartDate` in `TimeZoneId` with the Calendars recurrence engine. The **Visits** panel offers `FREQ=WEEKLY`, `FREQ=WEEKLY;INTERVAL=2`, `FREQ=MONTHLY`, `FREQ=MONTHLY;INTERVAL=3` and `FREQ=MONTHLY;INTERVAL=6`.
 - A schedule with empty `AssetIds` covers all of the agreement's assets.
-- `Pricing` `Included` gives each visit's work order an `AgreedPrice` of zero; `PerVisit` uses `PricePerVisit`.
+- `Pricing` `Included` gives each visit's work order an `AgreedPrice` of zero; `PerVisit` uses `PricePerVisit`. Billable labor hours of completed visits count against `Hours`.
 
 ## Deployment Plan Step
 
-The **Work order settings** deployment step (`WorkOrdersDeploymentStep`) writes a `WorkOrders` recipe step with the four settings sections. Set `IncludeAgreements` to export `Agreements` too.
+The **Work order settings** deployment step (`WorkOrdersDeploymentStep`) writes a `WorkOrders` recipe step with `Checklists`, `SubStatuses` and `Types`. Set `IncludeAgreements` to also export the agreements that have visits, in the flat shape above. Add the **Service level policies** step to the same plan, before it, for the policies.

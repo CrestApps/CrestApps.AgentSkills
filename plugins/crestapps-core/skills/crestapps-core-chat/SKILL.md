@@ -190,7 +190,7 @@ public sealed class ProfileRunner
 }
 ```
 
-`IOrchestratorResolver.Resolve(null)` returns the default orchestrator. The built-in `AIChatResponseHandler` follows the same steps, storing the chat session or interaction on `AIInvocationScope.Current` before the build.
+`IOrchestratorResolver.Resolve(null)` returns the default orchestrator. Tools registered with `RequireApproval()` are left out of this run, because nothing here can answer an approval; only AG-UI chat runs (which set `AICompletionContextKeys.ToolApprovalSupported`) offer them. The built-in `AIChatResponseHandler` follows the same steps, storing the chat session or interaction on `AIInvocationScope.Current` before the build.
 
 ## Choose the Surface
 
@@ -202,6 +202,7 @@ public sealed class ProfileRunner
 | Stored sessions, hubs, chat UI | `crestapps-core-chat-interactions` |
 | Speech-to-speech conversations | `crestapps-core-realtime-voice` |
 | Let the chat run tools the user's browser page exposes | `crestapps-core-webmcp` |
+| Show tool calls, ask before a tool runs, share page state (AG-UI) | `crestapps-core-ag-ui` |
 
 ## Provider Behavior Worth Knowing
 

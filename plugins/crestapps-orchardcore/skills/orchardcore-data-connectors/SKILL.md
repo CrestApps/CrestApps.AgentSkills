@@ -47,7 +47,8 @@ Connections, data sets and refresh runs are YesSql documents in the `DataConnect
 
 ## Refreshes
 
-- A refresh takes a distributed lock on the data set, writes rows as a **new version**, publishes it only when every row was written, and on failure, cancel or timeout keeps the published version and records the error in the data set history.
+- A refresh takes a distributed lock on the data set (tried once without waiting, through `TryAcquireLockWithoutWaitingAsync`; a refresh already running makes the new one **Skipped**), writes rows as a **new version**, publishes it only when every row was written, and on failure, cancel or timeout keeps the published version and records the error in the data set history. Before #1306 a zero lock timeout never acquired the Redis lock, so with Redis every refresh was skipped.
+- Refresh and run dates show in the site time zone.
 - **Full** refreshes read every row. **Incremental** refreshes need a connector with `IncrementalImport` (SQL Server, Elasticsearch), at least one identifier field and a growing date or number field; rows deleted at the source stay until the next full refresh.
 - Schema change policy **Accept** adds new fields and keeps removed fields with empty values; **Fail** fails the refresh and keeps the published rows.
 - Live reads push conditions to the source only for connectors declaring `ConditionPushdown` (SQL Server ranges, number `Equals`/`In`, `TOP`; Elasticsearch number and date ranges). Text conditions are never pushed down.
@@ -153,6 +154,10 @@ Exports leave out secrets, rows and refresh history. Pass secrets in clear text 
 ```
 
 A data set `Name` cannot change once it exists (reports, pipelines and its read permission store it); an existing connection's `Connector` cannot change.
+
+## Monitoring
+
+The module reports on the `CrestApps.OrchardCore.DataConnectors` meter and activity source: `crestapps.dataconnector.refresh.duration` (tags `trigger`, `mode`, `connector`, `outcome`), `.refresh.rows`, `.refresh.active`, `crestapps.dataconnector.read.duration` / `.rows` / `.failures` / `.timeouts` (`purpose` = `live`, `import`, `preview`), `.http.retries`, `.http.pages`, `.limit.hits` (`max_pages`), `.network.blocked` (a security event), `.token.requests` and `.empty_reads`. Spans `crestapps.dataconnector.refresh` (with `.describe`, `.copy`, `.batches`, `.count` children) and `crestapps.dataconnector.read` carry the data set, connection and refresh ids; metrics never do. Logs use event ids 15000-15099 with a `DataSetId` / `RefreshId` scope. A refresh asked for from the admin runs as the deferred task `dataconnectors_refresh`, linked to the request's trace. See `orchardcore-observability`.
 
 ## Extending
 

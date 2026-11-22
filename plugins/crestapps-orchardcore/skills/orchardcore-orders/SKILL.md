@@ -1,6 +1,6 @@
 ---
 name: orchardcore-orders
-description: Skill for the CrestApps Orchard Core Orders module (CrestApps.OrchardCore.Orders, Orders.GiftCards, Orders.Returns, Orders.Api). Covers checking a cart out as a draft order through the Checkout framework with CheckoutReferenceTypes.Order, OrderCheckoutHandler, order statuses and cancel reasons, IOrderService, IOrderEventHandler and OrderEventHandlerBase (created, paid, canceled, refunded, returned, lines changed), OrderGrantHandlerBase and OrderLineGrantHandlerBase, IOrderOperationsService refunds and cancels, guest order links, ICommerceEmailSender with AddCommerceEmailKind and Liquid email templates, invoices and packing slips, draft orders and quotes, sales channels, order bumps, gift cards, returns, order reports, dashboard widgets, the Report Builder data source, workflow events, IDisplayManager of Order display types, OrderSettings, and the Orders API. Use it when requests mention Orchard Core orders, order events, refunds, invoices, gift cards, returns, quotes, order emails or the orders API.
+description: Skill for the CrestApps Orchard Core Orders module (CrestApps.OrchardCore.Orders, Orders.GiftCards, Orders.Returns, Orders.Api). Covers checking a cart out as a draft order through Checkout, OrderCheckoutHandler, order statuses and cancel reasons, IOrderService, IOrderEventHandler and OrderEventHandlerBase, OrderGrantHandlerBase and OrderLineGrantHandlerBase, IOrderOperationsService refunds and cancels, guest order links, ICommerceEmailSender with copies and attachments, invoices and packing slips, draft orders and quotes sent through IOrderDocumentSender, order notes on the Timeline, sales channels (online, pos, draft, agent), payroll commissions, order bumps, gift cards, returns, reports, dashboard widgets, the Report Builder data source, workflow events, OrderSettings and the Orders API. Use it when requests mention Orchard Core orders, order events, refunds, invoices, gift cards, returns, quotes, order emails or the orders API.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,13 +23,17 @@ Orders (new in CrestApps.OrchardCore 3.0) checks a cart out through the Checkout
 | Shipping (`orchardcore-shipping`) | Adds the Shipping step, `Order.Shipping`, shipments and `FulfillmentStatus` |
 | Taxation (`orchardcore-taxation`) | Tax lines copied to `Order.TaxLines` |
 | Receipts (`orchardcore-receipts`) | `ReceiptSettings` brand invoices and packing slips |
+| Invoicing (`orchardcore-invoicing`) | Sending a draft order issues an Invoicing invoice (or an estimate for a quote with Invoicing Estimates); an order balance put on the ledger gets an issued invoice |
+| Payroll (`orchardcore-payroll`) | With Pay Setup and Staff on, paid orders a staff member made become commission pay inputs |
+| Fulfillment Partners (`orchardcore-fulfillment`) | Sends paid orders to outside fulfillment companies; adds a **Fulfillment partners** card to the order page |
+| Agentic Commerce (`orchardcore-agentic-commerce`) | AI agent checkouts become orders on the `agent` channel; order events become signed updates to the agent platform |
 | Accounts B2B (`CrestApps.OrchardCore.Accounts.B2B`) | Orders placed for a business account (`Order.AccountId`, formerly `CompanyId`), approvals, account terms |
 
 ## Features
 
 | Feature ID | Name | Depends on |
 | --- | --- | --- |
-| `CrestApps.OrchardCore.Orders` | Orders | Commerce, Carts, Checkout, `CrestApps.OrchardCore.Resources` |
+| `CrestApps.OrchardCore.Orders` | Orders | Commerce, Carts, Checkout, Timeline (`CrestApps.OrchardCore.Timeline`, the order notes and history), `CrestApps.OrchardCore.Resources` |
 | `CrestApps.OrchardCore.Orders.GiftCards` | Gift Cards | Orders, `OrchardCore.Title` |
 | `CrestApps.OrchardCore.Orders.Returns` | Returns | Orders |
 | `CrestApps.OrchardCore.Orders.Api` | Orders API | Orders, Cart API, Checkout API |
@@ -139,7 +143,9 @@ Register with `services.AddScoped<IOrderEventHandler, GiftWrapOrderHandler>();`.
 
 - **Refund** an amount or everything: online payments through `ICheckoutRefundService` (newest first), Pay Later through `ITransactionCommandService.RefundAsync`, then balances (gift card, store credit, points) through `ICheckoutTenderLedger.ReturnAsync`. With `asStoreCredit`, the amount goes to the buyer through `IOrderStoreCreditRefunder` instead.
 - **Cancel** as `CanceledByStore`, optionally refunding everything and restocking.
-- **Send the confirmation again**, and **Notes** that record who did what.
+- **Send the confirmation again**, and **Notes** that record who did what. Notes and history now live on the order's **Timeline** (`ITimelineService`, subject `RecordRef(OrderConstants.RecordKind, order.ItemId)`, record kind `Order`): write them with `IOrderService.AddNoteAsync(order, text, OrderNoteKind, authorName)`. `Order.Notes` is `[Obsolete]`; on upgrade the `OrderNotesStep` resumable step (and `OrderNotesUpgrade`) moves stored notes to internal timeline entries in the background, a few batches a minute, idempotently. The staff API still returns every note oldest first, read from the timeline. Buttons that only had a confirm message (cancel, refund, delete) now ask through the admin confirm dialog.
+
+Orders are a record kind (`OrderConstants.RecordKind`, `Order`, through `OrderRecordSource`), so other modules (Tickets, Invoicing, the Timeline) link to and pick orders without referencing Orders.
 
 Refunds started anywhere are recorded on the order by `OrderRefundRecorder` (an `IPaymentRefundHandler`). Gateway disputes land in `Order.Disputes` and payment risk in `Order.PaymentRisk`.
 
@@ -180,7 +186,11 @@ Drafts and quotes, invoices and packing slips, gift cards, returns, sales channe
 
 ## Orders API
 
-`CrestApps.OrchardCore.Orders.Api` maps `POST checkout` (checks the caller's cart out, holds stock, returns `X-Checkout-Token`), `me/orders`, `me/orders/{orderId}`, returns under it (with Returns), `me/quotes`, `checkout/{id}/gift-cards` (with Gift Cards) and the staff `orders` endpoints (list, get, by number, refund, cancel) with `ManageOrders`. `ApiOrder` carries `channel`, `culture` and grouped `taxes`. See the API reference in `orchardcore-commerce`.
+`CrestApps.OrchardCore.Orders.Api` maps `POST checkout` (checks the caller's cart out, holds stock, returns `X-Checkout-Token`), `me/orders`, `me/orders/{orderId}`, returns under it (with Returns), `me/quotes`, `checkout/{id}/gift-cards` (with Gift Cards) and the staff `orders` endpoints (list, get, by number, refund, cancel) with `ManageOrders`. `ApiOrder` carries `channel`, `culture`, grouped `taxes` and `notes` (read from the order's timeline). See the API reference in `orchardcore-commerce`.
+
+## Commissions in payroll
+
+With Payroll's Pay Setup and Staff on, `OrderCommissionPayInputSource` (source kind `Order`, `PayrollStartup`) gives payroll each paid order's commission: the `CommissionRate` of the staff member who made it (`StaffUserId`) times the subtotal less discounts and refunds, on the day it was paid in the site's zone. A run that takes it stamps the order (`OrderCommissionPayroll`) so it is paid once; a void gives it back; a refund after the commission was paid does not take it back.
 
 ## Report Builder data source
 

@@ -116,7 +116,7 @@ public sealed class ReorderStockLevelHandler : IStockLevelHandler
 }
 ```
 
-Register with `services.AddScoped<IStockLevelHandler, ReorderStockLevelHandler>();`. `ChangedAsync` runs when the level (`InStock`, `Low`, `Out`) changed; `AvailableChangedAsync` (default no-op) when available units changed. The context has `PreviousAvailable`, `PreviousLevel`, `Level`, `RanLow`, `SoldOut` and `BackInStock`. A rolled-back change raises nothing.
+Register with `services.AddScoped<IStockLevelHandler, ReorderStockLevelHandler>();`. `ChangedAsync` runs when the level (`InStock`, `Low`, `Out`) changed; `AvailableChangedAsync` (default no-op) when available units changed. The context has `PreviousAvailable`, `PreviousLevel`, `Level`, `RanLow`, `SoldOut` and `BackInStock`. A rolled-back change raises nothing. With Product Feeds on, the built-in `ProductFeedStockHandler` raises the `ProductFeedCache.SignalKey` signal when available units change, so feeds (and the AI agent feeds) rebuild with the new availability. Admin buttons that only had a confirm message (such as deleting a purchase order) now ask through the admin confirm dialog.
 
 Built in: low-stock notifications to `LowStockNotificationRoles` (with Notifications), the **Low Stock** workflow event `LowStockEvent` (with Workflows), search record refresh (with Product Listing) and webhooks. The **Automation: low stock alert** recipe adds a workflow from `LowStockEvent` to an email.
 

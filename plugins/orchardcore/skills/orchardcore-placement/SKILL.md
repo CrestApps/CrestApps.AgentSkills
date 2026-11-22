@@ -101,7 +101,7 @@ start  <  before  <  0 (empty)  <  1  <  1.1  <  2  <  10  <  after  <  free-tex
 
 | Filter | Matches |
 | --- | --- |
-| *(property name)* | The shape's original type, such as `TextField`, `ContentPart`, `ContentPart_Edit`, `Parts_Contents_Publish` |
+| *(property name)* | The shape's original type, such as `TextField`, `ContentPart`, `ContentPart_Edit`, `Content_PublishButton` |
 | `displayType` | `Detail`, `Summary`, `SummaryAdmin`, `SummaryAdminGrid`, `DetailAdmin`, `Edit`, or a custom display type |
 | `differentiator` | One instance of a reused shape (see the table above) |
 | `contentType` | A content type or stereotype, or an array; `Art*` matches every type starting with `Art` |
@@ -443,6 +443,21 @@ public sealed class Startup : StartupBase
 - The shape position (`:N`) orders shapes inside a group; the group position (`;N`) orders the tabs, cards, or columns themselves. In `Parts:2#Settings;1`, the shape is at position 2 and the `Settings` tab is at group position 1.
 - When placing display-driver editor shapes into cards, prefer keeping everything inside the `Content` zone unless Orchard specifically expects another zone.
 - In CrestApps-style editors, a card-only placement such as `Content:4%Interaction;1` is valid and preferred over inventing custom zones like `Interaction:10`.
+
+## Content editor action positions
+
+The content item editor renders **Cancel** first, then the shapes of its `Actions` zone in position order, so the main action (**Publish**) is last. Since Orchard Core 4.0 final the built-in shapes are: `ContentPreview_Button` `Actions:5`, `Content_DeleteButton` `Actions:10`, `Content_UnpublishButton` `Actions:20`, **Archive Later** (`ArchiveLaterPart_Edit`) `Actions:20.5`, **Publish Later** (`PublishLaterPart_Edit`) `Actions:25`, `Content_UserTaskButton` `Actions:28`, `Content_SaveDraftButton` `Actions:30`, `Content_PublishButton` `Actions:40`. They used to be Publish `10`, Delete `40`, Preview `after`, Archive Later `10.5`, Publish Later `10` and the user task buttons `30`, so re-check rules that position shapes next to them. A custom secondary action goes between `5` and `35` with the `action-bar-secondary` class:
+
+```json
+{
+  "Content_DeleteButton": [
+    { "contentType": [ "Invoice" ], "place": "-" }
+  ],
+  "MyModule_DuplicateButton": [
+    { "place": "Actions:15" }
+  ]
+}
+```
 
 ## Common zones
 

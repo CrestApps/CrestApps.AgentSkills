@@ -1,0 +1,124 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PaySchedules",
+      "description": "Recipe step discriminator. Must be \u0027PaySchedules\u0027."
+    },
+    "Schedules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The schedule\u0027s 26-character id; omit it to match by name or create one."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The schedule\u0027s name."
+          },
+          "Frequency": {
+            "type": "string",
+            "enum": [
+              "Weekly",
+              "Biweekly",
+              "SemiMonthly",
+              "Monthly",
+              "FourWeekly",
+              "Quarterly",
+              "Yearly"
+            ],
+            "description": "How often a period starts."
+          },
+          "AnchorDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A day a period starts on (yyyy-MM-dd), for weekly, every-two-weeks and every-four-weeks schedules; its month starts quarterly and yearly ones."
+          },
+          "WeekStart": {
+            "type": "string",
+            "enum": [
+              "Sunday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday"
+            ],
+            "description": "The day the overtime week starts."
+          },
+          "SecondPeriodStartDay": {
+            "type": "integer",
+            "description": "The day the second period of a twice-a-month schedule starts on, 2 to 28."
+          },
+          "PayDateRule": {
+            "type": "string",
+            "enum": [
+              "DaysAfterPeriodEnd",
+              "FixedDays"
+            ],
+            "description": "How the pay date is found."
+          },
+          "PayDateOffsetDays": {
+            "type": "integer",
+            "description": "Days after the period ends that pay is made."
+          },
+          "FirstPayDay": {
+            "type": "integer",
+            "description": "Day of the month the first period is paid, for fixed days; 0 is the last day."
+          },
+          "SecondPayDay": {
+            "type": "integer",
+            "description": "Day of the month the second period is paid, for fixed days; 0 is the last day."
+          },
+          "NonBusinessDayShift": {
+            "type": "string",
+            "enum": [
+              "Before",
+              "After",
+              "None"
+            ],
+            "description": "Where a pay date on a day off moves."
+          },
+          "ApprovalLeadDays": {
+            "type": "integer",
+            "description": "Days before the pay date a run must be approved."
+          },
+          "ExtraPayPeriod": {
+            "type": "string",
+            "enum": [
+              "Standard",
+              "DivideByPayDates"
+            ],
+            "description": "How a salary is paid in a year with one more pay date than usual."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the schedule is in use."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The pay schedules to create, or update by id or name."
+    }
+  },
+  "required": [
+    "name",
+    "Schedules"
+  ],
+  "additionalProperties": true
+}

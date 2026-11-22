@@ -15,7 +15,7 @@ You are an Orchard Core expert. Generate project setup instructions and configur
 
 ### Guidelines
 
-- Orchard Core applications are ASP.NET Core web apps that reference Orchard Core NuGet packages.
+- Orchard Core applications are ASP.NET Core web apps that reference Orchard Core NuGet packages. Orchard Core 4.0 targets .NET 11 (`net11.0`) only: install the .NET 11 SDK, set `<TargetFramework>net11.0</TargetFramework>`, and host on the ASP.NET Core 11 runtime.
 - Use the `dotnet new` templates or manual project creation.
 - The `Program.cs` file configures Orchard Core services and middleware.
 - Setup recipes (Blog, Agency, SaaS, Blank) define the initial site configuration.
@@ -99,7 +99,7 @@ Add NuGet packages for the modules you need. **All modules** — whether from Or
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

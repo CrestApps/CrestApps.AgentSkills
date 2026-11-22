@@ -1,0 +1,89 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LateFeePolicies",
+      "description": "Recipe step discriminator. Must be \u0027LateFeePolicies\u0027."
+    },
+    "Policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The policy\u0027s 26-character id. When it matches a stored policy, that policy is updated."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The policy\u0027s name."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the policy charges fees."
+          },
+          "Kind": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Flat or Percent."
+          },
+          "Amount": {
+            "type": "number",
+            "description": "The fixed amount of each fee, in the invoice\u0027s currency."
+          },
+          "Percent": {
+            "type": "number",
+            "description": "The percent of what is still due each fee charges."
+          },
+          "GraceDays": {
+            "type": "integer",
+            "description": "How many days after the due date pass before the first fee."
+          },
+          "RepeatEveryDays": {
+            "type": "integer",
+            "description": "How many days after a fee the next one is charged; 0 charges one fee."
+          },
+          "MaxFees": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The most fees charged on one invoice."
+          },
+          "CapAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most charged in fees on one invoice."
+          },
+          "MinimumBalance": {
+            "type": "number",
+            "description": "The least that must still be due for a fee."
+          },
+          "Taxable": {
+            "type": "boolean",
+            "description": "Whether the fee is taxed like a sale."
+          },
+          "SendDebitNote": {
+            "type": "boolean",
+            "description": "Whether each debit note is e-mailed once issued."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The late-fee policies to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Policies"
+  ],
+  "additionalProperties": true
+}

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-content-transfer
-description: Skill for bulk content import and export in Orchard Core with CrestApps Content Transfer. Covers CSV and Excel formats, the OpenXml and Azure Blob Storage features, ContentImportOptions batching and chunked upload limits, BackgroundWork pacing, hosting limits, scale-out with Redis locks, per-type permissions, import locks and the stalled-row watchdog, queued exports, and extension points such as IContentImportHandler, StandardFieldImportHandler, IContentImportRowFilter, IContentTransferFileFormatProvider, IContentTransferFileReaderTransformer, IContentExportBatchHandler and ExportRequest options. Use this skill when requests mention Orchard Core bulk import, bulk export, CSV or Excel content transfer, spreadsheet mappings, an import stuck in Processing, or large file uploads. Strong matches include CrestApps.OrchardCore.ContentTransfer, CrestApps.OrchardCore.ContentTransfer.OpenXml, CrestApps.OrchardCore.ContentTransfer.Azure, ContentTransferPermissions and ContentImportOptions.
+description: Skill for bulk content import and export in Orchard Core with CrestApps Content Transfer. Covers CSV and Excel formats, the OpenXml and Azure Blob Storage features, ContentImportOptions, BackgroundWork pacing, Redis locks, per-type permissions, the stalled-row watchdog, queued exports, telemetry, import targets that are not content types, rows of several content types, import-only formats, and extension points such as IContentImportHandler, IContentImportRowFilter, IContentTransferFileFormatProvider, IContentTransferRecordImporter and IContentImportRowTypeProvider. Use this skill when requests mention Orchard Core bulk import, bulk export, CSV or Excel content transfer, importing records that are not content items, an import stuck in Processing, or large file uploads. Strong matches include CrestApps.OrchardCore.ContentTransfer, CrestApps.OrchardCore.ContentTransfer.OpenXml, ContentTransferPermissions, ContentImportOptions, IContentTransferImportTarget and ContentTransferImportBatch.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -23,6 +23,8 @@ You are an Orchard Core expert. CrestApps Content Transfer bulk imports and expo
 - Imports save drafts unless **Publish imported content** is checked. A row with an existing `ContentItemId` updates a new latest version; `ContentItemVersionId` is exported for reference and ignored on import.
 - Validation runs through `IContentManager.ValidateAsync()`. Rejected rows download in the original format while that format is enabled.
 - A cell that holds only the text `NULL` (any case, surrounding spaces ignored), as database and spreadsheet exports write a missing value, is read as an empty cell, so handlers skip it instead of storing the word.
+- A handler that cannot import a row calls `context.Fail(reason, category)`; throwing only logs the error and the row is still saved.
+- Import records that are not content items through an import target (`IContentTransferRecordImporter`, registered with `services.AddContentTransferImportTarget<T>()`), never by faking a content type. Its name must contain a dot and its own `AuthorizeAsync` is the only permission check.
 - Exports above `ExportQueueThreshold`, or with options that set `ExportRequest.RequiresQueue`, are queued; smaller ones stream directly. Enable `OrchardCore.Notifications` for the built-in completion notification.
 - On more than one instance, enable `OrchardCore.Redis.Lock`, store files in Azure Blob Storage, and keep session affinity for chunked uploads (or share the temp directory).
 
@@ -59,6 +61,7 @@ You are an Orchard Core expert. CrestApps Content Transfer bulk imports and expo
 | `DeleteContentTransferEntries` | Deleting entries (implies list) |
 | `ImportContentFromFile` | Importing any type, templates, error files, pause and resume |
 | `ImportContentFromFile_{ContentType}` | The same for one type (implied by `ImportContentFromFile`) |
+| Target's own permission | Importing into a non-content import target (`IContentTransferImportTarget.AuthorizeAsync`); `ImportContentFromFile` does not grant it |
 | `ExportContentFromFile` | **Content > Export** menu and exporting any type |
 | `ExportContentFromFile_{ContentType}` | The same for one type (implied by `ExportContentFromFile`) |
 
@@ -72,6 +75,9 @@ Build a typed permission with `ContentTransferPermissions.CreateDynamicPermissio
 4. A run that fails with an unexpected error (for example a database timeout) does not fail the import: the same run retries it after a pause growing from 15 seconds to two minutes, up to five times, then leaves it to the next scheduled run. The import is marked **Failed** only after the same row failed three runs in a row with no progress between them.
 5. Statuses: **Pending**, **Processing**, **Paused**, **Deleting**, **Completed**, **Completed with errors**, **Failed**. A **Processing** entry with no saved progress for 10 minutes is stalled; **Resume import** continues paused, failed, pending and stalled imports from the last saved batch, and reports when a run is still working.
 6. Deleting an entry removes it and its file in the background; it never deletes imported content.
+7. An export a stopping host interrupted is not stored as completed with a partial file; it starts over on the next run. A notification that cannot be sent no longer marks a completed export as failed.
+
+`ContentTransferEntry` documents are indexed by `ContentTransferEntryIndex`, declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`.
 
 The admin lists use Orchard Core's `AdminList` standard (List or Grid layout, filters in the toolbar); see the framework `orchardcore-admin-lists` skill for customizing rows.
 
@@ -153,6 +159,16 @@ Files default to `App_Data/Sites/{tenant}/Temp` on local disk, which other insta
 
 Also enable `OrchardCore.Redis.Lock` so two instances never import the same file, and keep session affinity (or point `OrchardCore:TempDirectory:Path` at a shared mount) so all chunks of an upload reach one instance.
 
+### Telemetry
+
+The module emits OpenTelemetry traces and metrics on the meter and activity source `CrestApps.OrchardCore.ContentTransfer` (`ContentTransferDiagnostics`, namespace `CrestApps.OrchardCore.ContentTransfer.Telemetry`). Instruments are named `crestapps.contenttransfer.*` (for example `import.duration`, `import.rows`, `import.rows.skipped`, `import.stalled_rows`, `upload.size`, `export.duration`, `export.rows`) and carry bounded tags such as `content_type`, `format`, `outcome` and `reason`; ids, file names and row data go on spans and logs only. A row filter's `SkipReasonCode` (snake_case, never localized) labels skipped rows. Subscribe with the `CrestApps.OrchardCore.*` source wildcard.
+
+## Import targets and multi-type rows
+
+- **Import targets.** `IContentTransferImportTargetResolver.FindAsync(name)` returns a `ContentTypeImportTarget` for a content type that allows bulk import, or a registered `IContentTransferRecordImporter` (for example the Skills module's skills and frameworks). A record importer gets each batch as a `ContentTransferImportBatch` of `ContentTransferImportRow`s, saves them to its own store and calls `row.Fail(error, category)` for rows it rejects. Its import page is `/Admin/import/contents/{Name}`, and the Bulk Import list's **Import** menu offers the targets the user may import.
+- **Rows of several types.** `IContentImportRowTypeProvider` lets one file create items of related types; each row names its type in the `ContentType` column (`ContentTransferColumns.ContentType`). Allowed types are kept in `ImportContentOptionsPart.RowContentTypes` at upload.
+- **Import-only formats.** `IContentTransferFileFormatProvider.CanExport`, `CanImport(contentType)` and `DescribeImport(contentType)` (default `true`, `true`, `null`) let a format read only, or only for some types, as the Learning QTI `.zip` and `.xml` formats do.
+
 ## Extend the pipeline
 
 `IContentImportManager.GetColumnsAsync()` gathers columns from registered handlers, the selected `IContentTransferFileFormatProvider` reads or writes the file, and handlers map rows. Read [references/extensibility.md](references/extensibility.md) for complete examples.
@@ -168,6 +184,8 @@ Also enable `OrchardCore.Redis.Lock` so two instances never import the same file
 | `IDisplayDriver<ExportRequest>` | Extra options on the export form | `services.AddScoped<IDisplayDriver<ExportRequest>, T>()` |
 | `IContentExportBatchHandler` | Preload data for a page of exported items | Forward from the same scoped handler instance |
 | `IContentTransferNotificationHandler` | Notify when a queued export completes | `services.AddScoped<IContentTransferNotificationHandler, T>()` |
+| `IContentTransferRecordImporter` | Import records that are not content items | `services.AddContentTransferImportTarget<T>()` in a startup with `[RequireFeatures(ContentTransferConstants.Feature.ModuleId)]` |
+| `IContentImportRowTypeProvider` | Rows of several related content types in one file | `services.AddSingleton<IContentImportRowTypeProvider, T>()` |
 
 `AddContentPartImportHandler` and `AddContentFieldImportHandler` live in namespace `CrestApps.OrchardCore.ContentTransfer`; `StandardFieldImportHandler` in `CrestApps.OrchardCore.ContentTransfer.Handlers`. Built-in handlers cover `TitlePart`, `HtmlBodyPart`, `MarkdownBodyPart`, common fields and taxonomy fields (`{Part}_{Field}_Terms` by name, or `{Part}_{Field}_TermContentItemIds`).
 
@@ -182,6 +200,7 @@ Omnichannel Management contributes contact-specific import options (duplicate ph
 - Admin create, edit and import forms render their buttons in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; theme overrides and UI tests that look for the old row must update.
 - New in 3.0: the Azure Blob Storage feature, `BackgroundWork:Pacing`, `IContentExportBatchHandler`, `ExportRequest` export options, `ContentExportContext.Exclude`, and `IContentTransferFileReaderTransformer`.
 - Permission descriptions use `LocalizationSource`.
+- Since the 3.0 previews: import targets (`IContentTransferImportTarget`, `IContentTransferRecordImporter`, `IContentTransferImportTargetResolver`), `IContentImportRowTypeProvider` and `ContentTransferColumns`, `ContentImportContext.Fail`, `ContentImportRowFilterContext.SkipReasonCode`, the optional `CanExport`, `CanImport` and `DescribeImport` format members, OpenTelemetry instruments, and `.ExclusiveToDocumentType().SingleRecordPerDocument()` on `ContentTransferEntryIndex`.
 
 ## Troubleshooting
 
@@ -193,3 +212,6 @@ Omnichannel Management contributes contact-specific import options (duplicate ph
 - Every row was created twice: two instances imported the same file without a shared lock.
 - Uploads fail with IIS `404.13`: lower `MaxUploadChunkSize` below `30000000` or raise `maxAllowedContentLength`.
 - Parsing success does not bypass validation; read the rejected-rows file.
+- A handler threw but the row was still imported: call `context.Fail(...)` instead of throwing.
+- A custom import target is not offered: its `Name` has no dot, its startup does not require the Content Transfer feature, or `AuthorizeAsync` refuses the user.
+- A format is missing for one content type: its provider's `CanImport(contentType)` returns `false`; an import-only format (`CanExport = false`) never appears in exports or templates.

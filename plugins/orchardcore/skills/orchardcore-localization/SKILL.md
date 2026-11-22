@@ -345,6 +345,13 @@ share, and declare the rest in an internal `{Module}LocalizationSources` class.
 The full guide (API, notes, analyzers, plurals, PO entries, Data Localization
 interaction, migration) is `orchardcore-localization-source`.
 
+Decorate every instance property of type `LocalizationSource` with `[JsonIgnore]`
+(`System.Text.Json.Serialization`), and repeat it on overrides, since it is not
+inherited. `System.Text.Json` now writes a source as its `Value` string, so
+forgetting it no longer throws, but a source must never be serialized: one read
+back has no `Type`, so it loses its PO context. Persist a plain `string` key and
+map it to a static source at display time.
+
 ```csharp
 private static readonly LocalizationSource s_saved =
     LocalizationSource.Create<WidgetService>("Widget {0} saved.");

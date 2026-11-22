@@ -235,11 +235,9 @@ See `orchardcore-admin-lists` for the row display driver, row templates, search,
         </div>
     </div>
 
-    <div class="ocat-wrapper">
-        <div class="ocat-end-offset">
-            <button type="submit" class="btn btn-primary">@T["Save"]</button>
-            <a asp-action="Index" class="btn btn-secondary">@T["Cancel"]</a>
-        </div>
+    <div class="action-bar-bottom">
+        <a asp-action="Index" class="btn btn-secondary cancel" role="button">@T["Cancel"]</a>
+        <button type="submit" class="btn btn-primary save">@T["Save"]</button>
     </div>
 </form>
 ```

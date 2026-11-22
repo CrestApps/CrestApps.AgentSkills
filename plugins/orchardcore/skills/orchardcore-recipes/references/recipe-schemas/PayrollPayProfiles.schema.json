@@ -1,0 +1,220 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayrollPayProfiles",
+      "description": "Recipe step discriminator. Must be \u0027PayrollPayProfiles\u0027."
+    },
+    "Profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The profile\u0027s id; omit it to match by staff member and employer."
+          },
+          "StaffMemberId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The staff member paid."
+          },
+          "EmployeeNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The staff member\u0027s employee number, instead of the id."
+          },
+          "EmployerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The employer."
+          },
+          "EmployerName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The employer\u0027s name, instead of the id."
+          },
+          "PayScheduleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay schedule."
+          },
+          "PayScheduleName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay schedule\u0027s name, instead of the id."
+          },
+          "WorkerType": {
+            "type": "string",
+            "enum": [
+              "Employee",
+              "Contractor"
+            ]
+          },
+          "OvertimeStatus": {
+            "type": "string",
+            "enum": [
+              "NonExempt",
+              "Exempt"
+            ]
+          },
+          "BackupWithholding": {
+            "type": "boolean",
+            "description": "Whether a contractor\u0027s payments are withheld on."
+          },
+          "Tipped": {
+            "type": "boolean",
+            "description": "Whether the person is paid a tipped wage, made up to the minimum wage when tips fall short."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "OnLeave",
+              "Terminated"
+            ]
+          },
+          "TaxId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The person\u0027s tax id in clear, protected with this site\u0027s keys on import. Only in a file exported with sensitive data."
+          },
+          "LegalName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The legal name, when it differs."
+          },
+          "HomeAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The home address."
+          },
+          "WorkSiteTeamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The work site team."
+          },
+          "Elections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Jurisdiction": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The jurisdiction, such as US."
+                },
+                "EffectiveFrom": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The first day, yyyy-MM-dd."
+                },
+                "Values": {
+                  "type": "object",
+                  "description": "The values of the jurisdiction\u0027s election fields, by name."
+                }
+              },
+              "required": [
+                "Jurisdiction",
+                "EffectiveFrom"
+              ]
+            },
+            "description": "The tax elections, kept as history."
+          },
+          "Distribution": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Method": {
+                  "type": "string",
+                  "enum": [
+                    "BankAccount",
+                    "Check"
+                  ]
+                },
+                "BankAccountId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "The person\u0027s bank account, for a deposit."
+                },
+                "Split": {
+                  "type": "string",
+                  "enum": [
+                    "Amount",
+                    "Percent",
+                    "Remainder"
+                  ]
+                },
+                "Amount": {
+                  "type": [
+                    "null",
+                    "number"
+                  ]
+                },
+                "Percent": {
+                  "type": [
+                    "null",
+                    "number"
+                  ]
+                }
+              }
+            },
+            "description": "How net pay is split; the last row takes the remainder."
+          },
+          "DefaultAllocation": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "DepartmentTeamId, SiteTeamId, ActivityCode, Job."
+          },
+          "RetroPayFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The first day retro pay may reach, yyyy-MM-dd."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The pay profiles to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Profiles"
+  ],
+  "additionalProperties": true
+}

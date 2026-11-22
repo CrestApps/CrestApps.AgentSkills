@@ -232,7 +232,7 @@ public sealed class Startup : StartupBase
                 <div class="col">
                     <div class="input-group">
                         <input asp-for="Options.Search" id="search-box" class="form-control" placeholder="@T["Search"]" type="search" autofocus autocomplete="off" />
-                        <button type="submit" name="submit.Filter" class="btn btn-outline-secondary" title="@T["Search"]" aria-label="@T["Search"]">
+                        <button type="submit" name="submit.Filter" value="submit.Filter" class="btn btn-outline-secondary" title="@T["Search"]" aria-label="@T["Search"]">
                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         </button>
                     </div>

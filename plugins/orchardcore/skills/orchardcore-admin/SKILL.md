@@ -182,10 +182,8 @@ Admin views declare their title with the `<breadcrumb>` tag helper (add `@addTag
         </div>
     </div>
 
-    <div class="ocat-wrapper">
-        <div class="ocat-end-offset">
-            <button type="submit" class="btn btn-primary">@T["Save"]</button>
-        </div>
+    <div class="action-bar-bottom">
+        <button type="submit" class="btn btn-primary save">@T["Save"]</button>
     </div>
 </form>
 ```
@@ -265,7 +263,7 @@ builder.Add(S["Sports"], sports => sports
 
 ## Quick Navigation (Ctrl+K)
 
-`OrchardCore.Admin` provides a quick navigation palette opened with <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on macOS) or the navbar magnifier. It filters the admin menu items the user can access (case- and accent-insensitive, including parent names shown as a breadcrumb). It is enabled by default; turn it off with **Enable quick navigation** in **Configuration → Settings → Admin** or `AdminSettings.DisplayQuickNavigation`.
+`OrchardCore.Admin` provides a quick navigation palette opened with <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on macOS) or the navbar magnifier. It filters the admin menu items the user can access (case- and accent-insensitive, including parent names shown as a breadcrumb). It is enabled by default; turn it off with **Enable quick navigation** in **Settings → Admin** or `AdminSettings.DisplayQuickNavigation`.
 
 - The palette loads a fresh, localized, permission-filtered JSON index from the `AdminQuickNavigationIndex` route (`~/Admin/QuickNavigation/Index`, requires `AccessAdminPanel`, `404` when disabled) on every open, with `Cache-Control: no-store`. Entries have `source`, `id`, `title`, `path`, `href`, and `target`.
 - Admin themes that render the `Navbar` shape with the `DetailAdmin` display type inherit the palette (`QuickNavigationNavbarItem` shape plus `admin-quick-navigation` script and style). Restyle it after that stylesheet: `<style asp-name="my-admin-theme" asp-src="~/MyAdminTheme/Styles/theme.css" depends-on="admin-quick-navigation" at="Head"></style>`.
@@ -469,7 +467,7 @@ Link it from the **Settings** group with `.Action("Index", "Admin", new { area =
 
 ## Admin Settings Reference
 
-**Configuration → Settings → Admin** requires `AdminPermissions.ManageAdminSettings`; the admin itself requires `AdminPermissions.AccessAdminPanel`.
+**Settings → Admin** requires `AdminPermissions.ManageAdminSettings`; the admin itself requires `AdminPermissions.AccessAdminPanel`.
 
 ```json
 {
@@ -507,7 +505,7 @@ Link it from the **Settings** group with `.Action("Index", "Admin", new { area =
 | `MenuBehavior` | `Focused` | `Focused` or `Persistent` menu sections. |
 | `ListLayout` | `null` | `List` or `Grid`; `null` uses `AdminListOptions.DefaultLayout` (see `orchardcore-admin-lists`). |
 | `ActionsLayout` | `null` | `Buttons` or `Menu` for admin list row actions and the secondary actions of the edit page action bar; `null` uses `AdminListOptions.DefaultActionsLayout`. Named `ListActionsLayout` in 4.0 previews; a value saved under the old name is not migrated. |
-| `AllowUserListLayoutSelection` | `false` | Per-user List/Grid selector on every list. |
+| `AllowUserListLayoutSelection` | `true` | Per-user List/Grid selector on every list (on by default; turn it off to force the site layout everywhere). |
 
 ## Admin Filters
 
@@ -558,7 +556,8 @@ The same pattern can require an admin stylesheet defined in a resource manifest 
 - Re-check overrides of the admin menu templates and custom menu CSS against the new markup and color variables; require `bootstrap-select` styles explicitly.
 - Overridden list views must render `<admin-list>` (see `orchardcore-admin-lists`).
 - Use `OrchardCore:Admin` instead of `OrchardCore_Admin` in configuration.
-- Admin edit pages put their submit buttons in a bottom action bar: replace button rows (and top `position-sticky action-bar` cards) in custom edit views with `<div class="action-bar-bottom">` and mark secondary actions with `action-bar-secondary` (see `orchardcore-admin-edit-views`).
+- Admin edit pages put their submit buttons in a bottom action bar: replace button rows (and top `position-sticky action-bar` cards) in custom edit views with `<div class="action-bar-bottom">` and mark secondary actions with `action-bar-secondary`. Order them **Cancel** first, secondary actions next, the `btn-primary` main action last; modal footers and `confirmDialog()` put **Cancel** before **OK** (see `orchardcore-admin-edit-views`).
+- The content editor action shapes moved: `ContentPreview_Button` `Actions:5`, `Content_DeleteButton` `Actions:10`, **Archive Later** `Actions:20.5`, **Publish Later** `Actions:25`, `Content_UserTaskButton` `Actions:28`, `Content_PublishButton` `Actions:40`. Re-check placement rules that position shapes next to them.
 - Admin menu items render an extra `oc-navigation-{navigationName}-{parents}-{label}` class built from the untranslated labels (for example `oc-navigation-admin-content-content_items`); use it as a culture-independent hook in CSS or UI tests (see `orchardcore-navigation`).
 
 For practical end-to-end examples, see `references/admin-examples.md`.

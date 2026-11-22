@@ -174,4 +174,4 @@ internal sealed class AccountCreditCardDisplayDriver : ContentDisplayDriver
 // Startup: services.AddScoped<IContentDisplayDriver, AccountCreditCardDisplayDriver>();
 ```
 
-Each section checks its own permission; the built-in Business and Invoices cards require `ManageB2BAccounts` and show only while the account buys as a business.
+Each section checks its own permission; the built-in Business card requires `ManageB2BAccounts` and shows only while the account buys as a business. A new section (not `Business`) also needs `services.AddPageSection(AccountPageTabs.PageName, name, title, icon, position)` for its title and icon.

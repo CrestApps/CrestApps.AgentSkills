@@ -1,8 +1,8 @@
 # Field Service Sample Recipe
 
-`FieldServiceSample` ships in the Dispatch module's `Recipes` folder (`field-service-sample.recipe.json`, category `field service`, not a setup recipe). Run it from **Configuration > Recipes**. Its records have fixed ids, so running it again changes nothing. After it runs, publish a schedule for the **Field Operations** team, then add work orders and dispatch them from **Field Service > Dispatch Board**; **Get started** on the board (`dispatch/get-started`) checks each part of the setup.
+`FieldServiceSample` ships in the Dispatch module's `Recipes` folder (`field-service-sample.recipe.json`, category `field service`, not a setup recipe). Run it from **Tools > Recipes**. Its records have fixed ids, so running it again changes nothing. After it runs, give the three technicians the **Technician** capability (the recipe's workers have none, and Dispatch lists only staff members with a capability chosen in **Settings > Dispatch**; see `orchardcore-staff`), publish a schedule for the **Field Operations** team, then add work orders and dispatch them from **Field Service > Dispatch Board**; **Get started** on the board (`dispatch/get-started`) checks each part of the setup.
 
-The steps, in order (trimmed to one entry per list):
+The steps, in order (trimmed to one entry per list; the `capabilities` entry on the worker is not in the shipped recipe, add it in your own copy so technicians appear on the board):
 
 ```json
 {
@@ -27,7 +27,7 @@ The steps, in order (trimmed to one entry per list):
         { "name": "Field Operations", "kind": "Team", "timeZoneId": "America/New_York", "description": "Technicians who visit customers.", "location": { "address": "1 Depot Way, Boston, MA 02118" } }
       ],
       "Workers": [
-        { "displayName": "Ana Field", "employeeNumber": "2002", "jobTitle": "Service technician", "employmentType": "FullTime", "contractedHoursPerWeek": 40, "teamMemberships": [ { "teamName": "Field Operations" } ] }
+        { "displayName": "Ana Field", "employeeNumber": "2002", "jobTitle": "Service technician", "employmentType": "FullTime", "contractedHoursPerWeek": 40, "capabilities": [ "Technician" ], "teamMemberships": [ { "teamName": "Field Operations" } ] }
       ]
     },
     {
@@ -53,6 +53,24 @@ The steps, in order (trimmed to one entry per list):
       ]
     },
     {
+      "name": "ServiceLevelPolicies",
+      "Policies": [
+        {
+          "ItemId": "4ff712gq9zvzfks9tqyqgawkmb",
+          "Name": "Standard service",
+          "Scope": "WorkOrders",
+          "WarningPercent": 75,
+          "Targets": [
+            { "Metric": "FirstResponse", "Priority": "Urgent", "Minutes": 120 },
+            { "Metric": "Resolution", "Priority": "Urgent", "Minutes": 480 }
+          ],
+          "Properties": {
+            "WorkOrderServiceLevelSettings": { "PauseStatuses": [ "OnHold" ] }
+          }
+        }
+      ]
+    },
+    {
       "name": "WorkOrders",
       "SubStatuses": [
         { "ItemId": "4fqsx194f332rzgh3s4wshe051", "Name": "Waiting on parts", "ParentStatus": "OnHold", "Color": "#e8590c", "PausesSla": true }
@@ -65,6 +83,6 @@ The steps, in order (trimmed to one entry per list):
 }
 ```
 
-The `Workforce` and `WorkforceShiftPlanning` steps belong to the Workforce module (see `orchardcore-workforce`); the `Geo`, `Assets` and `WorkOrders` steps are described in `orchardcore-geo`, `orchardcore-assets` and `orchardcore-work-orders`.
+The `Workforce` step's `Workers` are saved as staff members (see `orchardcore-staff`) and `WorkforceShiftPlanning` belongs to the Workforce module (see `orchardcore-workforce`); the `Geo`, `Assets`, `ServiceLevelPolicies` and `WorkOrders` steps are described in `orchardcore-geo`, `orchardcore-assets` and `orchardcore-work-orders`.
 
 To make your own starter recipe, copy this shape, keep 26-character lowercase ids for every `ItemId` so references survive reruns, and add a `Settings` step with `DispatchSettings` (and `GeoSettings`) when you want the board time zone, objective weights or providers preset.

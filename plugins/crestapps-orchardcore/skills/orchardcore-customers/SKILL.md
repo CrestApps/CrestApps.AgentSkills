@@ -1,6 +1,6 @@
 ---
 name: orchardcore-customers
-description: Skill for the CrestApps Orchard Core Customers module (CrestApps.OrchardCore.Customers, Customers.CheckoutDetails, Customers.StoreCredit, Customers.Loyalty, Customers.Referrals, Customers.Api) and the Customers.Abstractions buyer identity foundation. Covers the Customer record linked to a user or a guest, CustomerOwner and CustomerOwnerKind, ICustomerContactResolver, ICustomerService, the address book and IShippingAddressBook, the checkout Contact step, Checkout details fields, store credit, loyalty points and referrals as tenders, merging verified guests, privacy erase, export and retention with ICustomerPrivacyHandler and the site-wide IPersonalDataService, the Customers, StoreCreditAccounts, LoyaltyAccounts and ReferralProfiles recipe and deployment steps, the Report Builder data source and the Customers API. Use it when requests mention commerce customers, guest buyers, address books, store credit, rewards points, referral links, personal data requests, or the checkout contact step.
+description: Skill for the CrestApps Orchard Core Customers module (CrestApps.OrchardCore.Customers, Customers.CheckoutDetails, Customers.StoreCredit, Customers.Loyalty, Customers.Referrals, Customers.Api) and the Customers.Abstractions buyer identity foundation. Covers the Customer record linked to a user or a guest, CustomerOwner, ICustomerContactResolver, ICustomerService, the address book, the customer party (billing profile, members, tax profile), the checkout Contact step and ICheckoutContactStep, Checkout details fields, store credit for customers and other parties, customer credit for the ledger (ICustomerCreditService), loyalty points and referrals as tenders, merging guests, privacy and retention, the recipe and deployment steps, the Report Builder data source and the Customers API. Use it when requests mention commerce customers, guest buyers, address books, store credit, customer credit, rewards points, referral links, personal data requests, or the checkout contact step.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,13 +11,13 @@ metadata:
 
 A customer is everyone who buys: a person or a business, with an account or as a guest. A customer is not a user; sign-in, registration and passwords stay with Orchard Core Users, and `Customer.UserId` links the two. Orders, transactions and subscriptions point at one customer whatever later happens to the account.
 
-Related skills: `orchardcore-checkout` (steps, tenders), `orchardcore-orders` (orders, gift cards), `orchardcore-addresses` (the `Address` value and editor), `orchardcore-transactions` (guest transactions, reminders), `orchardcore-commerce` (personal data requests, API conventions, webhooks), `orchardcore-taxation` (tax-exempt customers).
+Related skills: `orchardcore-checkout` (steps, tenders), `orchardcore-orders` (orders, gift cards), `orchardcore-addresses` (the `Address` value and editor), `orchardcore-transactions` (guest transactions, reminders, customer credit), `orchardcore-commerce` (personal data requests, API conventions, webhooks), `orchardcore-taxation` (tax-exempt customers).
 
 ## Features
 
 | Feature ID | Name | Depends on |
 | --- | --- | --- |
-| `CrestApps.OrchardCore.Customers` | Customers | Commerce, `OrchardCore.Users`, Addresses |
+| `CrestApps.OrchardCore.Customers` | Customers | Commerce Foundation (`CommerceConstants.Features.Foundation`), `OrchardCore.Users`, Addresses |
 | `CrestApps.OrchardCore.Customers.CheckoutDetails` | Checkout details | Customers, Orders, Contents, Content Types |
 | `CrestApps.OrchardCore.Customers.StoreCredit` | Store Credit | Customers, Orders |
 | `CrestApps.OrchardCore.Customers.Loyalty` | Loyalty Points | Customers, Orders |
@@ -50,6 +50,7 @@ Constants: `CustomersConstants.Features`, `ContactStepKey` (`Contact`), `Checkou
 - `CustomerOwner` (`CustomerOwner.ForUser(userId)`, `CustomerOwner.ForGuest(guestCustomerId)`) and `CustomerOwnerKind` (`Authenticated`, `Guest`), in `CrestApps.OrchardCore.Customers.Models`. Transactions and subscriptions store `OwnerId` plus `OwnerKind`.
 - `ICustomerContactResolver.ResolveAsync(owner, guestContact)` and `ICustomerOwnerNotifier.NotifyAsync(owner, guestContact, message)`: a user through `INotificationService`, a guest by email. `AddCustomersCore()` registers the defaults; the Customers feature replaces the resolver with `CustomerRecordContactResolver` (name from the customer record, email from the account).
 - `ICommercePersonalDataService` (`ExportAsync`, `AnonymizeAsync`, `ExpireAsync` by owner and email) with `ICommercePersonalDataContributor` per feature (`IdentifyAsync`, `ExportAsync`, `AnonymizeAsync`, `TakesPartInRetentionExpiry`, `true` by default and `false` for Fundraising, Memberships, Marketplace and Reviews). It is one contributor (`CommercePersonalDataContributor`) of the site-wide `IPersonalDataService` (`CrestApps.OrchardCore.PersonalData.Abstractions`, namespace `CrestApps.OrchardCore.PersonalData`), which also reaches the CRM, Workforce, Scheduling and other modules. A new module implements `IPersonalDataContributor` and registers it with `services.AddPersonalDataContributor<T>()`; use `ICommercePersonalDataContributor` only when it needs the commerce subject (guest owners, checkout sessions, payment-provider customers).
+- `ICustomerCreditService` (`CrestApps.OrchardCore.Customers.Services`) is a party's customer credit: `CanHold(party)`, `CanSpendAsync(party, userId)` (their own, or a party they have billing access for), `GetBalanceAsync(party, currency)`, `AddAsync(CustomerCreditChange)` and `SpendAsync(CustomerCreditChange)` (`Party`, `Currency`, `Amount`, `Reason`, `Reference`, `Actor`), returning `CustomerCreditResult` (`Succeeded`, `AlreadyApplied`, `Balance`, `Error`: `UnsupportedParty`, `InvalidAmount`, `InsufficientBalance`, `Busy`). Transactions uses it, when registered, to keep overpayments and credit notes and pay balances with them. The Store Credit feature implements it; a guest never holds credit.
 - `IShippingAddressBook` (`CrestApps.OrchardCore.Addresses.Abstractions`) is how Shipping reads and saves the buyer's address book; the Customers feature implements it on the customer record (`CustomerShippingAddressBook`), so Shipping never references Customers.
 
 ## The customer record
@@ -63,6 +64,16 @@ Constants: `CustomersConstants.Features`, `ContactStepKey` (`Contact`), `Checkou
 | `ICustomerHandler` | `CreatedAsync(customer)` |
 | `ICustomerMergeService` / `ICustomerMergeHandler` | `MergeVerifiedGuestsAsync(userId)` / `MergingAsync(CustomerMergeContext)` |
 | `ICustomerPrivacyService` / `ICustomerPrivacyHandler` | `EraseAsync`, `ExportAsync`, `ExpireAsync` / `ErasingAsync`, `ExportingAsync`, `Order` |
+
+`CustomerIndex` (one row per customer) declares `.ExclusiveToDocumentType().SingleRecordPerDocument()`, as do `StoreCreditAccountIndex`, `LoyaltyAccountIndex` and `ReferralProfileIndex`.
+
+### The customer party
+
+A customer record is a party of kind `Customer` (`PartyKinds.Customer`, searched with `ViewCustomers`):
+
+- `CustomerBillingProfileSource` fills its billing profile: name, e-mail and phone, the default billing address, the default shipping address when it is another place, the tax id and the exemption.
+- `CustomerPartyMemberSource` makes the record's user its member (a guest's record has none), so a user acts for their own customer record.
+- `CustomerPartyTaxProfileProvider` (`IPartyTaxProfileProvider`) adds the customer id, business customers taxed as a business, the exemption and certificates on file. `CustomerCheckoutTaxProfileHandler` uses the same rules (`CustomerTaxProfiles`), so a customer is taxed the same at checkout and on a document billed to them (see `orchardcore-taxation`).
 
 ```csharp
 using CrestApps.OrchardCore.Customers.Core.Services;
@@ -85,6 +96,8 @@ public sealed class RegistrationCustomerLink
 
 With Orders, `CustomerContactCheckoutHandler` adds the **Contact** step to every order checkout (after the hidden order step): name and email required, phone, and a billing address per `CustomerCheckoutSettings.BillingAddress` (`Optional` = 0, the default, `Off` = 1, `Required` = 2; **Settings > Commerce > Customers**). It stores `CustomerContactStep` in `SavedSteps` and a `CheckoutContactInfo` on the session; on completion the order is linked to the signed-in customer or a new guest customer, and a guest's billing address becomes their default. A signed-in buyer with `Off` never sees the step.
 
+With Orders on, `CustomerCheckoutContactStep` implements `ICheckoutContactStep` (Checkout.Abstractions): `SaveAsync(flow, CheckoutContactDetails)` saves the Contact step from code (an API or an AI agent, as Agentic Commerce does) with the page's rules.
+
 **Checkout details** creates a field-less `CheckoutDetails` content type; add fields to it (gift message, delivery date) and they are asked on the Contact step, validated like any editor, kept on `Order.CheckoutDetails` and shown on the order pages.
 
 ## Store credit, loyalty points and referrals
@@ -93,9 +106,11 @@ All three pay toward checkouts as tenders (after tax) for signed-in buyers only.
 
 | Feature | Tender key | Settings | Service |
 | --- | --- | --- | --- |
-| Store Credit | `store-credit` | none | `StoreCreditService.ChangeAsync(customerId, currency, amount, reason, actor, sessionId)` |
+| Store Credit | `store-credit` | none | `StoreCreditService.ChangeAsync(customerId, currency, amount, reason, actor, sessionId)`, `TryChangeAsync(holder, currency, amount, reason, actor, reference)` |
 | Loyalty Points | `loyalty-points` | `LoyaltySettings` (**Settings > Commerce > Rewards**) | `LoyaltyService.ChangeAsync(customerId, points, kind, reason, actor, orderId)` |
 | Referrals | rewards in credit or points | `ReferralSettings` (**Settings > Commerce > Referrals**) | `ReferralService`, link `refer/{code}` |
+
+Store credit can belong to another party than a customer record, such as a business account (`StoreCreditHolder.ForParty(party)`; `PartyKind` and `PartyId` on the account and index). With Store Credit on, `StoreCreditCustomerCreditService` is the `ICustomerCreditService`: keeping credit for a user without a customer record creates one, spending or reading never does, and a change with a `Reference` is applied once (`AlreadyApplied`). Accounts keep their latest 50 changes; older ones move to their own records through `IBalanceLedgerArchive`.
 
 Details, settings JSON and the account pages are in [references/store-credit-loyalty-referrals.md](references/store-credit-loyalty-referrals.md).
 

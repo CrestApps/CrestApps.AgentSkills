@@ -335,6 +335,8 @@ public sealed class ProductRouteableContentTypeProvider : IRouteableContentTypeP
 
 Register it with `services.AddScoped<IRouteableContentTypeProvider, ProductRouteableContentTypeProvider>();`.
 
+`SitemapBuilderContext.HostPrefix` is the scheme and host without a trailing slash: its setter trims a trailing `/` (as in a **Base URL** site setting of `https://example.com/`), so appending a root-relative path never produces `//`. Append paths that start with `/`.
+
 ### Configuring Sitemaps for Decoupled Razor Pages
 
 Enable `OrchardCore.Sitemaps.RazorPages`, then configure routes in `Program.cs`:

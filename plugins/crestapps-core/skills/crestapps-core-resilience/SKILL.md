@@ -140,6 +140,15 @@ var tts = textToSpeechClient.AsBuilder().UseDefaultResilience().Build(servicePro
 - `ISpeechToTextClient` non-streaming retries work for both seekable and non-seekable streams.
 - `ISpeechToTextClient` streaming retries require a seekable input stream so the audio can be replayed safely across retry attempts.
 
+## Telemetry
+
+- Each retry of `UseDefaultResilience()` adds 1 to `crestapps.core.ai.resilience.retries`, tagged `operation` (`Chat`, `Embedding`, `Image`, `SpeechToText` or `TextToSpeech`), `reason` (`rate_limit`) and `attempt` (capped at 5).
+- A streamed chat response that fails after its first update is not retried and reaches the caller. Both `UseDefaultResilience()` and `UseResilience(...)` on a chat builder count it on `crestapps.core.ai.resilience.stream_failures` (tag `operation`).
+- The Azure OpenAI SDK's own retry policy counts on the same retries metric, tagged `client` (`Azure`) instead of `operation`, with `reason` `rate_limit` or `transient`.
+- A pipeline you pass to `UseResilience(...)` adds nothing to the retries metric. Give it a `Name` and call `ConfigureTelemetry(loggerFactory)` so the `Polly` meter reports it.
+
+See `crestapps-core-observability` for collecting these metrics.
+
 ## When to Use Which
 
 - `UseDefaultResilience()` — a safe default for provider throttling, framework-style retries on your own clients, when you do not yet need a custom Polly pipeline.

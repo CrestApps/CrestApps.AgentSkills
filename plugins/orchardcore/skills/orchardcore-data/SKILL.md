@@ -1,6 +1,6 @@
 ---
 name: orchardcore-data
-description: Skill for configuring the Orchard Core data layer. Covers database provider selection, YesSql options (OrchardCore YesSql section), Sqlite options (Data Sqlite section), table naming presets (Data TableOptions section), document options (Documents section), connection string setup, DbConnection access, SQL dialect abstraction, table prefix and schema conventions, Dapper integration, transactions, and the Orchard Core 4.0 configuration section renames from OrchardCore_YesSql, OrchardCore_Data_Sqlite, OrchardCore_Data_TableOptions and OrchardCore_Documents. Use this skill when requests mention Orchard Core Data, Sqlite Connection Pooling, YesSql Configuration Options, Database Table Options, Creating a DbConnection, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Data, OrchardCore.Data.YesSql, IDbConnectionAccessor, IStore, ISqlDialect, YesSqlOptions, DocumentOptions, ShellSettings, Dapper.
+description: Skill for configuring the Orchard Core data layer. Covers database provider selection, YesSql options (OrchardCore YesSql section, ConcurrentIndexCreationEnabled), Sqlite options (Data Sqlite section), table naming presets (Data TableOptions section), document options (Documents section), connection string setup, DbConnection access, SQL dialect abstraction, table prefix and schema conventions, Dapper integration, transactions, and the Orchard Core 4.0 configuration section renames from OrchardCore_YesSql, OrchardCore_Data_Sqlite, OrchardCore_Data_TableOptions and OrchardCore_Documents. Use this skill when requests mention Orchard Core Data, Sqlite Connection Pooling, YesSql Configuration Options, Database Table Options, Creating a DbConnection, or closely related Orchard Core implementation, setup, extension, or troubleshooting work. Strong matches include OrchardCore.Data, OrchardCore.Data.YesSql, IDbConnectionAccessor, IStore, ISqlDialect, YesSqlOptions, DocumentOptions, ShellSettings, Dapper.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,7 +15,7 @@ You are an Orchard Core expert. Generate code and configuration for database acc
 
 ### Guidelines
 
-- Orchard Core uses YesSql as its document database abstraction over relational databases.
+- Orchard Core uses YesSql (6.3.0 in Orchard Core 4.0) as its document database abstraction over relational databases. Map index providers declare `ExclusiveToDocumentType()` and `SingleRecordPerDocument()` when true, and `IQuery<T>.NoDuplicates()` is obsolete in favor of `SkipDeduplication()`; see `orchardcore-yessql-indexes`.
 - Supported database providers: `Sqlite` (default), `SqlConnection` (SQL Server), `Postgres`, `MySql`. For SQL Server, MySQL and PostgreSQL, create the database first; Orchard Core creates the tables, not the database.
 - Provider, connection string, table prefix and schema are tenant settings (setup screen or `IShellConfiguration`).
 - Prefer `IContentManager` for content items and `ISession` for YesSql documents and indexes; use raw SQL only for custom relational tables.
@@ -56,6 +56,7 @@ The `DatabaseName` shell setting controls the SQLite file name (`OrchardCore.db`
 | `QueryGatingEnabled` | Coalesces identical concurrent queries and shares the result | `true` |
 | `EnableThreadSafetyChecks` | Helps diagnose concurrent use of a session | `false` |
 | `IsolationLevel` | Default transaction isolation level | `ReadCommitted` |
+| `ConcurrentIndexCreationEnabled` | Creates the indexes a data migration adds to an existing table without blocking writes: online on SQL Server editions that support online index operations (Enterprise, Developer, Azure SQL Database, Azure SQL Managed Instance) and with `ALGORITHM=INPLACE, LOCK=NONE` on MySQL. PostgreSQL still blocks writes (migrations run in a transaction) and SQLite creates indexes the regular way. Set to `false` to always create them the regular way | `true` |
 | `IncludeQueryTextInTelemetry` | Adds the SQL text (`db.query.text`) to YesSql command spans when the `YesSql` telemetry source is collected (see `orchardcore-opentelemetry`). Raw SQL fragments are included as is and can expose data to the telemetry receiver | `false` |
 
 `IdGenerator`, `IdentifierAccessorFactory`, `VersionAccessorFactory` and `ContentSerializer` can only be set in code.
@@ -70,6 +71,7 @@ The `DatabaseName` shell setting controls the SQLite file name (`OrchardCore.db`
       "QueryGatingEnabled": true,
       "EnableThreadSafetyChecks": false,
       "IsolationLevel": "ReadCommitted",
+      "ConcurrentIndexCreationEnabled": true,
       "IncludeQueryTextInTelemetry": false
     }
   }

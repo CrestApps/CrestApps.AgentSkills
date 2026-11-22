@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-webmcp
-description: Skill for the CrestApps Orchard Core WebMCP module (CrestApps.OrchardCore.AI.WebMcp), a thin layer over CrestApps.Core.AI.WebMcp that gives AI agents in the browser tools through the standard document.modelContext API. Covers site tools selected on the WebMCP settings card (WebMcpSettings, ExposeAllTools, Tools, EnableOnAdminPages, EnableOnFrontEndPages, EnablePageTools), the CrestApps AI WebMcp configuration section and PageToolOrigins, the UseWebMcpTools and ManageWebMcpSettings permissions, the api/ai/webmcp endpoints, the WebMcpPart content part with per-content-item tools, the built-in page tools, the AI chat as a WebMCP agent with WebMcpProfileSettings AllowPageTools and AllowConsequentialPageTools, custom registerTool page tools, IWebMcpClientConfigurationHandler, and recipes. Use this skill when requests mention WebMCP, document.modelContext, browser AI agents using Orchard Core tools, page tools, letting the admin AI chat fill in a form, or tools on a content item's page.
+description: Skill for the CrestApps Orchard Core WebMCP module (CrestApps.OrchardCore.AI.WebMcp), which gives browser AI agents tools through document.modelContext. Covers site tools selected on the WebMCP settings card (WebMcpSettings, ExposeAllTools, Tools, EnableOnAdminPages, EnableOnFrontEndPages, EnablePageTools, EnableStorefrontTools), storefront tools for anonymous visitors with MarkAIToolAnonymousSafe, the CrestApps:AI:WebMcp section, the UseWebMcpTools and ManageWebMcpSettings permissions, the api/ai/webmcp endpoints, the WebMcpPart content part, the built-in page tools, the AI chat as a WebMCP agent with AllowPageTools, AllowConsequentialPageTools and tool approvals, custom registerTool page tools, IWebMcpClientConfigurationHandler, and recipes. Use this skill when requests mention WebMCP, document.modelContext, browser AI agents using Orchard Core tools, page tools, storefront tools, letting the admin AI chat fill in a form, or tools on a content item's page.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -20,7 +20,7 @@ The `CrestApps.OrchardCore.AI.WebMcp` module is a thin Orchard Core layer over C
   - the **WebMCP tools** content part switches on with Orchard Core's **Contents** feature;
   - page tools are a setting (`EnablePageTools`).
 - **Nothing is offered by default.** Tools are selected on the **WebMCP** card under **Settings → Artificial Intelligence**, or with `ExposeAllTools`. Front-end pages are off by default.
-- Only signed-in users with **Use WebMCP tools in the browser** (`UseWebMcpTools`) get the scripts; anonymous visitors never do. Changing the card needs **Manage the WebMCP settings** (`ManageWebMcpSettings`). Administrators hold both by default.
+- Only signed-in users with **Use WebMCP tools in the browser** (`UseWebMcpTools`) get the site tools. Anonymous visitors get nothing unless **Offer storefront tools to visitors** is on, and then only selected tools marked safe for anyone (see [Storefront tools](#storefront-tools)). Changing the card needs **Manage the WebMCP settings** (`ManageWebMcpSettings`). Administrators hold both by default.
 - Every tool also needs the user's **Access AI tool** permission (`AccessAnyAITool` or the per-tool permission), checked on the server on every list and call. A browser agent can never do more than the user.
 - The tool catalog is the same one the MCP Server reads: selectable tools registered with `AddCoreAITool<T>().Selectable()` plus configured tool instances. System and hidden tools are never offered. WebMCP adds no tools of its own to that catalog.
 - WebMCP needs a secure context (HTTPS, or `localhost` while developing).
@@ -90,17 +90,42 @@ With **Add page tools** on (default), CrestApps.Core's page tools are registered
 | Tool | Read-only | What it does |
 |---|---|---|
 | `page_get_info` | Yes | Title, address, description, first 20 `h1`/`h2` headings, whether it is an admin page |
+| `page_read_content` | Yes | The text of `main` (or `[role="main"]`, else the body), one line per block, cut to 8,000 characters, plus up to 10 tables (caption, headers, first 50 rows). Menus, forms, scripts, hidden parts, the chat and `data-webmcp-ignore` elements are left out |
 | `page_list_links` | Yes | Up to 200 same-origin navigation links, optional `filter` |
-| `page_navigate` | No | Opens a same-origin address only |
+| `page_navigate` | No | Opens a page of this site (a path starting with `/` or a full same-site address). It checks the page with a `HEAD` request first and refuses bare relative paths, 404/410 pages, other origins and script addresses, telling the agent to call `page_list_links` |
 | `page_list_form_fields` | Yes | Up to 200 form fields; hidden, password, file, button, disabled and antiforgery fields are left out |
 | `page_set_form_field` | No | Sets one field and raises `input` and `change`; never submits the form |
+
+## Storefront tools
+
+**Offer storefront tools to visitors** (`EnableStorefrontTools`, off by default) gives visitors' browser agents a small set of tools on front-end pages. A tool is given only when it is **marked safe for anyone** by the module that registers it **and** selected on the card (or offered by **Expose all tools**). Tool instances, unmarked tools and page tools are never given; admin pages never get storefront tools.
+
+Who gets them: visitors who are not signed in, and signed-in users who don't get the site tools. The page gets only the polyfill and `webmcp.js`, pointed at the storefront endpoints.
+
+| Endpoint | Purpose | Responses |
+|---|---|---|
+| `GET /api/ai/webmcp/storefront/tools` | Lists the storefront tools | `404` while the setting is off |
+| `POST /api/ai/webmcp/storefront/tools/{name}/invoke` | Calls one, with the antiforgery token | `404` while off or when the tool is not a storefront tool; `400` as for site tools |
+
+The setting, the mark and the selection are checked on every list and call. Tools run as the caller (guest or user) with no per-tool permission check. With Orchard Core's **Rate Limits** feature on, each IP may call the storefront endpoints 60 times a minute (`WebMcpConstants.StorefrontRequestsPerMinute`, rate-limit group `webmcp-storefront`); turn it on for public sites.
+
+Mark a tool with `MarkAIToolAnonymousSafe` (`CrestApps.OrchardCore.AI.Core.Extensions`; marks kept in `AnonymousAIToolOptions`) only when it reads public data or acts on the caller's own data, never shows another person's data, and never pays, deletes or changes the site. The Agentic Commerce store tools are marked (see `orchardcore-agentic-commerce`).
+
+```csharp
+services.AddCoreAITool<SearchStoreProductsTool>(SearchStoreProductsTool.ToolName)
+    .WithTitle(S["Search store products"])
+    .Selectable();
+
+services.MarkAIToolAnonymousSafe(SearchStoreProductsTool.ToolName);
+```
 
 ## The AI chat as a WebMCP agent
 
 With **AI Chat** enabled, the chat reads every tool `document.modelContext.getTools()` lists (not only CrestApps ones), sends them to the AI chat hub with `SetPageTools`, and the hub runs a call in the tab through `ExecutePageTool` (SignalR client results). No extra connection or sticky session is needed.
 
 - The hub accepts at most 64 tools, names matching `^[A-Za-z0-9_.-]{1,128}$`, descriptions up to 2,000 characters and object schemas up to 16 KB.
-- Tools are offered only to profiles with **Allow page tools** (`WebMcpProfileSettings.AllowPageTools`) on the profile's **Capabilities** tab. Tools annotated `consequentialHint` also need **Allow consequential page tools** (`AllowConsequentialPageTools`).
+- Tools are offered only to profiles with **Allow page tools** (`WebMcpProfileSettings.AllowPageTools`) on the profile's **Capabilities** tab. Tools annotated `consequentialHint` ask the user to **Allow** or **Deny** each call in the chat (AG-UI tool approval, see `orchardcore-ai-chat`); with **Allow consequential page tools** (`AllowConsequentialPageTools`) they run without asking.
+- When `page_navigate` opens another page, the turn ends and the widget on the new page continues it with that page's tools, up to five pages in a row. A run keeps going on the server for two minutes after its page closed, so its answer is saved.
 - A name with `.` is offered to the model with `_` (`store.add_to_cart` becomes `store_add_to_cart`). Results of tools annotated `untrustedContentHint` reach the model as data.
 - A cross-origin frame shares tools with `exposedTo`, the page must allow it with `<iframe allow="tools">`, and the origin must be listed in `PageToolOrigins`.
 
@@ -166,6 +191,7 @@ services.AddScoped<IWebMcpClientConfigurationHandler, ContosoWebMcpHandler>();
         "EnableOnAdminPages": true,
         "EnableOnFrontEndPages": false,
         "EnablePageTools": true,
+        "EnableStorefrontTools": false,
         "ExposeAllTools": false,
         "Tools": [ "listAIProfiles" ]
       }
@@ -194,6 +220,7 @@ Per-item tools: attach `WebMcpPart` with the `ContentDefinition` step and set `"
 
 - Give browser agents only tools you would let the user run; prefer read-only tools.
 - Page tools never submit forms and never leave the site; the user reviews and saves.
+- Anonymous visitors only reach selected tools marked safe for anyone, and only while storefront tools are on; enable Rate Limits on public sites.
 - **Allow page tools** lets the model run any tool the page exposes, including third-party scripts' tools. Enable it only on profiles used on pages whose scripts you trust.
 - A recipe can set item tools an editor could not pick; **Access AI tool** is still checked on every call.
 

@@ -13,7 +13,7 @@ Step-by-step creation of a module for an Orchard Core site built on NuGet packag
 
 ## Prerequisites
 
-- .NET SDK 10.0+
+- .NET 11 SDK. Orchard Core 4.0 targets `net11.0` only.
 - An Orchard Core web project (startup project) referencing `OrchardCore.Application.Cms.Targets`
 
 ## Module Creation Workflow

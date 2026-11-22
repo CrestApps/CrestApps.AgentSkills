@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-tool-instances
-description: Skill for user-configured AI tool instances in CrestApps.Core 2.0. Covers AddToolInstances with YesSql or EntityCore stores, authoring an IAIToolInstanceSource and registering it with AddSource, AIToolInstance names, descriptions and the tool_instance_ function prefix, attaching instances with AIToolInstanceMetadata, declared parameters with AIToolInstanceParameterCapabilities, AIToolParameterBindingOption, Model, Fixed and Context fills, AIToolParameterBinder, AIToolParameterSchemaBuilder and IAIToolParameterContextResolver, the built-in HTTP API request source, documentation search sources (sitemap, search index, Algolia and live website search) with DocumentationSearchOptions, the data source search source with multi-phrase Reciprocal Rank Fusion, and per-instance authorization by subclassing ToolInstanceRegistryProvider. Use it when letting users configure callable tools, exposing several knowledge bases or documentation sites to the model, or gating instances per user.
+description: Skill for user-configured AI tool instances in CrestApps.Core 2.0. Covers AddToolInstances with YesSql or EntityCore stores, authoring an IAIToolInstanceSource and registering it with AddSource, AIToolInstance names, descriptions and the tool_instance_ function prefix, attaching instances with AIToolInstanceMetadata, declared parameters with AIToolInstanceParameterCapabilities, AIToolParameterBindingOption, Model, Fixed and Context fills, AIToolParameterBinder, AIToolParameterSchemaBuilder and IAIToolParameterContextResolver, the HTTP API request source with OAuth 2.0 tokens bound to their addresses, documentation search sources with DocumentationSearchOptions, the data source search source with multi-phrase Reciprocal Rank Fusion, and per-instance authorization by subclassing ToolInstanceRegistryProvider. Use it when letting users configure callable tools, exposing several knowledge bases or documentation sites to the model, or gating instances per user.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -135,6 +135,15 @@ Register an `IAIToolParameterContextResolver` (`SupportedKeys` plus `TryResolve(
 | `AddWebsiteSearchSource()` | `website-search` | Queries a site's own search API live (WordPress REST by default; paths overridable) |
 | `AddDataSourceSearchSource()` | `data-source-search` | Vector search over one AI data source |
 
+### HTTP API OAuth 2.0 Tokens
+
+With `AuthenticationType = OAuth2`, the tool caches its tokens on the instance as `HttpApiRequestTokenState` (access and refresh tokens data-protected with `HttpApiRequestToolConstants.DataProtectionPurpose`, token type, expiry, plus the `BaseUrl` and `TokenEndpoint` they were issued for):
+
+- A cached state is used only when its `BaseUrl` and `TokenEndpoint` match the instance's current settings, so an access token never goes to another host and a refresh token is never posted to another endpoint. A state saved by an older version has no addresses and is ignored once (a new token is requested).
+- A new token is requested with `refresh_token`, else `password` when `Username` is set, else `client_credentials`. When every token request fails, the call goes out without a token; an expired cached token is never sent.
+- Before saving, the tool re-reads the stored instance and saves nothing when it was deleted or a token-relevant setting (`AuthenticationType`, `BaseUrl`, `TokenEndpoint`, `ClientId`, `ClientSecret`, `Username`, `Password`, `Scope`) changed during the call; otherwise the state is written onto the stored copy, keeping concurrent edits.
+- Response bodies are read through `BoundedHttpContent` and cut to 16,000 characters, so the tool never buffers more than it returns.
+
 `AddDocumentationSearchSources()` adds all four documentation sources. `DocumentationSearchOptions` sets `MaxResultsPerSite` (5), `MaxPagesPerSite` (200), `MaxConcurrentRequests` (4), `CacheDuration` (1 hour) and `FirstSearchWaitBudget` (8 seconds): the first search on an unindexed site builds the corpus in the background and answers "still indexing" after the budget instead of blocking. Empty crawls are cached for only 5 minutes, and empty results tell the model rewording will not help.
 
 `DataSourceSearchToolSettings` holds `DataSourceId`, `RetrievalMode` (`DataSourceRetrievalMode.Chunk` or `Hierarchical`), `TopNDocuments`, `Strictness` and an OData `Filter`. Queries use the embedding deployment the index was built with. One call may carry up to three phrases; they are embedded in one batch, searched in parallel and merged with Reciprocal Rank Fusion under shared `[doc:N]` citations. `Hierarchical` returns whole source documents and degrades to chunks when they cannot be read.
@@ -195,6 +204,11 @@ builder.Services.AddScoped<IToolRegistryProvider, PermissionAwareToolInstanceReg
 ```
 
 Keep `useDefaultRegistry: true` only when a custom provider is additive. The provider skips unknown sources with a warning and catches exceptions from `CreateTool`.
+
+## Upgrading Within 2.0 Previews
+
+- HTTP API OAuth 2.0 tokens are bound to the base URL and token endpoint they came from; every OAuth 2.0 instance requests a fresh token once after the upgrade.
+- The documentation sitemap and search index sources read through size limits (`DocumentationToolConstants.MaxPageBytes`, `MaxSearchIndexBytes`); oversized pages are skipped.
 
 ## Upgrading from 1.x
 

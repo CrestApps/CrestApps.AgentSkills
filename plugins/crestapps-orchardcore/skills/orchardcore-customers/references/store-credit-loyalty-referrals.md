@@ -4,15 +4,20 @@ Each is a feature of the Customers module that depends on Customers and Orders. 
 
 ## Store credit (`CrestApps.OrchardCore.Customers.StoreCredit`)
 
-- `StoreCreditAccount` (collection `Customers`, `StoreCreditAccountIndex`): one customer, one `Currency`, `Balance`, `Activity` (`StoreCreditActivity`: `CreatedUtc`, `Amount`, `Balance`, `Reason`, `SessionId`, `Actor`). `IStoreCreditStore`: `FindAsync(customerId, currency)`, `ListByCustomerAsync`.
+- `StoreCreditAccount` (collection `Customers`, `StoreCreditAccountIndex` on customer, party, currency and balance): one holder, one `Currency`, `Balance`, `Activity` (`StoreCreditActivity`: `CreatedUtc`, `Amount`, `Balance`, `Reason`, `SessionId`, `Actor`, `Reference`). The holder is a customer (`CustomerId`) or another party such as a business account (`PartyKind`, `PartyId`; `CustomerId` null). Migration `UpdateFrom1Async` added the party columns; existing accounts keep their customer. The latest 50 changes stay on the account; older ones are archived through `IBalanceLedgerArchive`. `IStoreCreditStore`: `FindAsync(customerId, currency)`, `FindAsync(StoreCreditHolder, currency)`, `ListByCustomerAsync`.
 - `StoreCreditService.ChangeAsync(customerId, currency, amount, reason, actor, sessionId)` creates the account on a first credit; returns `null` when the lock is busy or there is nothing to take. Positive amounts give, negative take; the balance never goes below zero.
+- `StoreCreditService.TryChangeAsync(customerId or StoreCreditHolder, currency, amount, reason, actor, reference)` returns a `CustomerCreditResult`: it spends only what the account holds (`InsufficientBalance` otherwise), reports `Busy` when the lock is taken, and applies a change with a reference once (`AlreadyApplied`).
+- Customer credit: `StoreCreditCustomerCreditService` is the `ICustomerCreditService` Transactions uses to keep overpayments and credit notes as credit and pay balances with it. A `User` party's credit is kept on their customer record (created on the first credit kept, never when spending or reading), a `Customer` party's on its record, any other party (such as `Account`) on its own; a `Guest` is refused (`UnsupportedParty`).
+- Personal data: `StoreCreditPersonalDataContributor` exports balances with activity, and on erasure scrubs the activity reasons and actors, keeping amounts and balances.
 - Checkout: `StoreCreditTenderProvider` (key `store-credit`, `StoreCreditService.TenderKey`) and `StoreCreditCheckoutFlowDisplayDriver` (`CheckoutStoreCredit` at `Aside:7`, button `apply-tender:store-credit`, remove `remove-tender:store-credit:{accountId}`).
 - Refunds as credit: the provider is the Orders feature's `IOrderStoreCreditRefunder`.
 - Admin: the customer's page shows balances and the last 20 changes; `POST Admin/customers/{customerId}/store-credit` (`amount`, `currency`, required `reason`) with `ManageCustomers`. Guests cannot be given credit.
 - Storefront: `account/store-credit` (`AccountStoreCredit`).
 
 ```csharp
+using CrestApps.OrchardCore.Customers.Models;
 using CrestApps.OrchardCore.Customers.Services;
+using CrestApps.OrchardCore.Parties.Models;
 
 public sealed class GoodwillCredit
 {
@@ -25,6 +30,16 @@ public sealed class GoodwillCredit
 
     public async Task<bool> GiveAsync(string customerId)
         => await _credit.ChangeAsync(customerId, "USD", 15m, "Late delivery", actor: "support") is not null;
+
+    // Credit a business account once per ticket.
+    public async Task<bool> GiveToAccountAsync(string accountId, string ticketId)
+    {
+        var holder = StoreCreditHolder.ForParty(new PartyRef(PartyKinds.Account, accountId));
+        var result = await _credit.TryChangeAsync(holder, "USD", 50m, "Service outage", "support", $"ticket:{ticketId}");
+
+        // A repeat with the same reference is Succeeded with AlreadyApplied set.
+        return result.Succeeded;
+    }
 }
 ```
 

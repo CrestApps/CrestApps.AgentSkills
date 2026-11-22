@@ -1,0 +1,265 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Staff",
+      "description": "Recipe step discriminator. Must be \u0027Staff\u0027."
+    },
+    "Capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The key stored on staff members; letters, digits, dots, dashes and underscores."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The label."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it means."
+          },
+          "position": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "displayName"
+        ],
+        "additionalProperties": true
+      },
+      "description": "Capabilities to add, or changes to built-in ones (label, description, order, offered)."
+    },
+    "Staff": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The staff member id; omit to match by employee number or user."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The name; taken from the user when one is given."
+          },
+          "userName": {
+            "type": "string",
+            "description": "The user name of the linked account."
+          },
+          "email": {
+            "type": "string",
+            "description": "The work e-mail."
+          },
+          "phone": {
+            "type": "string",
+            "description": "The work phone."
+          },
+          "employeeNumber": {
+            "type": "string",
+            "description": "The employee (badge) number; unique."
+          },
+          "externalId": {
+            "type": "string",
+            "description": "The id in an HR or payroll system."
+          },
+          "jobTitle": {
+            "type": "string",
+            "description": "The job title."
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "FullTime",
+              "PartTime",
+              "Seasonal",
+              "Temporary",
+              "Contractor",
+              "Subcontractor"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "OnLeave",
+              "Suspended",
+              "Terminated"
+            ]
+          },
+          "hireDate": {
+            "type": "string",
+            "description": "The hire date, yyyy-MM-dd."
+          },
+          "seniorityDate": {
+            "type": "string",
+            "description": "The seniority date, yyyy-MM-dd."
+          },
+          "terminationDate": {
+            "type": "string",
+            "description": "The last working day, yyyy-MM-dd."
+          },
+          "managerId": {
+            "type": "string",
+            "description": "The id of the staff member they report to."
+          },
+          "managerEmployeeNumber": {
+            "type": "string",
+            "description": "The employee number of the staff member they report to."
+          },
+          "timeZoneId": {
+            "type": "string",
+            "description": "The IANA time zone."
+          },
+          "workLocation": {
+            "type": "string",
+            "description": "The place they work at."
+          },
+          "contractedHoursPerWeek": {
+            "type": "number"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Capability keys, such as Technician or one added under Staff \u003E Capabilities."
+          },
+          "pay": {
+            "type": "object",
+            "properties": {
+              "payBasis": {
+                "type": "string",
+                "enum": [
+                  "Hourly",
+                  "Salary",
+                  "PerUnit"
+                ],
+                "description": "How the person is paid."
+              },
+              "currency": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The three-letter currency, or empty for the site\u0027s."
+              },
+              "rates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "effectiveFrom": {
+                      "type": "string",
+                      "description": "The first day of the rate, yyyy-MM-dd."
+                    },
+                    "hourlyRate": {
+                      "type": "number",
+                      "description": "The rate an hour, or a unit."
+                    },
+                    "activityCodeId": {
+                      "type": "string",
+                      "description": "The kind of work the rate is for; empty for any."
+                    }
+                  },
+                  "required": [
+                    "effectiveFrom",
+                    "hourlyRate"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "The dated pay rates."
+              },
+              "salaries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "effectiveFrom": {
+                      "type": "string",
+                      "description": "The first day of the salary, yyyy-MM-dd."
+                    },
+                    "annualAmount": {
+                      "type": "number",
+                      "description": "The salary a year."
+                    }
+                  },
+                  "required": [
+                    "effectiveFrom",
+                    "annualAmount"
+                  ],
+                  "additionalProperties": true
+                },
+                "description": "The dated yearly salaries."
+              },
+              "hourlyCost": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The loaded cost of an hour."
+              },
+              "commissionRate": {
+                "type": [
+                  "null",
+                  "number"
+                ],
+                "description": "The commission on sales, a percent."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The person\u0027s pay (Staff Compensation); when given, it replaces the stored pay."
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "teamName": {
+                  "type": "string",
+                  "description": "The team name."
+                },
+                "teamId": {
+                  "type": "string",
+                  "description": "The team id."
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "Member",
+                    "Lead",
+                    "Scheduler",
+                    "Manager"
+                  ]
+                },
+                "effectiveFrom": {
+                  "type": "string",
+                  "description": "yyyy-MM-dd"
+                },
+                "effectiveTo": {
+                  "type": "string",
+                  "description": "yyyy-MM-dd"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "The staff members to create, or update by id, employee number or user."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -161,6 +161,10 @@ mapping failure (warning), or no mapping (debug). Logs never
 include message text or phone numbers. Watch for `401`, `400` and `413` on the
 route.
 
+## Monitoring
+
+The module has its own meter and activity source, `CrestApps.OrchardCore.EventGrid` (`EventGridTelemetry`), because it does not reference the messaging workspace. `crestapps.eventgrid.event` counts the events deliveries carried by `type` (`subscription_validation`, `sms_received`, `sms_delivery_report`, `other`) and `result` (`validated`, `invalid`, `accepted`, `duplicate`, `busy`, `failed`, `stored`, `malformed`). The request itself is measured by ASP.NET Core, and the endpoint puts `crestapps.eventgrid.result` on the request span. Each event opens a log scope with `EventGridEventId` and `EventType` (never the subject, which is a phone number); log event ids are 18400-18449 (18400 validation without a code, 18404 malformed event). ACS delivery reports arriving here are counted only as `crestapps.eventgrid.event` with `type` `sms_delivery_report` and `result` `stored`, not on `crestapps.messaging.delivery`.
+
 ## Upgrading from 2.x
 
 - The route moved from `Omnichannel/webhook/AzureEventGrid` to

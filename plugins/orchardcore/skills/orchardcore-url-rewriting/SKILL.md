@@ -26,7 +26,8 @@ You are an Orchard Core expert. Generate URL rewrite rules, redirect configurati
 - Configure `QueryStringPolicy` to `Append` (keep query strings) or `Drop` (discard them).
 - Custom rule sources implement `IUrlRewriteRuleSource` and are registered with `services.AddRewriteRuleSource<T>()`.
 - Use the admin UI drag-and-drop to reorder rules. The rules list is rendered with the shared `AdminList` shape and stays drag-sortable in both the `List` and `Grid` layouts: the view sets `rows-*` attributes on the `<admin-list>` tag (`RowsAttributes`: `rows-id` is the sortable container id `UrlRewritingAdminList.SortableContainerId`, `rows-data-sort-url` the sort endpoint) so each row, a subgrid in the `Grid` layout, has its own box to drag. A sort is saved immediately through the module's sort endpoint.
-- Validation requires a non-empty, valid regular expression for both `Pattern` and `SubstitutionPattern`.
+- Validation (editor and `UrlRewriting` recipe step) requires a non-empty `Pattern` and `SubstitutionPattern` that the ASP.NET Core mod_rewrite parser accepts: `Pattern` is checked as `RewriteRule {Pattern} -` and `SubstitutionPattern` as `RewriteRule ^ {SubstitutionPattern}`. A substitution is not a regular expression: `/products/$1` and `https://%{HTTP_HOST}/new-page` are valid, but a trailing `$` or `%` (`/new-page$`, `/new-page%`) is rejected, as is a pattern with a space (`^/old page$`) or an unbalanced group.
+- A stored rule that still can't be parsed (for example saved before this validation) is skipped and logged as an error (`Unable to configure the URL rewriting rule '{RuleName}'`); it no longer prevents the other rules, or the tenant, from working.
 - Always seal classes.
 
 ### Enabling URL Rewriting

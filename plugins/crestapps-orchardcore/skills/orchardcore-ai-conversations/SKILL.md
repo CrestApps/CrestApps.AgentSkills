@@ -19,11 +19,12 @@ monitoring; guardrails, speaking styles and privacy on each profile; and a REST 
 | Feature ID | Adds |
 | --- | --- |
 | `CrestApps.OrchardCore.AI` + `OrchardCore.Workflows` | The **AI Conversations** workflow activities, profile versions, evaluations, simulations, contact memory, speaking styles, guardrails, privacy |
+| ... + `CrestApps.OrchardCore.AI.Chat.Core` (AI Chat Services, brought by AI Chat or AI Chat Interactions) | The activities that read chat sessions: **Set Conversation Variables**, the conversation flow event and stage, **Evaluate**, **Simulate**, **Rerun AI Conversation Analysis**, **Update Contact Memory** (not registered without it) |
 | `CrestApps.OrchardCore.AI.ToolInstances` + `OrchardCore.Workflows` | The `Workflow` tool instance source |
 | `CrestApps.OrchardCore.AI.Chat` | The profile editor cards **Guardrails**, **Data Privacy** and **Contact memory** |
 | `CrestApps.OrchardCore.AI.Quality` (AI Quality) | **Artificial Intelligence > Tests**, **QA** (cohorts, dashboard), **Alert rules**; `ManageAIQuality` |
 | `CrestApps.OrchardCore.AI.Webhooks` (AI Webhooks) | AI events offered to `CrestApps.OrchardCore.Webhooks`; subscriptions need **Manage webhooks** (`ManageCommerceWebhooks`) |
-| `CrestApps.OrchardCore.AI.Chat.Api` (AI Chat WebAPI) | The AI API under `/api/ai/v1` and **Artificial Intelligence > API keys** (`ManageAIApiKeys`) |
+| `CrestApps.OrchardCore.AI.Chat.Api` (AI Chat WebAPI) | The AI API under `/api/ai/v1` (including the AG-UI endpoint `POST /api/ai/v1/agui` for AG-UI clients, API key area `ai.chat`) and **Artificial Intelligence > API keys** (`ManageAIApiKeys`) |
 | `CrestApps.OrchardCore.AI.Chat.Analytics` | Conversation metrics for alerts and the `ConversationEvaluations` report data set |
 
 Install the CrestApps packages in the web/startup project.

@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "BusinessDocumentTemplates",
+      "description": "Recipe step discriminator. Must be \u0027BusinessDocumentTemplates\u0027."
+    },
+    "Templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The template\u0027s 26-character id; omit it to create a new one."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name of the template."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes about the template."
+          },
+          "Kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The kinds of documents the template is for, such as Invoice or Receipt; empty for every kind."
+          },
+          "IsDefault": {
+            "type": "boolean",
+            "description": "Whether the template is used for its kinds when a document names no template."
+          },
+          "LogoUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address of the logo, such as /media/logo.png. The PDF renderer reads only a PNG or JPEG file in the media library."
+          },
+          "AccentColor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "description": "The accent color, written #RRGGBB."
+          },
+          "PaperSize": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "The paper size: Default, Letter or A4."
+          },
+          "Footer": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The text printed at the bottom of the documents."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The document templates to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Templates"
+  ],
+  "additionalProperties": true
+}
