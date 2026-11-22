@@ -45,7 +45,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 | Property | Default | Meaning |
 |---|---|---|
 | `Goal` | 0 | Target in the product's currency; zero for none |
-| `EndsUtc` | null | End of the campaign; null for no end |
+| `EndsUtc` | null | End of the campaign; null for no end. Stored in UTC; the editor shows and takes it in the site's time zone, and donation receipts show the gift's day in the site's time zone |
 | `SuggestedAmounts` | 25, 50, 100 | Up to six suggested amounts |
 | `MinimumAmount` | 1 | Smallest accepted gift |
 | `TaxDeductible` | true | Issue a tax receipt for each donation |

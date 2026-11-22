@@ -145,6 +145,7 @@ Configurers run inside `OnModelCreating` in registration order. Access the table
 - AI profile versions are stored as `AIProfileVersion` documents in `Documents`, with the profile id in the `CatalogRecords` reference column (`ReferenceId`, `ReferenceType = AIProfile`) and the save time in `CreatedUtc`. No new table.
 - `EntityCoreAIChatSessionStore` implements the new `IAIChatSessionStore.ListByLastActivityAsync` and `DeleteAsync`. A host with its own session store must add both.
 - `EntityCoreAIChatSessionManager.PageAsync` filters by `AIChatSessionQueryContext.UserId` when set, and new sessions record the profile's `AIProfileVersionMetadata`.
+- `AIChatSessionQueryContext.ClientId` (new) lists one anonymous visitor's sessions; `EntityCoreAIChatSessionManager.PageAsync` filters on it.
 
 ## Upgrading from 1.x
 

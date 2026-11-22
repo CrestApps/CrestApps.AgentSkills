@@ -50,7 +50,8 @@ Accounts are imported before their `Records`, so each record lands in its accoun
                   "City": "Reno",
                   "Region": "NV",
                   "PostalCode": "89501"
-                }
+                },
+                "IsBilling": true
               }
             ]
           }
@@ -77,6 +78,7 @@ Accounts are imported before their `Records`, so each record lands in its accoun
 
 - `Role` is the `AccountMemberRole` name (`Member` or `Admin`).
 - `Records` is optional; leave it out to import accounts only.
+- `IsBilling` marks the location invoices are addressed to (one at most; the recipe does not check it). `AccountTeamPart` and `AccountEmailDomainsPart` examples are in [invitations-team-and-domains.md](invitations-team-and-domains.md).
 
 ## Deployment Plan with the Accounts Step
 

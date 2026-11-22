@@ -169,6 +169,8 @@ routes.Map("/api/my-bridge/media", async (HttpContext httpContext, IWebSocketCon
 - On several nodes, give each node its own public base URL (host affinity) so the provider calls back the node that started the flow, and enable `OrchardCore.Redis` so misrouting shows in the log.
 - `IWebSocketConnectionRegistry` is replaceable; register another implementation with `services.Replace(...)` to add a relay.
 
+Both registries count rendezvous operations on the `CrestApps.OrchardCore.WebSockets` meter: `crestapps.websockets.rendezvous` (`result` = `registered`, `conflict`, `claimed`, `miss`, `cross_node`, `removed`; `cross_node` is a socket that arrived on a node other than the waiting one) and `crestapps.websockets.rendezvous.wait.duration` (registration to the provider's socket arriving). The rendezvous key never tags a metric. See `orchardcore-observability`.
+
 ## Common Failures
 
 | Symptom | Check |

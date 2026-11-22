@@ -181,7 +181,7 @@ Create a template named `DashboardWidget-{{ContentType}}.DetailAdmin.cshtml` whe
             {
                 <div class="btn-group float-end" title="@T["Actions"]">
                     <button type="button" class="btn btn-sm" data-bs-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">
+                            aria-haspopup="true" aria-expanded="false" aria-label="@T["Actions"]">
                         <i class="fa-solid fa-ellipsis-v" aria-hidden="true"></i>
                     </button>
                     <div class="actions-menu dropdown-menu">

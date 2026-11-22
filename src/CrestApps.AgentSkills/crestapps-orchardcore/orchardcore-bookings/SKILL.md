@@ -34,10 +34,10 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 |---|---|
 | Feature ID | `CrestApps.OrchardCore.Bookings` |
 | Content part | `BookingPart` |
-| YesSql collection | `Bookings` (`BookingSlot`, `Booking`, `BookingBalance`) |
+| YesSql collection | `Bookings` (`BookingSlot`, `Booking`, `BookingBalance`; each index declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`) |
 | Stores | `IBookingSlotStore`, `IBookingStore`, `IBookingBalanceStore` |
 | Services | `BookingSchedule`, `BookingCapacityService`, `BookingService`, `BookingDepositService`, `BookingBalanceCharger` |
-| Commerce seams filled | `ICartLineHandler`, `IOrderEventHandler`, `ICheckoutTenderProvider`, `ICartActionProvider`, two `CheckoutFlow` display drivers; `ITransactionPaymentHandler` (balance payments) |
+| Commerce seams filled | `ICartLineHandler`, `IOrderEventHandler`, `ICheckoutTenderProvider`, `ICartActionProvider`, two `CheckoutFlow` display drivers; `ITransactionPaymentHandler` (balance payments), `TransactionEventHandlerBase` (scheduled charge declined or abandoned) |
 | Seams offered | `IBookingHandler`, `IBookingSlotFilter`, `IBookingPaymentHandler` |
 | Balance tender key | `booking-balance` |
 | Traveler content type | `Traveler` |
@@ -164,14 +164,17 @@ Each date names the product by `ContentItemId` and gives `Date` (`yyyy-MM-dd`) o
 - `BookingOrderEventHandler` uses `BookingService`: Created makes a `Booking` per line and holds dates; Paid confirms, commits and emails the buyer; Canceled releases; LinesChanged rebooks.
 - `BookingStatus`: `Held` (released after `BookingService.HoldTime`, 60 minutes, unpaid), `Requested`, `Confirmed`, `Completed`, `NoShow`, `Canceled`, `Expired`.
 - `BookingCapacityService` also asks every `IBookingSlotFilter` in `GetRemainingAsync` (a closed date shows as full) and in `HoldAsync` (it can't be held).
-- `BookingsBackgroundTask` runs every five minutes, releasing expired holds and charging balances that are due.
+- `BookingsBackgroundTask` runs every five minutes, releasing expired holds and handing due balances to the saved card charge service (it reports items released and adopted through the measured task run).
 
 ## Deposits and the Balance
 
 - `BookingDepositService.GetOfferAsync` computes the deposit. The balance is due at 09:00 local time, `BalanceDueDaysBefore` days before the earliest booking that takes a deposit. A booking already inside that window is paid in full.
 - `BookingDepositCheckoutFlowDisplayDriver` shows **Pay a deposit** on the Payment step, chooses the `booking-balance` tender and sets `CheckoutSession.SavePaymentMethod`.
 - `BookingBalanceTenderProvider.DebitAsync` records the balance as an outstanding Transactions ledger entry with reminders and a pay link, and a `BookingBalance` record.
-- `BookingBalanceCharger.ChargeAsync` reads the saved card through `ICheckoutSavedPaymentMethodProvider` and charges it off-session (`CheckoutPaymentDataKeys.ForOffSessionCharge`). A decline is retried daily, three times in all.
+- The balance's transaction carries its charge from the start (`DeferredBalanceDebit.AutoCharge`, built by `BookingBalanceCharger.NewAutoCharge(depositSessionId, dueUtc)`): the card the deposit's checkout kept (`SourceSessionId`), charged on the due date and retried a day later twice (`RetryDays` `[1, 1]`, three charges in all). The Transactions feature's `ISavedPaymentMethodChargeService` charges it without the buyer present, as it does invoices and installment plans (see `orchardcore-transactions`); Bookings no longer drives the checkout itself.
+- `BookingBalanceChargeHandler` (a `TransactionEventHandlerBase`) keeps the `BookingBalance` in step: a decline records the attempt, failure and next attempt and reports a failure that isn't final; an abandoned charge marks the balance `Failed` and reports a final one. `BookingBalancePaymentHandler` marks it `Paid` once its invoice is paid.
+- `BookingsBackgroundTask` hands a due balance whose invoice has no scheduled charge yet (made before this change) to the service (`AdoptAsync`) and settles one paid or canceled meanwhile.
+- Staff's **Charge the card now** on the booking detail (for a `Scheduled` or `Failed` balance) charges it now through the same service (`BookingBalanceCharger.ChargeAsync`).
 
 ## Cancellation and Requests to Book
 
@@ -286,7 +289,8 @@ With `OrchardCore.DataPipelines.Core` on, the **Bookings** data source (`Booking
 | Product card has no Add to cart | Expected. Booking products are chosen on the product page |
 | A departure date cannot be booked | Add the date with the admin Dates page or the `BookingDates` step |
 | Order refused at checkout | The dates are gone, or a `RequestToBook` product was checked out without a quote |
-| Balance never charged | The deposit must be paid with a provider that saves cards, and `BookingsBackgroundTask` must run (tenant has served a request) |
+| Balance never charged | The deposit must be paid with a provider that saves cards; the Transactions saved card charge service runs the scheduled charge, and `BookingsBackgroundTask` must run (tenant has served a request) to hand older balances to it |
+| Balance `Failed` after three tries | The card was declined on the due date and the two daily retries, or the bank asked the buyer to approve it; the buyer pays from the invoice's pay link, or staff use **Charge the card now** |
 | `BookingDates` step not found | Enable `OrchardCore.Recipes.Core` and place the step inside `{ "steps": [...] }` |
 | Traveler editors missing | The `Traveler` type needs fields, and the part needs `AskForTravelers` |
 | Bookings missing from the calendar | Calendars must be on; run **Sync to calendar** for bookings made before it was enabled |
@@ -294,4 +298,4 @@ With `OrchardCore.DataPipelines.Core` on, the **Bookings** data source (`Booking
 | Dates show as full with places left | An `IBookingSlotFilter` closed them, such as **Block with calendar** finding busy time that day |
 | No booking workflow event | `OrchardCore.Workflows` must be on; events fire after the session commits |
 
-Related skills: `orchardcore-products`, `orchardcore-checkout`, `orchardcore-payments`, `orchardcore-orders`, `orchardcore-calendars`, `orchardcore-scheduling`, `orchardcore-report-builder`.
+Related skills: `orchardcore-products`, `orchardcore-checkout`, `orchardcore-payments`, `orchardcore-transactions`, `orchardcore-orders`, `orchardcore-calendars`, `orchardcore-scheduling`, `orchardcore-report-builder`.

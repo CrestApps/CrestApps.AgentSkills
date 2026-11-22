@@ -9,7 +9,7 @@ metadata:
 
 # OrchardCore Features
 
-Features are enabled per tenant. Manage them at **Configuration → Features** or
+Features are enabled per tenant. Manage them at **Tools → Features** or
 through `IShellFeaturesManager`. Resolve IDs from the module manifest rather
 than inferring them from an assembly or package name.
 
@@ -17,7 +17,7 @@ than inferring them from an assembly or package name.
 
 - Requires the `ManageFeatures` permission (`OrchardCore.Features.FeaturesPermissions.ManageFeatures`), granted to `Administrator` by default.
 - Enabling a feature also enables its dependencies; disabling a feature also disables the features that depend on it. Always-enabled features cannot be turned off.
-- Select several features and use **Actions** → **Enable** or **Disable** for bulk changes. The `FeaturesBulkAction` enum has `None`, `Enable`, and `Disable`.
+- Select several features and use **Actions** → **Enable** or **Disable** for bulk changes. The `FeaturesBulkAction` enum has `None`, `Enable`, and `Disable`. Running a bulk action with nothing selected redirects back with the warning notification "Please select one or more features." (it used to add a model error that the redirect lost).
 - The list renders one `AdminList` per category, all named `Features` (`FeaturesAdminList.Name`), so it follows the site's List/Grid layout (see `orchardcore-admin-lists`).
 - Extra `[Feature]` attributes declared in a theme's manifest alongside `[Theme]` are listed with their category and an **Enable** button.
 
@@ -65,7 +65,7 @@ new feature is one more switch the user must learn, enable, and remember.
 
 | Goal | Use | Effect |
 |---|---|---|
-| Give the user a switch to turn a capability on or off | `[assembly: Feature(...)]` (`FeatureAttribute`) | A managed feature that appears in **Configuration → Features** |
+| Give the user a switch to turn a capability on or off | `[assembly: Feature(...)]` (`FeatureAttribute`) | A managed feature that appears in **Tools → Features** |
 | Group reusable services so several features share them without repeating registrations | `[assembly: Feature(..., EnabledByDependencyOnly = true)]` | A feature the user cannot toggle directly; auto-enabled whenever a dependent feature is enabled |
 | Scope a `Startup`'s registrations to a specific declared feature | `[Feature("FeatureId")]` on the `StartupBase` class | Those services register only when that feature is enabled |
 | Extend, override, or add behavior only when other features are present | `[RequireFeatures("A", "B")]` on the `StartupBase` class | Those services register only when **all** listed features are enabled — no new feature is introduced |

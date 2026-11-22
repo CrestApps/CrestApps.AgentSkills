@@ -21,7 +21,48 @@
 
 ## Product Feeds
 
-`CrestApps.OrchardCore.Products.Feeds` publishes `feeds/products.xml` (Google Merchant Center RSS 2.0 with `g:` attributes, also read by Meta and TikTok) and `feeds/products.csv`. Both accept `?currency=` (a market currency) and `?key=` when `ProductFeedSettings.Key` is set; cached 15 minutes per currency. Items are purchasable, priced, non-recurring products or each enabled variant. `ProductFeedValidator` leaves out items Merchant Center would refuse and lists why under **Settings > Commerce > Product feeds** (`ManageProductFeeds`). Attach `ProductFeedPart` (`Brand`, `Gtin`, `VariantGtins`, `Mpn`, `Condition`, `GoogleProductCategory`, `ExcludeFromFeeds`) to types that need identifiers.
+`CrestApps.OrchardCore.Products.Feeds` publishes `feeds/products.xml` (Google Merchant Center RSS 2.0 with `g:` attributes, also read by Meta and TikTok) and `feeds/products.csv`. Both accept `?currency=` (a market currency) and `?key=` when `ProductFeedSettings.Key` is set; cached 15 minutes per currency. Items are purchasable, priced, non-recurring products or each enabled variant. `ProductFeedValidator` leaves out items Merchant Center would refuse and lists why under **Settings > Commerce > Product feeds** (`ManageProductFeeds`). Attach `ProductFeedPart` (`Brand`, `Gtin`, `VariantGtins`, `Mpn`, `Condition`, `GoogleProductCategory`, `ExcludeFromFeeds`, `ShowToAgents`, `AgentCheckout`) to types that need identifiers. The feed cache is also dropped when the `ProductFeedCache.SignalKey` signal is raised; Inventory raises it whenever a product's available units change. The feed adds `shipping_weight`, `shipping_length`, `shipping_width` and `shipping_height` when the Shipping part knows them.
+
+### Feed items for AI agents
+
+The feed contracts live in `CrestApps.OrchardCore.Products.Core.Feeds`, so other modules (Agentic Commerce) read the feed through `IProductFeedService` (`GetAsync`, `BuildAsync` for some products, `IsAllowedAsync`, `GetKeyAsync`) without referencing the Products module. A `ProductFeedItem` carries, beyond the Merchant Center fields:
+
+| Property | From |
+| --- | --- |
+| `ContentItemId`, `VariantId`, `ProductTitle` | The product, the variant, and the product's own title |
+| `AvailableQuantity` | Units from `IProductAvailabilityProvider` (Inventory), or none when stock is not counted |
+| `VariantOptions` | A variant's options by name (Color, Size) |
+| `SellerName`, `SellerUrl` | Store profile name (else the site name) and website (else the base URL) |
+| `TermsOfServiceUrl`, `PrivacyPolicyUrl`, `ReturnPolicyUrl` | Store profile policy links, made absolute |
+| `IsDigital` | The product type is Digital |
+| `ShowToAgents`, `AgentCheckout` | The part's **Show to AI agents** and **Let AI agents check out**, else `ProductFeedSettings.ShowToAgentsByDefault` (on) and `AgentCheckoutByDefault` (off). An item agents may not show cannot be checked out by them |
+| `Weight`, `WeightUnit`, `Length`, `Width`, `Height`, `DimensionsUnit`, `ShippingPrice` | Shipping's contributor |
+| `AcceptsReturns`, `ReturnWindowDays`, `AcceptsExchanges` | The Orders Returns contributor |
+
+The Merchant Center feed does not show the agent flags; Agentic Commerce writes them to the agents' feeds (see `orchardcore-agentic-commerce`).
+
+A module adds the values it owns to every item with `IProductFeedItemContributor`. The builder calls each after pricing an item and before validating it; a contributor that throws is logged and only its values are left out. The context gives `Product` (the `ContentItem`), the `ProductVariant` (or none), the `ProductType`, the `Item` and its `Currency`.
+
+```csharp
+internal sealed class ExampleFeedContributor : IProductFeedItemContributor
+{
+    public Task ContributeAsync(ProductFeedItemContext context, CancellationToken cancellationToken = default)
+    {
+        context.Item.Mpn ??= context.Product.ContentItemId;
+
+        return Task.CompletedTask;
+    }
+}
+
+// In a startup with [RequireFeatures(ProductConstants.Feature.Feeds)]:
+services.AddScoped<IProductFeedItemContributor, ExampleFeedContributor>();
+```
+
+Built-in contributors: Shipping sets weight and size from `ShippingPart` (a variant's own first; kg/cm or lb/in by the store's weight unit) and `ShippingPrice`, the cheapest flat, table or free rate of the zone covering the store's own country (carrier rates are never asked); Orders Returns sets `AcceptsReturns`, `ReturnWindowDays` (`ReturnSettings.WindowDays`) and `AcceptsExchanges` (`AllowExchanges`) for goods. `ShippingPart` now has `Length`, `Width`, `Height` and `VariantDimensions` (`ShippingDimensions` by variant id).
+
+### Item ids shared with checkout
+
+`ProductFeedItemIds.Create(contentItemId, variantId, sku)` makes an item id: the SKU, else the product id for a product without variants, or `{contentItemId}-{variantId}`, cut to 50 characters. Checkouts read an id back with `IProductItemIdResolver.ResolveAsync(itemId)` (registered by Products), which returns a `ProductItemReference` (`ItemId`, `ContentItemId`, `VariantId`, `Sku`) for a published, purchasable product (by product or variant SKU through `ProductSkuIndex`, a product id, or product and variant ids), or `null`. A product with variants resolves only through an enabled variant.
 
 ## Import and export with Content Transfer
 

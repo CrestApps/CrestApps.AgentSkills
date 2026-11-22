@@ -13,7 +13,7 @@ metadata:
 
 Implement `IChatResponseHandler` when a message should not always use the default AI orchestration path. A handler returns either `ChatResponseHandlerResult.Streaming(...)` with an `IAsyncEnumerable<ChatResponseUpdate>` or `ChatResponseHandlerResult.Deferred()` when a later callback, background task, or relay will deliver the response.
 
-`ChatResponseHandlerContext` exposes `Prompt`, `ConnectionId`, `SessionId`, `ChatType`, `ConversationHistory`, `Services`, `Profile`, `ChatSession`, `Interaction`, `AssistantAppearance`, and `Properties`. `Profile` and `ChatSession` are populated only for `AIChatSession`; `Interaction` is populated only for `ChatInteraction`.
+`ChatResponseHandlerContext` exposes `Prompt`, `ConnectionId`, `SessionId`, `ChatType`, `ConversationHistory`, `Services`, `Profile`, `ChatSession`, `Interaction`, `AssistantAppearance`, and `Properties`, plus the AG-UI members `ClientContext`, `SharedState`, `SupportsToolApproval`, `ClientTools` and `ContinuesOnNextPage` (see `crestapps-core-ag-ui`), which `AIChatResponseHandler` copies into `AICompletionContextKeys` entries. `Profile` and `ChatSession` are populated only for `AIChatSession`; `Interaction` is populated only for `ChatInteraction`.
 
 ## Deferred Webhook Example
 

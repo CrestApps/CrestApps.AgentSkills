@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Estimates",
+      "description": "Recipe step discriminator. Must be \u0027Estimates\u0027."
+    },
+    "Estimates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The estimate\u0027s 26-character id. A draft with this id is replaced; a sent estimate with this id is kept as it is."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The estimate\u0027s number, kept as it is. Required on a sent estimate."
+          },
+          "Status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Draft, Sent, Accepted, Declined, Expired, Canceled or Invoiced."
+          },
+          "ExpiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day it can be accepted, yyyy-MM-dd."
+          },
+          "Lines": {
+            "type": "array",
+            "description": "The lines, as on an invoice."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The estimates to import, as an Estimates deployment step writes them."
+    }
+  },
+  "required": [
+    "name",
+    "Estimates"
+  ],
+  "additionalProperties": true
+}

@@ -13,7 +13,7 @@ Controller views are thin frames (breadcrumb, heading, account menu) around a na
 | Account | `AccountOverview`, `AccountDetails`, `AccountAddresses`, `AccountAddressEdit`, `AccountOrders`, `AccountOrder`, `AccountDownloads`, `AccountPaymentMethods`, `AccountSubscriptions`, `AccountTransactions` |
 | Guests and links | `OrderLookup`, `OrderLookupSent`, `GuestOrder`, `GuestOrderInvalid`, `DownloadPage`, `TransactionPay`, `TransactionPayInvalid`, `SubscriptionUnavailable` |
 
-The account frame is `CommerceAccountPage` (`Title`, `Content`, `Actions`); override `CommerceAccountPage.cshtml` to change every account page. The account menu shape is `CommerceAccountNavigation`.
+The account frame is `CommerceAccountPage` (`Title`, `Content`, `Actions`); override `CommerceAccountPage.cshtml` to change every account page. The account menu shape is `CommerceAccountNavigation`. Both now ship with the Users module's My Account feature (`CrestApps.OrchardCore.Users.Account`), which Commerce Foundation depends on; the shape names are unchanged.
 
 ## Storefront theme
 
@@ -21,7 +21,7 @@ The account frame is `CommerceAccountPage` (`Title`, `Content`, `Actions`); over
 
 ## Background tasks
 
-Each runs per tenant while its feature is on; manage them under **Configuration > Tasks**.
+Each runs per tenant while its feature is on; manage them under **Tools > Background Tasks**.
 
 | Task | Feature | Schedule |
 | --- | --- | --- |
@@ -35,6 +35,10 @@ Each runs per tenant while its feature is on; manage them under **Configuration 
 | Webhook deliveries (`WebhookDeliveriesBackgroundTask`) | Webhooks (turned on by Commerce Webhooks) | Every minute |
 | Pay Later Renewals | Pay Later | Every 30 minutes |
 | Transaction Payment Reminders | Transactions | Every 6 hours |
+| Agent checkout expiry | Agentic Commerce | Every 5 minutes |
+| Signing key rotation (store signing keys) | Agentic Commerce (shared signing keys) | Daily at 03:17 |
+| Agent product feeds push | Agent Product Feeds | Daily at 02:30 |
+| Send orders to fulfillment partners | Fulfillment Partners | Every minute |
 
 ## What to back up
 

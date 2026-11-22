@@ -92,7 +92,7 @@ An interaction has no chat mode. Set the **Chat Interactions** site setting `Cha
 
 When no provider ships a speech-to-speech model, create a deployment under the **Cascaded Realtime** provider (`ClientName` `CascadedRealtime`, registered by `CrestApps.OrchardCore.AI`) that chains three deployments, which may come from different providers:
 
-```
+```text
 mic -> speech-to-text -> chat (tools, data sources) -> text-to-speech -> speaker
 ```
 

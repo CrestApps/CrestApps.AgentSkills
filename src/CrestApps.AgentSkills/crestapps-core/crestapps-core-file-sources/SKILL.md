@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-file-sources
-description: Skill for CrestApps.Core 2.0 file sources, the continuous intake path that keeps a File AI data source in step with a folder, an FTP server or an SFTP server. Covers CrestApps.Core.AI.FileSources, AddCoreFileSources with the CrestApps AI FileSources configuration section, AddCoreFileSystemConnector with AllowedRoots, AddCoreFtpIngestionConnector and AddCoreSftpIngestionConnector, FileSource records and their YesSql or Entity Framework Core stores, FileSourceMetadata per-source figure and model settings, IIngestionRunService and IFileSourceScheduler, FileSourceRunSummary, the IsComplete rule that prevents partial listings from deleting knowledge, discovery cursors and change tokens, typed knowledge objects and the knowledge figure endpoint, custom IIngestionConnector implementations, and upgrading from CrestApps.Core.AI.Indexers.
+description: Skill for CrestApps.Core 2.0 file sources, the continuous intake path that keeps a File AI data source in step with a folder, an FTP server or an SFTP server. Covers CrestApps.Core.AI.FileSources, AddCoreFileSources with the CrestApps AI FileSources configuration section, AddCoreFileSystemConnector with AllowedRoots, AddCoreFtpIngestionConnector and AddCoreSftpIngestionConnector with SFTP host key fingerprints, FtpOptions and MaxFileBytes, FileSource records and their YesSql or Entity Framework Core stores, Properties merged from recipe and API JSON, FileSourceMetadata per-source figure and model settings, IIngestionRunService and IFileSourceScheduler, FileSourceRunSummary, the IsComplete rule that prevents partial listings from deleting knowledge, discovery cursors and change tokens, typed knowledge objects and the knowledge figure endpoint, custom IIngestionConnector implementations, and upgrading from CrestApps.Core.AI.Indexers.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -132,6 +132,9 @@ await fileSourceStore.CreateAsync(fileSource, cancellationToken);
 ```
 
 - FTP and SFTP records store a `RemoteFileSourceMetadata` folder (`RootPath` default `/`, `Recursive`, `MaxItems`) plus `FtpConnectionMetadata` or `SftpConnectionMetadata` with secrets protected by `FtpResourceConstants.DataProtectionPurpose` or `SftpResourceConstants.DataProtectionPurpose` (see `crestapps-core-mcp-file-resources`).
+- SFTP connections need `HostKeyFingerprint` (`SHA256:...`, several comma-separated); without it, or when the server's key differs, the run fails. FTP connections with a user name need `EncryptionMode` `Explicit` or `Implicit` unless the host sets `FtpOptions.AllowUnencrypted`, and `ValidateAnyCertificate` needs `FtpOptions.AllowAnyCertificate`.
+- Ingestion reads remote files through `BoundedRemoteDownload` and skips a file larger than the connection's `MaxFileBytes` (100 MB when not set).
+- Creating or updating a record from JSON (`NewAsync`/`UpdateAsync` with a `JsonNode`, recipes, deployment imports, APIs) merges the incoming `Properties` over the stored ones: omitted entries and fields keep their stored values, keys match without regard to case, and an entry sent as `null` is removed. Admin editors that write metadata with `Put` behave as before.
 - Saving validates the connector settings, refuses a data source that is not `File` or no longer exists, and refuses a vision deployment that does not accept image input.
 - `FileSourceMetadata` also has `UtilityDeploymentName`. A deployment deleted later falls back to the application's own.
 
@@ -170,3 +173,5 @@ Implement `IIngestionConnector` (namespace `CrestApps.Core.AI.Indexing`) and reg
 - The `Ingested` data source type is now `File`. File sources are their own `FileSource` records, no longer web crawler records. Hosts with stored preview records move them across.
 - Docs and changelog mention `IFileSourceRunService`; the shipped interface is `IIngestionRunService` in `CrestApps.Core.AI.Ingestion`.
 - FTP and SFTP connectors moved to `CrestApps.Core.AI.Ftp` and `CrestApps.Core.AI.Sftp`. Connector names stored on records are still `Ftp` and `Sftp`.
+- SFTP sources need a stored host key fingerprint, and FTP sources with credentials need `Explicit` or `Implicit` encryption (or the matching `FtpOptions` switch); otherwise runs fail.
+- A recipe or API payload that carried `Properties` now takes effect (before, only top-level fields were copied, so FTP and SFTP sources came in without a connection).

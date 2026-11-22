@@ -1,6 +1,6 @@
 ---
 name: orchardcore-ai-usage-analytics
-description: Skill for the AI Usage Analytics feature and AI usage metering in CrestApps.OrchardCore 3.0. Covers the CrestApps.OrchardCore.AI.UsageAnalytics feature and its Reports-based AI Usage Analytics report, the ViewChatAnalytics permission, the Metered usage, Audio usage, Completions and Voice tables, estimated cost from per-deployment prices (the Pricing card, AIDeploymentPricing, AIUsageMeters and the Pricing section of the AIDeployment recipe and deployment steps), carrier prices on the Costs card and AICallMetrics.EstimateCost, the CompletionUsage and VoiceUsage Report Builder data sets, AICompletionUsageRecord units, usage categories and purposes, UseUsageLabels and AIUsageScope, IAICompletionUsageService, IAIVoiceSessionSummaryStore, and upgrading from the EnableAIUsageTracking setting. Use this skill when requests mention AI usage analytics, AI token usage, AI billing or cost, deployment prices, metered usage, usage labels, or tracking which feature spent AI tokens.
+description: Skill for the AI Usage Analytics feature and AI usage metering in CrestApps.OrchardCore 3.0. Covers the CrestApps.OrchardCore.AI.UsageAnalytics feature and its Reports-based AI Usage Analytics report, the ViewChatAnalytics permission, the Metered usage, Audio usage, Completions and Voice tables, estimated cost from per-deployment prices (the Pricing card, AIDeploymentPricing, AIUsageMeters and the Pricing section of the AIDeployment recipe and deployment steps), the carrier call price in TelephonyCostSettings and AICallMetrics.EstimateCost, the CompletionUsage and VoiceUsage Report Builder data sets, AICompletionUsageRecord units, usage categories and purposes, UseUsageLabels and AIUsageScope, IAICompletionUsageService, IAIVoiceSessionSummaryStore, and upgrading from the EnableAIUsageTracking setting. Use this skill when requests mention AI usage analytics, AI token usage, AI billing or cost, deployment prices, metered usage, usage labels, or tracking which feature spent AI tokens.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -73,7 +73,7 @@ requests also keep the sample rate, audio format, speed, pitch, voice and langua
 | Category (`ContextType`) | Source |
 | --- | --- |
 | Chat sessions, Chat interactions | Set by the chat surfaces |
-| `Sms`, `Voice`, `Api`, `Workflow`, `A2A` | `AIUsageCategories` in `CrestApps.OrchardCore.AI.Core` (`A2A` is `AIUsageCategories.AgentToAgent`) |
+| `Sms`, `Voice`, `Api`, `Workflow`, `A2A`, `Tickets` | `AIUsageCategories` in `CrestApps.OrchardCore.AI.Core` (`A2A` is `AIUsageCategories.AgentToAgent`; `Tickets` is the help desk assistant: triage and suggested replies) |
 
 Purposes come from CrestApps.Core `AIUsagePurposes` (`Conversation`, `Planning`, `SearchQueryGeneration`,
 `Retrieval`, `Indexing`, `TitleGeneration`, `SubAgent`, `DataExtraction`, `PostSessionProcessing`,
@@ -223,11 +223,27 @@ keep a deployment's prices, or set it to `null` to remove them.
 }
 ```
 
-The **Costs** card of **Settings > Artificial Intelligence** keeps only the carrier's prices
-(`AICostSettings`: `Currency`, `TelephonyPerMinute`, `SmsPerMessage`). Each AI voice call summary is priced
-when the call ends: the call's minutes at the carrier price plus its tokens or minutes at the answering
-deployment's prices, through `AICallMetrics.EstimateCost(summary, carrier, pricing, textsSent)`, which
-returns `(decimal? Cost, string Currency)`. When the two currencies differ, only the AI part is kept.
+The carrier's price is on the **Costs** tab of **Settings > Communication > Telephony** (`TelephonyCostSettings`
+in `CrestApps.OrchardCore.Telephony.Abstractions`: `Currency`, default `USD`, and `PerMinute`; needs the
+Telephony feature). Each AI voice call summary is priced when the call ends: the call's minutes at the carrier
+price plus its tokens or minutes at the answering deployment's prices, through
+`AICallMetrics.EstimateCost(summary, carrierPerMinute, carrierCurrency, pricing)`, which returns
+`(decimal? Cost, string Currency)`. When the two currencies differ, only the AI part is kept. A price change
+applies to later calls only.
+
+```json
+{
+  "steps": [
+    {
+      "name": "Settings",
+      "TelephonyCostSettings": {
+        "Currency": "USD",
+        "PerMinute": 0.013
+      }
+    }
+  ]
+}
+```
 
 List price times units is an estimate. To match an invoice, take each billing meter's cost for a period
 and split it in proportion to the units each row used on that meter in the same period; discounts and
@@ -263,6 +279,12 @@ your own price. Count distinct `ActivityId` values of `VoiceUsage` to count call
   **Pricing** card; prices already entered are moved onto the matching deployments once at startup
   (`AIDeploymentPricingMigrations`). `AICallMetrics.EstimateCost` now takes the carrier prices and the
   deployment's `AIDeploymentPricing` and returns the cost with its currency.
+- The **Costs** card is removed from **Settings > Artificial Intelligence**, with `AICostSettings` and its recipe
+  schema. The carrier's **Currency** and **Phone call, per minute** price moved to `TelephonyCostSettings` on the
+  **Costs** tab of the telephony settings; a stored price is moved there once at startup when **Telephony** is
+  enabled (`TelephonyCostSettingsMigrations`). The **Text message, each** price is dropped (no estimate used it),
+  and `AICallMetrics.EstimateCost` takes the carrier's price of a minute and its currency instead of the settings
+  object, with no text count.
 
 ## Related skills
 

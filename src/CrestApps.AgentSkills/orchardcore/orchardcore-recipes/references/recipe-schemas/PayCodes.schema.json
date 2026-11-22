@@ -1,0 +1,94 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayCodes",
+      "description": "Recipe step discriminator. Must be \u0027PayCodes\u0027."
+    },
+    "Codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code\u0027s 26-character id; omit it to match by code or create one."
+          },
+          "Code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The short unique code, such as REG."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code\u0027s name."
+          },
+          "Class": {
+            "type": "string",
+            "enum": [
+              "Earning",
+              "Deduction",
+              "EmployerContribution",
+              "ImputedIncome",
+              "Reimbursement",
+              "Memo"
+            ],
+            "description": "The class of the code."
+          },
+          "Kind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the line pays for: Regular, Overtime, DoubleTime, Holiday, PaidTimeOff, PredictabilityPay, CallBack, ShiftDifferential, Unpaid, Weekend, Salary, Bonus, Commission, Tips, or a kind a module registers."
+          },
+          "Multiplier": {
+            "type": "number",
+            "description": "What the hourly rate is multiplied by, 0 to 10."
+          },
+          "PremiumPerHour": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "A premium paid an hour on top."
+          },
+          "ExportCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code an outside payroll system knows the line by."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the code is in use."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Module settings, such as WorkforcePayCodeSettings (WindowStart, WindowEnd, Weekdays) for a shift differential, and PayrollPayCodeSettings (Calculation, BaseCodeIds, TaxTreatment by tax category, Supplemental, CountsInRegularRate, CountsAsHoursWorked, PeriodLimit, YearLimits with EffectiveFrom and Amount, LifetimeLimit, Priority, Arrears, Proration, InRetroPay, FormBoxes)."
+          }
+        },
+        "required": [
+          "Code"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The pay codes to create, or update by id or code."
+    }
+  },
+  "required": [
+    "name",
+    "Codes"
+  ],
+  "additionalProperties": true
+}

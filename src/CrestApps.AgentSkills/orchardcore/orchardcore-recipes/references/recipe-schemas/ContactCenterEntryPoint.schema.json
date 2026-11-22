@@ -260,7 +260,7 @@
               "null",
               "string"
             ],
-            "description": "Identifier of the business-hours calendar that gates when the entry point is open. When empty, the entry point is always open."
+            "description": "Identifier of the Business Hours schedule that gates when the entry point is open. When empty, the entry point is always open."
           },
           "ClosedAction": {
             "type": "string",

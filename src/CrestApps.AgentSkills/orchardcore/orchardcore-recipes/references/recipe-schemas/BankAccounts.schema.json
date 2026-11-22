@@ -1,0 +1,133 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "BankAccounts",
+      "description": "Recipe step discriminator. Must be \u0027BankAccounts\u0027."
+    },
+    "Accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The account\u0027s 26-character id; omit it to create a new one."
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name the account is listed by."
+          },
+          "OwnerKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The party kind of the owner, such as Staff, User or Account; omit it for one of the business\u0027s own accounts."
+          },
+          "OwnerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The owner\u0027s id in its kind."
+          },
+          "HolderName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name on the account, as the bank knows it."
+          },
+          "Kind": {
+            "type": "string",
+            "enum": [
+              "Checking",
+              "Savings"
+            ],
+            "description": "The account type."
+          },
+          "Country": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The bank\u0027s two-letter ISO country code."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The three-letter ISO currency code."
+          },
+          "BankName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The bank\u0027s name."
+          },
+          "RoutingNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The bank\u0027s routing number; checked for the country."
+          },
+          "AccountNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The account number in clear text; protected with the importing site\u0027s keys. Omit it to import the account without numbers."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Unverified",
+              "VerificationSent",
+              "Verified",
+              "Failed",
+              "Closed"
+            ],
+            "description": "The status; kept only when the numbers are imported too."
+          },
+          "StatusReason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the account has that status."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true,
+            "description": "What other features keep on the account, by the name of the settings object; each one given replaces the stored one. NachaOriginSettings holds the Bank file (ACH) settings of one of the business\u0027s own accounts: Enabled, ImmediateDestination (a routing number, or empty for the account\u0027s bank), ImmediateDestinationName, ImmediateOrigin (ten characters at most), ImmediateOriginName, CompanyName (sixteen at most), CompanyIdentification (ten at most), CompanyEntryDescription (ten at most, such as PAYROLL) and IncludeOffset."
+          }
+        },
+        "required": [
+          "Name",
+          "HolderName"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The bank accounts to create, or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Accounts"
+  ],
+  "additionalProperties": true
+}

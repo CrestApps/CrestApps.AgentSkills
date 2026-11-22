@@ -1,0 +1,94 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TicketStatuses",
+      "description": "Recipe step discriminator. Must be \u0027TicketStatuses\u0027."
+    },
+    "Statuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The ticket status id; omit it to create one."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name."
+          },
+          "Category": {
+            "type": "string",
+            "enum": [
+              "New",
+              "Open",
+              "Pending",
+              "OnHold",
+              "Solved",
+              "Closed"
+            ],
+            "description": "What the status means."
+          },
+          "CustomerLabel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What customers see instead of the name."
+          },
+          "PausesTimers": {
+            "type": "boolean",
+            "description": "Whether service-level timers stop while a ticket is in the status."
+          },
+          "Color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The badge color, a CSS color."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "Where it is listed; lower comes first."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was created, in UTC."
+          },
+          "ModifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it last changed, in UTC."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "More values of the ticket status, by name."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The ticket statuses to create or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Statuses"
+  ],
+  "additionalProperties": true
+}

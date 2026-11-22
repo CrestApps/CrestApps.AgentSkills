@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningStatements",
+      "description": "Recipe step discriminator. Must be \u0027LearningStatements\u0027."
+    },
+    "Statements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Statement": {
+            "type": "object",
+            "description": "The xAPI 1.0.3 statement as stored, with its id, stored, authority, version and timestamp. It is validated, and it is not changed."
+          },
+          "Voided": {
+            "type": "boolean",
+            "description": "Whether a voiding statement voided it."
+          },
+          "ClientId": {
+            "type": "string",
+            "description": "The OpenID client id that stored it, if a client did."
+          },
+          "AuthorityKey": {
+            "type": "string",
+            "description": "The key of the credential that stored it, which read-own access compares."
+          }
+        },
+        "required": [
+          "Statement"
+        ]
+      },
+      "description": "The statements to add. A statement already on the site is skipped when it is the same, and reported when it differs."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

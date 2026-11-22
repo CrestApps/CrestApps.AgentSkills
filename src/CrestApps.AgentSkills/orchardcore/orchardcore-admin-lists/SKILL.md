@@ -94,7 +94,8 @@ The view keeps the form, its hidden inputs, and the action bar, and renders the 
 ```
 
 - `name` identifies the list for column providers, the user's layout choice, and alternates. Use a string literal when only the view uses it; keep a module constant (like `ContentsAdminList.Name`) only when code reuses it.
-- The search is an input group ending with a magnifying-glass submit button (`name="submit.Filter"`), never an icon inside the input. The `AdminListSearch` shape renders exactly that.
+- The search is an input group ending with a magnifying-glass submit button (`name="submit.Filter" value="submit.Filter"`), never an icon inside the input. The `AdminListSearch` shape renders exactly that. The button needs a `value`: `[FormValueRequired("submit.Filter")]` rejects an empty value, so a valueless button reloads the list unfiltered (only Enter, through the hidden input, filtered before the fix).
+- Filters rendered with `bootstrap-select` inside `.admin-list` (or with `data-selected-text-format="static"`) keep their button color while nothing is selected, so every filter of a list looks alike.
 - The `list-management` script resource (from `OrchardCore.Resources`) wires every `[data-list-management]` root: the toolbar's `#select-all`, `#items`, `#selected-items`, and `#actions` elements, `itemIds` row checkboxes, bulk action `.dropdown-item[data-action]` links (confirmed through TheAdmin's `confirmDialog` when they carry `data-message`, as the generated toolbar's do), the hidden `Options.BulkAction` input, and `submit.BulkAction`. Override names with `data-item-input-name`, `data-bulk-action-input-name`, `data-submit-bulk-action-name`, and `data-min-selected-items`; add `data-client-side-search="true"` to filter rows by their `data-filter-value` attribute as the user types in `#search-box`, with an optional `#list-alert` element shown when nothing matches.
 - Keep those ids as the toolbar renders them; scripts and alternates rely on them.
 
@@ -165,7 +166,7 @@ The full controller, views, and templates are in `references/admin-lists-example
 | `name` | Required for regular columns, unique ignoring case. Default zone and `admin-list-column-{name}` CSS class. |
 | `title` | Localized header text; also labels stacked cells. |
 | `position` | Placement syntax (`10`, `25`, `35.5`, `end`). Columns sort after all providers ran; unpositioned columns go last. |
-| `width` | Any CSS width (`20%`, `12rem`) or `auto` to hug the content. Columns without a width share the remaining space. |
+| `width` | Any CSS width (`20%`, `12rem`) or `auto` to hug the content. Columns without a width share the remaining space, down to `8rem` each (`minmax(8rem, 1fr)`), so titles do not break mid-word. |
 | `alignment` | `Start` (default), `Center`, `End`. |
 | `no-wrap` | Prevents wrapping, e.g. dates and badges. |
 | `css-class` | Extra classes on the header and cells. |
@@ -179,7 +180,7 @@ The full controller, views, and templates are in `references/admin-lists-example
 | `Pager`, `PageSize` | Pager shape; a separately placed page size selector (set `ShowPageSizeSelector = false` on the pager to avoid rendering it twice). |
 | `Header` | Options editor shape whose `Summary` and `Actions` zones render above the rows (content items, users). |
 | `Toolbar`, `ShowToolbar`, `ShowSelectAll`, `BulkActions`, `ToolbarActions` | Supply a custom toolbar, or let the list build `AdminListToolbar` from the rows, pager, and bulk actions. |
-| `Search`, `Actions` | Search-bar shape (e.g. `AdminListSearch` with `Name`, `Value`, `Placeholder`, `Id`, `SubmitName`, `Autofocus`, and a `Filters` zone) and page buttons. |
+| `Search`, `Actions` | Search-bar shape (e.g. `AdminListSearch` with `Name`, `Value`, `Placeholder`, `Id`, `SubmitName`, `Autofocus`, and a `Filters` zone) and the page buttons the layout places at the top of the list, for example `Actions = await _shapeFactory.CreateAsync("LayersCreateButton")` rendering a `btn btn-secondary create` **Add Layer** link. |
 | `Layout`, `ShowLayoutSelector` | Force a layout (e.g. while rows are drag-sorted) and hide the selector. |
 | `Data` | Values for column providers, e.g. `ContentsAdminList.ContentTypesKey`. |
 | `RowsAttributes`, `ItemCssClass`, `ListOptions`, `GridOptions`, `EmptyMessage` | Presentation. |
@@ -210,9 +211,10 @@ The default `IAdminListItemDisplayManager<TModel>` delegates to `IDisplayManager
 | Zone | Renders as | Never |
 |---|---|---|
 | `Content` | The title, a plain link to the edit page | A heading (`<h5>`) |
-| `Tags`, `Meta` | One `<span class="badge ta-badge fw-normal">` per fact, with a leading icon and a `title` tooltip | Plain text or `<span class="hint">` |
+| `Tags`, `Meta` | One `<span class="badge ta-badge fw-normal">` per fact, with a leading icon and a `title` tooltip (the users list puts the email badge and `UserRolesMeta` role badges here) | Plain text or `<span class="hint">` |
 | `Description` | `<div class="admin-list-secondary">`, its own line under the title | A full-width row running under the actions |
 | `Actions`, `ActionsMenu` | Through `CreateAdminListActionsAsync`, so the Buttons/Menu setting applies; menu items are bare `<a>`/`<button class="dropdown-item">` | A hand-written button group, or menu items wrapped in `<li>` |
+| `Checkbox` | A `form-check` whose label holds `<span class="visually-hidden">@T["Select {0}", name]</span>`, so screen readers name the checkbox | An empty label |
 
 - `placement.json` rules filtered by `"displayType": "SummaryAdminGrid"` move a shape to another column zone, hide it (`"place": "-"`), change its template, or add wrappers and alternates, independently of the List layout:
 
@@ -225,6 +227,8 @@ The default `IAdminListItemDisplayManager<TModel>` delegates to `IDisplayManager
 ```
 
 - Whole-row templates such as `Content-BlogPost.SummaryAdmin.cshtml` affect only `List`; customize grid cells with `AdminListCell-{ListName}-{Column}.cshtml`, which receives `Row` and `Column`. The grid only creates `AdminListCell` shapes for overridden cells (see `CellRenderings`).
+- Rows that are not list rows can still follow the actions layout: `Widget.SummaryAdmin` (**Design → Widgets** zones), `MenuItem.Admin` (menu editor) and `Content.TermAdmin` (taxonomy editor) add their Edit/Add/Delete buttons to the `Actions` zone and render `@await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))`. A template can add markup to its own zone with `await ((IShape)((IZoneHolding)Model).Zones["Actions"]).AddAsync(html)`.
+- The users row reads like a content row: the user name is a title link (not a heading), the email an outlined badge, and `UserRolesMeta` is placed in `Meta` for `SummaryAdmin` (it was `Description`) and in `Roles` for `SummaryAdminGrid`. `UserDisplayName.SummaryAdminGrid` renders a user (such as a content item's author) as the same badge in the Grid layout.
 - The content items row now places the title link and type badge as `ContentsTitle_SummaryAdmin` and `ContentsType_SummaryAdmin` in the `Title` and `Type` zones.
 - The Actions cell renders the row's `Actions` and `ActionsMenu` zones through `AdminListActions`; moving an action shape to another zone removes it from that cell.
 - On the shape, `Rows` is output built during display (never an input) and `DisplayType` is the resolved row display type. Rows and regions inherit the list name and layout, so their alternates work without the page passing them.
@@ -287,7 +291,7 @@ Shipped defaults come from `AdminListOptions`, bound per tenant from `OrchardCor
 }
 ```
 
-**Configuration → Settings → Admin** overrides them with **List layout**, **Actions layout** (each with **Use configuration default**; the actions layout also drives the edit page action bar, see `orchardcore-admin-edit-views`), and **Let users choose the layout of a list**, stored on `AdminSettings`:
+**Settings → Admin** overrides them with **List layout**, **Actions layout** (each with **Use configuration default**; the actions layout also drives the edit page action bar, see `orchardcore-admin-edit-views`), and **Let users choose the layout of a list**, stored on `AdminSettings`:
 
 ```json
 {
@@ -306,7 +310,7 @@ Shipped defaults come from `AdminListOptions`, bound per tenant from `OrchardCor
 
 `AdminListOptions` participates in the signal-backed refresh pipeline: read it through `IOptionsMonitor<AdminListOptions>.CurrentValue`; saving the settings applies without a shell release.
 
-With user selection on, each list shows a List/Grid selector; a click reloads with `?layout=Grid` and stores the choice in a per-list cookie. Resolution order is `AdminListContext.Layout`, then `?layout=`, then the cookie, then the site setting, then `AdminListOptions.DefaultLayout`. Invalid values are ignored. A list without columns falls back to `List` and shows no selector. A page rendering several lists (grouped by category) sets `ShowLayoutSelector = false` on each and creates one selector shape:
+**Let users choose the layout of a list** is on by default (`AdminSettings.AllowUserListLayoutSelection = true`); the site setting is copied over `AdminListOptions.AllowUserSelection`, so turn it off in **Settings → Admin** to make every list use the site layout. With user selection on, each list shows a List/Grid selector; a click reloads with `?layout=Grid` and stores the choice in a per-list cookie. Resolution order is `AdminListContext.Layout`, then `?layout=`, then the cookie, then the site setting, then `AdminListOptions.DefaultLayout`. Invalid values are ignored. A list without columns falls back to `List` and shows no selector. A page rendering several lists (grouped by category) sets `ShowLayoutSelector = false` on each and creates one selector shape:
 
 ```csharp
 model.LayoutSelector = await shapeFactory.CreateAsync(AdminListConstants.LayoutSelectorShapeType, Arguments.From(new
@@ -342,7 +346,7 @@ Mark the rows container with `rows-*` attributes (e.g. `rows-id="rewrite-rules-s
 
 ## Checking a List
 
-Check every list page in both layouts and both actions layouts (Buttons and Menu), with rows and with none (empty message), and in a narrow window where the grid stacks its cells. In the Grid layout every declared column should render something on every row. Enable **Let users choose the layout of a list** while developing to switch quickly.
+Check every list page in both layouts and both actions layouts (Buttons and Menu), with rows and with none (empty message), and in a narrow window where the grid stacks its cells. In the Grid layout every declared column should render something on every row. Keep **Let users choose the layout of a list** on (the default) while developing to switch quickly.
 
 ## Upgrading from 3.x
 

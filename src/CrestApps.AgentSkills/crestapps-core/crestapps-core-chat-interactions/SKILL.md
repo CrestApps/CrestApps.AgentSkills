@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-chat-interactions
-description: Skill for Chat Interactions and the shared chat hubs and chat UI in CrestApps.Core 2.0. Covers AddChatInteractions with AddEntityCoreStores or AddYesSqlStores, ConfigureVisitorIdentity, ConfigureChatRateLimiting and ConfigureChatHubOptions, subclassing ChatInteractionHubBase and AIChatHubCore with AuthorizeAsync, AuthorizeProfileAsync, owner-only AuthorizeSessionAsync and the other override hooks, the ChatInteraction model with chat, utility and conversation deployment names, IChatInteractionSettingsHandler, SaveSettings filter validation, send-time tool access checks through IAIToolAccessEvaluator, input-boundary delimiters, document upload endpoints, the IChatInteractionHubClient contract, the @crestapps/ai-chat-ui scripts with chat-markers, the stacked image carousel, assistant name and avatar, and upgrading from 1.x. Use it to stand up the fastest chat playground for a provider, build a chat page or widget, extend interaction settings, or troubleshoot chat hubs and chat UI.
+description: Skill for Chat Interactions and the shared chat hubs and chat UI in CrestApps.Core 2.0. Covers AddChatInteractions with AddEntityCoreStores or AddYesSqlStores, ConfigureVisitorIdentity, ConfigureChatRateLimiting and ConfigureChatHubOptions, subclassing ChatInteractionHubBase and AIChatHubCore with AuthorizeAsync, AuthorizeProfileAsync, owner-only AuthorizeSessionAsync, EvaluateMessageRateLimitAsync and the other hooks, the ChatInteraction model and IChatInteractionSettingsHandler, send-time tool access checks, speech limits, document endpoints with antiforgery, ownership and MaxDocumentsPerSession, the IChatInteractionHubClient contract, the @crestapps/ai-chat-ui scripts with chat-markers, allowedImageHosts, the answer sanitizer and CoreAIChatSurface, assistant name and avatar, and upgrading from 1.x. Use it to stand up a chat playground for a provider, build a chat page or widget, extend interaction settings, or troubleshoot chat hubs and chat UI.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -18,7 +18,8 @@ A **Chat Interaction** is an operator-controlled conversation that needs no AI P
 - The framework does not ship a mapped hub. Subclass `ChatInteractionHubBase` (and `AIChatHubCore<TClient>` for sessions), map it, and call `ConfigureChatHubOptions<THub>()` for each concrete hub.
 - The hubs' authorization hooks return `true` by default, except `AuthorizeSessionAsync` on `AIChatHubCore<TClient>`, which only lets a session's owner in. Override them or put `[Authorize]` on the hub.
 - Chat Interactions do not get the AI Profile prompt-security preamble or injection blocking (the operator controls the prompt), but they do get input-boundary delimiters and a per-user tool access check at send time.
-- Use `crestapps-core-chat` for server-side completion code, `crestapps-core-signalr` for hub routes and authentication, and `crestapps-core-realtime-voice` for voice sessions.
+- Use `crestapps-core-chat` for server-side completion code, `crestapps-core-signalr` for hub routes and authentication, `crestapps-core-realtime-voice` for voice sessions, and `crestapps-core-ag-ui` for the AG-UI runs (`RunAgent`, tool cards, approvals, shared state) the session chat uses by default.
+- Cookie-authenticated hosts put the antiforgery token on the chat page, or document uploads and removals answer `400`.
 
 ## Registration
 
@@ -100,6 +101,12 @@ public sealed class ChatInteractionHub : ChatInteractionHubBase
 
 Other virtual hooks include `GetDeploymentSettingsAsync` (returns the `DefaultAIDeploymentSettings` used for slot defaults), `IsTextToSpeechPlaybackEnabledAsync`, `CollectStreamingReferences` (merge citations with `CitationReferenceCollector`), `OnAssistantPromptCreatedAsync`, `ValidateSettings`, and the localizable message methods (`GetNotAuthorizedMessage`, `GetSettingsValidationMessage`, `GetNoRealtimeDeploymentMessage`, `GetConversationDeploymentNotRealtimeMessage`, and others). `AIChatHubCore<TClient>` exposes `AuthorizeProfileAsync(IServiceProvider, AIProfile)` and `GetRateLimitedMessage(PromptSecurityResult)`, which returns a "slow down" message with the retry delay when the message rate limit is hit.
 
+- `EvaluateMessageRateLimitAsync(services, profile, sessionId, cancellationToken)` applies `IChatRateLimiter` to input that does not pass through `ValidatePromptSecurityAsync`: `SendAudioStream`, `SynthesizeSpeech`, `StartConversation`, `StartRealtimeConversation`, `StartRealtimeWebRtc`, template prompts, blank messages, and resuming or continuing an AG-UI run. It runs after the profile is authorized and before a provider is called.
+- A `TemplatePrompt` profile sent through `SendMessage` needs the `sessionProfileId` of the chat profile the caller is in; both profiles are authorized and the message is rate-limited before `ProcessGeneratedPromptAsync` runs. A missing or unknown session profile gets the same "not authorized" answer.
+- `SynthesizeSpeech` refuses text over `MaxSpeechTextLength` (virtual, 10,000) with `GetSpeechTextTooLongMessage()` on both hubs; `AIChatHubCore` also refuses a profile without text-to-speech playback or Conversation mode (`IsSpeechSynthesisEnabledAsync`, virtual) with `GetTtsNotEnabledMessage()`.
+- `ResolveVisitorIdentity(IServiceProvider)` is `protected static`, so a derived hub builds the same visitor identity.
+- Over long polling the hub sets the connection's own `HttpContext` on `IHttpContextAccessor` for the invocation, so visitor identity and rate-limit keys work on every transport.
+
 `AIChatHubCore<TClient>` also exposes `AuthorizeSessionAsync(IServiceProvider, AIChatSession)` and `ValidateOutputAsync(...)` (the output security filter, then the profile's guardrails; returns the replacement text for a blocked reply or `null`).
 
 ### Session Ownership
@@ -129,6 +136,7 @@ Hub methods called by the client (interaction hub; the session hub takes `profil
 | Method | Purpose |
 |---|---|
 | `SendMessage(itemId, prompt)` | Streams `CompletionPartialMessage` items through a `ChannelReader` |
+| `RunAgent(input)` | Session hub only: an AG-UI run that streams AG-UI events (see `crestapps-core-ag-ui`) |
 | `LoadInteraction(itemId)` / `SaveSettings(itemId, settings)` / `ClearHistory(itemId)` | Load, update and reset an interaction |
 | `StartConversation`, `SendAudioStream`, `SynthesizeSpeech` | Speech-to-text and text-to-speech conversation mode |
 | `StartRealtimeConversation`, `StartRealtimeWebRtc`, `AddRealtimeIceCandidate`, `GetRealtimeIceServers`, `UpdateRealtimeSettings`, `UpdateRealtimeSpeechSpeed`, `StopConversation` | Realtime voice (see `crestapps-core-realtime-voice`) |
@@ -156,14 +164,27 @@ Hub methods called by the client (interaction hub; the session hub takes `profil
 Upload and remove endpoints live in `CrestApps.Core.AI.Documents.Endpoints` and need document processing (`crestapps-core-document-processing`):
 
 ```csharp
-app.AddUploadChatInteractionDocumentEndpoint()
-    .AddRemoveChatInteractionDocumentEndpoint()
-    .AddUploadChatSessionDocumentEndpoint()
-    .AddRemoveChatSessionDocumentEndpoint()
-    .AddDownloadAIDocumentEndpoint();
+app.AddUploadChatInteractionDocumentEndpoint();
+app.AddRemoveChatInteractionDocumentEndpoint();
+app.AddUploadChatSessionDocumentEndpoint();
+app.AddRemoveChatSessionDocumentEndpoint();
+app.AddDownloadAIDocumentEndpoint();
 ```
 
-Authorize them by registering `IAuthorizationHandler` implementations for `AIChatDocumentOperations.ManageDocuments` on `ChatInteraction` and on `AIChatSessionDocumentAuthorizationContext`.
+Each `Add*Endpoint()` returns the endpoint's `RouteHandlerBuilder` (add filters or metadata to it), so call them on `app` one by one; they no longer chain. Authorize them by registering `IAuthorizationHandler` implementations for `AIChatDocumentOperations.ManageDocuments` on `ChatInteraction` and on `AIChatSessionDocumentAuthorizationContext`.
+
+- **Session uploads** authorize before creating or saving a session, treat an unknown or foreign session id as no session, count a session-starting upload on `IChatSessionStartRateLimiter` (`429` when throttled), and cap a session at `ChatDocumentsOptions.MaxDocumentsPerSession` (namespace `CrestApps.Core.AI.Ingestion`, default `20`, `0` disables; extra files come back in `failed`). Uploads to one session run one at a time per process; across instances use a store that checks concurrency, or sticky routing.
+- **Ownership**: remove and download endpoints answer `404` for a session the caller does not own. A signed-in caller matches on `NameIdentifier` (on `Name` only when there is none); a visitor on the visitor id.
+- **Interaction removal** only removes a document whose reference is that interaction (`chat-interaction`); other ids answer `404`.
+- **Antiforgery**: the four upload and remove endpoints run `CookieAuthenticationAntiforgeryEndpointFilter`. It validates the `RequestVerificationToken` header or form field unless every identity came from a type in `AntiforgeryEndpointFilterOptions.NonCookieAuthenticationTypes` (namespace `CrestApps.Core.Filters`; `Bearer`, `Api`, `ApiKey`, `OpenIddict.Validation.AspNetCore` by default; add the authentication type your API scheme produces, which for the JWT bearer handler is `AuthenticationTypes.Federation` unless the host sets another). An `Authorization` header exempts nothing, and an anonymous request carrying a cookie in `AmbientCookieNames` (the visitor cookie) is validated too. `AddCoreAIDocumentProcessing` registers `AddAntiforgery()`.
+
+```cshtml
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+
+<meta name="RequestVerificationToken" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+```
+
+The vendored scripts send the token (through `window.CoreAIAntiforgery` in `chat-markers.js`) from the chat config's `antiforgeryToken`, else that meta tag, else a hidden `__RequestVerificationToken` field, and only to same-origin URLs.
 
 ## Chat UI Assets
 
@@ -189,11 +210,33 @@ The browser scripts are published as `@crestapps/ai-chat-ui` (npm or jsDelivr). 
 - `realtime-audio.js` (global `CoreAIRealtime`) is the shared voice client; `chat-interaction.js` and `ai-chat-widget.js` are the other entry points.
 - Assistant name and avatar: `data-coreai-chat-assistant-label` and `data-coreai-chat-assistant-avatar-url` (Chat Interactions take `assistantLabel` and `assistantAvatarUrl` in `data-chat-interaction-config`). Resolve them from the linked persona with `await services.ResolveChatAssistantDisplayAsync(profile)` (namespace `CrestApps.Core.AI.Profiles`; a host without personas gets the default look).
 - Pin package versions in production (`@crestapps/ai-chat-ui@<version>`), and pin SignalR with an `integrity` hash.
+- AG-UI options in the chat config: `protocol` (`'agui'` by default, `'legacy'` for the text-only stream) and `sendPageContext` (default `true`). See `crestapps-core-ag-ui`.
+
+### What an Answer May Render
+
+`CoreAIImages.sanitize` (in `chat-markers.js`, used by both chat scripts and the MVC chat-interaction view) cleans every answer:
+
+- Images load only from the page's origin, `data:`/same-origin `blob:`, or a host in the `allowedImageHosts` chat option (`'images.example.com'`, `'*.example.com'` for subdomains; empty means same-origin only). Other images become plain links. `<video>`, `<audio>`, `<source>`, `<track>`, SVG, MathML, `poster`, `background`, `srcset` and every `<input>` except the disabled task-list checkbox are removed.
+- `style` keeps only size, spacing (no negative margins), text and color properties; `id` (except chart canvases `chat_chart_N`/`ci_chart_N`), `data-coreai-*`, `data-chat-interaction-*`, `data-agui-*`, `for`, `form`, `formaction`, `list`, `popovertarget`, `popovertargetaction`, `commandfor`, `command` and form-control `name` are removed, and every `<button>` becomes `type="button"`.
+- Auto-start skips any chat configuration inside a rendered message or a mounted chat. A custom client calls `window.CoreAIChatSurface.isInsideRenderedMessage(element)` before starting a chat and `registerRoot(element)` for its mount; a custom settings script reads its controls with `CoreAIChatSurface.queryPageElements(selector)` / `queryPageElement(selector)`.
+
+```js
+window.coreAIChatManager().initialize({
+    // ...
+    allowedImageHosts: ['images.example.com', '*.cdn.example.com']
+});
+```
 
 ## Upgrading Within 2.0 Previews
 
 - **The session hub only opens a session for its owner.** Hubs whose staff review other users' conversations through the hub override `AuthorizeSessionAsync`, as the sample hosts do for the `Admin` policy. Sessions with no `UserId` and no `ClientId` (for example ones started by another channel) are no longer opened by anyone unless the override allows them.
 - A Stop click after the answer streamed no longer loses the turn; remove any client workaround that re-sent the message.
+- The session chat runs over AG-UI (`RunAgent`) by default; set `protocol: 'legacy'` to keep `SendMessage`.
+- Document `Add*Endpoint()` methods return `RouteHandlerBuilder`; split chained calls into separate statements.
+- Uploads and removals need the antiforgery token on cookie-authenticated pages. Hosts with `AllowCrossSiteEmbedding` also write the antiforgery cookie `SameSite=None; Secure; Partitioned` and set `AntiforgeryOptions.SuppressXFrameOptionsHeader` (see `crestapps-core-prompt-security`).
+- Template prompts need a `sessionProfileId`; blank messages, speech methods and AG-UI resumes now count against the message rate limit.
+- Images from other hosts render as links until listed in `allowedImageHosts`; inline styles other than size, spacing, text and color are dropped from answers, and answers keep no `id`.
+- A session the upload endpoint of an earlier version stamped with the user's `Name` (where it differs from `NameIdentifier`) no longer reads as that user's; update its `UserId`.
 
 ## Upgrading from 1.x
 

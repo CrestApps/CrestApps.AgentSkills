@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "description": "Creates or updates point-of-sale registers, matched by ItemId, then by name. Import the stock locations first.",
+  "description": "Creates or updates point-of-sale registers, matched by ItemId, then by name. Import the stock locations and the departments its keys name first.",
   "properties": {
     "name": {
       "type": "string",
@@ -46,6 +46,10 @@
           "IsEnabled": {
             "type": "boolean",
             "description": "Whether the register is in use."
+          },
+          "Keys": {
+            "type": "array",
+            "description": "The department keys on its keypad, in order: each with a DepartmentId, an optional Label and an optional PresetAmount. None shows a key for every department that\u0027s on."
           }
         },
         "additionalProperties": true,

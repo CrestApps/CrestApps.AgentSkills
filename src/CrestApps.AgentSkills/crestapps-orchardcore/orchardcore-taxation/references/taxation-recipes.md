@@ -1,6 +1,6 @@
 # Taxation Recipes and Examples
 
-Each step takes a plural array (`TaxCategories`, `TaxTypes`, `TaxJurisdictions`, `TaxTables`, `TaxRules`). Entries are matched by `ItemId` and updated, or created. Rule and jurisdiction fields use the model property names (`Country` and `Region` on a jurisdiction, `Source` for the calculation method on a rule). The same five names exist as deployment steps under **Configuration > Deployment** with the same JSON shape.
+Each step takes a plural array (`TaxCategories`, `TaxTypes`, `TaxJurisdictions`, `TaxTables`, `TaxRules`). Entries are matched by `ItemId` and updated, or created. Rule and jurisdiction fields use the model property names (`Country` and `Region` on a jurisdiction, `Source` for the calculation method on a rule). The same five names exist as deployment steps under **Tools > Deployments** with the same JSON shape.
 
 ## A complete catalog
 
@@ -115,7 +115,7 @@ Every item of an order to the jurisdiction whose items total 150 or more before 
 
 ## EU VAT standard rates
 
-The Taxation module ships `EuVatStandardRates` (`Recipes/eu-vat.recipe.json`, not a setup recipe). Run it from **Configuration > Recipes**: it enables Taxation and adds the 27 EU member states as country jurisdictions (Greece as `GR`) with a `Percentage` `VAT` rule at each standard rate, applied to shipping. Fixed `ItemId`s make it safe to re-run. Check current rates and add reduced-rate rules by category before relying on it.
+The Taxation module ships `EuVatStandardRates` (`Recipes/eu-vat.recipe.json`, not a setup recipe). Run it from **Tools > Recipes**: it enables Taxation and adds the 27 EU member states as country jurisdictions (Greece as `GR`) with a `Percentage` `VAT` rule at each standard rate, applied to shipping. Fixed `ItemId`s make it safe to re-run. Check current rates and add reduced-rate rules by category before relying on it.
 
 ## Prices that include tax
 

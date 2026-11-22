@@ -71,7 +71,9 @@ Using tag helpers:
 <style asp-name="MyTheme" depends-on="bootstrap"></style>
 ```
 
-Placement options: `at="Head"` or `at="Foot"` controls rendering location.
+Placement options: `at="Head"`, `at="Foot"` or `at="Inline"` (`ResourceLocation` members) controls rendering location.
+
+The `<script>`, `<style>`, `<link>` and `<resources>` tag helpers come from `OrchardCore.ResourceManagement`. A module whose `_ViewImports.cshtml` has `@addTagHelper *, OrchardCore.ResourceManagement` must also reference that package (or project); otherwise the import is silently ignored and `<script at="Foot">...</script>` is written to the page as plain HTML, so the script runs in place and never waits for its dependencies (the 4.0 Settings, Rate Limits and Security modules had this bug). Use the enum casing in `at`: an invalid value such as `at="head"` only compiles while the tag helper is not applied.
 
 ## Require Resources in Liquid
 

@@ -1,0 +1,62 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningGradeScales",
+      "description": "Recipe step discriminator. Must be \u0027LearningGradeScales\u0027."
+    },
+    "GradeScales": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The scale id, a generated unique id. A scale with this id is updated."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name of the scale."
+          },
+          "Bands": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "MinPercent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "The lowest percent of the band."
+                },
+                "Label": {
+                  "type": "string",
+                  "description": "The grade shown, such as A or Merit."
+                },
+                "Passing": {
+                  "type": "boolean",
+                  "description": "Whether the band is a pass."
+                }
+              },
+              "required": [
+                "MinPercent",
+                "Label"
+              ]
+            },
+            "description": "The bands, any order."
+          }
+        },
+        "required": [
+          "Name",
+          "Bands"
+        ]
+      },
+      "description": "The grade scales to create, or update by id."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

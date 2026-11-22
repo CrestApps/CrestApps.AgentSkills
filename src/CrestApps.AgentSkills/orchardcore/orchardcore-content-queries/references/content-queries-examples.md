@@ -62,6 +62,8 @@ public sealed class ProductPartIndexProvider : IndexProvider<ContentItem>
     public override void Describe(DescribeContext<ContentItem> context)
     {
         context.For<ProductPartIndex>()
+            .ExclusiveToDocumentType()
+            .SingleRecordPerDocument()
             .When(contentItem => contentItem.Has<ProductPart>())
             .Map(contentItem =>
             {

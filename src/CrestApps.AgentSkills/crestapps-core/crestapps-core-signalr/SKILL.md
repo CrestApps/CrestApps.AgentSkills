@@ -130,7 +130,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 ```
 
-Inside a hub use `Context.User` and `Context.GetHttpContext()`, never `IHttpContextAccessor`, which is unreliable during hub invocations. Services that need the caller should take the principal as a parameter or use `IUserAccessor`; the built-in chat hubs publish the connection's principal to it for every invocation. Do not attach a policy that lists schemes to a hub that must also accept anonymous connections; a failed policy replaces `HttpContext.User` with an empty principal.
+Inside a hub use `Context.User` and `Context.GetHttpContext()`, never `IHttpContextAccessor`, which is unreliable during hub invocations. Services that need the caller should take the principal as a parameter or use `IUserAccessor`; the built-in chat hubs publish the connection's principal to it for every invocation. When the transport left `IHttpContextAccessor.HttpContext` empty (long polling), `AIChatHubCore` sets the connection's own `HttpContext` on it for the invocation and clears it afterwards, so visitor identity and rate-limit keys resolve on every transport. Besides `SendMessage`, the AI chat hub has `RunAgent`, which streams AG-UI events (see `crestapps-core-ag-ui`). Do not attach a policy that lists schemes to a hub that must also accept anonymous connections; a failed policy replaces `HttpContext.User` with an empty principal.
 
 ## Browser Client
 

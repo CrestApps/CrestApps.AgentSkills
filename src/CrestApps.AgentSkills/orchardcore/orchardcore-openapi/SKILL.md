@@ -64,7 +64,7 @@ All URLs are relative to the tenant, so a tenant with the `customer-a` prefix se
 
 ### Settings
 
-**Configuration → Settings → OpenApi** shows which UIs are enabled and exposes one setting, `OpenApiSettings.AllowAnonymousSchemaAccess` (default `false`):
+**Settings → OpenApi** shows which UIs are enabled and exposes one setting, `OpenApiSettings.AllowAnonymousSchemaAccess` (default `false`):
 
 ```json
 {
@@ -83,7 +83,7 @@ Enable anonymous schema access only on tenants used for client generation. The s
 
 ### Provisioning Silent Sign-In with the OpenApiPkce Recipe
 
-Run **OpenAPI Documentation — Bearer/PKCE** (`OpenApiPkce`) from **Configuration → Recipes**. It enables `OrchardCore.OpenApi`, `OrchardCore.OpenId.Server`, `OrchardCore.OpenId.Validation`, and `OrchardCore.OpenId.Management`, turns on the authorization code flow with PKCE required, configures local token validation, and registers a public `openapi` client. The equivalent custom recipe looks like this:
+Run **OpenAPI Documentation — Bearer/PKCE** (`OpenApiPkce`) from **Tools → Recipes**. It enables `OrchardCore.OpenApi`, `OrchardCore.OpenId.Server`, `OrchardCore.OpenId.Validation`, and `OrchardCore.OpenId.Management`, turns on the authorization code flow with PKCE required, configures local token validation, and registers a public `openapi` client. The equivalent custom recipe looks like this:
 
 ```json
 {

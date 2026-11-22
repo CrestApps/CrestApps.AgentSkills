@@ -11,7 +11,7 @@ metadata:
 
 Memberships sells access. Attach the **Membership** part to a product type; buying the product puts the buyer in the part's roles for its length, buying again adds time, and a cancellation, a full refund, the end date or the store takes the roles away. Whatever those roles gate (content restricted with Content Access Control, permissions, features) opens and closes with the membership.
 
-Memberships is a one-off purchase through an order. For a renewing, billed-every-cycle plan with roles, use Subscriptions and its entitlements (`orchardcore-subscriptions`). Related skills: `orchardcore-carts` and `orchardcore-orders` (orders and `IOrderEventHandler`), `orchardcore-products`, `orchardcore-checkout`, `orchardcore-content-access-control`, `orchardcore-crestapps-roles`.
+Memberships is a one-off purchase through an order. For a renewing, billed-every-cycle plan with roles, use Subscriptions and its entitlements (`orchardcore-subscriptions`). Related skills: `orchardcore-carts` and `orchardcore-orders` (orders and `IOrderEventHandler`), `orchardcore-products`, `orchardcore-checkout`, `orchardcore-content-access-control`, `orchardcore-crestapps-roles`. To sell courses, learning paths or course seats instead of roles, use Learning Commerce (`orchardcore-learning`).
 
 ## Feature
 
@@ -139,7 +139,7 @@ public sealed class CourseSeatOrderHandler : OrderGrantHandlerBase
 
 ## Screens and permissions
 
-- **Commerce > Memberships** (admin route `memberships`, `ManageMemberships`, on Orchard Core's `AdminList`): member, roles, end date, status filter, **End now** (no refund).
+- **Commerce > Memberships** (admin route `memberships`, `ManageMemberships`, on Orchard Core's `AdminList`): member, roles, end date (shown in the site's time zone), status filter, **End now** (no refund).
 - Storefront `account/memberships` (route `AccountMemberships`, shape `AccountMemberships`) lists the member's own memberships in the commerce account menu.
 
 ## Troubleshooting

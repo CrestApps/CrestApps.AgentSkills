@@ -100,8 +100,10 @@ template permission, to:
   or recursively (for example a widget inside `FlowPart`, `BagPart`, or custom
   JSON). This applies to the admin editors, the Content API, and remote
   publishing; an unauthorized mutation is rejected in full.
-- Use **Templates**, **Admin Templates**, and template previews. Template
-  navigation and content-definition template shortcuts are hidden without it.
+- Use **Templates**, **Admin Templates**, and template previews, including the
+  Assisted Templates lists and **Inspect Content** (see
+  `orchardcore-assisted-templates`). Template navigation and
+  content-definition template shortcuts are hidden without it.
 
 ```csharp
 if (!await _authorizationService.AuthorizeAsync(User, OrchardCore.Liquid.Permissions.ManageLiquidTemplates))

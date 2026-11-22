@@ -30,6 +30,7 @@ You are an Orchard Core expert. Generate data migration code for Orchard Core mo
 - Use stable column names in `CreateMapIndexTableAsync()` and `AlterIndexTableAsync()`. A string literal is clearest for a persisted schema; use `nameof(...)` only when the member name is intentionally the persisted column name.
 - `MapIndex` tables already get a `DocumentId` column from YesSql. Never declare or alter that column manually in the migration.
 - If an index needs access to the YesSql document id, expose `public long DocumentId { get; set; }` on the `MapIndex` type and let YesSql populate it.
+- A new map index is the time to declare `ExclusiveToDocumentType()` and `SingleRecordPerDocument()` on its provider (YesSql 6.3), because YesSql can't verify rows already in the table. When you add `SingleRecordPerDocument()` to an index that used to return several rows per document, rebuild its rows first. See `orchardcore-yessql-indexes`.
 - Prefer keeping reusable content-part models in the corresponding `*.Core` project when they are used outside the feature wiring layer.
 
 Use the current async migration and clock APIs. `IDataMigrationManager.UpdateAsync`
@@ -210,7 +211,7 @@ public sealed class Migrations : DataMigration
 
 ### Adding a SQL Index to an Existing Table
 
-Create the index in a shared helper, call it from `CreateAsync()` for new tenants and from a new `UpdateFromXAsync()` for existing ones, and bump the returned version in both. Orchard Core 4.0 changed `ContentItemIndex` exactly this way: `IDX_ContentItemIndex_ContentItemId` (version 6 to 7), then indexes led by `ContentType`, `Owner` and `ContentItemVersionId` while dropping the `DocumentId`-led ones (version 7 to 8), so that new and upgraded tenants end with the same indexes. Lead the index with the column you filter on; creating an index on a large table takes time during the upgrade.
+Create the index in a shared helper, call it from `CreateAsync()` for new tenants and from a new `UpdateFromXAsync()` for existing ones, and bump the returned version in both. Orchard Core 4.0 changed `ContentItemIndex` exactly this way: `IDX_ContentItemIndex_ContentItemId` (version 6 to 7), then indexes led by `ContentType`, `Owner` and `ContentItemVersionId` while dropping the `DocumentId`-led ones (version 7 to 8), then `IDX_ContentItemIndex_ModifiedUtc` and `IDX_ContentItemIndex_ContentType_ModifiedUtc` for the content items admin list order (version 8 to 9), so that new and upgraded tenants end with the same indexes. Lead the index with the column you filter on. Creating an index on a large table takes time during the upgrade; with YesSql 6.3 the indexes `AlterIndexTableAsync` adds to an existing table don't block writes on SQL Server editions with online index operations and on MySQL (`ALGORITHM=INPLACE, LOCK=NONE`), while PostgreSQL and SQLite still block them. `OrchardCore:YesSql:ConcurrentIndexCreationEnabled` (default `true`) turns this off.
 
 ```csharp
 public sealed class Migrations : DataMigration

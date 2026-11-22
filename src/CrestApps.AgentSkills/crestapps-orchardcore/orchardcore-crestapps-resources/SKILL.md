@@ -1,6 +1,6 @@
 ---
 name: orchardcore-crestapps-resources
-description: Skill for the CrestApps Resources module in Orchard Core. Covers the shared script and stylesheet manifest with local assets and CDN fallbacks, the AI chat UI resources such as chat-markers, chat-image-carousel and realtime-audio, the DateRangePicker and ItemSelector view components, the date-range-picker markup contract and presets, the Vite front-end asset build with Assets.json groups and npm workspace commands, and the 3.0 removal of crestapps-bootstrap-select. Use this skill when requests mention CrestApps shared resources, a date range picker, an item selector, building CrestApps front-end assets, Assets.json, npm run build, CDN fallbacks, intl-tel-input, chart.js, flatpickr or DOMPurify. Strong matches include CrestApps.OrchardCore.Resources, ResourceManagementOptionsConfiguration, DateRangePickerViewComponent, ItemSelectorViewComponent, flatpickr-culture, date-range-picker, item-selector, chat-image-carousel and bootstrap-select.
+description: Skill for the CrestApps Resources module in Orchard Core. Covers the shared script and stylesheet manifest, FullCalendar 7.1.4, the d3-org-chart organization chart, the AI chat UI resources, the DateRangePicker, ItemSelector, PartyPicker and RecordPicker view components, the FileDropInput, PageSections and TemplatedEmailTemplatesEditor shapes, IRecordSource record kinds, list-management-ui, admin confirm buttons, the Vite asset build, and the 3.0 removal of crestapps-bootstrap-select. Use this skill when requests mention CrestApps shared resources, a date range picker, an item, party or record picker, a file drop zone, an org chart, page sections, a confirm dialog, building CrestApps front-end assets, fullcalendar, chart.js, flatpickr or DOMPurify. Strong matches include CrestApps.OrchardCore.Resources, ResourceManagementOptionsConfiguration, DateRangePickerViewComponent, ItemSelectorViewComponent, PartyPickerViewComponent, RecordPickerViewComponent, FileDropInput and AddPageSection.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -11,7 +11,7 @@ metadata:
 
 ## Consume CrestApps shared frontend resources
 
-You are an Orchard Core expert. `CrestApps.OrchardCore.Resources` is the shared resource manifest for CrestApps modules. It registers named scripts and stylesheets with Orchard Core Resource Management, and ships two view components (`DateRangePicker` and `ItemSelector`). Consumers request a resource by name and let Orchard Core choose the local or CDN URL.
+You are an Orchard Core expert. `CrestApps.OrchardCore.Resources` is the shared resource manifest for CrestApps modules. It registers named scripts and stylesheets with Orchard Core Resource Management, ships the `DateRangePicker`, `ItemSelector`, `PartyPicker` and `RecordPicker` view components, the `FileDropInput`, `PageSections` and `TemplatedEmailTemplatesEditor` shapes, and the party and record search endpoints. Consumers request a resource by name and let Orchard Core choose the local or CDN URL.
 
 ### Guidelines
 
@@ -24,12 +24,13 @@ You are an Orchard Core expert. `CrestApps.OrchardCore.Resources` is the shared 
 - Do not define another manifest entry with an existing name, and do not copy vendor files into a consuming module to reuse a registered name.
 - Resource registration does not sanitize HTML. Sanitize rendered user content (for example with `dompurify`) before assigning it to the DOM.
 - See the framework `orchardcore-resources` skill for resource manifest and tag-helper mechanics.
+- Admin confirm dialogs come from Orchard Core TheAdmin (`data-url-af="RemoveUrl UnsafeUrl"` with `data-title`, `data-message`, `data-ok-text`), not from this module; see [shared components](references/shared-components.md#confirm-buttons-in-the-admin).
 
 ### Feature overview
 
 | Feature ID | Purpose |
 |---|---|
-| `CrestApps.OrchardCore.Resources` | Shared resource manifest, `DateRangePicker` and `ItemSelector` view components |
+| `CrestApps.OrchardCore.Resources` | Shared resource manifest, view components, shared shapes, `Admin/api/crestapps/parties/search` and `Admin/api/crestapps/records/search`; with `OrchardCore.Contents`, the `Content` record kind |
 
 ```json
 {
@@ -51,9 +52,10 @@ All names are registered in `ResourceManagementOptionsConfiguration`, added thro
 
 | Name | Kind | Depends on | Notes |
 |---|---|---|---|
-| `list-management-ui` | Script | - | Select-all and row selection for admin list tables, local only |
+| `list-management-ui` | Script | - | Select-all and row selection for admin list tables; `data-minimum-selection` (default `2`) sets how many checked rows show the bulk actions; local only |
 | `item-selector` | Script and style | - | Searchable selector behind the `ItemSelector` view component, local only |
 | `collapsible-panel` | Script | - | Collapsible admin panel behavior, local only |
+| `file-drop` | Script and style | - | Behind the `FileDropInput` shape, local only |
 | `tool-instance-parameters` | Script | - | AI tool instance parameter editor, local only |
 | `easymde` | Script and style | - | EasyMDE 2.21.0, local only |
 | `chart.js` | Script | - | Chart.js 4.5.1, jsDelivr fallback |
@@ -72,7 +74,7 @@ All names are registered in `ResourceManagementOptionsConfiguration`, added thro
 | `intl-tel-input` | Script and style | - | intl-tel-input 29.5.3 with utils, jsDelivr fallback |
 | `sip.js` | Script | - | sip.js 0.21.2 bundled to `window.SIP`, local only |
 | `telnyx-webrtc` | Script | - | Telnyx WebRTC SDK bundled to `window.TelnyxWebRTC`, local only |
-| `fullcalendar` | Script and style | - | FullCalendar 7.1.3 global build (script) and its skeleton CSS (style), jsDelivr fallback |
+| `fullcalendar` | Script and style | - | FullCalendar 7.1.4 global build (script) and its skeleton CSS (style); local scripts are minified by the asset build (readable in debug mode), jsDelivr fallback with SRI |
 | `fullcalendar-locales` | Script | `fullcalendar` | FullCalendar locales |
 | `fullcalendar-theme` | Script and style | `fullcalendar` | The classic theme plugin and theme CSS; FullCalendar 7 draws nothing without a theme |
 | `fullcalendar-palette` | Style | `fullcalendar-theme` | The classic theme palette |
@@ -80,8 +82,11 @@ All names are registered in `ResourceManagementOptionsConfiguration`, added thro
 | `leaflet-markercluster`, `leaflet-markercluster-default` | Script and styles | `leaflet` | Leaflet.markercluster 1.5.3 |
 | `leaflet-geoman` | Script and style | `leaflet` | Geoman free 2.20.4 drawing tools |
 | `crestapps-map` | Script | `leaflet` | Map wrapper that reads the site's tile settings from the map element, local only |
+| `d3` | Script | - | d3 7.9.0, local only |
+| `d3-flextree` | Script | `d3` | d3-flextree 2.1.2, local only |
+| `d3-org-chart` | Script | `d3`, `d3-flextree` | d3-org-chart 3.1.1, organization charts with zoom, pan, expand and collapse (the staff organization chart, see `orchardcore-staff`), local only |
 
-The AI chat resources come from the `@crestapps/ai-chat-ui` package. Their CDN URLs are built from the shared `AIChatUiCdn.DistUrl` constant (`CrestApps.OrchardCore.Abstractions`, `2.0.0-preview.246` at the time of writing), so one constant moves every chat UI resource; local copies and SRI hashes are updated with it. The `AIChatApp` and `ChatInteractionApp` scripts declare dependencies on `chat-markers`, `chat-image-carousel`, `realtime-audio` and `medium-zoom`, so pages that require those apps need no change.
+The AI chat resources come from the `@crestapps/ai-chat-ui` package. Their CDN URLs are built from the shared `AIChatUiCdn.DistUrl` constant (`CrestApps.OrchardCore.Abstractions`, `AIChatUiCdn.Version` is `2.0.0-preview.258` at the time of writing), so one constant moves every chat UI resource; local copies and SRI hashes are updated with it. The `AIChatApp` and `ChatInteractionApp` scripts declare dependencies on `chat-markers`, `chat-image-carousel`, `realtime-audio` and `medium-zoom`, so pages that require those apps need no change.
 
 ## Register resources in Razor
 
@@ -192,6 +197,29 @@ The module's `Views/Shared/Components/DateRangePicker/Default.cshtml` is the com
 - `initialItemsJson` lists the saved values in the same shape; each item is selected unless it sets `"selected": false`.
 - Selected items are real `<option>` elements, so they post with the form under `inputName`.
 
+## Shared pickers and shapes
+
+| Name | Kind | Use |
+|---|---|---|
+| `PartyPicker` | View component | Pick parties of one or more kinds; values `Kind:Id` |
+| `RecordPicker` | View component | Pick records of one kind (`IRecordSource`); values are ids or `Kind:Id` |
+| `FileDropInput` | Shape | Drop, paste or browse files into a normal file input |
+| `PageSections` | Shape | Group a record page's `Content` zone into side-list sections (`AddPageSection`) |
+| `TemplatedEmailTemplatesEditor` | Shape | Settings editor for a module's templated emails |
+
+```cshtml
+@await DisplayAsync(await New.FileDropInput(InputName: "files", Target: "form"))
+
+@await Component.InvokeAsync("RecordPicker", new
+{
+    name = Html.NameFor(m => m.ContentItemId).ToString(),
+    kind = "Content",
+    selectedValues = new[] { Model.ContentItemId },
+})
+```
+
+Read [shared components](references/shared-components.md) for every parameter, the search endpoints, adding an `IRecordSource`, page sections and confirm buttons.
+
 ## Building the module's front-end assets
 
 CrestApps.OrchardCore 3.0 replaced the Gulp pipeline with a Vite-based build in one npm workspace. Built `wwwroot` files are committed and included in the NuGet packages, so package consumers build nothing. Read [references/building-assets.md](references/building-assets.md) when changing a module's scripts or styles, adding a library, or converting an `Assets.json`.
@@ -227,6 +255,9 @@ Add `SetCdn(...)` and `SetCdnIntegrity(...)` only when a published artifact with
 - The Gulp build is gone. Convert any custom `Assets.json` to the `action` / `name` / `source` / `dest` format and run `npm install` at the repository root.
 - Built scripts are bundled per source file. A top-level `var` no longer becomes a page global; assign page APIs to `window` explicitly.
 - The AI chat resources moved to `@crestapps/ai-chat-ui` 2.0 previews and gained `chat-markers`, `chat-image-carousel`, `realtime-audio` and `medium-zoom`.
+- FullCalendar moved to 7.1.4. The local `fullcalendar`, `fullcalendar-locales` and `fullcalendar-theme` scripts are now `.min.js` files built by the asset build (the readable file in debug mode); the CDN serves the published readable files with SRI hashes.
+- New: `file-drop`, `d3`, `d3-flextree`, `d3-org-chart`, the `PartyPicker` and `RecordPicker` view components with their endpoints, and the `FileDropInput`, `PageSections` and `TemplatedEmailTemplatesEditor` shapes.
+- Payroll's `data-confirm-submit` partial (`ConfirmSubmitScript`) was removed; confirm buttons use Orchard Core's `data-url-af="RemoveUrl UnsafeUrl"` anchors.
 
 ## Troubleshooting
 
@@ -234,4 +265,7 @@ Add `SetCdn(...)` and `SetCdnIntegrity(...)` only when a published artifact with
 - The item selector renders as a plain select: make sure `OrchardCore.Resources` is enabled so `bootstrap-select` resolves.
 - A script works in the readable file but a page global is missing: publish the API with `window.name = ...` instead of a top-level `var`.
 - A CDN resource is blocked: check CSP, SRI and the local or CDN preference before hardcoding a URL.
+- Bulk actions appear only after two rows are checked: set `data-minimum-selection="1"` on the list root.
+- A confirm anchor does nothing after **OK**: the page needs an antiforgery token (any form) and the target action must accept POST.
+- `RecordPicker` renders nothing: no `IRecordSource` is registered for that kind (the `Content` kind needs `OrchardCore.Contents`).
 - `PhoneField` loses its country selector: verify the Content Fields feature and its Resources dependency rather than adding a second `intl-tel-input` bundle.

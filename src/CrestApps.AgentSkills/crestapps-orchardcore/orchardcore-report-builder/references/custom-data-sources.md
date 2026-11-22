@@ -13,6 +13,8 @@ The Report Builder reads Orchard Core 4.0 data sources (`OrchardCore.DataPipelin
 | A content part or field the Content items source reads the wrong way | `ContentDataSourceOptions` | Orchard Core Data Pipelines |
 | Data people can prepare in the browser | Nothing, use a reusable view | |
 
+The samples below use a hypothetical `MyModule` billing module (source `Billing`). CrestApps already ships an `Invoicing` source (`CommerceReportDataSets.InvoicingSource`) and a `Tickets` source; check the built-in list in `SKILL.md` before adding one, and pick a technical name no other source uses.
+
 Namespaces: the contract (`IDataSource`, `RecordDataSource`, `RecordDataSet<T>`, `DataField`, `DataFieldType`, `DataCondition`, `DataConditions`, `DataSetDescriptor`, `DataFieldReference`) is in `OrchardCore.DataSources`. The CrestApps helpers are in `CrestApps.OrchardCore.Reports.DataSources` (Abstractions) and `CrestApps.OrchardCore.Reports.Designer.DataSources` (Core). `ReportsConstants` is in `CrestApps.OrchardCore.Reports`.
 
 ## Where the code goes
@@ -262,7 +264,7 @@ For the entries a record holds (order lines, refunds), derive from `IndexedRepor
 
 ### Index the date you read by
 
-`ReportIndexPages` seeks through the date column and the index row id. Add a database index in the migration that creates the index table, with `IndexTableIndexCreation.CreateIfMissingAsync` (namespace `CrestApps.OrchardCore.YesSql.Core.Migrations`) so the step can run again safely:
+`ReportIndexPages` seeks through the date column and the index row id, 500 rows a page, newest first. Add a database index in the migration that creates the index table, with `IndexTableIndexCreation.CreateIfMissingAsync` (namespace `CrestApps.OrchardCore.YesSql.Core.Migrations`) so the step can run again safely:
 
 ```csharp
 public async Task<int> UpdateFrom3Async()
@@ -273,7 +275,30 @@ public async Task<int> UpdateFrom3Async()
 }
 ```
 
-Without it the database sorts the whole index table for every page.
+Without it the database sorts the whole index table for every page. Each page selects only the index row id and the date column, then loads the records, so other index columns (such as a decimal column SQLite stores as integer in one row and real in the next) cannot fail the read. Keep `DateColumn` a plain property of the index so the date column can be found; otherwise whole index rows are read.
+
+A map index provider for a reporting index usually holds one record per document of one type, so declare it (YesSql 6.3):
+
+```csharp
+public sealed class InvoiceIndexProvider : IndexProvider<Invoice>
+{
+    public override void Describe(DescribeContext<Invoice> context)
+    {
+        context.For<InvoiceIndex>()
+            .ExclusiveToDocumentType()
+            .SingleRecordPerDocument()
+            .Map(invoice => new InvoiceIndex
+            {
+                InvoiceId = invoice.InvoiceId,
+                CustomerId = invoice.CustomerId,
+                Status = invoice.Status,
+                IssuedUtc = invoice.IssuedUtc,
+            });
+    }
+}
+```
+
+Leave out `.SingleRecordPerDocument()` for an index with one record per entry (order lines, tags).
 
 ## A source for an external system
 

@@ -1,0 +1,77 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "RecurringPlans",
+      "description": "Recipe step discriminator. Must be \u0027RecurringPlans\u0027."
+    },
+    "Plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The plan\u0027s 26-character id. When it matches a stored plan, that plan is updated."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The plan\u0027s name."
+          },
+          "Rule": {
+            "type": "string",
+            "description": "The recurrence rule (RFC 5545), such as FREQ=MONTHLY;BYMONTHDAY=1."
+          },
+          "StartDate": {
+            "type": "string",
+            "description": "The day of the first run, yyyy-MM-dd."
+          },
+          "EndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day a run can happen, yyyy-MM-dd."
+          },
+          "MaxRuns": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many runs the plan makes in all."
+          },
+          "Mode": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Draft, Issue, IssueAndSend or IssueAndCharge."
+          },
+          "Status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Draft, Active, Paused, Completed or Canceled."
+          },
+          "Lines": {
+            "type": "array",
+            "description": "The lines of each invoice, as on an invoice; {{ period.start }}, {{ period.end }}, {{ period.month }} and {{ period.year }} are written in."
+          }
+        },
+        "required": [
+          "Name",
+          "Rule"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The recurring plans to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Plans"
+  ],
+  "additionalProperties": true
+}

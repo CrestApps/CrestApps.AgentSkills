@@ -80,6 +80,7 @@
                     "AccountLocationsPart",
                     "AccountMembersPart",
                     "AccountPart",
+                    "AccountTeamPart",
                     "AIProfilePart",
                     "AliasPart",
                     "AuditTrailPart",
@@ -288,6 +289,35 @@
                                 "additionalProperties": true
                               }
                             },
+                            "additionalProperties": true
+                          }
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "PartName": {
+                        "const": "AccountTeamPart"
+                      }
+                    },
+                    "required": [
+                      "PartName"
+                    ]
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "Settings": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
                             "additionalProperties": true
                           }
                         ],
@@ -2069,6 +2099,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "AddressFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2153,6 +2251,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "BooleanFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2199,6 +2365,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2269,6 +2503,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "DateFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2309,6 +2611,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2355,6 +2725,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "GeoPointFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2395,6 +2833,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2462,6 +2968,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2564,6 +3138,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "LocalizationSetContentPickerFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2613,6 +3255,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2668,6 +3378,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2729,6 +3507,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "MultiTextFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -2787,6 +3633,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -2859,6 +3773,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -3183,6 +4165,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "TaxonomyFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -3247,6 +4297,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -3370,6 +4488,74 @@
                           {
                             "type": "object",
                             "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
                               "TimeFieldSettings": {
                                 "type": "object",
                                 "properties": {
@@ -3413,6 +4599,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {
@@ -3471,6 +4725,74 @@
                       "Settings": {
                         "type": "object",
                         "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ConditionalFieldSettings": {
+                                "type": "object",
+                                "properties": {
+                                  "ShowWhen": {
+                                    "type": [
+                                      "null",
+                                      "object"
+                                    ],
+                                    "description": "When the field shows (the Conditional Fields feature); null for always. What a hidden field holds is dropped when the editor is sent.",
+                                    "properties": {
+                                      "Match": {
+                                        "type": "string",
+                                        "enum": [
+                                          "All",
+                                          "Any"
+                                        ],
+                                        "description": "All: every condition must be met. Any: one is enough."
+                                      },
+                                      "Conditions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "One test of the rule.",
+                                          "properties": {
+                                            "Source": {
+                                              "type": "string",
+                                              "description": "Another field of the item as {TypePartName}.{FieldName} (such as Ticket.Outage), or the name of a value a module provides (such as TicketCategory)."
+                                            },
+                                            "Operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Is",
+                                                "IsNot",
+                                                "IsOneOf",
+                                                "IsNoneOf",
+                                                "IsEmpty",
+                                                "IsNotEmpty",
+                                                "Contains",
+                                                "GreaterThan",
+                                                "LessThan",
+                                                "IsOrUnder"
+                                              ],
+                                              "description": "How the source\u0027s values are compared."
+                                            },
+                                            "Values": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              },
+                                              "description": "The values compared, in the invariant culture. IsOneOf and IsNoneOf use them all, IsEmpty and IsNotEmpty none, the others the first."
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        },
+                                        "description": "The conditions. A rule without any always applies."
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          },
                           {
                             "type": "object",
                             "properties": {

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-commerce
-description: Skill for the CrestApps Orchard Core Commerce suite hub. Covers picking the right commerce features, the dependency-only Commerce feature (CrestApps.OrchardCore.Commerce) with its shared Commerce admin menu, storefront account menu, CustomerAdminPage attribute, financial-document policy and personal data service, the store setup guide with IStoreSetupStep and staff role presets, the Online store and Commerce starter recipes, the Storefront theme, the commerce JSON API at api/commerce/v1 (bearer tokens, guest tokens, Idempotency-Key, X-Market), outgoing Commerce Webhooks on the Webhooks building block (IWebhookPublisher, AddWebhookEvent, HMAC-SHA256 signatures), the Store Profile, store dashboard widgets and Report Builder data sources, web farm hosting and the extension seam map. Use it when requests mention Orchard Core commerce, an online store, headless commerce, commerce webhooks, store setup, the store profile, CommerceConstants, personal data requests or which commerce module to extend.
+description: Skill for the CrestApps Orchard Core Commerce suite hub. Covers picking the right commerce features, the dependency-only Commerce Foundation and Commerce features with the shared Commerce admin menu, storefront account, CustomerAdminPage attribute, financial document numbers and personal data service, the store setup guide with IStoreSetupStep and staff roles, the Online store and Commerce starter recipes, the Storefront theme, the commerce JSON API at api/commerce/v1 (bearer and guest tokens, Idempotency-Key, X-Market), Commerce Webhooks on the Webhooks building block, the Store Profile with website and policy links, dashboard widgets and Report Builder data sources, web farms and the extension seam map. Use it when requests mention Orchard Core commerce, an online store, headless commerce, commerce webhooks, store setup, the store profile, CommerceConstants, personal data requests or which commerce module to extend.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -15,7 +15,8 @@ The CrestApps commerce modules (new in CrestApps.OrchardCore 3.0) let an Orchard
 
 | Layer | Module (feature ID) | Depends on | Skill |
 | --- | --- | --- | --- |
-| Shell | Commerce (`CrestApps.OrchardCore.Commerce`, dependency only) | none | `orchardcore-commerce` |
+| Shell | Commerce Foundation (`CrestApps.OrchardCore.Commerce.Foundation`, dependency only) | Users My Account (`CrestApps.OrchardCore.Users.Account`) | `orchardcore-commerce` |
+| Shell | Commerce (`CrestApps.OrchardCore.Commerce`, dependency only) | Commerce Foundation | `orchardcore-commerce` |
 | Shell | Commerce Webhooks (`CrestApps.OrchardCore.Commerce.Webhooks`) | Commerce, Webhooks | `orchardcore-commerce`, `orchardcore-webhooks` |
 | Shell | Store Profile (`CrestApps.OrchardCore.Commerce.StoreProfile`) | Commerce, Addresses | `orchardcore-commerce` |
 | Catalog | Products (`CrestApps.OrchardCore.Products`), Product Listing and sub-features | Commerce | `orchardcore-products` |
@@ -25,10 +26,15 @@ The CrestApps commerce modules (new in CrestApps.OrchardCore 3.0) let an Orchard
 | Buying | Orders (`CrestApps.OrchardCore.Orders`), Gift Cards, Returns | Carts, Checkout | `orchardcore-orders` |
 | Fulfilment | Inventory (`CrestApps.OrchardCore.Inventory`) | Commerce, Products | `orchardcore-inventory` |
 | Fulfilment | Shipping (`CrestApps.OrchardCore.Shipping`) | Products, Orders, Addresses | `orchardcore-shipping` |
+| Fulfilment | Fulfillment Partners (`CrestApps.OrchardCore.Fulfillment`): send paid orders to outside fulfillment companies | Commerce, Orders, Shipping | `orchardcore-fulfillment` |
+| Selling channels | Point of Sale (`CrestApps.OrchardCore.PointOfSale`) and its Web Register | Commerce, Orders, Inventory, Checkout API | `orchardcore-point-of-sale` |
+| Selling channels | Agentic Commerce (`CrestApps.OrchardCore.AgenticCommerce`): UCP, ACP and AP2 for AI agents | Commerce, Store Profile, Checkout, Orders, Products, Webhooks, Secrets | `orchardcore-agentic-commerce` |
 | Money | Payments and Stripe, Pay Later, Transactions, Receipts | Checkout | `orchardcore-payments`, `orchardcore-pay-later`, `orchardcore-transactions`, `orchardcore-receipts` |
+| Billing | Invoicing, Business Documents, Exchange Rates | Transactions, Taxation | `orchardcore-invoicing`, `orchardcore-business-documents`, `orchardcore-exchange-rates` |
 | Selling plans | Subscriptions, Memberships | Products, Checkout | `orchardcore-subscriptions`, `orchardcore-memberships` |
+| Selling plans | Learning Commerce (`CrestApps.OrchardCore.Learning.Commerce`): courses, learning paths and course seats as products | Learning, Product Listing, Orders, Account Members | `orchardcore-learning` |
 | Buyers | Customers; Accounts B2B (`CrestApps.OrchardCore.Accounts.B2B`, replaces Companies) | Commerce | `orchardcore-customers` |
-| Cross-cutting | Taxation (`CrestApps.OrchardCore.Taxation`), TaxJar | Commerce | `orchardcore-taxation` |
+| Cross-cutting | Sales Tax (`CrestApps.OrchardCore.Taxation`), TaxJar; Income Tax for payroll | Tax Tables, Commerce Foundation | `orchardcore-taxation` |
 | Cross-cutting | Addresses (`CrestApps.OrchardCore.Addresses`) | none | `orchardcore-addresses` |
 
 A purchase always flows the same way: a source (cart order, plan, transaction) starts a checkout session through `ICheckoutEngine` with a `ReferenceType` and `ReferenceId`; the buyer completes the steps; a payment provider takes the money into the durable payment ledger; the checkout settles and handlers finish the purchase. Details of that path are in `orchardcore-checkout` and `orchardcore-payments`.
@@ -41,28 +47,39 @@ A purchase always flows the same way: a source (cart order, plan, transaction) s
 | Files to download | Products, Product Listing, Carts, Orders, Customers, Digital Downloads, Checkout, a payment provider |
 | Recurring plans | Products, Product Listing, Checkout, Transactions, Subscriptions, a payment provider |
 | Headless storefront | The above plus the API features `Products.Api`, `Carts.Api`, `Checkout.Api`, `Orders.Api`, `Customers.Api`, `Shipping.Api`, `Inventory.Api` |
+| Sold through AI agents | A goods store plus Store Profile (with website and policy links), Agentic Commerce, the UCP and/or ACP features, Stripe, and Agent Product Feeds (see `orchardcore-agentic-commerce`) |
+| Counter sales | Products, Inventory, Orders, Checkout API, Point of Sale and optionally its Web Register (see `orchardcore-point-of-sale`) |
 
 **Test payments** (`CrestApps.OrchardCore.Checkout.TestProvider`) confirms every payment without moving money and only registers in Development unless `CrestApps:Checkout:TestProvider:AllowOutsideDevelopment` is `true`.
 
 ### Guidelines
 
 - Install each module package (for example `CrestApps.OrchardCore.Products`, `CrestApps.OrchardCore.Orders`) in the web/startup project.
-- Never enable `CrestApps.OrchardCore.Commerce` directly; it is `EnabledByDependencyOnly` and comes on with any commerce module.
+- Never enable `CrestApps.OrchardCore.Commerce` or `CrestApps.OrchardCore.Commerce.Foundation` directly; both are enabled by dependency only. Billing modules (Transactions, Taxation, Exchange Rates, Customers, Invoicing) turn on Commerce Foundation only; store modules (Products, Carts, Checkout, Orders, Shipping, Inventory and the others that sell) turn on Commerce.
 - Depend on the feature that owns a seam in your manifest, and register implementations in a `Startup` behind `[RequireFeatures]` when the dependency is optional.
 - Money is `decimal` everywhere. Read amounts posted by forms in the invariant culture.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
-## The Commerce feature
+## The Commerce Foundation and Commerce features
 
-Commerce is a composition shell: no persistence, indexes, migrations or domain models. It owns:
+The Commerce module is a composition shell (no persistence, indexes, migrations or domain models) with two features, both enabled by dependency only:
 
-- **The Commerce admin menu.** Add screens under it from your module with an `AdminNavigationProvider`, keeping `.AddClass("commerce").Id("commerce")` so the node merges and keeps its icon.
-- **The storefront account** at `account` (route `CommerceAccount`), the `commerce-account` menu (`CommerceConstants.Account.MenuName`) and the `CommerceAccountPage` frame shape.
+| | Commerce Foundation | Commerce |
+| --- | --- | --- |
+| Feature ID | `CrestApps.OrchardCore.Commerce.Foundation` (`CommerceConstants.Features.Foundation`) | `CrestApps.OrchardCore.Commerce` (`CommerceConstants.Features.Area`) |
+| Depends on | Users My Account (`CrestApps.OrchardCore.Users.Account`) | Commerce Foundation |
+| Gives | What billing and the store share: the **Commerce** admin menu and icon, the shared admin list UI, `[CustomerAdminPage]`, personal data requests | The store layer: **Commerce > Set up your store**, the `SetUpStore` permission and the staff roles |
+
+A billing-only site (Invoicing and its features) has the Commerce menu and the account without the store setup guide. Commerce Foundation owns:
+
+- **The Commerce admin menu.** Add screens under it from your module with an `AdminNavigationProvider`, keeping `.AddClass("commerce").Id("commerce")` so the node merges and keeps its icon. Depend on `CommerceConstants.Features.Foundation`, or on `CommerceConstants.Features.Area` when the module is part of a store.
+- **The storefront account** at `account` (route `CommerceAccount`) now comes from the Users module's **My Account** feature (`CrestApps.OrchardCore.Users.Account`, see `orchardcore-crestapps-users`), which adds **Account** to the user menu on the site and in the admin. The names did not change: the `commerce-account` menu (`CommerceConstants.Account.MenuName`, kept beside `UsersConstants.Account`), the `CommerceAccountNavigation` shape and the `CommerceAccountPage` frame shape.
 - **`[CustomerAdminPage]`** (`CrestApps.OrchardCore.Commerce.CustomerAdminPageAttribute`), which lets any signed-in user open an admin page meant for customers. The marker opens the page, not the data: always check the customer's own permission and filter to their records.
-- **The financial-document policy** default, `ReceiptsOnlyFinancialDocumentPolicy` (`IFinancialDocumentPolicy`, in `CrestApps.OrchardCore.Transactions.Abstractions`).
 - **`ICommercePersonalDataService`** for GDPR and CCPA export, anonymize and retention expiry, composed from every `ICommercePersonalDataContributor`. `CommercePersonalDataContributor` plugs it into the site-wide `IPersonalDataService` (`CrestApps.OrchardCore.PersonalData.Abstractions`), so one privacy request reaches commerce, the CRM, Workforce and Scheduling together. New modules implement `IPersonalDataContributor` (`services.AddPersonalDataContributor<T>()`); records without a typed export list go in `CommercePersonalDataExport.Records` as `CommercePersonalDataRecord` entries.
-- **`IStoreSetupStep`** and the **Commerce > Set up your store** guide (`commerce/setup`, permission `SetUpStore`).
+- **`IStoreSetupStep`** and the **Commerce > Set up your store** guide (`commerce/setup`, permission `SetUpStore`) belong to the Commerce feature.
+
+**Financial document numbers.** The old `IFinancialDocumentPolicy` seam and its `ReceiptsOnlyFinancialDocumentPolicy` default (never consulted) are removed. Receipts, invoices, credit notes and refund documents take numbers from `IFinancialDocumentNumberGenerator` (`CrestApps.OrchardCore.Transactions.Abstractions`, namespace `CrestApps.OrchardCore.Transactions.FinancialDocuments`). Transactions registers `SequentialFinancialDocumentNumberGenerator`, an adapter over the shared number series (`INumberSeries`): `Financial.Receipt`, `Financial.Invoice`, `Financial.CreditNote` and `Financial.RefundDocument` (`FinancialDocumentSeries`), formatted `R-{seq}`, `INV-{seq}`, `CN-{seq}` and `RF-{seq}` from 1001 by default. The next number is taken under a lock held until the caller's unit of work is saved, so there are no duplicates and no gaps.
 
 ```csharp
 [assembly: Feature(
@@ -71,7 +88,7 @@ Commerce is a composition shell: no persistence, indexes, migrations or domain m
     Category = "Commerce",
     Dependencies =
     [
-        CommerceConstants.Features.Area,
+        CommerceConstants.Features.Foundation,
     ]
 )]
 ```
@@ -172,7 +189,7 @@ Staff role presets live in `CommerceConstants.StaffRoles`: `Store manager`, `War
 
 ## Store profile
 
-**Store Profile** (`CrestApps.OrchardCore.Commerce.StoreProfile`, `CommerceConstants.Features.StoreProfile`; depends on Commerce and Addresses) adds **Settings > Commerce > Store** (`Admin/Settings/store-profile`, permission `ManageStoreProfile`, granted to administrators and store managers). It keeps the store's `Name` (the site name when empty), `LogoUrl`, `TaxId`, `Email`, `Phone` (E.164 when it parses) and `Address` in `StoreProfileSettings` (Commerce.Abstractions, namespace `CrestApps.OrchardCore.Commerce.Stores`). The **Store profile** deployment step exports it; Orchard Core's `Settings` recipe step imports it. The Online store recipe enables the feature.
+**Store Profile** (`CrestApps.OrchardCore.Commerce.StoreProfile`, `CommerceConstants.Features.StoreProfile`; depends on Commerce and Addresses) adds **Settings > Commerce > Store** (`Admin/Settings/store-profile`, permission `ManageStoreProfile`, granted to administrators and store managers). It keeps the store's `Name` (the site name when empty), `LogoUrl`, `TaxId`, `Email`, `Phone` (E.164 when it parses) and `Address` in `StoreProfileSettings` (Commerce.Abstractions, namespace `CrestApps.OrchardCore.Commerce.Stores`). The **Website and policies** card keeps `Website` (when it is not this site) and `Policies` (`StorePolicyLinks`: `TermsOfService`, `PrivacyPolicy`, `ReturnPolicy`, `ShippingPolicy`, `Faq`, `Contact`, `About`), each a full `http(s)` address or a path on this site such as `/terms` (made absolute with the site's base URL where it leaves the site). Product feeds send the website and the terms, privacy and return links to Google and the AI agent feeds, and Agentic Commerce sends every set link with each agent checkout (`links`). Google and OpenAI require terms of service and a privacy policy before agents may check out. The **Store profile** deployment step exports it; Orchard Core's `Settings` recipe step imports it. The Online store recipe enables the feature.
 
 ```json
 {
@@ -183,7 +200,17 @@ Staff role presets live in `CommerceConstants.StaffRoles`: `Store manager`, `War
         "Name": "Contoso Outfitters",
         "Email": "hello@contoso.example",
         "Phone": "+14165550100",
-        "Address": { "AddressLine1": "100 King Street West", "City": "Toronto", "Region": "ON", "PostalCode": "M5X 1C7", "Country": "CA" }
+        "Address": { "AddressLine1": "100 King Street West", "City": "Toronto", "Region": "ON", "PostalCode": "M5X 1C7", "Country": "CA" },
+        "Website": "https://contoso.example",
+        "Policies": {
+          "TermsOfService": "/terms",
+          "PrivacyPolicy": "/privacy",
+          "ReturnPolicy": "/returns",
+          "ShippingPolicy": "/shipping",
+          "Faq": "/faq",
+          "Contact": "/contact",
+          "About": "/about"
+        }
       }
     }
   ]
@@ -223,7 +250,7 @@ Errors are RFC 9457 problems; `409` carries a `code` such as `out-of-stock`, `no
 
 ## Commerce Webhooks
 
-`CrestApps.OrchardCore.Commerce.Webhooks` posts signed JSON to subscribed URLs. Subscriptions, signing, the outbox and the admin (**Configuration > Webhooks**, permission **Manage webhooks**, stored name `ManageCommerceWebhooks`) belong to the generic Webhooks building block (`CrestApps.OrchardCore.Webhooks`, see `orchardcore-webhooks`), which Commerce Webhooks turns on; Commerce Webhooks is the switch the commerce modules gate their events on. Deliveries are queued in the same unit of work as the change, sent after commit, retried with backoff (1 minute up to 24 hours, failed after the eighth attempt) and logged. Built-in events are in `CommerceWebhookEvents`: `order.created`, `order.paid`, `order.canceled`, `order.refunded`, `customer.created`, `shipment.shipped`, `shipment.delivered`, `stock.changed`, `stock.low`, `stock.sold-out`, `webhook.ping`.
+`CrestApps.OrchardCore.Commerce.Webhooks` posts signed JSON to subscribed URLs. Subscriptions, signing, the outbox and the admin (**Settings > Webhooks**, permission **Manage webhooks**, stored name `ManageCommerceWebhooks`) belong to the generic Webhooks building block (`CrestApps.OrchardCore.Webhooks`, see `orchardcore-webhooks`), which Commerce Webhooks turns on; Commerce Webhooks is the switch the commerce modules gate their events on. Deliveries are queued in the same unit of work as the change, sent after commit, retried with backoff (1 minute up to 24 hours, failed after the eighth attempt) and logged. Built-in events are in `CommerceWebhookEvents`: `order.created`, `order.paid`, `order.canceled`, `order.refunded`, `customer.created`, `shipment.shipped`, `shipment.delivered`, `stock.changed`, `stock.low`, `stock.sold-out`, `webhook.ping`.
 
 Publish your own event from a startup that only runs while webhooks are on:
 
@@ -252,7 +279,7 @@ public sealed class GiftWrapWebhookHandler : OrderEventHandlerBase
 }
 ```
 
-`IWebhookPublisher` and `AddWebhookEvent` are in `CrestApps.OrchardCore.Webhooks.Abstractions` (namespace `CrestApps.OrchardCore.Webhooks`); the publisher sends only events an enabled feature declared. Pass a stable event id with `PublishAsync(eventName, payload, eventId)` when the same event can be raised twice. Signatures, receivers and the delivery model are in [references/commerce-webhooks.md](references/commerce-webhooks.md).
+`IWebhookPublisher` and `AddWebhookEvent` are in `CrestApps.OrchardCore.Webhooks.Abstractions` (namespace `CrestApps.OrchardCore.Webhooks`); the publisher sends only events an enabled feature declared. Pass a stable event id with `PublishAsync(eventName, payload, eventId)` when the same event can be raised twice. The same outbox also sends **direct deliveries** (`IWebhookOutbox`, `WebhookDirectDelivery`, signed by an `IWebhookDeliveryFormatter`) to receivers that are not subscriptions, such as the order updates Agentic Commerce sends AI agent platforms; they retry on the same schedule. Signatures, receivers and the delivery model are in [references/commerce-webhooks.md](references/commerce-webhooks.md).
 
 ## Which seam to implement
 
@@ -269,6 +296,8 @@ public sealed class GiftWrapWebhookHandler : OrderEventHandlerBase
 | Send a templated customer email | `ICommerceEmailSender`, `AddCommerceEmailKind` (namespace `CrestApps.OrchardCore.Commerce.Emails`) | Commerce.Abstractions, Commerce.Core | `orchardcore-orders` |
 | Put part of a checkout on an invoice owed later | `DeferredBalanceTenderProviderBase` | Checkout.Core | `orchardcore-checkout` |
 | Add a shipping rate or carrier | `IShippingRateProvider`, `ICarrierProvider` | Shipping.Core | `orchardcore-shipping` |
+| Send paid orders to an outside fulfillment company | `IFulfillmentProvider` | Fulfillment.Abstractions | `orchardcore-fulfillment` |
+| Add a way AI agents pay, a UCP capability, or a protocol's order updates | `IAgentPaymentHandler`, `IUcpProfileContributor`, `IUcpCheckoutExtension`, `IAgentOrderPublisher` | AgenticCommerce.Abstractions, AgenticCommerce | `orchardcore-agentic-commerce` |
 | Add tax rules or an external tax engine | `ITaxRuleProvider`, `ITaxDeterminationProvider` | Taxation.Abstractions | `orchardcore-taxation` |
 | Suggest addresses | `IAddressAutocompleteProvider` | Addresses.Core | `orchardcore-addresses` |
 | Export and erase your records of a person | `IPersonalDataContributor` (or `ICommercePersonalDataContributor` for guest owners and checkout sessions) | PersonalData.Abstractions (Customers.Abstractions) | `orchardcore-customers` |
@@ -291,7 +320,7 @@ public sealed class GiftWrapWebhookHandler : OrderEventHandlerBase
 | Permission | Feature | Allows |
 | --- | --- | --- |
 | `SetUpStore` | Commerce | The store setup guide |
-| `ManageCommerceWebhooks` (shown as **Manage webhooks**) | Webhooks | Webhook subscriptions, deliveries and signing secrets under **Configuration > Webhooks** |
+| `ManageCommerceWebhooks` (shown as **Manage webhooks**) | Webhooks | Webhook subscriptions, deliveries and signing secrets under **Settings > Webhooks** |
 | `ManageStoreProfile` | Store Profile | **Settings > Commerce > Store** |
 
 Each domain module's permissions are listed in its own skill.

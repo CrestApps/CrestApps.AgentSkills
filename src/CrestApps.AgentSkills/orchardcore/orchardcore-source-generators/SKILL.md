@@ -142,6 +142,8 @@ var shape = await factory.CreateAsync("MyShape", new
 - .NET 9.0 or later
 - C# 13 or later
 
+Orchard Core 4.0 projects target `net11.0`, which meets both requirements.
+
 **How it works:** The interceptor detects `Arguments.From(anonymousType)` calls and generates optimized code using type inference to cast to the actual anonymous type, eliminating reflection and dynamic overhead.
 
 ### Fallback: Reflection with Caching
@@ -268,6 +270,8 @@ public partial class WeatherWidgetViewModel
     public double Temperature { get; set; }
 }
 ```
+
+Generated shape types are named `GeneratedShape_<hash>`, where the hash covers the identity of the consuming assembly and the model's full name. Each assembly that calls `Initialize<TModel>()` or `CreateAsync<TModel>()` on a model of a shared library gets its own public wrapper type, so two assemblies generating wrappers for the same model no longer collide (`CS0436`). Never reference a `GeneratedShape_*` type by name: it changes with the assembly.
 
 This generator is newer than the published docs; inspect the generated files under `obj/<Configuration>/<TargetFramework>/generated/OrchardCore.SourceGenerators/` when troubleshooting.
 

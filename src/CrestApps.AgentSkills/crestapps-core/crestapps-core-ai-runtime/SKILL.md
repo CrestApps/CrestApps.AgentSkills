@@ -140,7 +140,7 @@ builder.Services.Configure<DefaultAIDeploymentSettings>(settings =>
 | `IAIDeploymentCapabilityService` | What a deployment's model declares |
 | `IAIProviderConnectionStore` / `IAIDeploymentStore` | Merged configuration and store views |
 
-Every client the factory creates is metered, and every chat client is wrapped in `CapabilityEnforcingChatClient`, which strips tools, JSON response formats and reasoning options the deployment does not declare. `CreateRealtimeClientAsync` returns a metering wrapper; use `GetService` to reach the provider client.
+Every client the factory creates is metered, and every chat client is wrapped in `CapabilityEnforcingChatClient`, which strips tools, JSON response formats and reasoning options the deployment does not declare. Chat clients stream tool calls and results (`FunctionCallContent`, `FunctionResultContent`) through `FunctionInvokingChatClient`, which the AG-UI chat shows as tool cards; `NamedAICompletionClient` passes stored tool result messages to the provider and drops results whose calls a past-messages limit cut off. `CreateRealtimeClientAsync` returns a metering wrapper; use `GetService` to reach the provider client.
 
 ## Telemetry Options
 
@@ -223,6 +223,9 @@ A provider that creates Microsoft.Extensions.AI clients implements `IAIClientPro
 - **Tools are never called**: the deployment declares metadata without `toolCalling`, so capability enforcement removes them and logs a warning.
 
 ## Upgrading Within 2.0 Previews
+
+- The packages target `net10.0` and `net11.0`. On `net11.0`, `Microsoft.Extensions.AI` and `Microsoft.Extensions.AI.Abstractions` resolve to 11.0.0 (10.11.0 on `net10.0`); `Microsoft.Extensions.AI.OpenAI` stays on 10.9.0 for both.
+- Conversation history now carries tool calls and results (stored as `ChatTurnToolActivity` on the assistant message); a custom completion client should pass `ChatRole.Tool` messages through to its provider.
 
 - `ProviderAICompletionClient<TProvider>` takes the scoped `DefaultAIOptions` instead of `IOptions<DefaultAIOptions>`, so a site's telemetry settings reach the OpenAI, Azure AI Inference and Ollama clients. Code that constructs it directly passes a `DefaultAIOptions`. A client registered with `AddCoreAICompletionClient` needs no change.
 

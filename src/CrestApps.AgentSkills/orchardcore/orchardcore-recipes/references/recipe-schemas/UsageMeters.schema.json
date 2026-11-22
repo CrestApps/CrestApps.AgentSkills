@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "UsageMeters",
+      "description": "Recipe step discriminator. Must be \u0027UsageMeters\u0027."
+    },
+    "Meters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The meter\u0027s 26-character id. When it matches a stored meter, that meter is updated."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The meter\u0027s name."
+          },
+          "Code": {
+            "type": "string",
+            "description": "The key usage is recorded with, such as api-calls: lowercase letters, digits, dots, dashes or underscores."
+          },
+          "Unit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The unit printed on invoices, such as calls or GB."
+          },
+          "Aggregation": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "How a period\u0027s usage adds up: Sum, Maximum or Last."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the meter takes usage."
+          }
+        },
+        "required": [
+          "Name",
+          "Code"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The usage meters to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Meters"
+  ],
+  "additionalProperties": true
+}

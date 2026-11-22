@@ -176,6 +176,10 @@ A full sample is in [references/tenant-hierarchy-reference.md](references/tenant
 
 Not included: federated OpenID Connect for children in another application, custom domains for children, inviting the business owner at creation, idle release of inactive children.
 
+## Monitoring
+
+Each operation a parent runs on a child through `TenantHierarchyBroker` records `crestapps.tenanthierarchy.child.operation.duration` (`operation` = `create`, `setup`, `update`, `suspend`, `resume`, `reload`, `remove`, `set_features`; `outcome` = `ok`, `failed`, `error`, `cancelled`) and a span `crestapps.tenanthierarchy.child.<operation>` tagged with the registry entry id (`crestapps.tenanthierarchy.entry.id`), on the `CrestApps.OrchardCore.TenantHierarchy` meter and source. Tenant names never go on a metric or span tag. `ChildTenantMaintenanceBackgroundTask` reports on the shared `crestapps.background_task.*` instruments. See `orchardcore-observability`.
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |

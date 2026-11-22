@@ -26,7 +26,7 @@ cadence never follows up.
   conversation falls back to the subject's no-response handling.
 - A follow-up is sent only when the cadence is enabled, steps remain, the last
   message was the automation's, the silence exceeds the step delay, and the
-  load's business-hours calendar is open in the contact's time zone. Each send
+  load's Business Hours schedule is open in the contact's time zone. Each send
   restarts the no-response window.
 - Live replies to an actively messaging contact are never gated by business
   hours; only proactive follow-ups are.
@@ -35,8 +35,9 @@ cadence never follows up.
 
 1. Create the cadence under **Management > Cadences**.
 2. On an **Automatic** activity load, pick it in **Re-engagement** and,
-   optionally, a **Business hours** calendar (shown when one exists; calendars
-   come from Contact Center Business Hours, see `orchardcore-contact-center`).
+   optionally, a **Business hours** schedule (shown when one exists; schedules
+   are edited under **Content > Business Hours**, see
+   `orchardcore-business-hours`). Without one the cadence runs at any hour.
 3. The cadence is snapshotted onto each activity at load time, so later edits
    or deletion do not affect conversations in flight.
 

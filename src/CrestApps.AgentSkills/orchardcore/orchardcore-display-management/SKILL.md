@@ -358,8 +358,8 @@ Minimal edit wrapper:
 Summary admin wrapper with zones:
 
 ```cshtml
-<div class="row g-0">
-    <div class="col-lg col-12">
+<div class="row g-0 align-items-center">
+    <div class="col">
         @if (Model.Content != null)
         {
             @await DisplayAsync(Model.Content)
@@ -370,14 +370,14 @@ Summary admin wrapper with zones:
             @await DisplayAsync(Model.Meta)
         }
     </div>
-    <div class="col-lg-auto col-12">
-        @if (Model.Actions != null)
-        {
-            @await DisplayAsync(Model.Actions)
-        }
+    <div class="col-auto d-flex justify-content-end ps-2">
+        @* Renders the Actions and ActionsMenu zones in the configured actions layout (Buttons or Menu). *@
+        @await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))
     </div>
 </div>
 ```
+
+Admin rows render their `Actions` and `ActionsMenu` zones through `CreateAdminListActionsAsync` (`OrchardCore.Admin` namespace) rather than `DisplayAsync(Model.Actions)`, so **Settings → Admin → Actions layout** applies; see `orchardcore-admin-lists`.
 
 Child shape file-name mapping:
 
@@ -575,7 +575,7 @@ Liquid shape templates are rendered by `LiquidShapeTemplateViewEngine` with Flui
 - Display types do not inherit placement: `SummaryAdmin` locations do not reach `SummaryAdminGrid`.
 - Shapes with the same position keep registration order, which is not predictable across modules; use distinct positions when order matters.
 - A shape placed in a zone the parent template never renders is silently dropped. Check the wrapper template first when a shape disappears.
-- Enable **Write shape debug information** to see the actual shape type and the winning template binding of every fragment before writing placement or overrides.
+- Enable **Write shape debug information** to see the actual shape type and the winning template binding of every fragment before writing placement or overrides, or use **Inspect Content** from the Shape Tracing feature for a content item (see `orchardcore-assisted-templates`).
 
 ## Upgrading from 3.x
 

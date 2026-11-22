@@ -170,6 +170,11 @@
           "type": "string",
           "description": "The primary color for the chat widget UI.",
           "default": "#41b670"
+        },
+        "SendPageContext": {
+          "type": "boolean",
+          "description": "Whether the widget tells the AI which page the user is on with each message: the page title and address, the selected text, the content item being edited and the site.",
+          "default": true
         }
       },
       "additionalProperties": false
@@ -184,29 +189,6 @@
             "string"
           ],
           "description": "The instructions the memory writer follows. Empty uses the built-in instructions."
-        }
-      },
-      "additionalProperties": true
-    },
-    "AICostSettings": {
-      "type": "object",
-      "description": "What the phone lines cost, used to estimate the cost of each AI call. What the AI costs is set on each AI deployment (its Pricing).",
-      "properties": {
-        "Currency": {
-          "type": "string",
-          "pattern": "^[A-Za-z]{3}$",
-          "default": "USD",
-          "description": "The ISO currency code the carrier\u0027s prices are in, such as USD."
-        },
-        "TelephonyPerMinute": {
-          "type": "number",
-          "minimum": 0,
-          "description": "What a minute of a phone call costs with the carrier."
-        },
-        "SmsPerMessage": {
-          "type": "number",
-          "minimum": 0,
-          "description": "What one text message costs with the carrier."
         }
       },
       "additionalProperties": true
@@ -377,6 +359,132 @@
         }
       },
       "additionalProperties": false
+    },
+    "AgentFeedSettings": {
+      "type": "object",
+      "description": "Settings \u203A Commerce \u203A Agent feeds. Passwords, keys and bearer keys are stored protected with the tenant\u0027s data protection keys, so enter them again on another site.",
+      "properties": {
+        "TargetCountries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "description": "The two-letter codes of the countries the store sells to through agents; the store\u0027s own country when empty."
+        },
+        "Sftp": {
+          "type": "object",
+          "description": "The daily push of the OpenAI product feed over SFTP.",
+          "properties": {
+            "Enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the snapshot is pushed every day."
+            },
+            "Host": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The SFTP server\u0027s host name."
+            },
+            "Port": {
+              "type": "integer",
+              "default": 22,
+              "description": "The SFTP server\u0027s port."
+            },
+            "Username": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The user name to sign in with."
+            },
+            "HostKeyFingerprint": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The server\u0027s SHA-256 host key fingerprint, or none to accept any."
+            },
+            "RemoteFolder": {
+              "type": "string",
+              "default": "/",
+              "description": "The folder on the server the files go in."
+            },
+            "Format": {
+              "type": "string",
+              "enum": [
+                "jsonl.gz",
+                "csv.gz"
+              ],
+              "default": "jsonl.gz",
+              "description": "The file format."
+            },
+            "Currency": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The ISO 4217 code of the currency the feed is priced in, or none for each product\u0027s own."
+            }
+          },
+          "additionalProperties": true
+        },
+        "FeedApiTargets": {
+          "type": "array",
+          "description": "The agent platforms the products are pushed to through their ACP feed API.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Id": {
+                "type": "string",
+                "description": "The target\u0027s id."
+              },
+              "Name": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The name the store knows the platform by."
+              },
+              "BaseUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "The https base address of the platform\u0027s feed API."
+              },
+              "FeedId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The id of the feed on the platform, or none to have the store create one."
+              },
+              "TargetCountry": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The two-letter code of the country the feed is for."
+              },
+              "Currency": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The ISO 4217 code of the currency the products are priced in."
+              },
+              "Enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether products are pushed to the platform."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
     },
     "AsteriskSettings": {
       "type": "object",
@@ -1560,6 +1668,34 @@
       },
       "additionalProperties": false
     },
+    "ExchangeRateSettings": {
+      "type": "object",
+      "description": "The currency the store reports in, the currencies a provider fetches rates for and the provider.",
+      "properties": {
+        "BaseCurrency": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The ISO 4217 code of the currency the store reports in, such as USD."
+        },
+        "Currencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The currencies the provider fetches rates for each day."
+        },
+        "ProviderName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The name of the provider that fetches the rates each day, or null to enter them by hand."
+        }
+      },
+      "additionalProperties": true
+    },
     "ExportContentToDeploymentTargetSettings": {
       "type": "object",
       "description": "Configuration for the export content to deployment target feature.",
@@ -1699,6 +1835,17 @@
         "SdkJs"
       ],
       "additionalProperties": false
+    },
+    "FulfillmentSettings": {
+      "type": "object",
+      "description": "How paid orders reach the fulfillment partners, under Settings \u203A Commerce \u203A Fulfillment partners.",
+      "properties": {
+        "SendAutomatically": {
+          "type": "boolean",
+          "description": "Whether paid orders are sent to the connected partners by themselves. When false, a person sends each order from its page."
+        }
+      },
+      "additionalProperties": true
     },
     "FundraisingSettings": {
       "type": "object",
@@ -2185,6 +2332,114 @@
       },
       "additionalProperties": true
     },
+    "InvoicingSettings": {
+      "type": "object",
+      "description": "What a new invoice starts with: its payment term, currency, texts and whether customers may pay part of it.",
+      "properties": {
+        "DefaultTemplateId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The document template invoices are printed with when they name none."
+        },
+        "DefaultPaymentTermId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The payment term a new invoice uses when its customer has none. Empty means due on issue."
+        },
+        "DefaultCurrency": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The ISO 4217 currency code of a new invoice when its customer has none, such as USD."
+        },
+        "DefaultNotes": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Notes printed on an invoice that has none."
+        },
+        "DefaultTerms": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Terms printed on an invoice that has none."
+        },
+        "DefaultFooter": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The footer printed on an invoice that has none."
+        },
+        "PricesIncludeTax": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether a new invoice\u0027s line prices include tax."
+        },
+        "DefaultTaxTreatment": {
+          "type": "integer",
+          "default": 0,
+          "description": "The tax treatment of a new invoice\u0027s bill-to: 0 taxable, 1 exempt, 2 zero-rated, 3 reverse charge, 4 out of scope."
+        },
+        "AllowPartialPayment": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether customers may pay part of an invoice from its pay link."
+        },
+        "IssueOnSend": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether sending a draft issues it first."
+        },
+        "ApprovalThreshold": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The total from which an invoice needs approval before it is issued, in its own currency: 0 for every invoice, null for none."
+        },
+        "AllowFutureIssueDate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether an invoice may be issued with a date after today."
+        },
+        "ChronologicalIssueDates": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether an invoice can\u0027t be dated before the last invoice issued."
+        },
+        "ArchivePdfOnIssue": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the PDF of an invoice is stored when it is issued."
+        },
+        "CashRoundingIncrement": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The step totals are rounded to for cash, such as 0.05, or null for none."
+        },
+        "ShareLinkDays": {
+          "type": "integer",
+          "default": 60,
+          "description": "How many days the link that shows an invoice without signing in keeps working."
+        },
+        "EstimateValidDays": {
+          "type": "integer",
+          "default": 30,
+          "description": "How many days a sent estimate without an expiry date of its own can be accepted."
+        }
+      },
+      "additionalProperties": true
+    },
     "LayerSettings": {
       "type": "object",
       "description": "Configuration for the layers feature.",
@@ -2198,6 +2453,20 @@
         }
       },
       "additionalProperties": false
+    },
+    "LearningPackageContentHostSettings": {
+      "type": "object",
+      "description": "The learning package settings.",
+      "properties": {
+        "BaseUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The base URL of the package content host, such as https://packages.example.com: http or https, a host and an optional port, nothing after it. Empty serves package files from the site\u0027s own host in strict mode."
+        }
+      },
+      "additionalProperties": true
     },
     "LocalizationSettings": {
       "type": "object",
@@ -2503,6 +2772,40 @@
             "string"
           ],
           "description": "The id of the AI data source searched instead of the index profiles."
+        }
+      },
+      "additionalProperties": true
+    },
+    "NumberSeriesSettings": {
+      "type": "object",
+      "description": "The formats the site chose for its number series. A series without an entry uses the format it was registered with.",
+      "properties": {
+        "Formats": {
+          "type": "object",
+          "description": "The chosen formats, by series name, such as Financial.Invoice.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "Pattern": {
+                "type": "string",
+                "maxLength": 40,
+                "description": "The pattern the numbers are written with: text and the tokens {seq}, {seq:0000}, {yyyy}, {yy} and {MM}, with exactly one {seq} token."
+              },
+              "FirstNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "The first number of the series, and of each new year or month when the numbers start again."
+              },
+              "Reset": {
+                "type": [
+                  "string",
+                  "integer"
+                ],
+                "description": "When the numbers start again: Never (0), Yearly (1) or Monthly (2). A yearly series needs {yyyy} or {yy}, and a monthly one {MM} too."
+              }
+            },
+            "additionalProperties": true
+          }
         }
       },
       "additionalProperties": true
@@ -2893,7 +3196,153 @@
         "NetTermDays": {
           "type": "integer",
           "default": 30,
-          "description": "The number of days a Pay Later balance is allowed before it is due. When greater than zero the outstanding transaction is created with a due date this many days after checkout, which drives the reminder cadence. A value of 0 leaves the balance without a due date. Defaults to 30."
+          "description": "The number of days a Pay Later balance is allowed before it is due. When greater than zero the outstanding transaction is created with a due date this many days after checkout, which drives the reminder cadence. A value of 0 leaves the balance without a due date. Defaults to 30. A payment term, the payer\u0027s own or PaymentTermId, replaces it."
+        },
+        "PaymentTermId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The identifier of the payment term (Payment Terms feature) a Pay Later balance follows when the payer has no term of their own on their billing profile. Empty uses NetTermDays."
+        }
+      },
+      "additionalProperties": true
+    },
+    "PayrollJournalSettings": {
+      "type": "object",
+      "description": "The ledger accounts of the payroll journal entries.",
+      "properties": {
+        "NetPayAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The account of net pay owed."
+        },
+        "WageExpenseAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The expense account of earnings."
+        },
+        "DeductionLiabilityAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The liability account of deductions."
+        },
+        "TaxLiabilityAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The liability account of taxes."
+        },
+        "EmployerTaxExpenseAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The expense account of the employer\u0027s taxes."
+        },
+        "ContributionExpenseAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The expense account of employer contributions."
+        },
+        "ContributionLiabilityAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The liability account of employer contributions."
+        },
+        "ReimbursementExpenseAccount": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The expense account of reimbursements."
+        },
+        "Mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Key": {
+                "type": "string",
+                "description": "A pay code\u0027s code or a tax code."
+              },
+              "DebitAccount": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The account debited, or null for the default."
+              },
+              "CreditAccount": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "The account credited, or null for the default."
+              }
+            },
+            "required": [
+              "Key"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "PayrollSettings": {
+      "type": "object",
+      "description": "Payroll\u0027s settings.",
+      "properties": {
+        "AllowPreparerToApprove": {
+          "type": "boolean",
+          "description": "Whether the person who prepared a pay run may approve it. Off by default."
+        },
+        "AllowChangingOwnPay": {
+          "type": "boolean",
+          "description": "Whether people may change their own pay through the admin pages. Off by default."
+        },
+        "EmployeeReview": {
+          "type": "boolean",
+          "description": "Whether employees review their coming pay in My Pay before a run is submitted. Off by default."
+        },
+        "DefaultCountryPack": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The country pack of a new employer, such as US."
+        },
+        "DefaultCurrency": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The currency of a new employer, such as USD."
+        },
+        "MinimumHourlyWage": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The least an hour a tipped person must earn with their tips, or null for no check."
+        },
+        "MaximumTipCredit": {
+          "type": [
+            "null",
+            "number"
+          ],
+          "description": "The most an hour of tips counts toward the minimum wage."
         }
       },
       "additionalProperties": true
@@ -2935,6 +3384,34 @@
       },
       "additionalProperties": true
     },
+    "PlaidSettings": {
+      "type": "object",
+      "description": "The Plaid settings. The Plaid secret is never here: create it with the Secrets step and name it in SecretName.",
+      "properties": {
+        "Environment": {
+          "type": [
+            "string",
+            "integer"
+          ],
+          "description": "Sandbox (0) for Plaid\u0027s test banks, Production (1) for real banks."
+        },
+        "ClientId": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The client id from the Plaid dashboard. Empty turns Plaid off."
+        },
+        "SecretName": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The name of the Orchard text secret that holds the Plaid secret of the environment, such as Plaid.Secret."
+        }
+      },
+      "additionalProperties": true
+    },
     "ProductFeedSettings": {
       "type": "object",
       "description": "Settings \u203A Commerce \u203A Product feeds.",
@@ -2972,6 +3449,16 @@
             "string"
           ],
           "description": "A key the feed\u0027s address has to carry (?key=...), or none for a public feed."
+        },
+        "ShowToAgentsByDefault": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether AI agents may show products to buyers when a product doesn\u0027t say."
+        },
+        "AgentCheckoutByDefault": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether AI agents may check products out for buyers when a product doesn\u0027t say."
         }
       },
       "additionalProperties": true
@@ -3790,9 +4277,20 @@
       },
       "additionalProperties": false
     },
+    "StaffSettings": {
+      "type": "object",
+      "description": "The Staff settings.",
+      "properties": {
+        "LimitPickersToStaff": {
+          "type": "boolean",
+          "description": "Whether people pickers that ask for staff offer only working staff members."
+        }
+      },
+      "additionalProperties": true
+    },
     "StoreProfileSettings": {
       "type": "object",
-      "description": "Who the store is (Settings \u203A Commerce \u203A Store): its name, logo, tax ID, how to reach it and where it is. Receipts, the address parcels ship from and the tax origin fall back to it when their own settings are empty.",
+      "description": "Who the store is (Settings \u203A Commerce \u203A Store): its name, logo, tax ID, how to reach it, its website and policies, and where it is. Receipts, the address parcels ship from and the tax origin fall back to it when their own settings are empty.",
       "properties": {
         "Name": {
           "type": [
@@ -3828,6 +4326,72 @@
             "string"
           ],
           "description": "The phone number customers reach the store at, in E.164 form when it parses."
+        },
+        "Website": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The address of the store\u0027s own website; the site\u0027s own address when empty."
+        },
+        "Policies": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "description": "Links to the store\u0027s policies, which checkouts, product feeds and AI agents show buyers. Each is an absolute URL or a path on the site, such as /terms.",
+          "properties": {
+            "TermsOfService": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the terms of service."
+            },
+            "PrivacyPolicy": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the privacy policy."
+            },
+            "ReturnPolicy": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the return and refund policy."
+            },
+            "ShippingPolicy": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the shipping policy."
+            },
+            "Faq": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the frequently asked questions."
+            },
+            "Contact": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the page buyers contact the store from."
+            },
+            "About": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "description": "The link to the page about the store."
+            }
+          },
+          "additionalProperties": true
         },
         "Address": {
           "type": [
@@ -4157,6 +4721,31 @@
           "type": "integer",
           "default": 7,
           "description": "How many days a subscriber keeps access after a renewal payment fails."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TaxCalculationSettings": {
+      "type": "object",
+      "description": "How the site works tax out. The checkout and invoices both read it.",
+      "properties": {
+        "RoundingLevel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "Line",
+                "Tax",
+                "Jurisdiction",
+                "Transaction",
+                "Rate"
+              ]
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "The level tax is rounded at: Rate rounds each tax and rate once on the summed amount (EN 16931, the default of a new site), Line rounds each line\u0027s tax, Tax each kind of tax, Jurisdiction each jurisdiction, Transaction only the total."
         }
       },
       "additionalProperties": true
@@ -4616,6 +5205,30 @@
           "type": "integer",
           "default": 3,
           "description": "How many days before a payment falls due the owner is told it is coming due. One such reminder is sent per transaction. Defaults to 3. A value of 0 or less turns these reminders off."
+        },
+        "Steps": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "The staged reminder policy: the days, relative to the due date, a reminder is sent on, such as [-3, 0, 7, 14, 30]. When set, it replaces the first delay, interval, maximum and upcoming reminder."
+        },
+        "SendFromHour": {
+          "type": "integer",
+          "default": 8,
+          "description": "The first hour of the day (0 to 23, in the site\u0027s time zone) reminders are sent. Defaults to 8."
+        },
+        "SendUntilHour": {
+          "type": "integer",
+          "default": 20,
+          "description": "The hour of the day (1 to 24, in the site\u0027s time zone) reminders stop being sent. Defaults to 20."
+        },
+        "ChargeRetryDays": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "How many days after a declined charge of a saved card each retry is made, in order. Defaults to [1, 3, 5]."
         }
       },
       "additionalProperties": true
@@ -4872,6 +5485,11 @@
           "type": "boolean",
           "default": true,
           "description": "Whether the pages that get WebMCP also get the page tools, which read the page, list its links, open another page of the site, and read and fill its forms."
+        },
+        "EnableStorefrontTools": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether front-end pages offer visitors who are not signed in, and signed-in users without the WebMCP permission, the selected tools that are marked safe for anonymous callers."
         }
       },
       "additionalProperties": true

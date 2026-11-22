@@ -1,6 +1,6 @@
 ---
 name: orchardcore-time-tracker
-description: Skill for the CrestApps Orchard Core Time Tracker module (CrestApps.OrchardCore.TimeTracker). Covers time stages such as Work, Break and Lunch, the categories their minutes count toward with a factor, My Time with clock in, switch stage and clock out, manager corrections with a reason kept in the Audit Trail, the Hours by Category report, the TimeTracker recipe and deployment steps, ITimeTrackerService, other clocks that keep entries through SyncAsync and IExternalTimeClock, the Workforce Time Clock turning punches into read-only entries, Workforce time off kept in Time Tracker, and the Contact Center Time Tracker stages for agent states. Use this skill when requests mention time tracking, clocking in, billable or payable hours, time categories or correcting tracked time. Strong matches include TimeStage, TimeCategory, TimeEntry, TimeEntrySync, ITimeTrackerService, ITimeEntryObserver, IExternalTimeClock, TimeTrackerPermissions and HoursByCategoryReport.
+description: Skill for the CrestApps Orchard Core Time Tracker module (CrestApps.OrchardCore.TimeTracker). Covers time stages such as Work, Break and Lunch, categories with a factor, My Time with clock in, switch stage and clock out, manager corrections kept in the Audit Trail, the Hours by Category report, the TimeTracker recipe and deployment steps, ITimeTrackerService with InsertAsync and SetBilledAsync, what time counts against with ChargedTo and ITimeEntryChargeResolver, ticket time, the My time staff link, other clocks through SyncAsync and IExternalTimeClock, the Workforce Time Clock and time off, and Contact Center agent states. Use this skill when requests mention time tracking, clocking in, billable or payable hours, time categories, logging time on a ticket, billing tracked time or correcting tracked time. Strong matches include TimeStage, TimeCategory, TimeEntry, TimeEntrySync, TimeEntryQuery, ITimeTrackerService, ITimeEntryObserver, ITimeEntryChargeResolver, IExternalTimeClock and TimeTrackerPermissions.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,7 +19,9 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension c
 - Reference `CrestApps.OrchardCore.TimeTracker.Abstractions` (models, `ITimeTrackerService`, `IExternalTimeClock`, `ITimeEntryObserver`, `TimeTrackerPermissions`, `TimeTrackerConstants`) or `CrestApps.OrchardCore.TimeTracker.Core` (`AddTimeTrackerCore()`, stores, managers) from your module.
 - Every change goes through `ITimeTrackerService`, which takes a distributed lock per person (`TIMETRACKER_USER_{userId}`) and saves before releasing it, so a day never has gaps or overlaps and no time is recorded in the future.
 - Entries kept by another clock (`ManagedBy` set) are read-only here; correct them in that clock (for the Workforce time clock, its punches).
-- Workforce punches, timesheets and pay codes are covered by `orchardcore-workforce`; agent states by `orchardcore-workforce-contact-center`.
+- Billed entries (`BilledInvoiceId` set) can't be changed or removed until the invoice lets them go.
+- Show entry times in the local time zone (`ILocalClock`, the `DateTime` shape), never as UTC; see `orchardcore-time-zones`.
+- Workforce punches, timesheets and pay codes are covered by `orchardcore-workforce`; agent states by `orchardcore-workforce-contact-center`; the people themselves by `orchardcore-staff`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -38,6 +40,9 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension c
 | `CrestApps.OrchardCore.Workforce.TimeClock` | Each worker's day from punches (depends on Time Tracker). |
 | `CrestApps.OrchardCore.Workforce.TimeOff` | Approved time off kept as entries. |
 | `CrestApps.OrchardCore.Workforce.ContactCenter.TimeTracker` | Agent states as entries, over the time clock's work. |
+| `CrestApps.OrchardCore.Staff` | A **My time** link (`~/Admin/time/my`, for users with `TrackOwnTime`) on **Staff > My Profile**, through `IStaffHomeLinkProvider`. See `orchardcore-staff`. |
+| Tickets | A desk names the stage ticket work is recorded in; agents start and stop work on a ticket (`Source` `Ticket`, `SourceRef` `Ticket:{id}`) or **Log time** after the fact (`InsertAsync`); with ticket agreements, time is charged to the ticket's agreement. |
+| Invoicing Billing | Bills ended entries at an hourly rate and marks them with `SetBilledAsync`. |
 
 ```json
 {
@@ -62,21 +67,25 @@ All in the `TimeTracker` YesSql collection.
 |---|---|
 | `TimeCategory` | `Name` (unique), `Code`, `Color`, `Position` (report column order), `Factor` (default `1`; `1.5` counts a minute as 1.5), `Enabled` |
 | `TimeStage` | `Name` (unique), `Code` (exports and mapping), `Color`, `Position`, `CategoryIds`, `SelfService` (default `true`; people may pick it on their clock), `Enabled` |
-| `TimeEntry` | `UserId`, `UserName`, `StageId`, `StartUtc`, `EndUtc` (`null` while open), `Source`, `SourceRef`, `Note`, `ManagedBy` (the clock that keeps it), `CreatedBy`, `Changes` (`Utc`, `By`, `Reason`, `Before`) |
+| `TimeEntry` | `UserId`, `UserName`, `StageId`, `StartUtc`, `EndUtc` (`null` while open), `Source`, `SourceRef` (such as `Ticket:{id}`), `ChargedTo` (a `RecordRef` the time counts against, such as `Agreement:{id}`), `Note`, `ManagedBy` (the clock that keeps it), `BilledInvoiceId`, `BilledLineId`, `CreatedBy`, `Changes` (`Utc`, `By`, `Reason`, `Before`) |
 
-`TimeTrackerConstants.Sources`: `Self`, `Manager`, `Kiosk`, `Mobile`, `ContactCenter`, `TimeOff`, `Api`, `Import`. People are recorded under their display name.
+`TimeTrackerConstants.Sources`: `Self`, `Manager`, `Kiosk`, `Mobile`, `ContactCenter`, `TimeOff`, `Api`, `Import`, `Ticket`. People are recorded under their display name; the time entry editor's person picker lists staff (`audience = "Staff"`).
+
+The indexes (`TimeEntryIndex`, `TimeCategoryIndex`, `TimeStageIndex`) are declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`. `TimeEntryIndex` has a `ChargedTo` column (`Kind:Id`, indexed with `StartUtc`); migration 2 added it and requested the **TimeTracker.ChargeEntries** resumable step, which asks the charge resolvers about older entries 200 at a time.
 
 ## ITimeTrackerService
 
 | Method | Does |
 |---|---|
 | `GetStatusAsync(userId)` | The open entry, if any. |
-| `SwitchAsync(userId, userName, stageId, source, actor, sourceRef)` | Clocks in, or ends the open stage this second and starts the new one. Same stage changes nothing. Refused for people another clock keeps. |
+| `SwitchAsync(userId, userName, stageId, source, actor, sourceRef)` | Clocks in, or ends the open stage this second and starts the new one. Same stage and same `sourceRef` changes nothing; the same stage for another `sourceRef` (another ticket) ends one entry and starts the next. Refused for people another clock keeps. |
 | `ClockOutAsync(userId, actor)` | Ends the open stage. |
 | `AddAsync(entry, actor, reason)` | Records an ended entry (a manager's, an import's). |
-| `UpdateAsync(entryId, stageId, startUtc, endUtc, note, actor, reason)` | Changes stage, times or note; needs a reason, kept in `Changes`. Refused for a `ManagedBy` entry. |
-| `DeleteAsync(entryId, actor, reason)` | Needs a reason. Refused for a `ManagedBy` entry. |
-| `ListAsync(TimeEntryQuery)` | By `UserIds`, `StageId`, `FromUtc`, `ToUtc`. |
+| `InsertAsync(entry, actor, reason)` | Records an ended entry **over** the person's other time (work logged after the fact): covered entries are cut around it (one it falls inside becomes two, one it covers is removed), so the total doesn't change. Refused when it overlaps time of its own `Source` or a `ManagedBy` entry, ends in the future or has no end. Cut entries keep the reason in `Changes`. |
+| `UpdateAsync(entryId, stageId, startUtc, endUtc, note, actor, reason)` | Changes stage, times or note; needs a reason, kept in `Changes`. Refused for a `ManagedBy` or billed entry. |
+| `DeleteAsync(entryId, actor, reason)` | Needs a reason. Refused for a `ManagedBy` or billed entry. |
+| `SetBilledAsync(entryId, invoiceId, lineId)` | Marks an ended entry billed on an invoice line, or with `invoiceId = null` lets it go. Refused for an open entry or one billed on another invoice. |
+| `ListAsync(TimeEntryQuery)` | By `UserIds`, `StageId`, `FromUtc`, `ToUtc`, `Source`, `SourceRef`, `SourceRefs`, `ChargedTo`. |
 | `GetTotalsAsync(query, timeZoneId, byDay)` | `TimeTotalsRow`s per person (or person and day, splitting entries over midnight): `MinutesByStage`, `MinutesByCategory` after factors, `TotalMinutes`. Open entries count up to now. |
 | `SyncAsync(TimeEntrySync)` | Replaces the entries another clock keeps for a person over a range. |
 
@@ -159,6 +168,34 @@ The `TimeTracker` step creates or updates `Categories` and `Stages` (matched by 
 | `TimeEntrySync` + `SyncAsync` | Rebuild your entries (`ManagedBy` = your clock id) for a person over `FromUtc`..`ToUtc` from `BuildAsync`, called under the person's lock. Unchanged entries keep their ids; time kept here (a manager's entry) stays and your entries are cut around it. `ReplacesRangeOnly` rebuilds only the range (for a growing log); `Overrides` names clocks whose entries are cut around yours. |
 | `IExternalTimeClock` | `FindAsync(userId)` says your clock keeps this person (My Time then refuses `SwitchAsync` and shows your controls); `FindByIdAsync(id)` names the clock for read-only entries. Returns `ExternalTimeClockInfo { Id, Name, Url, ManageUrl, ControlsViewComponent }`. |
 | `ITimeEntryObserver` | `OnChangedAsync(kind, entry, before, actor, reason)` after every save (`Created`, `Ended`, `Edited`, `Deleted`); the Audit Trail is one. |
+| `ITimeEntryChargeResolver` | `ResolveAsync(entry)` returns the `RecordRef` (`CrestApps.OrchardCore.Records`) a new entry with a source ref counts against, or `default` when it doesn't know the source. Asked once, inside the creating lock and save (by `SwitchAsync`, `AddAsync`, `InsertAsync` or a sync); the first non-empty answer wins and later changes to the source record never move logged time. Register with `services.TryAddEnumerable(ServiceDescriptor.Scoped<ITimeEntryChargeResolver, T>())`. Tickets' agreements feature charges ticket time to the ticket's agreement. |
+
+```csharp
+public sealed class RepairTimeChargeResolver : ITimeEntryChargeResolver
+{
+    private readonly RepairStore _repairs;
+
+    public RepairTimeChargeResolver(RepairStore repairs)
+    {
+        _repairs = repairs;
+    }
+
+    public async Task<RecordRef> ResolveAsync(TimeEntry entry, CancellationToken cancellationToken = default)
+    {
+        if (entry.SourceRef is null || !entry.SourceRef.StartsWith("Repair:", StringComparison.Ordinal))
+        {
+            return default;
+        }
+
+        var repair = await _repairs.FindAsync(entry.SourceRef["Repair:".Length..], cancellationToken);
+
+        return string.IsNullOrEmpty(repair?.ContractId) ? default : new RecordRef("Contract", repair.ContractId);
+    }
+}
+
+// Time charged to one contract:
+// var entries = await _timeTracker.ListAsync(new TimeEntryQuery { ChargedTo = new RecordRef("Contract", contractId) });
+```
 
 The clocks that ship:
 
@@ -176,10 +213,12 @@ When the time clock starts, every activity code gets a stage (one with the same 
 |---|---|
 | "Clock in" refused on My Time | Another clock keeps this person (the Workforce time clock); use its buttons, or remove the team's time clock policy. |
 | Entry can't be edited or removed | It has `ManagedBy`; correct the punch (Workforce > Time Management > Timesheets) and the clock syncs it again. |
-| Update or delete refused | A reason is required, the change would overlap another entry, or the time is in the future. |
+| Update or delete refused | A reason is required, the change would overlap another entry, the time is in the future, or the entry is billed on an invoice (take the line off or void the invoice first). |
+| `InsertAsync` refused | The entry overlaps time of its own source (another ticket's) or a `ManagedBy` entry, has no end, or ends in the future. |
+| Old entries have no `ChargedTo` | The **TimeTracker.ChargeEntries** resumable step runs a page at a time; entries no resolver knows stay uncharged. |
 | Category totals look inflated | Check the category `Factor`. |
 | Hours by Category missing | Enable `CrestApps.OrchardCore.Reports`; the old `/Admin/time/report` page is gone. |
 | Recipe stage has no categories | Category names in `categories` must exist (imported earlier in the same step is fine). |
 | Workers without a login don't appear | Time Tracker records users; the time clock skips workers without one. |
 
-Related skills: `orchardcore-workforce`, `orchardcore-workforce-contact-center`, `orchardcore-reports`, `orchardcore-crestapps-users`.
+Related skills: `orchardcore-staff`, `orchardcore-invoicing` (Invoicing Billing bills tracked time at an hourly rate), `orchardcore-payroll` (pays hours that come from the Workforce time clock, not from tracked time), `orchardcore-workforce`, `orchardcore-workforce-contact-center`, `orchardcore-reports`, `orchardcore-crestapps-users`.

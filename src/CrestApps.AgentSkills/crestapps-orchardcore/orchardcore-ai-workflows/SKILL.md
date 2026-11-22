@@ -147,6 +147,12 @@ website chats, text threads and AI phone calls. Their input is `AIConversationWo
 | **AI Conversation Evaluated**, **AI Guardrail Triggered**, **AI Alert Triggered**, **AI Alert Resolved** | Events | Done |
 | **Send Signed Webhook** (category **HTTP**) | Task, HMAC-signed POST with retries | Delivered, Failed |
 
+The activities that read or change a chat session (**Set Conversation Variables**, **AI Conversation Flow Started**,
+**AI Conversation Stage**, **Evaluate AI Conversation**, **Simulate AI Conversation**, **Rerun AI Conversation Analysis** and
+**Update Contact Memory**) are registered only when **AI Chat Services** (`CrestApps.OrchardCore.AI.Chat.Core`, brought by
+AI Chat or AI Chat Interactions) is enabled too. Without it the workflow editor does not list them, and the other AI
+activities stay available.
+
 The Contact Center adds **AI Call Action** and **Transfer AI Call**, and Omnichannel Management adds **Create
 AI Activity**. Behaviour, services and recipes are in `orchardcore-ai-conversations`.
 
@@ -163,5 +169,6 @@ AI Activity**. Behaviour, services and recipes are in `orchardcore-ai-conversati
 | Direct-config task missing from the activity picker | Enable `CrestApps.OrchardCore.AI.Chat.Interactions`. |
 | Task ends on **Failed** at once | The prompt rendered empty, the profile was deleted, or no chat deployment has a connection. Check the log. |
 | Task ends on **Drew Blank** | The model replied with no text; check the deployment and the prompt. |
+| Conversation variable, flow, evaluation, simulation or contact memory activities missing | Enable a chat feature (AI Chat or AI Chat Interactions) so AI Chat Services is on. |
 | Chat events never fire | No chat feature is enabled, data extraction or post-processing is not configured, or the profile filter does not match. |
 | Output is empty in a later activity | The result property name differs, or the read omits `.Content`. |

@@ -21,6 +21,8 @@ You are an Orchard Core expert. Generate admin menus, custom admin node types, a
 - Built-in node types: **Link Admin Node**, **Placeholder Admin Node**, **Content Types Admin Node**, and **Lists Admin Node**.
 - A disabled menu is not shown; a disabled node hides itself and all descendants.
 - Use deployment plans to export admin menus as `AdminMenu` recipe steps.
+- The menu and node edit pages follow the admin action bar order: **Cancel** first, then secondary actions (`action-bar-secondary`: **Edit Admin Nodes** on a menu, **Delete** on a node), then the `btn-primary` **Save** (on a node a split button with **Save and continue**) last. Custom node editors (`{Node}.Fields.TreeEdit.cshtml`) contribute rows only, never buttons (see `orchardcore-admin-edit-views`).
+- The permission picker of the Link and Placeholder node editors loads its `admin-menu-permission-picker` style with `depends-on="vue-multiselect"`; a custom node editor reusing the picker must require `vue-multiselect` the same way.
 - Permissions live in the static `OrchardCore.AdminMenu.AdminMenuPermissions` class (`OrchardCore.AdminMenu.Abstractions`).
 - Custom admin node types require a node class, a display driver, a navigation builder, and views; register them with `services.AddAdminNode<TNode, TBuilder, TDriver>()`.
 - Store non-view admin node classes in an `AdminNodes` folder by convention; admin node views must live in `Views/Items/`.

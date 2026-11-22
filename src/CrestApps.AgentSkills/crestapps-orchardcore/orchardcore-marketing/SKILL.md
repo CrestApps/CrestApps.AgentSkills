@@ -157,6 +157,10 @@ Ship coupons between sites with Checkout's `Coupons` recipe step:
 - Reports: scheduled report emails (`orchardcore-reports`).
 - Product Reviews: review requests to buyers who accept marketing (`orchardcore-reviews`).
 
+## Monitoring
+
+`MarketingBackgroundTask` reports on the shared `crestapps.background_task.*` instruments (`CrestApps.OrchardCore.Platform` meter): items `started` and `not_started` per campaign, and `skipped` when the site has no base URL. The sends themselves run through Outreach (`orchardcore-outreach`).
+
 ## Troubleshooting
 
 | Symptom | Check |

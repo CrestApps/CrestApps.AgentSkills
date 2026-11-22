@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningRequirements",
+      "description": "Recipe step discriminator. Must be \u0027LearningRequirements\u0027."
+    },
+    "Requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The rule id."
+          },
+          "name": {
+            "type": "string",
+            "description": "The rule name; rules are matched by id, then by name."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the rule is applied."
+          },
+          "targetKind": {
+            "type": "string",
+            "description": "Course, LearningPath or CertificationPath."
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The content item id of the course or path, or the certification path id."
+          },
+          "audienceName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The technical name of the user audience."
+          },
+          "userIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "User ids required besides the audience."
+          },
+          "dueRule": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "None (0), FixedDate (1), DaysAfterRequired (2) or DaysAfterHire (3)."
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The due day, yyyy-MM-dd, for FixedDate."
+          },
+          "dueDays": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The days for the rules that count days."
+          },
+          "reminderDays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Days before the due date to remind the person."
+          },
+          "escalateAfterDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "minimum": 0,
+            "description": "Days after the due date to tell the manager; null never."
+          }
+        },
+        "required": [
+          "name",
+          "targetKind",
+          "targetId"
+        ]
+      },
+      "description": "The rules to create, or update by id or name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

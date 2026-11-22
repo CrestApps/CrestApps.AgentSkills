@@ -1,0 +1,141 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "PayrollPayItems",
+      "description": "Recipe step discriminator. Must be \u0027PayrollPayItems\u0027."
+    },
+    "Items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The item\u0027s id."
+          },
+          "ProfileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay profile."
+          },
+          "PayCodeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay code."
+          },
+          "PayCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pay code\u0027s code, instead of the id."
+          },
+          "Amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The amount each period, or null for a percent."
+          },
+          "Percent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The percent of gross pay, or null for an amount."
+          },
+          "StartDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The first day, yyyy-MM-dd."
+          },
+          "EndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day, yyyy-MM-dd, or null."
+          },
+          "EmployerMatchPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The percent the employer matches."
+          },
+          "EmployerMatchLimitPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most the employer matches, as a percent of gross pay."
+          },
+          "Goal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The total to reach."
+          },
+          "PaidTowardGoal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "How much was paid toward the goal."
+          },
+          "PeriodMaximum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most taken in a period."
+          },
+          "YearMaximum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most taken in a year."
+          },
+          "ArrearsBalance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "What is owed."
+          },
+          "Note": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A note."
+          }
+        },
+        "required": [
+          "ProfileId",
+          "StartDate"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The pay items to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Items"
+  ],
+  "additionalProperties": true
+}

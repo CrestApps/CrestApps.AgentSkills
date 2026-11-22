@@ -44,12 +44,12 @@ builder.Services.AddCrestAppsCore(crestApps => crestApps
 
 var app = builder.Build();
 
-app.AddDownloadAIDocumentEndpoint()
-    .AddDownloadAIDocumentFigureEndpoint()
-    .AddUploadChatInteractionDocumentEndpoint()
-    .AddRemoveChatInteractionDocumentEndpoint()
-    .AddUploadChatSessionDocumentEndpoint()
-    .AddRemoveChatSessionDocumentEndpoint();
+app.AddDownloadAIDocumentEndpoint();
+app.AddDownloadAIDocumentFigureEndpoint();
+app.AddUploadChatInteractionDocumentEndpoint();
+app.AddRemoveChatInteractionDocumentEndpoint();
+app.AddUploadChatSessionDocumentEndpoint();
+app.AddRemoveChatSessionDocumentEndpoint();
 ```
 
 - Use `AddYesSqlStores()` instead of `AddEntityCoreStores()` on the document-processing builder for YesSql hosts. Both register the document, chunk and data source stores.

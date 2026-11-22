@@ -66,7 +66,7 @@ cd BlazorSolution
 dotnet new sln
 dotnet new occms -o BlazorCms
 dotnet sln add ./BlazorCms
-dotnet new razorclasslib -f net10.0 -o BlazorLib
+dotnet new razorclasslib -f net11.0 -o BlazorLib
 dotnet sln add ./BlazorLib
 dotnet add ./BlazorCms/BlazorCms.csproj reference ./BlazorLib/BlazorLib.csproj
 ```
@@ -79,7 +79,7 @@ The Razor class library must include a `FrameworkReference` to `Microsoft.AspNet
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

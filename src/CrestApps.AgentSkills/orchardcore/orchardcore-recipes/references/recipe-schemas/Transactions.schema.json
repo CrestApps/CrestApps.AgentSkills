@@ -1,0 +1,82 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Transactions",
+      "description": "Recipe step discriminator. Must be \u0027Transactions\u0027."
+    },
+    "Transactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The record\u0027s 26-character id. A record the site already has is kept as it is."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The transactions, as a Transactions deployment step writes them, with their timelines (Events), amounts, statuses, payer and reference. They are written as they are: nothing is posted, numbered or announced."
+    },
+    "PaymentAttempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The record\u0027s 26-character id. A record the site already has is kept as it is."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The payment attempts. Needs the Checkout feature."
+    },
+    "PaymentRefunds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The record\u0027s 26-character id. A record the site already has is kept as it is."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The refunds. Needs the Checkout feature."
+    },
+    "PaymentIssues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The record\u0027s 26-character id. A record the site already has is kept as it is."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The payment issues staff follow up."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

@@ -102,7 +102,7 @@ Each configurable entity has a deployment step (category **Contact Center**) and
 |---|---|---|---|
 | `ContactCenterSkill` | `Skills` | Queues | `ItemId` |
 | `ContactCenterQueueGroup` | `QueueGroups` | Queues | `ItemId` |
-| `ContactCenterBusinessHoursCalendar` | `Calendars` | Business Hours | `ItemId` |
+| `BusinessHoursSchedules` | `Schedules` | `CrestApps.OrchardCore.BusinessHours` (Business Hours module) | `ItemId`, then `Name` |
 | `ContactCenterQueue` | `Queues` | Queues | `ItemId` |
 | `ContactCenterEntryPoint` | `EntryPoints` | Entry Points | `ItemId` |
 | `ContactCenterDialerProfile` | `DialerProfiles` | Dialer | `ItemId` |
@@ -114,7 +114,8 @@ Import rules:
 
 - An existing `ItemId` is updated; an unknown `ItemId` is created under that id; an omitted `ItemId` gets a new id. This makes plans idempotent.
 - Entries are validated by the entity's own handlers, the same as the admin editor. A rejected entry is reported and skipped; the rest still import. Out-of-range values are refused, not clamped.
-- References are checked, so order steps: voice media, skills, queue groups, calendars → queues → entry points → dialer profiles → agent entitlements. Put Omnichannel steps (campaigns, channel endpoints) before the Contact Center steps that reference them.
+- Business hours are Business Hours schedules (edited under **Content → Business Hours**, see `orchardcore-business-hours`); queues, entry points and dialer profiles keep naming them by id in `BusinessHoursCalendarId` and `CallingCalendarId`. The legacy `ContactCenterBusinessHoursCalendar` step (`Calendars` with `WeeklySchedule` and `Holidays`) is still read: each calendar is imported as a schedule, keeping its id when valid. Deployment plans no longer offer it; export hours with the **Business hours schedules** step.
+- References are checked, so order steps: voice media, skills, queue groups, business hours schedules → queues → entry points → dialer profiles → agent entitlements. Put Omnichannel steps (campaigns, channel endpoints) before the Contact Center steps that reference them.
 - Agent entitlements match users by `UserName`, skip unknown users, drop dangling queue and campaign ids, and never touch live presence.
 - Runtime state (activities, interactions, events, call sessions, queue items, reservations, sessions, callbacks, commands, inbox and outbox) never travels. Voice media clips travel as library entries without audio.
 
@@ -130,18 +131,22 @@ Import rules:
       ]
     },
     {
-      "name": "ContactCenterBusinessHoursCalendar",
-      "Calendars": [
+      "name": "BusinessHoursSchedules",
+      "Schedules": [
         {
           "ItemId": "cal-support",
           "Name": "Support hours",
-          "TimeZoneId": "America/New_York",
-          "WeeklySchedule": [
-            { "Day": "Monday", "IsOpen": true, "OpenMinute": 480, "CloseMinute": 1020 },
-            { "Day": "Tuesday", "IsOpen": true, "OpenMinute": 480, "CloseMinute": 1020 }
-          ],
-          "Holidays": [ "2026-12-25" ],
-          "Enabled": true
+          "Enabled": true,
+          "Hours": {
+            "TimeZoneId": "America/New_York",
+            "Windows": [
+              { "Day": 1, "OpenMinute": 480, "CloseMinute": 1020 },
+              { "Day": 2, "OpenMinute": 480, "CloseMinute": 1020 }
+            ],
+            "DateExceptions": [
+              { "Date": "2026-12-25", "Name": "Christmas Day", "Closed": true }
+            ]
+          }
         }
       ]
     },
@@ -257,11 +262,11 @@ Import rules:
 }
 ```
 
-`OpenMinute` and `CloseMinute` are minutes after midnight; equal values mean a 24-hour day and windows may cross midnight. IVR action kinds are `RouteToQueue`, `RouteToAgent`, `SubMenu`, `Voicemail`, `ExternalTransfer` (target is an external destination id) and `Repeat`. A `null` `FallbackAction` routes to the entry point's own target. Preview profiles take `PreviewOfferTimeoutSeconds` (default 180, 15 to 3600; 0 uses the default) for how long a record stays reserved for its agent. Predictive profiles add `PredictivePacingModel` (`ReservedPerCall` or `OverDial`) and the over-dial properties described in [routing-and-dialer.md](routing-and-dialer.md).
+In `BusinessHoursSchedules`, `Day` is 0 (Sunday) to 6 (Saturday), `OpenMinute` and `CloseMinute` are minutes after local midnight (up to two windows a day; equal values mean a 24-hour day and windows may cross midnight), and a date exception is closed all day or has its own `OpenMinute`/`CloseMinute`. IVR action kinds are `RouteToQueue`, `RouteToAgent`, `SubMenu`, `Voicemail`, `ExternalTransfer` (target is an external destination id) and `Repeat`. A `null` `FallbackAction` routes to the entry point's own target. Preview profiles take `PreviewOfferTimeoutSeconds` (default 180, 15 to 3600; 0 uses the default) for how long a record stays reserved for its agent. Predictive profiles add `PredictivePacingModel` (`ReservedPerCall` or `OverDial`) and the over-dial properties described in [routing-and-dialer.md](routing-and-dialer.md).
 
 ## Feature-Only Recipes
 
-`contact-center-asterisk-ga-core.recipe.json` (recipe name `ContactCenterAsteriskGaCore`) enables the certified `ga-core-asterisk` set (Contact Center, Agents, Queues, Inbound Voice, Telephony Soft Phone, Dialer, Asterisk). Run it from **Configuration → Recipes** with `OrchardCore.Recipes` enabled. The Agents feature also runs the `agent-state-reason-codes` module recipe at setup, seeding standard reason codes with fixed identifiers.
+`contact-center-asterisk-ga-core.recipe.json` (recipe name `ContactCenterAsteriskGaCore`) enables the certified `ga-core-asterisk` set (Contact Center, Agents, Queues, Inbound Voice, Telephony Soft Phone, Dialer, Asterisk). Run it from **Tools → Recipes** with `OrchardCore.Recipes` enabled. The Agents feature also runs the `agent-state-reason-codes` module recipe at setup, seeding standard reason codes with fixed identifiers.
 
 ## Making a New Entity Portable
 

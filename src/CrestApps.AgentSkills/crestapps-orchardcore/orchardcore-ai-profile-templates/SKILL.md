@@ -116,9 +116,9 @@ public sealed class TagProfileTemplateApplicationHandler : IAIProfileTemplateApp
 ```
 
 Register with `services.AddScoped<IAIProfileTemplateApplicationHandler, TagProfileTemplateApplicationHandler>()`.
-Handlers run once, just before a profile built by the New AI Profile flow is persisted, never while the
-editor is merely prefilled. AI Profile Documents uses this hook to give the profile its own document copies.
-The `CreateAIProfileFromTemplate` recipe step applies the template directly and does not call these handlers.
+Handlers run once, just before a profile built by the New AI Profile flow or by the `CreateAIProfileFromTemplate`
+recipe step is persisted, never while the editor is merely prefilled, so a profile made by a recipe is the same as
+one made on the page. AI Profile Documents uses this hook to give the profile its own document copies.
 
 ## Recipes
 

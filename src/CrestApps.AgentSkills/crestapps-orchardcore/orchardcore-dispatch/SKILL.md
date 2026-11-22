@@ -1,6 +1,6 @@
 ---
 name: orchardcore-dispatch
-description: Skill for the CrestApps Orchard Core Dispatch module (CrestApps.OrchardCore.Dispatch) with its Technician Mobile and Field Service API features. Covers service visits, the candidate finder, locked assignment that never double-books, crews and Fleet equipment, the Dispatch Board and day optimizer, customer notices and tracking links, visits at risk, the offline technician Field page, the APIs at api/work-orders/v1, api/dispatch/v1, api/geo/v1 and api/assets/v1, the field service AI tools, KPIs and the Field Service report data source, booking capacity through IAppointmentSlotFilter, the FieldServiceSample recipe and visit page panels. Use this skill when requests mention dispatching technicians, a dispatch board, scheduling visits, route optimization, technician mobile apps or field service APIs. Strong matches include ServiceVisit, IDispatchService, IDispatchCandidateFinder, IDispatchOptimizer, IVisitObserver, IVisitNoticeSender, DispatchSettings, DispatchMobileOptions and ManageDispatch.
+description: Skill for the CrestApps Orchard Core Dispatch module (CrestApps.OrchardCore.Dispatch) with its Technician Mobile and Field Service API features. Covers service visits, technicians as staff members with the Technician capability, the candidate finder, locked assignment that never double-books, crews and equipment, the Dispatch Board and day optimizer, customer notices and tracking links, visits at risk, the offline technician Field page, the field service APIs, the field service AI tools, KPIs and the Field Service report data source, booking capacity, the FieldServiceSample recipe and visit page panels. Use this skill when requests mention dispatching technicians, a dispatch board, scheduling visits, route optimization, technician mobile apps or field service APIs. Strong matches include ServiceVisit, IDispatchService, IDispatchCandidateFinder, IDispatchOptimizer, IVisitObserver, IVisitNoticeSender, DispatchSettings, DispatchMobileOptions and ManageDispatch.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -16,11 +16,11 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 ### Guidelines
 
 - Install `CrestApps.OrchardCore.Dispatch` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle, which includes it, Work Orders, Assets, Workforce and Geo) in the web/startup project.
-- Dispatch depends on Work Orders, Workforce and Geo. Technicians are Workforce workers on **published** shifts; nothing can be assigned until a schedule is published for their team.
+- Dispatch depends on Work Orders, Workforce and Geo. Technicians are **staff members** (see `orchardcore-staff`) that hold one of the capabilities in `DispatchSettings.TechnicianCapabilities` (**Technician** by default) and work **published** Workforce shifts; nothing can be assigned until a schedule is published for their team.
 - Contracts are in `CrestApps.OrchardCore.Dispatch.Abstractions`; services (`DefaultDispatchService`, `DefaultDispatchCandidateFinder`, `DefaultDispatchOptimizer`, `DispatchOptimizationService`, `FieldSyncService`) are in `CrestApps.OrchardCore.Dispatch.Core`.
 - Always assign, move and change visits through `IDispatchService`. It takes a distributed lock per worker (`DISPATCH_RESOURCE_Worker_{id}`) and on the visit, re-checks availability inside the lock, and saves before releasing it.
 - For a better optimizer, add the `orchardcore-or-tools` add-on rather than replacing the service.
-- Work orders are covered by `orchardcore-work-orders`, maps and travel times by `orchardcore-geo`, equipment and van stock by `orchardcore-assets`, technicians, teams and shifts by `orchardcore-workforce` and `orchardcore-teams`, skills by `orchardcore-skills`.
+- Work orders are covered by `orchardcore-work-orders`, maps and travel times by `orchardcore-geo`, equipment and van stock by `orchardcore-assets`, staff members and capabilities by `orchardcore-staff`, teams and shifts by `orchardcore-teams` and `orchardcore-workforce`, skills by `orchardcore-skills`.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -55,13 +55,40 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 |---|---|
 | `OrchardCore.SignalR` | Open boards reload when any visit changes (`DispatchHub`); otherwise every minute. |
 | `OrchardCore.Workflows` | **Visit Assigned**, **Visit Status Changed** and **Visit At Risk** events. |
-| `CrestApps.OrchardCore.Skills` | Required skills (lowest level) and certifications checked on the day. |
+| `CrestApps.OrchardCore.Skills` | Required skills (lowest level) and certifications checked on the day, read from the staff member (`SkillSubject.Staff`). |
 | `CrestApps.OrchardCore.Assets.Fleet` | Required equipment (asset types) booked on Equipment calendars (`FleetDispatchEquipmentService`). |
 | `OrchardCore.Sms`, `OrchardCore.Email` | Customer notices by text when the contact has a phone, else email. |
 | `CrestApps.OrchardCore.AI` | The seven field service AI tools. |
 | `OrchardCore.DataPipelines.Core` | The **Field Service** report data source. |
+| `CrestApps.OrchardCore.Reports` | The **Reports > Field Service > KPIs** menu item (`FieldServiceReportsAdminMenu`). |
+| `CrestApps.OrchardCore.Staff.Compensation` | The **Labor cost** column of the Visits data set (each crew member's `StaffPayRates.CostOn(day)` times the time on site). |
 | `CrestApps.OrchardCore.Scheduling` | Booking capacity (`DispatchCapacitySlotFilter`). |
 | `CrestApps.OrchardCore.Inventory` with Technician Mobile | Stock locations for parts used, the technician's van first (`IFieldStockSource`). |
+
+## Who Is Dispatched
+
+Dispatch registers the **Technician** staff capability (`DispatchConstants.TechnicianCapability`, through `services.AddStaffCapability(...)`). Tick it on the **Capabilities** card of a staff member, or add your own pools (such as `Inspector`) under **Staff > Capabilities** and pick them in **Settings > Dispatch** (`TechnicianCapabilities`). Suggestions, the optimizer, the visit list, territory members, the API, the AI tools and the work order **Technicians** card all go through `DispatchResources.ListWorkersAsync`, which searches active staff (`StaffQuery` with `Status` `Active` and the `Capabilities`), so office staff never appear.
+
+- A worker's time zone comes from `IStaffTimeZoneResolver` (the staff member's own), then their team's or a parent team's, then the dispatch time zone. The day's route starts at the staff member's geocoded `HomeBase`, else their team's location.
+- The board has a capability filter beside the team filter (`dispatch/board?capability=Inspector`); the optimizer works with the people the board shows.
+- When a staff member is terminated, `DispatchStaffLifecycleObserver` (an `IStaffLifecycleObserver`) unassigns their scheduled and dispatched visits for the coming year.
+- On upgrade, staff members that were Workforce workers (they carry `WorkforceStaffSettings`) get the Technician capability once; untick it for anyone who isn't a technician. New staff members never get it automatically.
+- Dispatch adds a **Technicians** card (`WorkOrderTechnicians_Edit`, `Content:6`) to the work order editor with staff pickers for `PreferredWorkerIds` and `ExcludedWorkerIds` (staff member ids); a person in both lists is kept away.
+
+Give technicians the capability in a recipe through the Workforce `Workers` section (it saves staff members):
+
+```json
+{
+  "steps": [
+    {
+      "name": "Workforce",
+      "Workers": [
+        { "displayName": "Ana Field", "employeeNumber": "2002", "jobTitle": "Service technician", "capabilities": [ "Technician" ], "teamMemberships": [ { "teamName": "Field Operations" } ] }
+      ]
+    }
+  ]
+}
+```
 
 ## Visits
 
@@ -77,7 +104,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 | `UnassignAsync`, `PinAsync` | Back to unscheduled; pinned visits are not moved by the optimizer. |
 | `ChangeStatusAsync(visitId, status, note, actor)` | En route and on site start the work order; canceling needs a reason and removes job events; incomplete needs a reason and makes a return visit. |
 
-`IDispatchCandidateFinder.FindAsync` lists every active worker between two times: ruled-out ones with the reason (excluded, missing skill or certification, outside a strict territory, no shift, time off, not free long enough), the rest with their earliest start (`SlotFitter`) and a score from the `DispatchObjective` weights. Travel comes from `IGeoService`.
+`IDispatchCandidateFinder.FindAsync` lists every active staff member with a technician capability between two times: ruled-out ones with the reason (excluded, missing skill or certification, outside a strict territory, no shift, time off, not free long enough), the rest with their earliest start (`SlotFitter`) and a score from the `DispatchObjective` weights. Travel comes from `IGeoService`.
 
 ## Board, Optimizer, Notices and Risk
 
@@ -88,7 +115,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 
 ## Settings
 
-**Settings > Dispatch** (site settings group `dispatch`, `DispatchSettings`): `CreateVisitsForNewWorkOrders` (true), `ArrivalWindowMinutes` (120), `HorizonDays` (7), `BufferMinutes` (10), `StrictTerritory`, `TimeZoneId`, `Objective` (`TravelWeight` 5, `UrgencyWeight` 3, `ProficiencyWeight` 2, `PreferredWeight` 4, `BalanceWeight` 2), `AtRiskMinutes` (15), `OptimizerSeconds` (5), `NoticesEnabled`, `TrackingEnabled` (true), `ReminderHour` (17), `ScheduledText`, `ReminderText`, `EnRouteText`, `CompletedText`, `CanceledText`, `BookingWorkOrderTypeId`.
+**Settings > Dispatch** (site settings group `dispatch`, `DispatchSettings`): `TechnicianCapabilities` (the **Dispatch staff with** list; empty means `Technician`), `CreateVisitsForNewWorkOrders` (true), `ArrivalWindowMinutes` (120), `HorizonDays` (7), `BufferMinutes` (10), `StrictTerritory`, `TimeZoneId`, `Objective` (`TravelWeight` 5, `UrgencyWeight` 3, `ProficiencyWeight` 2, `PreferredWeight` 4, `BalanceWeight` 2), `AtRiskMinutes` (15), `OptimizerSeconds` (5), `NoticesEnabled`, `TrackingEnabled` (true), `ReminderHour` (17), `ScheduledText`, `ReminderText`, `EnRouteText`, `CompletedText`, `CanceledText`, `BookingWorkOrderTypeId`.
 
 ```json
 {
@@ -97,6 +124,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
       "name": "Settings",
       "DispatchSettings": {
         "TimeZoneId": "America/New_York",
+        "TechnicianCapabilities": [ "Technician" ],
         "ArrivalWindowMinutes": 120,
         "BufferMinutes": 10,
         "StrictTerritory": true,
@@ -114,10 +142,10 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 |---|---|---|
 | **Field Service > Dispatch Board** | `dispatch/board` (data from `dispatch/board/data`, moves to `dispatch/board/move`) | `ViewDispatch` |
 | **Field Service > Visits** | `dispatch/visits`, `dispatch/visits/{id}` | `ViewDispatch` |
-| **Reports > Field Service > KPIs** | `dispatch/kpis` | `ViewDispatch` |
+| **Reports > Field Service > KPIs** (with `CrestApps.OrchardCore.Reports` on) | `dispatch/kpis` | `ViewDispatch` |
 | **Settings > Dispatch** | site settings group `dispatch` | `ManageDispatchSettings` |
-| Get started (not in the menu, linked from the board) | `dispatch/get-started` | `ManageDispatchSettings` |
-| My Work **Field** page (Technician Mobile) | `~/Admin/my-work/field` | Use the My Work portal, and a worker profile |
+| Get started (not in the menu, linked from the board; checks for staff with the Technician capability and linked users) | `dispatch/get-started` | `ManageDispatchSettings` |
+| My Work **Field** page (Technician Mobile) | `~/Admin/my-work/field` | Use the My Work portal, and a staff member linked to the user |
 
 ## Permissions
 
@@ -131,7 +159,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes, API calls and 
 
 - Dispatch has no recipe step of its own. Its settings travel in Orchard Core's `Settings` step (above); the **Dispatch settings** deployment step exports them.
 - Visits, the technician app's command receipts, consent and positions are never exported.
-- The **Field service sample** recipe (`FieldServiceSample`, not a setup recipe) enables Geo, Assets with Fleet, Work Orders, Workforce with Shift Planning and My Work, Dispatch and Technician Mobile, and adds a team with a dispatcher and three technicians, a shift template, two territories, asset types and assets, a checklist, a service level, a sub-status and two work order types with fixed ids. Publish a schedule before dispatching. Its full shape is in [references/field-service-sample.md](references/field-service-sample.md).
+- The **Field service sample** recipe (`FieldServiceSample`, not a setup recipe) enables Geo, Assets with Fleet, Work Orders, Workforce with Shift Planning and My Work, Dispatch and Technician Mobile, and adds a team with a dispatcher and three technicians, a shift template, two territories, asset types and assets, a shared `WorkOrders` service level policy (`ServiceLevelPolicies` step), a checklist, a sub-status and two work order types with fixed ids. Give the technicians the **Technician** capability and publish a schedule before dispatching. Its full shape is in [references/field-service-sample.md](references/field-service-sample.md).
 
 ## Workflow Events
 
@@ -191,7 +219,7 @@ With Scheduling on, `DispatchCapacitySlotFilter` (an `IAppointmentSlotFilter`) n
 
 **Reports > Field Service > KPIs** (`FieldServiceKpiService`, last 30 days by default, at most a year, at most 5,000 visits and 5,000 work orders) shows first-time fix, on-time arrival, jobs per technician a day, return visits, travel against time on site, response and resolution compliance, time to repair, revenue per work order, repeat work and parts used by stock location.
 
-With `OrchardCore.DataPipelines.Core`, the `FieldService` report data source offers `FieldServiceWorkOrders` (`ViewWorkOrders`) and `FieldServiceVisits` (`ViewDispatch`), and with Assets `FieldServiceAssets`, `FieldServiceMeterReadings` and `FieldServiceServiceHistory`. Add data sets with `IFieldServiceReportDataSet`. See `orchardcore-report-builder`.
+With `OrchardCore.DataPipelines.Core`, the `FieldService` report data source offers `FieldServiceWorkOrders` (`ViewWorkOrders`) and `FieldServiceVisits` (`ViewDispatch`, with the lead **Technician** name and a **Labor cost** column from staff pay rates), and with Assets `FieldServiceAssets`, `FieldServiceMeterReadings` and `FieldServiceServiceHistory`. Add data sets with `IFieldServiceReportDataSet`. See `orchardcore-report-builder`.
 
 ## Extension Points
 
@@ -261,7 +289,9 @@ public sealed class LogVisitNoticeSender : IVisitNoticeSender
 
 | Symptom | Check |
 |---|---|
+| Board shows no technicians | Give staff members a capability listed in **Settings > Dispatch** (**Technician** by default), make them active, and clear the board's capability filter. |
 | Every technician is ruled out | Publish a schedule for the team; check skills, certifications, territory (`StrictTerritory`) and time off. |
+| Field page refuses the user | The user must be linked to a staff member (`UserId`) and hold **Use the My Work portal**. |
 | Assign refused with "This job needs 2 people." | The type's `CrewSize`; pass enough `WorkerIds`. |
 | Assign refused "No ... is free then." | Fleet has no free active schedulable asset of the required type. |
 | Two dispatchers, one wins | Expected: the lock per worker re-checks; the loser is told who is in the way. |
@@ -270,4 +300,8 @@ public sealed class LogVisitNoticeSender : IVisitNoticeSender
 | Field page answers `moved` or `canceled` | The server wins: the visit was reassigned or canceled; it leaves the device with the next pack. |
 | Recipe records lose links on rerun | Use 26-character lowercase Orchard Core ids for every `ItemId`. |
 
-Related skills: `orchardcore-work-orders`, `orchardcore-geo`, `orchardcore-assets`, `orchardcore-or-tools`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-skills`, `orchardcore-scheduling`, `orchardcore-calendars`, `orchardcore-inventory`, `orchardcore-report-builder`, `orchardcore-ai-tools`.
+## Telemetry
+
+The `CrestApps.OrchardCore.Dispatch` meter counts `crestapps.dispatch.visit.events` (tags `event`, `status`) and `crestapps.dispatch.observer.failures` (tags `observer`, `event`); the at-risk, reminder and location retention tasks report through the shared background task metrics. See `orchardcore-opentelemetry`.
+
+Related skills: `orchardcore-work-orders`, `orchardcore-staff`, `orchardcore-geo`, `orchardcore-assets`, `orchardcore-or-tools`, `orchardcore-workforce`, `orchardcore-teams`, `orchardcore-skills`, `orchardcore-scheduling`, `orchardcore-calendars`, `orchardcore-inventory`, `orchardcore-report-builder`, `orchardcore-ai-tools`.
