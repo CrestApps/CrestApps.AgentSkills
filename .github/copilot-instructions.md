@@ -8,8 +8,8 @@ Use ASD-STE100 Simplified Technical English for all responses.
 
 CrestApps.AgentSkills contains shared AI agent skills and MCP tooling for .NET applications and Orchard Core projects.
 
-- **Target Framework**: .NET 10 (net10.0)
-- **SDK Version**: .NET 10.0.100 (see `global.json`)
+- **Target Framework**: .NET 11 (net11.0)
+- **SDK Version**: .NET 11.0.100 (see `global.json`)
 - **Package Management**: Central Package Management via `Directory.Packages.props`
 - **Skill source roots**:
   - `src/CrestApps.AgentSkills/orchardcore/` - framework-only Orchard Core skills
@@ -172,7 +172,7 @@ For release builds, override the version (for example via CI) and publish with `
 - Key dependencies:
   - `ModelContextProtocol` (0.8.0-preview.1) - MCP C# SDK
   - `YamlDotNet` (16.3.0) - YAML parsing
-  - `Microsoft.Extensions.Logging.Abstractions` (10.0.3) - Logging abstractions
+  - `Microsoft.Extensions.Logging.Abstractions` (11.0.0) - Logging abstractions
   - `xunit.v3` (3.2.2) - Testing framework
 
 ## Key Conventions
