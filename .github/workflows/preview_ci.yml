@@ -30,7 +30,7 @@ jobs:
       if: steps.check-publish.outputs.should-publish == 'true'
       with:
         dotnet-version: |
-          10.0.x
+          11.0.x
     - name: Set build number
       if: steps.check-publish.outputs.should-publish == 'true'
       run: echo "BuildNumber=$(( $GITHUB_RUN_NUMBER ))" >> $GITHUB_ENV
