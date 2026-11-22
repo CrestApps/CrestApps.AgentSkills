@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-foundations
-description: Skill for the CrestApps.Core foundation packages (CrestApps.Core.Abstractions, CrestApps.Core, CrestApps.Core.Infrastructure, CrestApps.Core.Support). Covers the CrestAppsCoreBuilder and feature builder layering, AddCoreServices, catalogs (IReadCatalog, ICatalog, INamedCatalog, ISourceCatalog, INamedSourceCatalog), catalog managers and the AddCatalogManagers pipeline, ICatalogEntryHandler and CatalogEntryHandlerBase lifecycle handlers with validation through ValidatingContext, QueryContext paging, multi-source binding sources (INamedCatalogSource, MultiSourceNamedCatalog), IStoreCommitter commit boundaries and filters, IUserAccessor for hub-safe caller resolution, IODataValidator, and shared utilities such as UniqueId, JSOptions, RedactedSecret and DataProtectionHelper. Use it when building custom catalogs, stores, handlers, or infrastructure on CrestApps.Core.
+description: Skill for the CrestApps.Core foundation packages (CrestApps.Core.Abstractions, CrestApps.Core, CrestApps.Core.Infrastructure, CrestApps.Core.Support). Covers the CrestAppsCoreBuilder and feature builder layering, AddCoreServices, catalogs (IReadCatalog, ICatalog, INamedCatalog, ISourceCatalog, INamedSourceCatalog), catalog managers and the AddCatalogManagers pipeline, ICatalogEntryHandler and CatalogEntryHandlerBase lifecycle handlers with validation through ValidatingContext, QueryContext paging, multi-source binding sources (INamedCatalogSource, MultiSourceNamedCatalog), IStoreCommitter commit boundaries and filters, CookieAuthenticationAntiforgeryEndpointFilter with AntiforgeryEndpointFilterOptions, IUserAccessor for hub-safe caller resolution, IODataValidator, and shared utilities such as UniqueId, JSOptions, RedactedSecret and DataProtectionHelper. Use it when building custom catalogs, stores, handlers, or infrastructure on CrestApps.Core.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -183,6 +183,25 @@ The first-party stores stage writes and flush them through scoped `IStoreCommitt
 - Minimal APIs: `.AddEndpointFilter<StoreCommitterEndpointFilter>()` (namespace `CrestApps.Core.Filters`) commits after the handler.
 - SignalR: `AddSignalR().AddCrestAppsStoreCommitterFilter()`, or `.AddSignalR(addStoreCommitterFilter: true)` on the AI suite builder.
 - Background work: create a scope, write, then call `CommitAsync()` on that scope's `IStoreCommitter`.
+### Antiforgery for Minimal APIs
+
+`CookieAuthenticationAntiforgeryEndpointFilter` (namespace `CrestApps.Core.Filters`) validates the antiforgery token (the `RequestVerificationToken` header or the form field) of a request whose credential the browser attaches by itself: a cookie, or the `Authorization` header of Negotiate, NTLM and Basic. A request needs no token only when every authenticated identity has an authentication type in `AntiforgeryEndpointFilterOptions.NonCookieAuthenticationTypes` (`Bearer`, `Api`, `ApiKey`, `OpenIddict.Validation.AspNetCore` by default; it is the identity's authentication type, not the scheme name), or when it is anonymous and carries none of the `AmbientCookieNames`. Keep `DisableAntiforgery()` on the endpoint so the middleware does not validate twice, and register `AddAntiforgery()`.
+
+```csharp
+using CrestApps.Core.Filters;
+
+builder.Services.Configure<AntiforgeryEndpointFilterOptions>(options =>
+{
+    options.NonCookieAuthenticationTypes.Add("MyApiKey"); // ClaimsIdentity.AuthenticationType your API handler sets
+});
+
+app.MapPost("/api/my-upload", HandleUploadAsync)
+    .DisableAntiforgery()
+    .AddEndpointFilter<CookieAuthenticationAntiforgeryEndpointFilter>();
+```
+
+The chat document upload and remove endpoints use it (see `crestapps-core-chat-interactions`).
+
 - The filters resolve `IStoreCommitter` from DI. `NoOpStoreCommitter` is internal and is never registered, so register a store package (or your own scoped committer) before adding a filter.
 
 ## Caller Identity
@@ -201,6 +220,10 @@ Validate user-supplied filters with `IODataValidator.IsValidFilter(filter)` befo
 - `DataProtectionHelper.Unprotect(protector, value, logger, message)` unprotects a secret and logs instead of throwing.
 - `RedactedSecret` keeps secrets out of logs and UI output.
 - `DataSourceConstants.ColumnNames` names the data-source knowledge index fields and `DocumentIndexConstants.ColumnNames` the uploaded-document chunk fields; they are different index schemas.
+
+## Upgrading Within 2.0 Previews
+
+- The packages target `net10.0` and `net11.0`. On `net11.0` the `Microsoft.Extensions.*` abstractions they reference resolve to 11.0.0; on `net10.0` they stay on 10.0.x.
 
 ## Upgrading from 1.x
 

@@ -83,13 +83,34 @@ Rules:
 
 ## Telemetry
 
-`ContactCenterDiagnostics` publishes a `Meter` and an `ActivitySource` both named `CrestApps.OrchardCore.ContactCenter` (instruments `contactcenter.outbox.redelivered` and `contactcenter.outbox.dead_lettered`, tagged `reason`). Asterisk adds the `CrestApps.OrchardCore.Asterisk` meter (`asterisk.realtime.connected`, `asterisk.realtime.reconnect_attempted`, `asterisk.realtime.ingestion.saturated`).
+`ContactCenterDiagnostics` publishes a `Meter` and an `ActivitySource` both named `CrestApps.OrchardCore.ContactCenter`; the provider webhook inbox and outbound webhooks publish `CrestApps.OrchardCore.Webhooks`, and Asterisk adds the `CrestApps.OrchardCore.Asterisk` meter. All match the `CrestApps.OrchardCore.*` wildcard. Collect them through Orchard Core's OpenTelemetry support (see `orchardcore-opentelemetry`, and `orchardcore-observability` for the CrestApps-wide rules and helpers), only when an OTLP endpoint is configured:
 
 ```csharp
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(metrics => metrics.AddMeter("CrestApps.OrchardCore.ContactCenter"))
-    .WithTracing(tracing => tracing.AddSource("CrestApps.OrchardCore.ContactCenter"));
+builder.Services.AddOrchardCms(orchardCore =>
+{
+    if (builder.Configuration.HasOtlpEndpoint())
+    {
+        orchardCore.AddOpenTelemetry(openTelemetry => openTelemetry
+            .WithTracing(tracing => tracing.AddSource("CrestApps.OrchardCore.*"))
+            .WithMetrics(metrics => metrics.AddMeter("CrestApps.OrchardCore.*")));
+    }
+});
 ```
+
+Every instrument is named `crestapps.contactcenter.*` and is recorded where the state changes, never in an outbox handler, so a redelivered event is not counted twice. Metrics carry bounded tags only (never call, interaction, activity or queue ids, phone numbers or SIP URIs); spans carry ids such as `crestapps.contactcenter.interaction.id`.
+
+| Area | Instruments worth alerting on |
+|---|---|
+| Calls | `crestapps.contactcenter.provider_event` (`provider`, `state`, `result`), `.provider_event.lag`, `.call.setup.duration`, `.call.completed` (`hangup.cause`, `hangup.source`), `.call.abandoned` (`stage`), `.amd.result` |
+| Offers and queues | `.offer.settled` (`outcome`: accepted, declined, expired, cancelled, superseded, unreachable), `.offer.ring.duration`, `.reservation.reserve` (`result`), `.cas.conflict`, `.queue.wait.duration`, `.queue.overflow`, `.inbound.routed` |
+| Event outbox | `.outbox.dispatches`, `.outbox.lag`, `.outbox.handler.duration` (`handler`), `.outbox.redelivered`, `.outbox.dead_lettered` (`reason`) |
+| Dialer and commands | `.dialer.pacing.cycle` (`outcome`, `dialer.mode`), `.dialer.pacing.lock_starved`, `.dialer.attempt` (`result`, `suppress.reason`), `.dialer.abandoned`, `.dialer.connect.duration`, `.dialer.eligibility`, `.provider_command.outcome` |
+| Agents and recovery | `.agent.state.duration`, `.recovery.healed` and `.recovery.orphan_recovered` (any steady rate is a leak), `.realtime.broadcast.duration` (change to agent screen), `.realtime.notify.failures`, `.deadline.failed` |
+| Gauges | `.queue.depth`, `.backlog` and `.backlog.status` (0 healthy, 1 degraded, 2 unhealthy), `.outbox.pending.age`, `.node.serving`. They report what the health checks and the outbox retry pass last read; aggregate across nodes with `max` |
+
+Spans: `crestapps.contactcenter.call.ingest`, `.offer` (tag `operation`), `.inbound.route`, `.outbox.dispatch` and `.provider_command.dispatch` (both link to the trace that queued the work through the stored `traceparent`), `.dialer.attempt`, `.shutdown.drain`, and `crestapps.webhook.inbox.dispatch`. Log event ids are `17000`-`17899` (Contact Center) and `17900`-`17999` (webhooks).
+
+The old names `contactcenter.outbox.redelivered`, `contactcenter.outbox.dead_lettered`, `asterisk.realtime.connected`, `asterisk.realtime.reconnect_attempted` and `asterisk.realtime.ingestion.saturated` are no longer emitted; update dashboards to `crestapps.contactcenter.outbox.*` and `crestapps.asterisk.realtime.*` (see `orchardcore-telephony-asterisk`). The full list is in the CrestApps docs `observability.md` and `contact-center/production-support.md`.
 
 ## Retention, Erasure and Governance
 

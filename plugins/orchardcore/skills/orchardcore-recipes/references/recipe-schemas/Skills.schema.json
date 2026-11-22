@@ -50,6 +50,18 @@
           "enabled": {
             "type": "boolean",
             "description": "Whether the certification can be recorded and required by skills."
+          },
+          "generateNumbers": {
+            "type": "boolean",
+            "description": "Whether the site numbers the certificates it issues."
+          },
+          "numberPrefix": {
+            "type": "string",
+            "description": "The prefix of a generated number, such as CPR-."
+          },
+          "certificateTemplateId": {
+            "type": "string",
+            "description": "The content item id of the certificate template issued certificates are printed with."
           }
         },
         "required": [
@@ -225,6 +237,46 @@
           "notes": {
             "type": "string",
             "description": "A note about the record."
+          },
+          "source": {
+            "type": "string",
+            "description": "What earned an issued certificate, such as Learning.CertificationPath."
+          },
+          "sourceId": {
+            "type": "string",
+            "description": "The id, within the source, of what earned it."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "A summary of the evidence."
+          },
+          "verificationCode": {
+            "type": "string",
+            "description": "The code that proves an issued certificate on the public verification page."
+          },
+          "previousRecordId": {
+            "type": "string",
+            "description": "The certificate this one renews."
+          },
+          "renewedByRecordId": {
+            "type": "string",
+            "description": "The certificate that renews this one."
+          },
+          "revokedReason": {
+            "type": "string",
+            "description": "Why the certificate was revoked."
+          },
+          "revokedBy": {
+            "type": "string",
+            "description": "Who revoked it."
+          },
+          "revokedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was revoked."
           }
         },
         "required": [

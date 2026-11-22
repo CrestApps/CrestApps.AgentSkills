@@ -86,7 +86,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 
 ## Review Requests
 
-`ReviewRequestService.SendDueAsync` reads paid orders from the last 60 days placed at least `ReviewRequestDelayDays` ago without `Order.ReviewRequestSentUtc`, up to 200 a run, and emails each buyer once with links to each product's reviews (the store's `review-request` email template), only when the customer accepts marketing. Every due order is marked, so a buyer who does not accept marketing is not asked later.
+`ReviewRequestService.SendDueAsync` reads paid orders from the last 60 days placed at least `ReviewRequestDelayDays` ago without `Order.ReviewRequestSentUtc`, up to 200 a run, and emails each buyer once with links to each product's reviews (the store's `review-request` email template), only when the customer accepts marketing. Every due order is marked, so a buyer who does not accept marketing is not asked later. Only lines whose content type exists on the site get a link, so Point of Sale department lines (content type `PosDepartment`, no content item) are skipped.
 
 ## Moderation
 

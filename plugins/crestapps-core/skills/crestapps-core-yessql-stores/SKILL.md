@@ -1,6 +1,6 @@
 ---
 name: crestapps-core-yessql-stores
-description: Skill for the CrestApps.Core.Data.YesSql persistence backend in CrestApps.Core 2.0. Covers AddYesSqlDataStore and AddCoreYesSqlDataStore (IStore, collections, index provider registration, scoped ISession, YesSqlStoreCommitter), YesSqlStoreOptions collection names, per-feature AddYesSqlStores on every feature builder including personas, tool instances and AI profile versions, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, the full index and IndexProvider inventory, creating index tables with the Create*IndexSchemaAsync SchemaBuilder extensions, custom models with DocumentCatalog and CatalogItemIndex, and QueryContext paging. Use it when a host persists CrestApps.Core data with YesSql or troubleshoots missing tables, collections, or uncommitted writes.
+description: Skill for the CrestApps.Core.Data.YesSql persistence backend in CrestApps.Core 2.0. Covers AddYesSqlDataStore and AddCoreYesSqlDataStore (IStore, collections, index provider registration, scoped ISession, YesSqlStoreCommitter), YesSqlStoreOptions collection names, per-feature AddYesSqlStores on every feature builder including personas, tool instances and AI profile versions, the service-collection store methods for web crawlers, file sources, knowledge objects and ingestion item state, the full index and IndexProvider inventory, creating index tables with the Create*IndexSchemaAsync SchemaBuilder extensions, the AIChatSessionIndex ClientId column migration and backfill, custom models with DocumentCatalog and CatalogItemIndex with YesSql 6.3 ExclusiveToDocumentType and SingleRecordPerDocument, and QueryContext paging. Use it when a host persists CrestApps.Core data with YesSql or troubleshoots missing tables, collections, or uncommitted writes.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -19,6 +19,7 @@ You are a CrestApps.Core expert. Generate accurate YesSql persistence code with 
 - The package does not create index tables. Run the `Create*IndexSchemaAsync` extensions once per database before serving requests (the samples' `InitializeYesSqlSchemaAsync()` is sample code).
 - Always pass the resolved `YesSqlStoreOptions` to the schema extensions. They read collection names from it; passing `null` creates the tables in the root collection while the index providers query the `AI` collection.
 - `YesSqlStoreCommitter` flushes the scoped `ISession`. Add the MVC, hub or endpoint commit filter, or commit explicitly in background scopes.
+- The packages use YesSql 6.3.0. A custom map index provider declares `.ExclusiveToDocumentType()` and `.SingleRecordPerDocument()` on `context.For<TIndex>()` when they are true (only the provider's document type maps to the index, and each document has at most one record). The built-in CrestApps.Core index providers do not declare them. `IQuery<T>.NoDuplicates()` is obsolete; use `SkipDeduplication()`.
 
 ## Registration
 
@@ -170,7 +171,22 @@ var app = builder.Build();
 await app.Services.GetRequiredService<CrestAppsYesSqlSchema>().CreateAsync();
 ```
 
-Keep only the steps for the features you registered. The skip-on-error loop mirrors the SQLite sample; on PostgreSQL or SQL Server a failed statement aborts the transaction, so record a schema version and run each step once instead. For existing databases, the column-upgrade extensions `AddAIProfileIndexTypeColumnAsync`, `AddAIDocumentIndexExtensionColumnAsync` and `AddAIChatSessionMetricsCompletionCountColumnAsync` add later columns.
+Keep only the steps for the features you registered. The skip-on-error loop mirrors the SQLite sample; on PostgreSQL or SQL Server a failed statement aborts the transaction, so record a schema version and run each step once instead. For existing databases, the column-upgrade extensions `AddAIProfileIndexTypeColumnAsync`, `AddAIDocumentIndexExtensionColumnAsync`, `AddAIChatSessionMetricsCompletionCountColumnAsync` and `AddAIChatSessionIndexClientIdColumnAsync` add later columns.
+
+### Chat Session `ClientId`
+
+`AIChatSessionIndex` stores the anonymous visitor who owns a session (`ClientId`), and `AIChatSessionQueryContext.ClientId` lists one visitor's sessions (YesSql and EntityCore managers). A new database gets the column from `CreateAIChatSessionIndexSchemaAsync`; an existing one needs a migration:
+
+```csharp
+// Idempotent on SQLite, SQL Server, PostgreSQL and MySQL (checks the column and the index separately).
+await schemaBuilder.AddAIChatSessionIndexClientIdColumnAsync(storeOptions, store.Configuration.Schema);
+
+// Once, from a migration or one-off job: index the anonymous sessions saved before the upgrade.
+var count = await session.BackfillAIChatSessionIndexClientIdAsync(storeOptions); // pages of batchSize (500)
+await session.SaveChangesAsync();
+```
+
+Pass `store.Configuration.Schema` on SQL Server and PostgreSQL so the check looks in the tables' schema. On other providers the method has no existence check, so a second run fails. Sessions saved before the backfill are missing from `ClientId` listings until they are saved again.
 
 ## Store and Index Inventory
 
@@ -225,7 +241,10 @@ public sealed class TicketCategoryIndexProvider : IndexProvider<TicketCategory>
 
     public override void Describe(DescribeContext<TicketCategory> context)
     {
+        // Only TicketCategory documents map to this index, one record each.
         context.For<TicketCategoryIndex>()
+            .ExclusiveToDocumentType()
+            .SingleRecordPerDocument()
             .Map(category => new TicketCategoryIndex
             {
                 ItemId = category.ItemId,
@@ -251,6 +270,8 @@ Create the table with `schema.CreateMapIndexTableAsync<TicketCategoryIndex>(tabl
 - AI profile versions add the `AIProfileVersionIndex` table (`ItemId`, `ProfileId`, `Version`, `CreatedUtc`, in the AI collection). Create it with `CreateAIProfileVersionIndexSchemaAsync(options)` when you call `AddProfileVersions(v => v.AddYesSqlStores())`.
 - `YesSqlAIChatSessionStore` implements the new `IAIChatSessionStore.ListByLastActivityAsync` and `DeleteAsync` over the existing `AIChatSessionIndex` and `AIChatSessionPromptIndex`; no new columns.
 - `YesSqlAIChatSessionManager.PageAsync` filters by `AIChatSessionQueryContext.UserId` when set, and new sessions record the profile's `AIProfileVersionMetadata`.
+- `AIChatSessionIndex` gained `ClientId`. Run `AddAIChatSessionIndexClientIdColumnAsync(storeOptions, store.Configuration.Schema)` on existing databases and `BackfillAIChatSessionIndexClientIdAsync(storeOptions)` once.
+- YesSql moved from 6.1.0 to 6.3.0.
 
 ## Upgrading from 1.x
 

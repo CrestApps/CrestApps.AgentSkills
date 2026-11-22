@@ -52,7 +52,8 @@ defines contracts. It sends nothing, places no calls and has no admin screens.
 | Azure Event Grid inbound webhook | `CrestApps.OrchardCore.Omnichannel.EventGrid` | `orchardcore-omnichannel-event-grid` |
 
 Related skills owned elsewhere: `orchardcore-contact-center` (queues, entry
-points, agents, dialer, business hours), `orchardcore-telephony`,
+points, agents, dialer), `orchardcore-business-hours` (the Business Hours
+schedules that gate queues, loads and cadences), `orchardcore-telephony`,
 `orchardcore-telephony-telnyx` (Telnyx SMS and the Telnyx AI Voice Agent),
 `orchardcore-telephony-asterisk`, `orchardcore-dnc-registry`,
 `orchardcore-phone-numbers`, `orchardcore-signalr`, and the framework skills

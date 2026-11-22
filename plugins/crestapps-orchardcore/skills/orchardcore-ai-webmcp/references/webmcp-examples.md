@@ -96,5 +96,5 @@ Register the handler that adds both (see the main skill) in a startup marked `[R
 | No tools in the browser | The user is signed in, has **Use WebMCP tools in the browser**, the page kind is enabled, and the page is HTTPS or `localhost` |
 | A tool is missing from the list | It is selected on the card (or **Expose all tools**), it is selectable, and the user has **Access AI tool** for it |
 | `400` on invoke | The `RequestVerificationToken` header is missing, or the body is not a JSON object |
-| The chat ignores page tools | The profile has **Allow page tools**; consequential tools also need **Allow consequential page tools** |
+| The chat ignores page tools | The profile has **Allow page tools**; consequential tools ask the user to **Allow** each call unless **Allow consequential page tools** is on |
 | A new selection does not apply | The card save releases the tenant; values in `CrestApps:AI:WebMcp` configuration override the stored settings |

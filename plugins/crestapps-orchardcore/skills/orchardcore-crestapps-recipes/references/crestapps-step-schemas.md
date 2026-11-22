@@ -105,6 +105,17 @@ Behaviour to keep in mind when writing these steps:
 - `TimeZoneMaps` and the other audited catalog steps ignore `OwnerId`, `Author`, `CreatedUtc` and `ModifiedUtc`; the importing site stamps its own audit values.
 - `GeneralAISettings.EnableAnalytics` is a legacy alias that exported plans still carry; it is ignored. Usage tracking is the AI Usage Analytics feature.
 - Several provider keys set through the generic `Settings` step (Google Maps, Azure Maps, Google Places, EasyPost, TaxJar) and the AzureSpeech, ElevenLabs and Cartesia deployment `ApiKey` are read back as Data Protection–protected values, so a clear key does not work there. Set them in the admin, or import a value protected for the destination tenant.
+| Staff (`orchardcore-staff`) | `Staff` |
+| Users audiences (`orchardcore-crestapps-users`) | `UserAudiences`, `UserCohorts` |
+| Service desk (`orchardcore-tickets`, `orchardcore-knowledge-base`, `orchardcore-service-levels`, `orchardcore-business-hours`, `orchardcore-timeline`, `orchardcore-agreements`) | `TicketDesks`, `TicketStatuses`, `TicketPriorities`, `TicketViews`, `TicketBoards`, `KnowledgeBaseZones`, `ServiceLevelPolicies`, `BusinessHoursSchedules` (replaces `ContactCenterBusinessHoursCalendar`, kept for old recipes), `TimelineEntries`, `Agreements` |
+| Learning (`orchardcore-learning`, `orchardcore-learning-assessments`, `orchardcore-learning-certifications`, `orchardcore-learning-standards`) | `LearningEnrollments`, `LearningRequirements`, `LearningSubmissions`, `LearningAttempts`, `LearningGradeScales`, `LearningCertificationPaths`, `LearningCreditTypes`, `LearningCredentialAwards`, `LearningExternalTools`, `LearningStatements`, `LearningPackageRuntimeStates` |
+| Payroll and income tax (`orchardcore-payroll`, `orchardcore-taxation`) | `PayrollEmployers`, `PaySchedules`, `PayCodes`, `PayrollPayItems`, `PayrollPayProfiles`, `PayrollGarnishments`, `PayrollTaxDeposits`, `PayrollFilings`, `PayrollPayHistory`, `IncomeTaxRules` |
+| Banking (`orchardcore-banking`) | `BankAccounts`, `CheckLayouts`, `CheckRegister`, `Disbursements` |
+| Approvals (`orchardcore-approvals`) | `ApprovalPolicies`, `ApprovalRequests` |
+| Business documents (`orchardcore-business-documents`) | `BusinessDocumentTemplates` |
+| Invoicing and Transactions (`orchardcore-invoicing`, `orchardcore-transactions`, `orchardcore-exchange-rates`) | `Invoices`, `CreditNotes`, `Estimates`, `RecurringPlans`, `LateFeePolicies`, `UsageMeters`, `Transactions`, `PaymentTerms`, `ExchangeRates` |
+| Point of Sale (`orchardcore-point-of-sale`) | `PosDepartments` (beside `Registers`) |
+| Agentic Commerce (`orchardcore-agentic-commerce`) | `AgentPlatforms` |
 
 ## Exporting reference schemas
 

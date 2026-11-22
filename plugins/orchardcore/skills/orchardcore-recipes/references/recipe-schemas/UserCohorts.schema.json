@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "UserCohorts",
+      "description": "Recipe step discriminator. Must be \u0027UserCohorts\u0027."
+    },
+    "Cohorts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string",
+            "description": "The cohort id, kept so courses linked to the cohort find it; at most 50 characters. Empty creates a new id."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name, unique among cohorts without regard to case."
+          },
+          "Description": {
+            "type": "string",
+            "description": "A description."
+          },
+          "Members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "User names or e-mail addresses of people to add; people already in the cohort stay."
+          }
+        },
+        "required": [
+          "Name"
+        ]
+      },
+      "description": "The cohorts to create, or update by id and then by name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

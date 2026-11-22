@@ -1,0 +1,107 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningExternalTools",
+      "description": "Recipe step discriminator. Must be \u0027LearningExternalTools\u0027."
+    },
+    "Tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The tool\u0027s 26-character id; omit it to create a new one."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The name authors pick the tool by."
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes for administrators."
+          },
+          "ClientId": {
+            "type": "string",
+            "description": "The client id of the tool\u0027s OpenID application, imported with the OpenID application step."
+          },
+          "DeploymentId": {
+            "type": "string",
+            "description": "The deployment id sent with every launch."
+          },
+          "LoginInitiationUrl": {
+            "type": "string",
+            "description": "The tool\u0027s OIDC login initiation URL."
+          },
+          "TargetLinkUri": {
+            "type": "string",
+            "description": "The tool\u0027s default launch URL."
+          },
+          "DeepLinkingUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The tool\u0027s Deep Linking URL, or null."
+          },
+          "JwksUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The URL of the tool\u0027s JSON Web Key Set, or null when the key set is on its OpenID application."
+          },
+          "CustomParameters": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Custom parameters, one name=value per line."
+          },
+          "PrivacyLevel": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Anonymous (0), Name (1) or NameAndEmail (2)."
+          },
+          "AllowNamesAndRoles": {
+            "type": "boolean",
+            "description": "Whether the tool may read course rosters."
+          },
+          "AllowGrades": {
+            "type": "boolean",
+            "description": "Whether the tool may manage line items and post scores."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the tool can be launched."
+          },
+          "SubjectSalt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The salt of the ids the tool knows people by, in base64. Keep it to keep the ids; a new one is made when it is empty."
+          }
+        },
+        "required": [
+          "Name",
+          "ClientId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The external tools\u0027 settings to create or update."
+    }
+  },
+  "required": [
+    "name",
+    "Tools"
+  ],
+  "additionalProperties": true
+}

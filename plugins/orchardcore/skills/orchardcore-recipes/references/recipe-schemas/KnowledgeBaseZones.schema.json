@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "description": "Adds the help center\u0027s widget zones (KnowledgeBaseTop, KnowledgeBaseSidebar and KnowledgeBaseAfterContent) to the zones of Design \u003E Settings \u003E Zones, keeping the site\u0027s own zones.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "KnowledgeBaseZones",
+      "description": "Recipe step discriminator. Must be \u0027KnowledgeBaseZones\u0027."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

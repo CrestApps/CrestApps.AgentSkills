@@ -73,7 +73,7 @@ The designer has:
 - **Add a data source** in the toolbar: a dialog of the data sets the user may read, with descriptions, filtered by text and by data source. Choosing one adds a **Read a data source** step on a free spot.
 - A **toolbox** by category (Source, Transform, File, Destination) with search; drag a step to the canvas or click it.
 - The **canvas**: drag from an output port to an input port to connect. Clicking an unconnected output port lists the steps that accept its data (rows or files) and adds the chosen one already connected; an empty pipeline offers its first source. Zoom, fit, undo and redo (`Ctrl+Z`, `Ctrl+Y`).
-- The **step panel** (over the canvas or pinned below it): **Settings** (the step editor plus an optional title shown on the canvas; changes apply as they are made), **Data** (preview) and **Fields** (fields received and produced with types; copy a reference such as `[TitlePart.Title]` for formulas).
+- The **step panel** (over the canvas or pinned below it): **Settings** (the step editor plus an optional title shown on the canvas; changes apply as they are made; validation messages of a rejected apply are cleared by the next valid apply, without replacing text typed meanwhile), **Data** (preview) and **Fields** (fields received and produced with types; copy a reference such as `[TitlePart.Title]` for formulas).
 - The **pipeline panel**: **Pipeline** (name, description, enabled), **Issues** (errors that block publishing, warnings worth a look) and **History**.
 
 ### Drafts and versions
@@ -173,8 +173,9 @@ The editors of **Filter rows** and **Add calculated fields** list the input fiel
 - **Rows**: update the item a row matches or create one; create only (skip rows that match an item); or update only (reject rows that match none).
 - **Match on**: a row field compared with the **content item id** or the **display text** of the items' latest version. A new item matched by display text gets that display text.
 - **Values**: parts and fields such as `TitlePart.Title` or `Product.Price`, each set from a row field. Writable values are the ones the `Contents` data source reads (see `orchardcore-data-sources`); lists such as content pickers take comma-separated ids.
+- Choose the **content type** first: the other settings appear only then, and a new step keeps their defaults until a type is chosen (**Publish the items** checked, **items per save** 100). Before 4.0 final, choosing the type saved the step with items per save 0 and publish unchecked, and the apply was rejected.
 - **Publish the items** or save drafts; **items per save** (100 by default, 1 to 10,000).
-- Each item is validated as the editor would. Rows that can't be saved go to **Rejected** with the reason in an `Error` field (write them to a file, for example). The run user must be allowed to edit, and to publish when publishing, items of the type; new items are owned by that user.
+- Each item is validated as the editor would, against the row values (required parts and fields of new items included; a fix in 4.0 final stopped every new row from being rejected as missing its required fields). Rows that can't be saved go to **Rejected** with the reason in an `Error` field (write them to a file, for example). The run user must be allowed to edit, and to publish when publishing, items of the type; new items are owned by that user.
 
 ### File names and texts
 

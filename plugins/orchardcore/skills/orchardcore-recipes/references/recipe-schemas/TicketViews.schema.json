@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TicketViews",
+      "description": "Recipe step discriminator. Must be \u0027TicketViews\u0027."
+    },
+    "Views": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The ticket view id; omit it to create one."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name."
+          },
+          "OwnerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user who made it; empty for a shared view."
+          },
+          "SharedWithTeamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The team it is shared with."
+          },
+          "Order": {
+            "type": "integer",
+            "description": "Where it is listed."
+          },
+          "Query": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Which tickets it lists: Search, DeskIds, Categories, StatusIds, PriorityIds, TeamIds, Assignee, ContentTypes, Requester, AccountId, DueWithin, Sort, Skip and Take."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was created, in UTC."
+          },
+          "ModifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it last changed, in UTC."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "More values of the ticket view, by name."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The saved views to create or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Views"
+  ],
+  "additionalProperties": true
+}

@@ -1,6 +1,6 @@
 ---
 name: orchardcore-time-zones
-description: Skill for managing friendly named IANA time-zone maps with the CrestApps Time Zones module in Orchard Core. Covers the Tools > Time Zones admin list, the ManageTimeZoneMaps permission, unique names and time zone ids validated against the tz database, the mapped ITimeZoneSelectListProvider that limits the site Default Time Zone and user time zone menus, the TimeZoneMaps recipe step and its schema, deployment export, and seeded starter maps. Use this skill when requests mention Orchard Core time zones, friendly time-zone labels, time-zone maps, a missing time zone in a selector, TimeZoneMaps recipes, or time-zone deployment. Strong matches include CrestApps.OrchardCore.TimeZones, TimeZoneMap, ITimeZoneSelectListProvider, MappedTimeZoneSelectListProvider, TimeZoneMapHandler, TimeZoneMapStep, TimeZoneMapDeploymentStep and TimeZonesConstants.
+description: Skill for friendly named IANA time-zone maps with the CrestApps Time Zones module in Orchard Core, and for showing dates in the local time zone. Covers the Tools > Time Zones admin list, the ManageTimeZoneMaps permission, ids validated against the tz database, the mapped ITimeZoneSelectListProvider that limits the site Default Time Zone and user time zone menus, the TimeZoneMaps recipe step, deployment export, seeded starter maps, and the CrestApps rule that every date and time is shown in the user's or site's zone, never UTC (ILocalClock, the DateTime shape, DateTime.SpecifyKind, ToUtcLenientAsync). Use this skill when requests mention Orchard Core time zones, friendly time-zone labels, time-zone maps, a missing time zone in a selector, TimeZoneMaps recipes, time-zone deployment, or dates showing in UTC. Strong matches include CrestApps.OrchardCore.TimeZones, TimeZoneMap, ITimeZoneSelectListProvider, MappedTimeZoneSelectListProvider, TimeZoneMapStep, ILocalClock and ToUtcLenientAsync.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -17,7 +17,7 @@ You are an Orchard Core expert. Generate accurate code, recipes, deployment guid
 
 - Install `CrestApps.OrchardCore.TimeZones` in the web/startup project.
 - Enable `CrestApps.OrchardCore.TimeZones`; it depends on `OrchardCore.Recipes.Core`.
-- Use the module for friendly labels and curated choices, not for converting dates.
+- Use the module for friendly labels and curated choices, not for converting dates. Convert with Orchard Core's `ILocalClock` (see [Show Dates in the Local Time Zone](#show-dates-in-the-local-time-zone)).
 - Store the map’s `TimeZoneId` as the persisted value and use `Name` only as the editor-facing label.
 - Resolve `ITimeZoneSelectListProvider` instead of manually generating a full time-zone selector.
 - Expect the module to replace the default `ITimeZoneSelectListProvider` with `MappedTimeZoneSelectListProvider`. Once enabled, every menu built from it (including the site **Default Time Zone** and the **User Time Zone** profile setting, and the Omnichannel contact and activity screens) offers only mapped zones.
@@ -114,6 +114,49 @@ public sealed class ScheduleTimeZoneOptions
 
 `MappedTimeZoneSelectListProvider` orders maps by `Name` and then `TimeZoneId`. Consumers receive select-list items and matching key/value data based on the catalog.
 
+## Show Dates in the Local Time Zone
+
+CrestApps.OrchardCore 3.0 (#1303) made every module show dates and times in the local time zone instead of UTC: views and admin lists, reports and their CSV, Excel and PDF exports, emails, SMS, notifications, notices, timeline and audit text, and AI prompts that mention the current time. The local zone is what Orchard Core's `ILocalClock` returns: the user's own zone when **User Time Zone** (`OrchardCore.Users.TimeZone`) is on, else the site's **Default Time Zone** (both offered from the mapped list when this module is on). The TimeZones module itself did not change; follow the same rules in your own code.
+
+| Rule | Do |
+|---|---|
+| Razor | `@await DisplayAsync(await New.DateTime(Utc: value, Format: "g"))`, or `ILocalClock.ConvertToLocalAsync` |
+| C# | Inject `ILocalClock` and call `ConvertToLocalAsync(utc)` |
+| Value read back from YesSql or JSON | Mark it first: `DateTime.SpecifyKind(utc, DateTimeKind.Utc)`; an unspecified kind is treated as server-local |
+| Never | `DateTime.ToLocalTime()` (the server's zone, UTC in production), formatting a stored UTC value directly (`utc.ToString("g")`, `T["... {0:g}", utc]`), or a "(UTC)" label |
+| Reports | Group rows by the local hour, weekday or day; Contact Center reports use `ReportTimeZone`, which reads `ILocalClock` |
+| Editors | Show date-times in local time and convert the entered value back with `ILocalClock.ToUtcLenientAsync(local)` |
+| JSON to the browser | The UTC instant with a `Z`; the page formats it |
+| Exceptions | A pure date with no time (a due date, a tax effective date); a value deliberately shown in a contact's or lead's own zone; machine formats (APIs, recipe and JSON schemas, import/export columns, files scripts read) stay UTC |
+
+`ToUtcLenientAsync` is an extension in `CrestApps.OrchardCore.Calendars` (`LocalClockExtensions`, project `CrestApps.OrchardCore.Calendars.Abstractions`). Unlike `ILocalClock.ConvertToUtcAsync`, a time a daylight-saving change skips moves forward by the gap and a time that happens twice takes the earlier one, so a form never fails on it.
+
+```csharp
+using System.Globalization;
+using CrestApps.OrchardCore.Calendars;
+using OrchardCore.Modules;
+
+public sealed class RenewalDateFormatter
+{
+    private readonly ILocalClock _localClock;
+
+    public RenewalDateFormatter(ILocalClock localClock)
+    {
+        _localClock = localClock;
+    }
+
+    public async Task<string> FormatAsync(DateTime storedUtc)
+    {
+        var local = await _localClock.ConvertToLocalAsync(DateTime.SpecifyKind(storedUtc, DateTimeKind.Utc));
+
+        return local.ToString("g", CultureInfo.CurrentCulture);
+    }
+
+    public Task<DateTime> ToUtcAsync(DateTime enteredLocal)
+        => _localClock.ToUtcLenientAsync(enteredLocal);
+}
+```
+
 ## Import Maps with Recipes
 
 The `TimeZoneMaps` recipe step creates or updates maps. It matches an existing map by `ItemId` when supplied, then falls back to the unique `Name`.
@@ -183,7 +226,7 @@ Do not create a View Model as `sealed` if it is used for model binding. Domain a
 
 - The **Tools > Time Zones** list renders through Orchard Core's `AdminList` shape. A theme override of the whole list view must be redone; the List layout row is `TimeZoneMap_SummaryAdmin`, and the Grid layout is customized with `SummaryAdminGrid` placement.
 - The `ManageTimeZoneMaps` description and the deployment step's title and category are `LocalizationSource` values, translated from PO files with the declaring type as context.
-- The create and edit pages put **Save** and **Cancel** in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; a theme override of `Views/Admin/Create.cshtml` or `Edit.cshtml` must move its buttons there.
+- The create and edit pages put **Save** and **Cancel** in Orchard Core's sticky bottom action bar (`<div class="action-bar-bottom">`) instead of an `ocat-wrapper` row; a theme override of `Views/Admin/Create.cshtml` or `Edit.cshtml` must move its buttons there, ordered as Orchard Core 4.0 orders actions: **Cancel** first, the `btn-primary` **Save** last.
 
 ## Troubleshooting
 
@@ -197,3 +240,6 @@ Do not create a View Model as `sealed` if it is used for model binding. Domain a
 | Recipe import has no effect | Use the `TimeZoneMaps` step within `{ "steps": [...] }` and enable recipe support |
 | Deployment step is unavailable | Enable `OrchardCore.Deployment` in addition to the Time Zones feature |
 | Direct selector construction ignores maps | Inject `ITimeZoneSelectListProvider` so the replacement service is used |
+| A page or report shows UTC times | Convert through `ILocalClock` (or the `DateTime` shape) and mark stored values with `DateTime.SpecifyKind(..., DateTimeKind.Utc)` first |
+| Times shift by the server's offset | `ToLocalTime()` or an unspecified `DateTimeKind` was used; use `ILocalClock` |
+| Saving a time on a DST change day fails | Convert entered times with `ILocalClock.ToUtcLenientAsync` instead of `ConvertToUtcAsync` |

@@ -242,7 +242,7 @@ var posts = await _session.Query<ContentItem>()
     .ListAsync();
 ```
 
-`ContainedPartIndex` stores `ListContentItemId`, `ListContentType`, `ContentItemId`, `Order`, `Published`, `Latest`, and `DisplayText`. `IContainerService` (`OrchardCore.Lists.Services`) provides `GetItemCountAsync(listContentItemId, ContainedItemOptions)`, `QueryContainedItemsAsync(...)` with a `Pager` or `PagerSlim`, `GetNextOrderNumberAsync`, and `UpdateContentItemOrdersAsync`. `ContainedItemOptions.Status` is `Published` (default), `Latest`, `Draft`, or `Owner`.
+`ContainedPartIndex` stores `ListContentItemId`, `ListContentType`, `ContentItemId`, `Order`, `Published`, `Latest`, and `DisplayText`. It declares `SingleRecordPerDocument()` and `ExclusiveToDocumentType()` (YesSql 6.3), so a query joining only `ContentItemIndex` and `ContainedPartIndex` isn't grouped by document and its count doesn't join `Document`; joining another multi-record index (such as `TaxonomyIndex`) brings the grouping back. `IContainerService` (`OrchardCore.Lists.Services`) provides `GetItemCountAsync(listContentItemId, ContainedItemOptions)`, `QueryContainedItemsAsync(...)` with a `Pager` or `PagerSlim`, `GetNextOrderNumberAsync`, and `UpdateContentItemOrdersAsync`. `ContainedItemOptions.Status` is `Published` (default), `Latest`, `Draft`, or `Owner`.
 
 ### Feeds and GraphQL
 

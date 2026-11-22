@@ -17,7 +17,8 @@ You are an Orchard Core expert. Generate code for querying content items using Y
 
 - Orchard Core uses YesSql as its document database abstraction over SQL.
 - `ISession` is the primary interface for querying YesSql indexes.
-- `ContentItemIndex` is the built-in index for all content items.
+- `ContentItemIndex` is the built-in index for all content items. It declares `SingleRecordPerDocument()` and `ExclusiveToDocumentType()` (YesSql 6.3), as do `ContainedPartIndex` and `LocalizedContentItemIndex`: a query that only joins these indexes isn't grouped by document, and its count reads the index tables without joining `Document`.
+- Declare `.ExclusiveToDocumentType()` and `.SingleRecordPerDocument()` on your own map index providers when true (see `orchardcore-yessql-indexes`). Use `SkipDeduplication()` instead of the obsolete `NoDuplicates()`, and `NoIndexOptimizations()` for a query the declarations make slower.
 - Custom indexes can be created for frequently queried fields.
 - `IContentManager` provides higher-level content operations (Get, New, Create, Publish).
 - Always use `async/await` patterns for database queries.
@@ -115,7 +116,7 @@ The built-in `ContentItemIndex` has these fields:
 - `Owner` — The owner user ID.
 - `Author` — The author user name.
 
-In Orchard Core 4.0 the SQL indexes of `ContentItemIndex` are `IDX_FK_ContentItemIndex` (created by YesSql on `DocumentId`), `IDX_ContentItemIndex_DocumentId_ContentType` (`DocumentId`, `ContentType`, `CreatedUtc`, `ModifiedUtc`, `PublishedUtc`, `Published`, `Latest`), `IDX_ContentItemIndex_ContentItemId` (`ContentItemId`, `DocumentId`, `Published`, `Latest`), `IDX_ContentItemIndex_ContentType` (`ContentType`, `DocumentId`, `Published`, `Latest`), `IDX_ContentItemIndex_Owner` (`Owner`, `DocumentId`, `Published`, `Latest`) and `IDX_ContentItemIndex_ContentItemVersionId` (`ContentItemVersionId`, `DocumentId`). Filters on one content type (admin list and its count, GraphQL, pickers, sitemaps), on the owner, on a content item id, or on a version id (`GetVersionAsync`, loading Lucene or Elasticsearch results) now seek instead of scanning. The 3.x indexes `IDX_ContentItemIndex_DocumentId`, `IDX_ContentItemIndex_DocumentId_Owner`, `IDX_ContentItemIndex_DocumentId_Author` and `IDX_ContentItemIndex_DocumentId_DisplayText` are dropped. To filter on another column, such as `Author` or `DisplayText`, add your own index from a data migration with `SchemaBuilder.AlterIndexTableAsync<ContentItemIndex>()`. Existing tenants get these changes through a migration step (version 8), which on a large table takes a moment and on most providers blocks writes to the table meanwhile. Prefer filtering on `ContentItemId`, `ContentType` or `Owner` together with `Published` or `Latest`.
+In Orchard Core 4.0 the SQL indexes of `ContentItemIndex` are `IDX_FK_ContentItemIndex` (created by YesSql on `DocumentId`), `IDX_ContentItemIndex_DocumentId_ContentType` (`DocumentId`, `ContentType`, `CreatedUtc`, `ModifiedUtc`, `PublishedUtc`, `Published`, `Latest`), `IDX_ContentItemIndex_ContentItemId` (`ContentItemId`, `DocumentId`, `Published`, `Latest`), `IDX_ContentItemIndex_ContentType` (`ContentType`, `DocumentId`, `Published`, `Latest`), `IDX_ContentItemIndex_Owner` (`Owner`, `DocumentId`, `Published`, `Latest`) and `IDX_ContentItemIndex_ContentItemVersionId` (`ContentItemVersionId`, `DocumentId`), plus `IDX_ContentItemIndex_ModifiedUtc` (`ModifiedUtc`, `DocumentId`, `Latest`, `Published`, `ContentType`) and `IDX_ContentItemIndex_ContentType_ModifiedUtc` (`ContentType`, `ModifiedUtc`, `DocumentId`, `Latest`, `Published`) that serve the content items admin list order. Filters on one content type (admin list and its count, GraphQL, pickers, sitemaps), on the owner, on a content item id, or on a version id (`GetVersionAsync`, loading Lucene or Elasticsearch results) now seek instead of scanning. The 3.x indexes `IDX_ContentItemIndex_DocumentId`, `IDX_ContentItemIndex_DocumentId_Owner`, `IDX_ContentItemIndex_DocumentId_Author` and `IDX_ContentItemIndex_DocumentId_DisplayText` are dropped. To filter on another column, such as `Author` or `DisplayText`, add your own index from a data migration with `SchemaBuilder.AlterIndexTableAsync<ContentItemIndex>()`. Existing tenants get these changes through migration steps (versions 8 and 9). On a large table they take a moment; with YesSql 6.3 they no longer block writes on SQL Server editions with online index operations and on MySQL, but still do on PostgreSQL and SQLite. Prefer filtering on `ContentItemId`, `ContentType` or `Owner` together with `Published` or `Latest`.
 
 ### Creating a Custom YesSql Index
 
@@ -134,7 +135,10 @@ public sealed class {{PartName}}IndexProvider : IndexProvider<ContentItem>
 {
     public override void Describe(DescribeContext<ContentItem> context)
     {
+        // A content item has one {{PartName}}, so the index holds at most one record per version.
         context.For<{{PartName}}Index>()
+            .ExclusiveToDocumentType()
+            .SingleRecordPerDocument()
             .When(contentItem => contentItem.Has<{{PartName}}>())
             .Map(contentItem =>
             {
@@ -548,4 +552,5 @@ public sealed class Startup : StartupBase
 - `OrchardCore.Queries.Sql.Permissions.ManageSqlQueries` was removed; use `OrchardCore.Queries.QueriesPermissions.ManageSqlQueries` (stored permission names are unchanged).
 - The Parlot-based SQL parser (`SqlAst`, `SqlTranslator`, `ParlotSqlParser`, `SqlParserException`) was replaced by Cyqwel. Non-`SELECT` statements, which were never intended, now fail to parse; review queries that relied on lenient parsing.
 - `ContentItemIndex` loses its `DocumentId`-led `Owner`, `Author` and `DisplayText` indexes and gains indexes led by `ContentType`, `Owner` and `ContentItemVersionId`. Saved SQL queries or custom code filtering on `Author` or `DisplayText` on large tables should add their own index in a migration.
+- YesSql 6.3: `IQuery<T>.NoDuplicates()` is obsolete, use `SkipDeduplication()`. A query that skips the deduplication is counted with `count(*)`, so a document it returns several times is counted several times. Queries joining only `ContentItemIndex`, `ContainedPartIndex` or `LocalizedContentItemIndex` are no longer grouped by document; add `NoIndexOptimizations()` to a query (such as a rare-match text search) that becomes slower. Items with the same modified date in the content items admin list are now ordered by `DocumentId` descending.
 - Generated API clients for `api/queries/{name}` get new method names (`ApiExecuteQueryGet`, `ApiExecuteQueryPost`, previously `ApiExecuteQuery`) on regeneration.

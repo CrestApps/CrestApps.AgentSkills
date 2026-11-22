@@ -1,0 +1,152 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "CreditNotes",
+      "description": "Recipe step discriminator. Must be \u0027CreditNotes\u0027."
+    },
+    "CreditNotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The document\u0027s 26-character id. A draft with this id is replaced; an issued document with this id is kept as it is."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The document\u0027s number, kept as it is. Required on an issued document; refused when another document of the site holds it."
+          },
+          "BillTo": {
+            "type": "object",
+            "description": "Who is billed: Party (Kind and Id), Contact (Name, Email, Phone, Address), TaxId, TaxTreatment, ExemptionReason and CopyTo."
+          },
+          "Issuer": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The business that issued it, as copied at issue."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The three-letter currency code."
+          },
+          "PricesIncludeTax": {
+            "type": "boolean",
+            "description": "Whether line prices include tax."
+          },
+          "Lines": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The lines: Id, Kind (Item, Service, Discount, Text), Name, Description, Quantity, Unit, UnitPrice, DiscountPercent, DiscountAmount, TaxCategoryCode, Taxes, and the computed Net, TaxAmount and Total."
+          },
+          "Charges": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Document-level discounts and charges."
+          },
+          "Taxes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The tax lines, one per rate."
+          },
+          "Totals": {
+            "type": "object",
+            "description": "Subtotal, DiscountTotal, ChargeTotal, TaxTotal, RoundingAmount and Total."
+          },
+          "IssueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The issue date, yyyy-MM-dd."
+          },
+          "IssuedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was issued, in UTC (ISO 8601)."
+          },
+          "History": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The document\u0027s append-only history."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was created, in UTC (ISO 8601); kept."
+          },
+          "InvoiceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the invoice it credits."
+          },
+          "InvoiceNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The number of the invoice it credits."
+          },
+          "Reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the invoice was credited."
+          },
+          "Disposition": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "ReduceBalance, Refund or CustomerCredit (or its number)."
+          },
+          "Status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Draft, Issued or Voided (or its number)."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The credit notes to import, as a CreditNotes deployment step writes them. Import the invoices first."
+    }
+  },
+  "required": [
+    "name",
+    "CreditNotes"
+  ],
+  "additionalProperties": true
+}

@@ -1,0 +1,135 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Agreements",
+      "description": "Recipe step discriminator. Must be \u0027Agreements\u0027."
+    },
+    "Agreements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The agreement id; omit it to create one."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The number; omit it to number a new agreement."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "Draft",
+              "Active",
+              "Paused",
+              "Expired",
+              "Canceled"
+            ],
+            "description": "Where it stands."
+          },
+          "AccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The account it is with."
+          },
+          "StartDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Its first day."
+          },
+          "EndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "Its last day; empty when it runs until canceled."
+          },
+          "TimeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time zone its days and months are counted in."
+          },
+          "Hours": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "Kind": {
+                "type": "string",
+                "enum": [
+                  "None",
+                  "Block",
+                  "MonthlyAllowance"
+                ],
+                "description": "How it covers hours."
+              },
+              "Hours": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The hours of the block, or of each month."
+              },
+              "RoundingMinutes": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  6,
+                  15,
+                  30
+                ],
+                "description": "What each entry of time is rounded up to, in minutes."
+              }
+            },
+            "description": "The hours it covers."
+          },
+          "ExpiringNoticeDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 365,
+            "description": "Days before its end it is told to be about to end."
+          },
+          "Notes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Notes for the people who work under it."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The terms other modules keep, by name."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The agreements to create or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Agreements"
+  ],
+  "additionalProperties": true
+}

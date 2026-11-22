@@ -1,6 +1,6 @@
 ---
 name: orchardcore-reports
-description: Skill for building on the CrestApps Orchard Core Reports framework (CrestApps.OrchardCore.Reports, Reports.OpenXml, Reports.Pdf, Reports.Subscriptions). Covers coded reports with static IReport descriptors and services.AddReport, report families with IReportRunner and ReportDescriptor, ExportPermission and DefaultDateRange, ReportContext and ReportRunMode, the ReportFilter helpers GetDateRange, SetDateRange, TryGet, GetOrDefault and Set, report filter display drivers and IReportFilterMetadata, ReportDocument metrics, tables, bars, charts and containers, ReportStyle cell colors, ReportValue.Link, CSV, Excel and PDF exports with IReportExportFormat, IReportManager, scheduled report subscriptions, admin dashboard report widgets with ReportWidgetPart and DefineReportWidgetAsync, and upgrading 2.x reports. Use it for the admin Reports area, writing a report, a report filter, export format or dashboard widget, PDF exports, or report troubleshooting. For designed reports use orchardcore-report-builder.
+description: Skill for building on the CrestApps Orchard Core Reports framework (CrestApps.OrchardCore.Reports, Reports.OpenXml, Reports.Pdf). Covers coded reports with static IReport descriptors and services.AddReport, report families with IReportRunner and ReportDescriptor, ExportPermission and DefaultDateRange, ReportContext with Mode and User, ReportFilter helpers, filter display drivers and IReportFilterMetadata, ReportDocument metrics, tables, bars, charts and containers, ReportStyle cell colors, ReportValue.Link, CSV, Excel and PDF exports with IReportExportFormat, IReportManager, scheduled report subscriptions, dashboard widgets with ReportWidgetPart and DefineReportWidgetAsync, telemetry, and upgrading 2.x reports. Use this skill when requests mention the admin Reports area, writing a report, a report filter, export format or dashboard widget, PDF exports or report subscriptions. For designed reports use orchardcore-report-builder.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -9,9 +9,20 @@ metadata:
 
 # CrestApps Orchard Core Reports
 
+You are an Orchard Core expert. Generate accurate setup, report code, filters, export formats and widgets for the CrestApps Reports framework.
+
 The Reports module is a reusable reporting framework. It adds one admin **Reports** area and a small contract any module implements to publish a report. Every report shares the same filter form, the same renderer (metric cards, tables, bars, Chart.js charts) and the same exports (CSV built in, Excel with an add-on). Modules such as Omnichannel, Contact Center, Phone Number Verifications, Orders and Inventory contribute their reports through it.
 
 Designed reports that people build in the browser are the **Report Builder** feature; see the `orchardcore-report-builder` skill.
+
+### Guidelines
+
+- Install `CrestApps.OrchardCore.Reports` (and `CrestApps.OrchardCore.Reports.OpenXml` or `CrestApps.OrchardCore.Reports.Pdf` for Excel or PDF) in the web/startup project. A module that only contributes reports references `CrestApps.OrchardCore.Reports.Abstractions`.
+- Describe a report with static members and register it with `services.AddReport<TReport>()` in a startup marked `[RequireFeatures(ReportsConstants.Feature)]`.
+- Read who the report runs for from `ReportContext.User`, never from the request: subscriptions and widgets run without one.
+- Use hexadecimal colors in `ReportStyle` so Excel and PDF carry them.
+- All recipe JSON must be wrapped in `{ "steps": [...] }`.
+- All C# classes must use the `sealed` modifier, except View Models. Static `LocalizationSource` descriptor members are never serialized; mark any instance `LocalizationSource` property `[JsonIgnore]`.
 
 ## Features
 
@@ -19,9 +30,9 @@ Designed reports that people build in the browser are the **Report Builder** fea
 | --- | --- | --- | --- |
 | `CrestApps.OrchardCore.Reports` | Reports | Admin **Reports** area, `ReportFilter` with the date range filter, renderer, CSV export | `CrestApps.OrchardCore.Resources`, `OrchardCore.Users` |
 | `CrestApps.OrchardCore.Reports.OpenXml` | Reports (OpenXml) | Excel `.xlsx` export (`DocumentFormat.OpenXml`) | Reports |
-| `CrestApps.OrchardCore.Reports.Pdf` | Reports (PDF) | PDF `.pdf` export laid out like the page (separate `CrestApps.OrchardCore.Reports.Pdf` package) | Reports |
-| `CrestApps.OrchardCore.Reports.Subscriptions` | Report Subscriptions | Emails any registered report daily, weekly or monthly | Reports, `OrchardCore.Email` |
-| `CrestApps.OrchardCore.Reports.Builder` | Report Builder | Drag-and-drop designed reports (see `orchardcore-report-builder`) | Reports, `OrchardCore.DataPipelines.Core` |
+| `CrestApps.OrchardCore.Reports.Pdf` | Reports (PDF) | PDF `.pdf` export laid out like the page (separate `CrestApps.OrchardCore.Reports.Pdf` package, uses `CrestApps.OrchardCore.Pdf.Core` and PdfPig) | Reports |
+| `CrestApps.OrchardCore.Reports.Subscriptions` | Report Subscriptions | Emails any registered report daily, weekly or monthly (in the Reports package) | Reports, `OrchardCore.Email` |
+| `CrestApps.OrchardCore.Reports.Builder` | Report Builder | Drag-and-drop designed reports (in the Reports package; see `orchardcore-report-builder`) | Reports, `OrchardCore.DataPipelines.Core` |
 
 The feature IDs are constants on `ReportsConstants` (`Feature`, `OpenXmlFeature`, `PdfFeature`, `SubscriptionsFeature`, `BuilderFeature`).
 
@@ -41,14 +52,12 @@ The feature IDs are constants on `ReportsConstants` (`Feature`, `OpenXmlFeature`
 }
 ```
 
-Install the module packages in the web (startup) project. A module that only contributes reports references `CrestApps.OrchardCore.Reports.Abstractions`.
-
 The AI analytics are reports of this framework too: **AI Chat Session Analytics**, **AI Chat Extracted Data** and **AI Chat Conversion Goals** (AI Chat Session Analytics feature, see `orchardcore-ai-chat-analytics`), **AI Usage Analytics** (AI Usage Analytics feature), and the **AI QA Dashboard** (AI Quality).
 
 ## Layers and namespaces
 
 - **`CrestApps.OrchardCore.Reports.Abstractions`** holds the contracts and the document model: `IReport`, `IReportRunner`, `ReportDescriptor`, `ReportOptions`, `ReportContext`, `ReportRunMode`, `ReportFilterExtensions`, `IReportExportFormat`, `ReportExportFormatDescriptor`, `ReportsConstants`, `ReportValue`, `AddReport` / `AddReportExportFormat`, and the dashboard widget types `ReportWidgetConstants`, `ReportWidgetPartSettings`, `ReportWidgetPeriod`, `ReportWidgetContent` and `DefineReportWidgetAsync` (namespace `CrestApps.OrchardCore.Reports`); `ReportDocument`, `ReportSection`, `ReportContainer`, `ReportFilter`, `ReportDateRange`, `ReportDefaultDateRange`, `ReportStyle`, `ReportFormat` and the other models (namespace `CrestApps.OrchardCore.Reports.Models`); `IReportManager` and `IReportExportManager` (namespace `CrestApps.OrchardCore.Reports.Services`).
-- **`CrestApps.OrchardCore.Reports.Core`** holds the default `ReportManager`, `ReportExportManager` and `CsvReportExportFormat`.
+- **`CrestApps.OrchardCore.Reports.Core`** holds the default `ReportManager`, `ReportExportManager` and `CsvReportExportFormat`, plus `ReportTelemetry` and the Report Builder engine (namespace `CrestApps.OrchardCore.Reports.Designer`).
 - **`CrestApps.OrchardCore.Reports`** is the Orchard Core module: admin menu, `ReportsController`, views, and `ReportDateRangeFilterDisplayDriver`.
 
 ## Contribute a report
@@ -161,9 +170,27 @@ public static Permission ExportPermission => MyPermissions.ExportOrderReports;
 public static ReportDefaultDateRange DefaultDateRange => ReportDefaultDateRange.LastDays(30);
 ```
 
-## ReportContext and run mode
+## ReportContext, run mode and user
 
-`ReportContext` carries the `Filter` and the `Mode`: `ReportRunMode.Display` when the document is rendered on screen, `ReportRunMode.Export` when an export format serializes it. The Reports controller sets `Export` on the export action. A report that pages its rows on screen reads the mode to give an export every matching row. `new ReportContext(filter)` still means `Display`.
+`ReportContext` carries the `Filter`, the `Mode` and the `User`:
+
+- `Mode` is `ReportRunMode.Display` when the document is rendered on screen, `ReportRunMode.Export` when an export format serializes it. The Reports controller sets `Export` on the export action. A report that pages its rows on screen reads the mode to give an export every matching row. `new ReportContext(filter)` still means `Display`.
+- `User` (`ClaimsPrincipal`, settable) is the person the report runs for: the viewer of the page, the export or the dashboard widget, or, for a scheduled subscription, the person who last saved it. A report whose rows depend on who reads it (only the records a person may see, such as tickets of their scope) authorizes against `context.User`, never `IHttpContextAccessor`, which a scheduled run does not have. Set it yourself when you run a report from code.
+
+```csharp
+// Inside RunAsync: keep only the queues the person the report runs for may supervise.
+// _queueStore is your module's own store; MyPermissions.SuperviseQueue is checked per queue as a resource.
+var visible = new List<Queue>();
+
+foreach (var queue in await _queueStore.ListAsync(cancellationToken))
+{
+    if (context.User is not null &&
+        await _authorizationService.AuthorizeAsync(context.User, MyPermissions.SuperviseQueue, queue))
+    {
+        visible.Add(queue);
+    }
+}
+```
 
 ## The report document
 
@@ -285,8 +312,9 @@ Another feature can add or remove reports of the family through the same options
 
 - `IReportManager.GetReports()` lists `ReportDescriptor`s without creating reports; `GetDescriptor(name)` finds one; `GetReport(name)` creates the `IReportRunner` to run.
 - `IReportExportManager.GetFormats()` lists `ReportExportFormatDescriptor`s; `GetDescriptor(name)` and `GetFormat(name)` resolve one by name, ignoring case.
-- Localize a descriptor's `DisplayName` and `Description` with `IStringLocalizerFactory.Localize(source)`.
+- Localize a descriptor's `DisplayName` and `Description` with `IStringLocalizerFactory.Localize(source)`. `ReportDescriptor.DisplayName`, `ReportDescriptor.Description` and `ReportExportFormatDescriptor.DisplayName` are `[JsonIgnore]`: a `LocalizationSource` is never serialized, so persist the report `Name` and localize when shown.
 - Always authorize `descriptor.Permission` before running a report for a user, and also `descriptor.ExportPermission` (when not `null`) before exporting it.
+- To get the run measured like the admin pages do (`report.coded.run` span, `crestapps.report.coded.duration`), call `ReportTelemetry.RunCodedReportAsync(runner, descriptor, context, cancellationToken)` (namespace `CrestApps.OrchardCore.Reports.Designer`, package `CrestApps.OrchardCore.Reports.Core`) instead of `RunAsync`.
 
 ```csharp
 var descriptor = _reportManager.GetDescriptor("my-order-volume");
@@ -300,7 +328,7 @@ var filter = new ReportFilter { ReportName = descriptor.Name };
 filter.SetDateRange(new ReportDateRange { FromUtc = fromUtc, ToUtc = toUtc, Key = "custom" });
 
 var document = await _reportManager.GetReport(descriptor.Name)
-    .RunAsync(new ReportContext(filter, ReportRunMode.Export), cancellationToken);
+    .RunAsync(new ReportContext(filter, ReportRunMode.Export) { User = User }, cancellationToken);
 
 var csv = _exportManager.GetFormat(ReportsConstants.CsvExportFormat).Serialize(document);
 ```
@@ -313,12 +341,14 @@ An export format is static too: `Name`, `DisplayName` (a `LocalizationSource`), 
 
 ### PDF exports
 
-- The PDF is laid out like the page: title, metric cards, tables with headers repeated on every page and their cell colors, progress bars, line, bar, area and pie charts (with Report Builder reference lines), container title bands, and numbered pages. Pages are US Letter and turn landscape when a table is too wide.
-- It is written with the Apache-2.0 PdfPig library; no AGPL or commercial PDF library (such as PDFsharp-MigraDoc) is allowed into the build.
-- It embeds an installed TrueType font (Arial or a stand-in, preferring Liberation Sans from `fonts-liberation`). On a host with no usable font, such as a slim container image, it falls back to Helvetica and writes ASCII only (accents dropped, other characters as `?`). Install a font package for other text. Glyphs the font lacks (emoji, CJK with Liberation Sans) become `?`. There is no right-to-left shaping; export Arabic or Hebrew reports to Excel.
+- The PDF is laid out like the page: title, metric cards, tables with headers repeated on every page and their cell colors, progress bars, line, bar, area and pie charts (with Report Builder reference lines), container title bands, and numbered pages. Pages are US Letter and turn landscape when a table is too wide. Each column gets room for its longest word; a word too long for its column, such as a URL, is broken.
+- It draws with the shared PDF building block (`CrestApps.OrchardCore.Pdf.Core`, namespace `CrestApps.OrchardCore.Pdf`: `PdfFontSet`, `PdfFontFace`, `PdfText`, `PdfCanvas`, and `PdfColor` from `CrestApps.OrchardCore.Pdf.Abstractions`) over the Apache-2.0 PdfPig library; no AGPL or commercial PDF library (such as PDFsharp-MigraDoc) is allowed into the build.
+- It embeds an installed TrueType font (`PdfFontSet.GetInstalled("Arial")`: Arial or a stand-in, preferring Liberation Sans from `fonts-liberation`; bold uses the bold face or an outlined regular face). On a host with no usable font, such as a slim container image, it falls back to Helvetica and writes ASCII only (accents dropped, other characters as `?`), logs event 14400 once and counts `crestapps.report.pdf.font_fallbacks`. Install a font package for other text. Glyphs the font lacks (emoji, CJK with Liberation Sans) become `?`. There is no right-to-left shaping; export Arabic or Hebrew reports to Excel.
 - Subscriptions, Report Builder workflow tasks and share-link exports can all use `pdf` once the feature is on.
 
 ## Admin area
+
+Enabling Reports adds the top-level **Reports** admin menu (`ReportsAdminMenu`, shown when at least one report is registered): **Reports → {category} → {report}**, each item gated by the report's permission. Report Subscriptions add **Reports → Subscriptions**, and the Report Builder adds **Reports → Report Builder**, **Report Views** and **Report Groups** (see `orchardcore-report-builder`).
 
 - `/Admin/Reports` lists the reports the user may run; the menu groups them by category in a fixed order (Executive, Operations, Queue & Routing, Agent Performance, Workforce & Payroll, Billing & Usage, Commerce, CRM & Campaigns, Artificial Intelligence Reports, Compliance & Audit, Technical & IT, General) and alphabetizes inside each.
 - `/Admin/Reports/view/{name}` shows the filter form, the document and the export actions.
@@ -327,14 +357,16 @@ An export format is static too: `Name`, `DisplayName` (a `LocalizationSource`), 
 
 ## Report subscriptions
 
-`CrestApps.OrchardCore.Reports.Subscriptions` emails a registered report on a schedule. A `ReportSubscription` (a catalog item with `ReportSubscriptionIndex`) holds `Name`, `ReportName`, `Frequency` (`Daily`, `Weekly` on `DayOfWeek`, `Monthly` on `DayOfMonth` 1 to 28), `Hour` in the site's time zone, `Recipients` (comma separated), an optional `AttachmentFormat` (`csv`, `xlsx`, `pdf`), `IsEnabled`, and `NextRunUtc`, `LastRunUtc`, `LastError`.
+`CrestApps.OrchardCore.Reports.Subscriptions` emails a registered report on a schedule. A `ReportSubscription` (a catalog item with `ReportSubscriptionIndex`, declared `.ExclusiveToDocumentType().SingleRecordPerDocument()`) holds `Name`, `ReportName`, `Frequency` (`Daily`, `Weekly` on `DayOfWeek`, `Monthly` on `DayOfMonth` 1 to 28), `Hour` in the site's time zone, `Recipients` (comma separated), an optional `AttachmentFormat` (`csv`, `xlsx`, `pdf`), `IsEnabled`, and `NextRunUtc`, `LastRunUtc`, `LastError`.
 
 - A run covers the day, the seven days or the calendar month before it, midnight to midnight in the site's time zone (`ReportSubscriptionSchedule`).
-- `ReportSubscriptionsBackgroundTask` runs every five minutes and sends due subscriptions; a late run still covers the period it was due for. Failures are stored in `LastError`.
-- The email body is the report as it looks on screen (`ReportRunMode.Display`); the attachment comes from a second run in `ReportRunMode.Export`.
-- For a report with an `ExportPermission`, the file is attached only while the person who last saved the subscription (`ModifiedBy`, else `CreatedBy`) holds it: saving refuses a file format without it, and a scheduled run that finds it gone sends nothing and records why in `LastError`.
+- The **Report subscriptions** background task (`ReportSubscriptionsBackgroundTask`, `*/5 * * * *`, distributed lock) sends due subscriptions; a late run still covers the period it was due for. One subscription that fails, including an email provider timeout, is logged and counted as failed without stopping the others; it is tried again when next due.
+- The report runs **as the person who last saved the subscription** (`ModifiedBy`, else `CreatedBy`, resolved by `ReportOwnerPrincipalResolver` and passed as `ReportContext.User`). It is sent only while that person still holds the report's `Permission`; otherwise nothing is sent and `LastError` says they may no longer view it.
+- The email body is the report as it looks on screen (`ReportRunMode.Display`); the attachment comes from a second run in `ReportRunMode.Export`, named `{report}-{yyyyMMdd}-to-{yyyyMMdd}{extension}`.
+- For a report with an `ExportPermission`, the file is attached only while the saver holds it: saving refuses a file format without it, and a scheduled run that finds it gone sends nothing and records why in `LastError`.
+- Other recorded errors: no email service, no recipients, report unavailable (its feature is off), email send failure. Each run is measured (`crestapps.report.subscription.sends` with `reason`).
 - Subscriptions cover the coded reports only; a Report Builder report is emailed with the **Email Report** workflow task (see `orchardcore-report-builder`).
-- **Reports > Subscriptions** (`/Admin/Reports/subscriptions`) is an Orchard Core `AdminList` (see `orchardcore-admin-lists`) that needs `ManageReportSubscriptions` (**Manage report subscriptions**, Administrator by default). It lists only reports the person may run; **Save and send now** sends at once without moving the schedule.
+- **Reports → Subscriptions** (`/Admin/Reports/subscriptions`) is an Orchard Core `AdminList` (see `orchardcore-admin-lists`) that needs `ManageReportSubscriptions` (**Manage report subscriptions**, Administrator by default). It lists only reports the person may run; **Save and send now** sends at once without moving the schedule.
 - The Email feature must be configured, or each run records the error.
 
 ## Dashboard widgets
@@ -346,9 +378,9 @@ With Orchard Core's **Admin Dashboard** (`OrchardCore.AdminDashboard`, `ReportWi
 | **Period** (`ReportWidgetPeriod`) | `Today`, `Yesterday`, `Last7Days`, `Last30Days`, `Last90Days`, `ThisMonth`, `LastMonth`, `ThisYear`, `Last12Months`, `AllTime`, `Custom`; all but `Custom` move with the clock in the site's time zone and become the report's date range filter |
 | **Show** (`ReportWidgetContent`) | `FiguresAndTables` (default), `FiguresOnly`, `TablesOnly`, `ChartsOnly`, `Everything` |
 | **Rows per table** | Rows of each table and bars of each bar list; a total row stays |
-| **Keep for (minutes)** | Result cached in the tenant memory cache per widget and language, `ReportWidgetConstants.DefaultCacheMinutes` (30) by default; `0` runs on every visit; saving the widget starts over |
+| **Keep for (minutes)** | Result cached in the tenant memory cache per widget, its last change, period, show, rows, language and **viewer** (`NameIdentifier`), since a report may show each person only what they may see; `ReportWidgetConstants.DefaultCacheMinutes` (30) by default; `0` runs on every visit; saving the widget starts over |
 
-A viewer sees a widget's numbers only when they hold the report's permission (checked on every visit, before the cache). A failing report shows a message in its own tile and is not cached.
+A viewer sees a widget's numbers only when they hold the report's permission (checked on every visit, before the cache). The widget runs the report with `ReportContext.User` set to the viewer. A failing report shows a message in its own tile and is not cached.
 
 Ship a ready-made widget from a migration with `DefineReportWidgetAsync`, which creates a non-draftable `DashboardWidget` type with `TitlePart` and `ReportWidgetPart` fixed to one report. Register the migration in a startup that requires both features:
 
@@ -409,7 +441,8 @@ Orders, Inventory, Reviews, Shipping, Downloads and Subscriptions ship ready-mad
 - `IReportProvider` is replaced by `ReportOptions` plus `IReportRunner` and one `ReportDescriptor` per report.
 - `IReportExportFormat` members `Name`, `DisplayName`, `Extension`, `ContentType` are static; register with `AddReportExportFormat<TFormat>()`; `IReportExportManager.GetFormats()` returns `ReportExportFormatDescriptor`s.
 - Report pages now open on today instead of the last 30 days.
-- The Supervisor role now defaults to `ViewOmnichannelReports` and `RunPhoneNumberVerificationsReport`; on existing tenants grant them under **Security > Roles**.
+- The Supervisor role now defaults to `ViewOmnichannelReports` and `RunPhoneNumberVerificationsReport`; on existing tenants grant them under **Access Control → Roles**.
+- Report metrics dropped the `crestapps.report.id`, `crestapps.report.query.id` and `crestapps.report.data_set` tags (still on spans) and the `crestapps.report.outcome` tag; use `outcome` (`ok`, `error`, `cancelled`) and, on `crestapps.report.run.failures`, `crestapps.report.level` (`run`, `query`).
 
 ## Troubleshooting
 
@@ -421,4 +454,10 @@ Orders, Inventory, Reviews, Shipping, Downloads and Subscriptions ship ready-mad
 - **Date range empty in `RunAsync`**: `GetDateRange()` returns null bounds when no date range filter wrote them, such as when a report is run from code, or when a report with a `DefaultDateRange` runs on **All Time** or an open-ended range; set it with `SetDateRange` and handle `null` bounds.
 - **Export buttons missing for some users**: the report declares an `ExportPermission` they lack.
 - **PDF shows `?` instead of letters**: the host has no TrueType font with those glyphs (Helvetica fallback writes ASCII only); install a font package such as `fonts-liberation`, or export to Excel.
+- **Subscription not sent, `LastError` says the saver may no longer view it**: the person who last saved it lost the report's permission or account; open and save it as someone who holds it.
+- **A report shows everything, or nothing, in a subscription or widget**: it reads the current user from the request; read `context.User` instead.
 - **Report widget missing from Add Widget**: Admin Dashboard or Reports is off, or the widget startup lacks `[RequireFeatures(ReportsConstants.Feature, ReportWidgetConstants.AdminDashboardFeature)]`.
+
+## Telemetry
+
+Coded report runs, exports, subscriptions and widgets emit spans and metrics on the `CrestApps.OrchardCore.Reports` source and meter (`ReportTelemetry`, package `CrestApps.OrchardCore.Reports.Core`): `report.coded.run` and `crestapps.report.coded.duration` (tags `crestapps.report.name`, `crestapps.report.mode`, `outcome`), `report.export` and `crestapps.report.exports`, `.export.duration`, `.export.size`, `.export.rows` (tag `format`), `report.subscription.send` and `crestapps.report.subscription.sends` (`trigger`, `outcome`, `reason`), and `crestapps.report.widget.requests` (`crestapps.report.kind`, `crestapps.report.cache`). A coded report that reads a whole index can call `ReportTelemetry.RecordCodedIndexRows(Name, rows, logger)`, which warns (event 14001) from 50,000 rows. Collect it with the `CrestApps.OrchardCore.*` wildcard (see `orchardcore-opentelemetry`); the full list of spans, metrics and log ids is in the `orchardcore-report-builder` skill's large-data and telemetry reference.

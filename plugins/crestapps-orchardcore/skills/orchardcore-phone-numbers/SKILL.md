@@ -1,6 +1,6 @@
 ---
 name: orchardcore-phone-numbers
-description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, display formatting, region lookup, and time-zone lookup services. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers feature, IPhoneNumberService, the canonical PhoneNumber value type with TryParse, FromE164 and TryFromE164, FormatForDisplay, PhoneNumberComparisonKey for matching stored raw values, lenient PhoneNumberNormalization.ToE164OrTrimmed for free-text fields, and how DNC screening, verifications, Omnichannel and the soft phone consume canonical numbers. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, phone number display formatting, or phone number time zones. Strong matches include work with CrestApps.OrchardCore.PhoneNumbers, CrestApps.OrchardCore.PhoneNumbers.Abstractions, IPhoneNumberService, DefaultPhoneNumberService, PhoneNumber, PhoneNumberServiceExtensions, PhoneNumberComparisonKey, and TryFormatToE164.
+description: Skill for using CrestApps Orchard Core phone-number parsing, validation, E.164 normalization, display formatting, region lookup, and time-zone lookup services. Covers the dependency-only CrestApps.OrchardCore.PhoneNumbers feature, IPhoneNumberService, the canonical PhoneNumber value type with TryParse, FromE164 and TryFromE164, FormatForDisplay, PhoneNumberComparisonKey for matching stored raw values, lenient PhoneNumberNormalization.ToE164OrTrimmed for free-text fields, searching stored numbers through a normalized-number index, and how DNC screening, verifications, Omnichannel and the soft phone consume canonical numbers. Use this skill when requests mention Orchard Core phone numbers, E.164 formatting, libphonenumber, country calling codes, phone number display formatting, or phone number time zones. Strong matches include CrestApps.OrchardCore.PhoneNumbers, IPhoneNumberService, PhoneNumber, PhoneNumberComparisonKey, PhoneNumberNormalization and TryFormatToE164.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -181,6 +181,46 @@ public sealed class ContactPhoneRecord
 
 Normalize and validate `NormalizedPhoneNumber` before a record is saved. Do not include a local number and its region in a global unique index because the same digits represent different numbers in different regions.
 
+## Search Numbers Through an Index
+
+To find records by a number someone types, keep one index row per normalized number and compare the E.164 value with `StartsWith`, which a database index can seek. Never search a phone number with `Contains` (`LIKE '%…%'`) on display text or a JSON column: no index answers it, and on a large tenant the page and its count each scan every row. The Omnichannel Contacts and Leads list search (CrestApps.OrchardCore #1337) does exactly this: a search written like a number matches only numbers, through `OmnichannelContactPhoneNumberIndex` and its covering index `IDX_OCPhone_NumberDocument` (`NormalizedPhoneNumber`, `DocumentId`), and no longer the display text.
+
+```csharp
+public sealed class SupplierPhoneIndex : MapIndex
+{
+    public string ContentItemId { get; set; }
+
+    public string NormalizedPhoneNumber { get; set; }
+}
+
+public sealed class SupplierPhoneIndexProvider : IndexProvider<ContentItem>
+{
+    private readonly IPhoneNumberService _phoneNumberService;
+
+    public SupplierPhoneIndexProvider(IPhoneNumberService phoneNumberService)
+    {
+        _phoneNumberService = phoneNumberService;
+    }
+
+    public override void Describe(DescribeContext<ContentItem> context)
+        => context.For<SupplierPhoneIndex>()
+            // Only content items have rows, but a supplier with two numbers has two: not SingleRecordPerDocument().
+            .ExclusiveToDocumentType()
+            .When(item => item.Published && item.Has<SupplierPart>())
+            .Map(item => item.As<SupplierPart>().PhoneNumbers
+                .Select(raw => _phoneNumberService.TryParse(raw, "US", out var number) ? number.Value : null)
+                .Where(value => value is not null)
+                .Distinct(StringComparer.Ordinal)
+                .Select(value => new SupplierPhoneIndex { ContentItemId = item.ContentItemId, NormalizedPhoneNumber = value }));
+}
+
+// Search: read a national entry in a default country so the prefix is E.164, then seek the index.
+// var prefix = typed.StartsWith('+') ? typed : $"+1{digits}";
+// session.Query<ContentItem, SupplierPhoneIndex>(index => index.NormalizedPhoneNumber.StartsWith(prefix));
+```
+
+Add a database index on (`NormalizedPhoneNumber`, `DocumentId`) in the migration so the search is answered from the index alone. `SupplierPart` is your own part with a `List<string> PhoneNumbers`.
+
 ## Lenient Normalization for Free-Text Fields
 
 For a field that must keep whatever was typed (a customer, order or checkout contact phone), use `PhoneNumberNormalization.ToE164OrTrimmed` (in `CrestApps.OrchardCore.PhoneNumbers.Abstractions`) instead of rejecting invalid input:
@@ -203,7 +243,7 @@ Commerce uses this for the customer record, the order, the checkout contact step
 | `CrestApps.OrchardCore.PhoneNumbers.Verifications` | Stores and revalidates provider verification results on content items; see `orchardcore-phone-number-verifications` |
 | `CrestApps.OrchardCore.DncRegistry` | Normalizes imports and checks do-not-call records |
 | `CrestApps.OrchardCore.TimeZones` | Provides friendly editor labels for IANA zones, not phone-number discovery |
-| `CrestApps.OrchardCore.Omnichannel.Managements` | Indexes every contact number in E.164 for caller and sender matching; see `orchardcore-omnichannel-management` |
+| `CrestApps.OrchardCore.Omnichannel.Managements` | Indexes every contact number in E.164 (`OmnichannelContactPhoneNumberIndex`) for caller and sender matching and for the Contacts and Leads list search, which matches a number-like entry by E.164 prefix against every number of any type (after the phone number backfill; before it, the primary Cell and Home columns); see `orchardcore-omnichannel-management` |
 | `CrestApps.OrchardCore.Telephony` | The soft phone keypad normalizes a valid national number to E.164 before dialing so outbound screening can canonicalize it; see `orchardcore-telephony` |
 
 Phone Numbers itself does not manage external verification providers, send SMS, create a content type, or supply an admin page.
@@ -225,4 +265,5 @@ Phone Numbers itself does not manage external verification providers, send SMS, 
 - Do not convert an E.164 number to an integer because it loses `+` and can overflow.
 - Do not use a phone number’s region as proof of a customer’s country.
 - Do not persist an external provider’s formatted display string as the comparison key.
+- Do not search numbers with a leading-wildcard `LIKE` or OR a number search with a display-text search; seek a normalized-number index by prefix.
 - Do not call external verification APIs when local parsing is all that is requested.

@@ -35,7 +35,7 @@ public sealed class DirectorySkillsHandler : ISkillAssignmentHandler
 
 ## Link a New Kind of Subject to a User
 
-When your module holds skills under its own subject kind, tell Skills which user (or worker) it is, so `GetEffectiveAsync` and `HoldsAsync` merge them. When both hold a skill, the higher proficiency counts.
+When your module holds skills under its own subject kind, tell Skills which user (or staff member) it is, so `GetEffectiveAsync` and `HoldsAsync` merge them. When both hold a skill, the higher proficiency counts.
 
 ```csharp
 public sealed class VolunteerSkillSubjectLinkProvider : ISkillSubjectLinkProvider
@@ -77,8 +77,8 @@ var certification = await _certificationManager.FindByNameAsync("Gas safety");
 
 var result = await _recordService.SaveAsync(new CertificationRecord
 {
-    SubjectKind = SkillSubjectKind.Worker,
-    SubjectId = workerId,
+    SubjectKind = SkillSubjectKind.Staff,
+    SubjectId = staffMemberId,
     SubjectName = "Ana Lopez",
     CertificationId = certification.ItemId,
     Number = "GS-1042",
@@ -93,8 +93,8 @@ var result = await _recordService.SaveAsync(new CertificationRecord
 Checking on a day:
 
 ```csharp
-var valid = await _recordService.IsValidOnAsync(SkillSubject.Worker(workerId), certification.ItemId, today);
-var holds = await _assignmentService.HoldsAsync(SkillSubject.Worker(workerId), boilerSkillId, minimumProficiency: 3, today);
+var valid = await _recordService.IsValidOnAsync(SkillSubject.Staff(staffMemberId), certification.ItemId, today);
+var holds = await _assignmentService.HoldsAsync(SkillSubject.Staff(staffMemberId), boilerSkillId, minimumProficiency: 3, today);
 ```
 
 ## Skills Section View

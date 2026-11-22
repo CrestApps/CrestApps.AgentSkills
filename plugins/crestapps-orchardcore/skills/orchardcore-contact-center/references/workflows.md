@@ -6,6 +6,9 @@ The Workflows bridge is not a feature. Enable `OrchardCore.Workflows` alongside 
 
 `ContactCenterEvent` starts or resumes a workflow when a domain event is published. **Event type** is a grouped picker of every canonical event, or **Any event type**. Outcomes are **Matched** and **Ignored**.
 
+- As a **start** activity it starts a workflow only for a matching event type (`CanExecute`), so no finished instance is saved for every heartbeat or presence change. A workflow already waiting on the activity still resumes and can take **Ignored**.
+- The bridge keeps a per-tenant snapshot (`ContactCenterWorkflowSubscriptions`) of the event types enabled workflows listen for, refreshed when a workflow type is saved or deleted and at least every minute. An event type no workflow listens for is skipped before the deduplication row or any workflow query. Prefer a specific **Event type** over **Any event type**, which subscribes to every event.
+
 The workflow input carries `EventType`, `InteractionId`, `AggregateType`, `AggregateId`, `ActorId`, `ActorType` (agent, supervisor, workflow, provider or `system`), `AgentId`, `AgentUserId`, `SourceComponent` and `Data`. Read the agent the change is about from `{{ Workflow.Input.AgentUserId }}`, not `ActorId`.
 
 | Event | `Data` payload | Notable properties |
@@ -13,7 +16,7 @@ The workflow input carries `EventType`, `InteractionId`, `AggregateType`, `Aggre
 | `DialerAttemptCompleted` | `CallLifecycleEventData` | `Outcome` (`Answered`, `NoAnswer`, `Busy`, `AnsweringMachine`, `NotInService`, `Rejected`, `Failed`), `PhoneNumber`, `ActivityItemId`, `CampaignId`, `HangupCause` |
 | `DialerLiveAnswered` | `CallLifecycleEventData` | `InteractionId`, `AgentId`, `QueueId`, `Details.dialerProfileId` |
 | `DialerCallAbandoned` | `CallLifecycleEventData` | `Reason` (`agent_leg_failed`, `agent_connect_failed`, `agent_unavailable`, `agent_connected_late`, `customer_hung_up_waiting`), `DurationSeconds` |
-| `ActivityDispositionApplied` | `ActivityDispositionEventData` | `ActivityItemId`, `DispositionName`, `Outcome`, `Source` (`Agent`, `AI`, `Provider`, `Workflow`, `System`), `CampaignId`, `PhoneNumber`, `Attempts` |
+| `ActivityDispositionApplied` | `ActivityDispositionEventData` | `ActivityItemId`, `DispositionName`, `Outcome`, `Source` (`Agent`, `AI`, `Provider`, `Workflow`, `System`), `CampaignId`, `PhoneNumber`, `Attempts`, `CompletedById` (empty when the system applied it), `AgentUserId` (the agent who took the call or, on an automated dial, the agent the dialer held for it; otherwise the agent who applied it) |
 | `RoutingDecisionMade` | `ActivityRoutingDecisionEventData` | Identical failed repeats are coalesced; read `OccurrenceCount` and `LastSeenUtc` |
 
 Other event families include interactions, offers (`OfferAccepted`), agents (`AgentPresenceChanged`, `AgentSignedIn`), calls (`CallConnected`, `CallEnded`), callbacks (`CallbackRequested`), recording (`RecordingDisclosed`, `RecordingDenied`, `RecordingAutoResumed`), supervision, secure capture and shared voicemail. Event names are constants in `ContactCenterConstants.Events`.
@@ -37,6 +40,7 @@ Text inputs accept Liquid, for example `{{ Workflow.Input.InteractionId }}` or `
 - **Already Started** prevents a duplicate call when a workflow fires twice or races the periodic automated-activities pass; only `NotStated` or `Scheduled` activities start. **Place Call or Send Message** skips the checks the automatic pass runs first (opt-out, numbers not in service, do-not-call lists, calling window), so use it only for contacts already cleared.
 - **Hand Off to Live Agent** escalates an automated (AI) conversation through `IOmnichannelHandoffService`; without a queue it uses the subject flow's handoff queue. It never touches a call a human is on.
 - **Schedule Dialer Retry** queues the next attempt in the same campaign and profile, honoring max attempts; a shorter delay than the profile's retry delay is raised to it.
+- To text a customer after a call (for example a dialer **No Answer**), start on **Activity disposition applied** and set **Find Agent Numbers** > **User name** and **Send Text Message** > **Agent** to `{{ Workflow.Input.Data.AgentUserId }}`, with **From** `{{ Workflow.Output.AgentSmsNumber }}` and **To** `{{ Workflow.Input.Data.PhoneNumber }}`. Do not use `CompletedById`: when a Power dial reaches an answering machine the system applies the disposition, `CompletedById` is empty and the text and the reply would belong to no agent.
 - **Send Text Message** belongs to the SMS messaging feature (`CrestApps.OrchardCore.Omnichannel.Messaging.Sms`), not Contact Center, though the designer lists it in the **Contact Center** category; see the Omnichannel messaging skills.
 - To set a field on the contact after a call (for example a "texted once" flag), use **Update Contact** (`UpdateContactTask`, category **Omnichannel CRM**, see `orchardcore-omnichannel-management`) rather than Orchard Core's **Update Content Item**, which validates required fields and fails on contacts loaded without them.
 

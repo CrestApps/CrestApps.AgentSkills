@@ -1,0 +1,218 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "IncomeTaxRules",
+      "description": "Recipe step discriminator. Must be \u0027IncomeTaxRules\u0027."
+    },
+    "Rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The rule\u0027s 26-character id; omit it to match by tax code and first day, or create one."
+          },
+          "Name": {
+            "type": "string",
+            "description": "What a statement shows."
+          },
+          "TaxCode": {
+            "type": "string",
+            "description": "The tax\u0027s code, the same for every dated version, such as US-CA-SIT or CA-CPP."
+          },
+          "Jurisdiction": {
+            "type": "string",
+            "description": "The jurisdiction, such as US, US-CA, CA or CA-QC."
+          },
+          "CollectedBy": {
+            "type": "string",
+            "description": "The jurisdiction whose registration covers the tax when it isn\u0027t the rule\u0027s own, such as CA for a province\u0027s tax the CRA collects."
+          },
+          "ExceptJurisdictions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Jurisdictions whose people the rule doesn\u0027t apply to, such as CA-QC for the Canada Pension Plan."
+          },
+          "ByPlaceOfWork": {
+            "type": "boolean",
+            "description": "Match the jurisdiction by where the person works when that is known, never by where they live (Canada\u0027s province of employment)."
+          },
+          "IncomeKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Employment",
+                "Contractor",
+                "Pension",
+                "Other"
+              ]
+            },
+            "description": "The kinds of income the rule applies to; empty for employment income (or contractor payments for ContractorWithholding)."
+          },
+          "Category": {
+            "type": "string",
+            "description": "The tax category whose income is taxed: IncomeTax, SocialInsurance, Unemployment or one a country pack adds."
+          },
+          "Payer": {
+            "type": "string",
+            "enum": [
+              "Employee",
+              "Employer"
+            ],
+            "description": "Who pays."
+          },
+          "Source": {
+            "type": "string",
+            "description": "The kind of rule, which decides the fields its editor shows: FlatRate, ShareOfTax, TaxTable, FixedAmount, or one a country pack adds, such as UnitedStatesFormW4, CanadaFederal, CanadaProvincial or QuebecTP1015. Omitted, it comes from the method and the share."
+          },
+          "Method": {
+            "type": "string",
+            "description": "A Taxation calculation method (Percentage, FixedAmount, TaxTable, Progressive or Threshold) or a withholding method a country pack adds, such as UnitedStatesFormW4, CanadaFederal, CanadaProvincial or QuebecTP1015."
+          },
+          "Rate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The rate as a percent, such as 6.2."
+          },
+          "FixedAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The fixed amount."
+          },
+          "TaxTableId": {
+            "type": "string",
+            "description": "The id of a Taxation tax table (rates in its rows are fractions)."
+          },
+          "WageBase": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most income taxed in a calendar year."
+          },
+          "WageThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The income of a calendar year above which the tax starts; only the part over it is taxed (such as CPP2 above the first ceiling)."
+          },
+          "YearlyExemption": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "An amount of a year\u0027s income never taxed, taken off each pay in proportion to the periods of a year, such as the CPP basic exemption."
+          },
+          "YearlyMaximum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The most tax taken in a calendar year, such as a contribution\u0027s maximum."
+          },
+          "ShareOfTaxCode": {
+            "type": "string",
+            "description": "The code of another tax of the same pay this rule is a share of, such as the employer\u0027s share of a contribution."
+          },
+          "ShareMultiplier": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "How many times that tax the rule takes, such as 1.4 for the employer\u0027s EI premium."
+          },
+          "Tables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "A withholding method\u0027s Taxation tax table ids, by the method\u0027s key (for UnitedStatesFormW4: Single, MarriedFilingJointly, HeadOfHousehold and each with .Step2)."
+          },
+          "Parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "A withholding method\u0027s amounts, by the method\u0027s key (for UnitedStatesFormW4: AdjustmentMarriedFilingJointly and Adjustment)."
+          },
+          "Annualize": {
+            "type": "boolean",
+            "description": "Work the tax out on a year\u0027s wages."
+          },
+          "UsesElections": {
+            "type": "boolean",
+            "description": "Apply the person\u0027s election: exempt, allowances, extra withholding."
+          },
+          "AllowanceAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "What one allowance lowers a year\u0027s wages by."
+          },
+          "SupplementalRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The flat rate, as a percent, of supplemental wages."
+          },
+          "SupplementalExcessRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The rate, as a percent, of a year\u0027s supplemental wages above SupplementalExcessThreshold, whatever the method."
+          },
+          "SupplementalExcessThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The supplemental wages of a calendar year above which SupplementalExcessRate applies."
+          },
+          "EffectiveFrom": {
+            "type": "string",
+            "format": "date",
+            "description": "The first pay date the rule applies to."
+          },
+          "EffectiveTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date",
+            "description": "The last pay date, or null."
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether the rule is in use."
+          }
+        },
+        "required": [
+          "TaxCode",
+          "Jurisdiction",
+          "EffectiveFrom"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The tax rules to create, or update by id or by tax code and first day."
+    }
+  },
+  "required": [
+    "name",
+    "Rules"
+  ],
+  "additionalProperties": true
+}

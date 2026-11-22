@@ -1,0 +1,92 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningPackageRuntimeStates",
+      "description": "Recipe step discriminator. Must be \u0027LearningPackageRuntimeStates\u0027."
+    },
+    "States": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The runtime state id, a generated unique id. A state with this id, or of the same enrollment and package, is updated."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The user name of the learner. A row whose user is not on the site is reported and skipped."
+          },
+          "EnrollmentId": {
+            "type": "string",
+            "description": "The enrollment."
+          },
+          "CourseId": {
+            "type": "string",
+            "description": "The content item id of the course."
+          },
+          "PackageItemId": {
+            "type": "string",
+            "description": "The content item id of the learning package."
+          },
+          "PackageTitle": {
+            "type": "string",
+            "description": "The title of the package at the last launch."
+          },
+          "PackageFileId": {
+            "type": "string",
+            "description": "The package file of the last launch, in the protected store of the site it came from."
+          },
+          "Standard": {
+            "type": "string",
+            "description": "The standard of the package: SCORM 1.2, SCORM 2004 3rd Edition or SCORM 2004 4th Edition. Without one the state is SCORM 1.2."
+          },
+          "Cmi": {
+            "type": "object",
+            "description": "The SCORM 1.2 data: LessonStatus, ScoreRaw, ScoreMin, ScoreMax, TotalTime, LessonLocation, SuspendData, Exit, Entry, Comments, the student preferences, Objectives and Interactions."
+          },
+          "Cmi2004": {
+            "type": "object",
+            "description": "The SCORM 2004 data: Edition, CompletionStatus, SuccessStatus, ProgressMeasure, ScoreScaled, ScoreRaw, ScoreMin, ScoreMax, TotalTime, Location, SuspendData, Exit, Entry, NavRequest, the learner preferences, Objectives, Interactions and CommentsFromLearner."
+          },
+          "Attempts": {
+            "type": "integer",
+            "description": "How many SCORM 2004 attempts the learner started."
+          },
+          "Sessions": {
+            "type": "integer",
+            "description": "How many times the learner launched the package."
+          },
+          "FirstLaunchedUtc": {
+            "type": "string",
+            "description": "When the package was first launched, in UTC."
+          },
+          "LastLaunchedUtc": {
+            "type": "string",
+            "description": "When the package was last launched, in UTC."
+          },
+          "LastCommitUtc": {
+            "type": "string",
+            "description": "When the content last committed its data, in UTC."
+          },
+          "LastFinishedUtc": {
+            "type": "string",
+            "description": "When a session last finished, in UTC."
+          }
+        },
+        "required": [
+          "UserName",
+          "EnrollmentId",
+          "PackageItemId"
+        ]
+      },
+      "description": "The runtime states to create, or update."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

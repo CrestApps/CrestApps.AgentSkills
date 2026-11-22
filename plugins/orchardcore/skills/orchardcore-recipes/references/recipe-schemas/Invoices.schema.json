@@ -1,0 +1,164 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Invoices",
+      "description": "Recipe step discriminator. Must be \u0027Invoices\u0027."
+    },
+    "Invoices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The document\u0027s 26-character id. A draft with this id is replaced; an issued document with this id is kept as it is."
+          },
+          "Number": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The document\u0027s number, kept as it is. Required on an issued document; refused when another document of the site holds it."
+          },
+          "BillTo": {
+            "type": "object",
+            "description": "Who is billed: Party (Kind and Id), Contact (Name, Email, Phone, Address), TaxId, TaxTreatment, ExemptionReason and CopyTo."
+          },
+          "Issuer": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "The business that issued it, as copied at issue."
+          },
+          "Currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The three-letter currency code."
+          },
+          "PricesIncludeTax": {
+            "type": "boolean",
+            "description": "Whether line prices include tax."
+          },
+          "Lines": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The lines: Id, Kind (Item, Service, Discount, Text), Name, Description, Quantity, Unit, UnitPrice, DiscountPercent, DiscountAmount, TaxCategoryCode, Taxes, and the computed Net, TaxAmount and Total."
+          },
+          "Charges": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Document-level discounts and charges."
+          },
+          "Taxes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The tax lines, one per rate."
+          },
+          "Totals": {
+            "type": "object",
+            "description": "Subtotal, DiscountTotal, ChargeTotal, TaxTotal, RoundingAmount and Total."
+          },
+          "IssueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The issue date, yyyy-MM-dd."
+          },
+          "IssuedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was issued, in UTC (ISO 8601)."
+          },
+          "History": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The document\u0027s append-only history."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was created, in UTC (ISO 8601); kept."
+          },
+          "Status": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Draft, Open, Voided or Uncollectible (or its number)."
+          },
+          "Settlement": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Unpaid, PartiallyPaid or Paid, mirrored from the transaction."
+          },
+          "DueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The due date, yyyy-MM-dd."
+          },
+          "PaymentTermId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payment term\u0027s id."
+          },
+          "TransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the transaction the invoice posted; the transaction travels with the Transactions step."
+          },
+          "AmountPaid": {
+            "type": "number",
+            "description": "What was paid, mirrored from the transaction."
+          },
+          "AmountCredited": {
+            "type": "number",
+            "description": "What credit notes took off."
+          },
+          "AmountDue": {
+            "type": "number",
+            "description": "What is still owed."
+          }
+        },
+        "required": [
+          "ItemId"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The invoices to import, as an Invoices deployment step writes them. Issued invoices keep their numbers and never post to the ledger again."
+    }
+  },
+  "required": [
+    "name",
+    "Invoices"
+  ],
+  "additionalProperties": true
+}

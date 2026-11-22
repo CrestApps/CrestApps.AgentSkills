@@ -20,7 +20,7 @@ public sealed class SmsWorkforceNotificationChannel : IWorkforceNotificationChan
 
     public string DisplayName => "Text message";
 
-    public async Task SendAsync(WorkerProfile worker, WorkforceNotification notification, CancellationToken cancellationToken = default)
+    public async Task SendAsync(StaffMember worker, WorkforceNotification notification, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(worker.Phone))
         {
@@ -103,43 +103,44 @@ public sealed class LateChangeAuditHandler : IScheduleChangeHandler
 // Startup: services.AddScoped<IScheduleChangeHandler, LateChangeAuditHandler>();
 ```
 
-## Add a Payroll Export Format
+## Put Your Own Time on a Worker's Shifts
+
+A module that owns time inside shifts (a class, a site visit) places a segment on the worker's published shifts instead of editing the schedule. The segment is clipped to each overlapping shift and replaces the segment the same `Source` and `SourceId` placed before; the draft shift follows, so a republish keeps it.
 
 ```csharp
-public sealed class HoursOnlyPayrollExportProvider : IPayrollExportProvider
+public sealed class TrainingShiftPlacer
 {
-    public string Name => "HoursOnly";
+    private readonly IShiftService _shiftService;
 
-    public string DisplayName => "Hours per worker (CSV)";
-
-    public Task<PayrollExportFile> ExportAsync(PayrollExportContext context, CancellationToken cancellationToken = default)
+    public TrainingShiftPlacer(IShiftService shiftService)
     {
-        var builder = new StringBuilder("EmployeeNumber,Hours\r\n");
-        var rows = 0;
-
-        foreach (var timesheet in context.Timesheets)
-        {
-            var worker = context.Workers.GetValueOrDefault(timesheet.WorkerId);
-            var hours = timesheet.Lines.Sum(line => line.Hours);
-
-            builder.Append(worker?.EmployeeNumber).Append(',').Append(hours.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
-            rows++;
-        }
-
-        return Task.FromResult(new PayrollExportFile
-        {
-            FileName = $"hours-{context.PeriodStart:yyyyMMdd}-{context.PeriodEnd:yyyyMMdd}.csv",
-            ContentType = "text/csv",
-            Content = builder.ToString(),
-            RowCount = rows,
-        });
+        _shiftService = shiftService;
     }
-}
 
-// Startup: services.TryAddEnumerable(ServiceDescriptor.Scoped<IPayrollExportProvider, HoursOnlyPayrollExportProvider>());
+    public async Task<bool> PlaceAsync(string workerId, string sessionId, DateTime startUtc, DateTime endUtc, string actor, CancellationToken cancellationToken)
+    {
+        var result = await _shiftService.PlaceSegmentAsync(new ShiftSegmentPlacement
+        {
+            WorkerId = workerId,
+            Kind = ActivityKind.Training,
+            StartUtc = startUtc,
+            EndUtc = endUtc,
+            Source = "Training",
+            SourceId = sessionId,
+            Reason = "Training session",
+            Actor = actor,
+        }, cancellationToken);
+
+        // Fails, changing nothing, when no published shift covers the time.
+        return result.Succeeded;
+    }
+
+    public Task<int> RemoveAsync(string workerId, string sessionId, DateTime fromUtc, DateTime toUtc, string actor, CancellationToken cancellationToken)
+        => _shiftService.RemoveSegmentsAsync(workerId, "Training", sessionId, fromUtc, toUtc, actor, cancellationToken);
+}
 ```
 
-Only locked timesheets are exported, once per provider and period unless asked again. Escape values that start like a formula (`=`, `+`, `-`, `@`) when you write a spreadsheet format.
+Payroll formats are no longer Workforce providers: locked timesheets become Payroll pay inputs, and an export is a data pipeline over the **Pay inputs** data set (see `orchardcore-payroll` and `orchardcore-data-pipelines`).
 
 ## Add a Page to My Work
 
@@ -153,7 +154,7 @@ public sealed class TrainingMyWorkLinkProvider : IMyWorkLinkProvider
         _training = training;
     }
 
-    public async Task<IEnumerable<MyWorkLink>> GetLinksAsync(ClaimsPrincipal user, WorkerProfile worker, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<MyWorkLink>> GetLinksAsync(ClaimsPrincipal user, StaffMember worker, CancellationToken cancellationToken = default)
     {
         if (worker is null)
         {
@@ -169,7 +170,7 @@ public sealed class TrainingMyWorkLinkProvider : IMyWorkLinkProvider
 // Startup: services.AddScoped<IMyWorkLinkProvider, TrainingMyWorkLinkProvider>();
 ```
 
-Serve the page from your own admin controller at `[Admin("my-work/training", "MyWorkTraining")]`, authorize `WorkforcePermissions.UseWorkforcePortal`, find the worker with `IWorkerManager.FindByUserIdAsync`, and build the menu with `MyWorkPortal` so it matches the other pages.
+Serve the page from your own admin controller at `[Admin("my-work/training", "MyWorkTraining")]`, authorize `WorkforcePermissions.UseWorkforcePortal`, find the worker with Staff's `IStaffDirectory.FindByUserIdAsync` (or `IStaffMemberManager.FindByUserIdAsync`), and build the menu with `MyWorkPortal` so it matches the other pages.
 
 ## Replace the Auto-Scheduler
 
@@ -222,9 +223,9 @@ await _workforceEvents.RaiseAsync(
 // services.AddActivity<TrainingCompletedEvent, WorkforceEventActivityDisplayDriver<TrainingCompletedEvent>>();
 ```
 
-## Worker Editor Section View
+## Staff Editor Card View
 
-The worker editor sections are cards with one field a row, like the built-in `WorkerProfileFields_Edit`:
+Workers are edited in the staff editor, whose cards have one field a row, like Workforce's `WorkforceStaffFields_Edit`:
 
 ```cshtml
 @model WorkerUniformViewModel

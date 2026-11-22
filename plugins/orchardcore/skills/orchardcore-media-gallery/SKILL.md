@@ -76,7 +76,7 @@ gallery editor) and hide the grid toggle and thumbnail size setting:
 ## Media API Authentication
 
 The Media API, the TUS endpoint and the media hub authenticate with exactly one
-scheme, chosen in **Configuration → Settings → Media → API**
+scheme, chosen in **Settings → Media → API**
 (`MediaApiSettings.AuthenticationScheme`, permission `ManageMediaApiSettings`,
 granted to Administrators). Changing it releases the shell so the `MediaApi`
 policy is rebuilt.
@@ -92,7 +92,7 @@ either mode.
 ### Provision Bearer mode
 
 Run the **Media API — Bearer/PKCE** recipe (`MediaApiPkce`) from
-**Configuration → Recipes**. It enables `OrchardCore.OpenId.Management`,
+**Tools → Recipes**. It enables `OrchardCore.OpenId.Management`,
 `OrchardCore.OpenId.Server` and `OrchardCore.OpenId.Validation`, sets
 `MediaApiSettings.AuthenticationScheme` to `Bearer`, enables the
 authorization-code flow with PKCE required, sets local token validation
@@ -168,6 +168,11 @@ Simple parameters are query string values.
 | `POST api/media/CopyMedia` | `oldPath`, `newPath` | Copied file |
 | `GET api/media/TusFileInfo/{uploadId}` | TUS only | Upload info |
 | `/api/media/tus` | TUS protocol | Resumable upload endpoint (TUS only) |
+
+`POST api/media/Upload` reads the destination folder from the `path` query
+parameter, then from the `path` multipart form field; send `?path=` or omit
+both to upload to the library root (Attached media field uploads go to their
+temporary folder since this fix, not to the root).
 
 `MoveMedia`, `CopyMedia` and uploads re-check the target extension against the
 user's effective extension list. See `references/media-api-examples.md` for

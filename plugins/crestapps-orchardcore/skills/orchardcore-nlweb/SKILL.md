@@ -144,6 +144,10 @@ services.AddScoped<INLWebRetriever, FeaturedItemsNLWebRetriever>();
 
 `NLWebAskContext` exposes `Request`, `User`, `QueryText`, `ItemType`, `Site`, `Mode`, `MaxResults`, `CandidateFactor`, `Results`, `SessionContext` and a `Properties` bag. To change how items are described, add an `IStructuredDataProvider` (see `orchardcore-advanced-seo`) rather than a custom resolver.
 
+## Monitoring
+
+`NLWebTelemetryAskHandler` records `crestapps.nlweb.ask.duration` (tags `mode` = `list`, `summarize`, `generate`, `other`; `outcome` = `answered`, `empty`, `elicitation`, `failed`; `reason` when failed) and `crestapps.nlweb.ask.results` on the `CrestApps.OrchardCore.NLWeb` meter (no activity source). `NLWebAskContext.Elapsed` gives the time since the pipeline started the question, for your own `INLWebAskHandler`. See `orchardcore-observability`.
+
 ## Related skills
 
 - `orchardcore-advanced-seo` for the schema.org objects in every answer.

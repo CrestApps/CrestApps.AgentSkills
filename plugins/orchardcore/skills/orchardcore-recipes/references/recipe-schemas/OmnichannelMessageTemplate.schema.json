@@ -26,7 +26,19 @@
           "Body": {
             "type": "string",
             "minLength": 1,
-            "description": "Text inserted into the composer when the template is picked."
+            "description": "Text inserted into the composer when the template is picked; Liquid placeholders such as {{ Contact.DisplayName }} are filled in."
+          },
+          "Scope": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "maxLength": 64,
+            "description": "The kind of work the template is for, such as Tickets; empty for the messaging workspace. A scope the site doesn\u0027t register is kept."
+          },
+          "FillsPlaceholders": {
+            "type": "boolean",
+            "description": "Fill in the body\u0027s Liquid placeholders. Leave it out or false to insert the body exactly as written."
           },
           "Properties": {
             "type": [

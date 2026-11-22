@@ -41,7 +41,7 @@ You are an Orchard Core expert. Generate accurate setup and extension guidance f
 
 ## The Parts
 
-`ClassifiedPart` holds `Status` (`ClassifiedStatus`: Pending, Approved, Rejected, Expired), `RejectReason`, `PostedUtc`, `ExpiresUtc`, `FeaturedUntilUtc`, `BumpedUtc`, `Place`, `Latitude` and `Longitude`. **Use where I am** on the storefront form fills the coordinates from the browser.
+`ClassifiedPart` holds `Status` (`ClassifiedStatus`: Pending, Approved, Rejected, Expired), `RejectReason`, `PostedUtc`, `ExpiresUtc`, `FeaturedUntilUtc`, `BumpedUtc`, `Place`, `Latitude` and `Longitude`. The dates are stored in UTC, but the admin editor shows and takes **Expires** and **Featured until** in the site's time zone (`ILocalClock`), and lists show dates in the site's time zone. **Use where I am** on the storefront form fills the coordinates from the browser.
 
 `ClassifiedUpgradePart` holds `Kind` (`ClassifiedUpgradeKind`: Feature = 0, Bump = 1) and `Days` (default 7).
 

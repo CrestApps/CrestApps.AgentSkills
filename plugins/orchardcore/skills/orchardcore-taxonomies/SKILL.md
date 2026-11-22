@@ -257,7 +257,7 @@ The `Term` shape holds `TermItem` shapes (`Level`, `TermContentItem`, `Items`, `
 
 ### Admin Contents List Filters
 
-With `OrchardCore.Taxonomies.ContentsAdminList` enabled, choose which taxonomies appear as filters in the admin content list:
+With `OrchardCore.Taxonomies.ContentsAdminList` enabled, choose which taxonomies appear as filters in the admin content list in **Settings → Taxonomy Filters**, or with a recipe:
 
 ```json
 {
@@ -273,6 +273,10 @@ With `OrchardCore.Taxonomies.ContentsAdminList` enabled, choose which taxonomies
   ]
 }
 ```
+
+### Editing Terms in the Admin
+
+Taxonomies are content items edited from **Content → Content Items** (filter by the `Taxonomy` type). In the taxonomy editor each term row (`Content.TermAdmin`) puts its **Edit**, **Add** and **Delete** buttons in its `Actions` zone and renders them through `AdminListActions`, so they follow **Settings → Admin → Actions layout** (Buttons or one ellipsis Menu) like admin list rows. An override of `Content.TermAdmin.cshtml` should add extra buttons to that zone and render `@await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))` (see `orchardcore-admin-lists`). The editor finds terms by `ContentItemId`, so give every term in a recipe a unique one (for example `"[js: uuid()]"`).
 
 ### Displaying Taxonomy Terms
 

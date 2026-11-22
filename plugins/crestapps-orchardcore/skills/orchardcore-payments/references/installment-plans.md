@@ -107,11 +107,16 @@ Validation: down payment zero or more and below the total; 1 to 120 later paymen
 
 `IInstallmentPlanStore`: `PageAsync(InstallmentPlanQuery)`, `GetOpenAsync`, `GetByReferenceAsync(referenceType, referenceId)`, `GetBySourceTransactionAsync(transactionId)`. Use the service, not the store, for changes: every change runs under the lock `INSTALLMENT_PLAN_{planId}`.
 
+## A schedule set by staff
+
+`IInstallmentPlanService.CreateScheduleAsync(CreateInstallmentScheduleRequest)` splits an outstanding transaction into payments with amounts and due dates of their own (`Payments`, each an `InstallmentScheduleEntry` with `DueUtc` and `Amount`, adding up to what is owed), with `TransactionId`, `Title` (the transaction's when empty), `Notes` and `CollectionMethod` (`InstallmentCollectionMethod.Invoice`, the default, or `AutoCharge` to the owner's default saved card). The plan starts at once with no down payment, each payment is a transaction of its own, the original transaction is replaced, and the plan names the transaction's record as its reference. A guest's debt can be split too, but only invoiced; a card schedule needs a signed-up owner with a kept card (kept as `InstallmentPlan.SavedPaymentMethodId`). An invoiced payment is owed from now, due on its date, so the customer can pay early and is reminded before it falls due. Invoicing uses it for invoice payment schedules (`InvoiceScheduleStarter`).
+
 ## Lifecycle
 
 - Plan status: `Draft`, `Active`, `PastDue`, `Completed`, `Canceled`. Payment status: `Scheduled`, `Due`, `Paid`, `Failed`, `Canceled`. History events: `Created`, `Activated`, `PaymentReceived`, `ChargeFailed`, `PaymentDue`, `Completed`, `Canceled`, `Note`.
 - When the first payment's transaction settles, `InstallmentPlanTransactionPaymentHandler` (an `ITransactionPaymentHandler`) activates the plan: reads the kept card back (the down-payment checkout also adds it to the customer's kept payment methods, but the plan keeps charging its own copy even if the customer removes it there), creates a `Pending` transaction per scheduled payment (with `TransactionAutoCollection` for auto-charge), moves the plan to `Active`. If no card was kept, the plan switches to invoicing and says why in its history.
 - On each due date: auto-charge plans charge the card off-session through a new checkout session (`CheckoutPaymentDataKeys.ForOffSessionCharge(plan.PaymentMethod)`); invoice plans make the transaction `Outstanding` (invoice number, pay link reminders).
+- Card payments are now charged by Transactions' shared saved-card charge (the same for invoices, payment plans and booking balances); `InstallmentPlanAutoChargeHandler` (`TransactionEventHandlerBase.AutoChargeDeclinedAsync` and `AutoChargeAbandonedAsync`) records a decline and its retry on the plan and tells the customer, or hands the payment to the customer once no retry is left. A **Charge now** on a payment already due counts as one of its tries.
 - Declines: an unreachable gateway retries an hour later without using a retry; a declined card marks the payment and its transaction `Failed` and schedules the next `RetryDays` try; after the last retry the transaction becomes `Outstanding` with no automatic collection. An early **Charge now** that is declined leaves the payment `Scheduled`.
 - Double-charge protection: succeeded attempts not yet applied are applied through `ITransactionSettlementService` before any new charge; a session still `AwaitingProvider` or `PaymentPending` is completed instead of replaced.
 
@@ -160,6 +165,6 @@ Only the option id is posted (never `full`, at most 64 characters) and it is mat
 | Symptom | Check |
 | --- | --- |
 | Plan stuck in `Draft` | The first payment was never completed; take it again or cancel. Checkout-created drafts close when their checkout ends |
-| Nothing is charged | Background tasks running, `InstallmentPlanBackgroundTask` enabled under **Configuration > Tasks**, plan history for declines |
+| Nothing is charged | Background tasks running, `InstallmentPlanBackgroundTask` enabled under **Tools > Background Tasks**, plan history for declines |
 | Reminders without a pay link | Set **Base URL** |
 | Auto-charge plan switched to invoicing | The provider did not keep the card |

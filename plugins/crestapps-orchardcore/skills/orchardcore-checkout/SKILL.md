@@ -1,6 +1,6 @@
 ---
 name: orchardcore-checkout
-description: Skill for the CrestApps Orchard Core Checkout framework (CrestApps.OrchardCore.Checkout, Checkout.TestProvider, Checkout.Api). Covers starting a checkout from a custom module with ICheckoutEngine and StartCheckoutRequest (ReturnUrl, Title, OwnerId, References for several items in one payment), steps and BillingItem lines through ICheckoutHandler, refusing a checkout with Reject and CheckoutRejectedException, completion, failure, cancel and expiry hooks, CheckoutFlowDisplayDriver, CheckoutSession and CheckoutInvoice, guest ownership, the payment ledger and compensation refunds, kept payment methods with ISavedPaymentMethodStore, the Test payments provider, discounts with ICheckoutDiscountProvider, coupons and the Coupons recipe step, tenders, payment gates, the Checkout API and its Report Builder data source. Use it when requests mention Orchard Core checkout, taking a payment from a custom module, checkout steps, coupons, kept cards, test payments, or a checkout that does not complete.
+description: Skill for the CrestApps Orchard Core Checkout framework (CrestApps.OrchardCore.Checkout, Checkout.TestProvider, Checkout.Api). Covers starting a checkout from a custom module with ICheckoutEngine and StartCheckoutRequest, steps and BillingItem lines through ICheckoutHandler, Reject and CheckoutRejectedException, completion, failure, cancel and expiry hooks, CheckoutFlowDisplayDriver, CheckoutSession and CheckoutInvoice, guest ownership, the payment ledger and compensation refunds, kept payment methods, the Test payments provider, discounts, coupons and the Coupons recipe step, tenders and balance ledgers, payment gates, delegated AI agent credentials and external 3-D Secure results, filling the Contact and Shipping steps from code (ICheckoutContactStep, ICheckoutFulfillmentStep), the Checkout API and its Report Builder data source. Use it when requests mention Orchard Core checkout, taking a payment from a custom module, checkout steps, coupons, kept cards, test payments, or a checkout that does not complete.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -227,6 +227,34 @@ catch (CheckoutRejectedException ex)
 
 Safety rules the engine enforces: an attempt is persisted before the provider is contacted; the provider reference is stored as soon as it returns; completion is driven from the browser poll, the provider webhook and the reconciliation sweep (`CheckoutReconciliationBackgroundTask`, every 5 minutes) under a session lock; a failing completing handler leaves the session `PaymentPending` for retry, never refunds; when one obligation fails the settled ones are refunded through `ICheckoutRefundService` (compensation, recorded in the refund ledger first). Money is compared with `Money.AreEqual` and rounded with `Money.Round` (`CrestApps.OrchardCore.Payments`); currency precision comes from `CurrencyScale`, now in `CrestApps.OrchardCore.Abstractions` (namespace `CrestApps.OrchardCore.Currencies`). Abandoned sessions expire after `CheckoutSettings.SessionLifetimeHours` (24).
 
+## Payments an AI agent brings
+
+An AI agent pays with a one-purchase credential its platform got from the buyer (a Stripe shared payment token, a Google Pay token) and there is no browser. Server code passes it to `ICheckoutEngine.BeginPaymentAsync` in the provider data:
+
+| Key | Value |
+| --- | --- |
+| `CheckoutPaymentDataKeys.DelegatedCredential` (`delegatedCredential`) | The credential |
+| `CheckoutPaymentDataKeys.DelegatedCredentialType` (`delegatedCredentialType`) | `DelegatedCredentialTypes`: `stripe_shared_payment_token`, `google_pay_token` or `test` |
+
+A provider that charges such a credential on the server sets `PaymentProviderCapabilities.AcceptsDelegatedCredentials` and charges it in `BeginAsync` when the key is present (Stripe does, see `orchardcore-payments`; the test provider charges `tok_test_success`, declines `tok_test_decline`, and asks for 3-D Secure on `tok_test_3ds`). A bank that asks the buyer to approve is reported as `PaymentBeginOutcome.RequiresAuthentication` or `RequiresAction`, and the caller hands the buyer to the checkout.
+
+**External 3-D Secure.** When the payer was authenticated outside the provider (by an ACP agent), server code writes a `ThreeDSecureResult` into the provider data with `CopyTo`: `ThreeDSecureOutcome` (only `authenticated`, `attempt_acknowledged` and `informational` allow payment, `ThreeDSecureResult.AllowsPayment`), `ThreeDSecureCryptogram` (28 base64 characters, 20 bytes), `ThreeDSecureElectronicCommerceIndicator` (`01`, `02`, `05`, `06`, `07`), `ThreeDSecureTransactionId`, `ThreeDSecureVersion` and optional `ThreeDSecureTransactionStatus`. `GetInvalidMember()` names the first invalid member. A provider that takes it sets `AcceptsExternalAuthentication`, reads `ThreeDSecureResult.From(context.ProviderData)`, and when the attempt already has a `ProviderReference` finishes that payment instead of starting another. Set `PaymentBeginResult.CardBrand` when known; the engine passes it on as `PaymentBeginOutcome.CardBrand`.
+
+All these keys are server-only: `PaymentEndpoints.SanitizeProviderData` (using `CheckoutPaymentDataKeys.IsServerOnly`) drops them, with the off-session keys, from anything a browser or app sends. Agentic Commerce is the caller today (see `orchardcore-agentic-commerce`).
+
+**Deferred payment methods.** A payment method whose capabilities say `DefersPayment` (the radio carries `data-defers-payment`) changes the payment step's label to **Due later** and the button to **Place order** (`checkoutPayment.initialize({ deferredSubmitLabel })`); the confirmation reads **Due later** for such a checkout and **Paid** for one a gateway charged.
+
+## Filling steps from code
+
+The Contact and Shipping steps can be saved from code (an API, an AI agent) with the same rules as their pages. Resolve the contract as an `IEnumerable` and use it only when present:
+
+| Contract (Checkout.Abstractions) | Implemented by | Members |
+| --- | --- | --- |
+| `ICheckoutContactStep` | Customers (`CustomerCheckoutContactStep`) | `StepKey`; `SaveAsync(flow, CheckoutContactDetails)` saves the buyer's details and billing address when required, and marks the step done |
+| `ICheckoutFulfillmentStep` | Shipping (`ShippingCheckoutFulfillmentStep`) | `StepKey`; `QuoteAsync(flow, address)` ways to ship, cheapest first, without saving; `GetPickupOptionsAsync(flow)`; `SaveAsync(flow, CheckoutFulfillmentChoice)` saves the choice, puts its cost on the checkout and marks the step done |
+
+Both return a `CheckoutStepSaveResult` with errors per field. A step without a contract is finished by the buyer on the checkout page.
+
 ## Custom steps
 
 Derive from `CheckoutFlowDisplayDriver` (`CrestApps.OrchardCore.Checkout.Core`) and register it with `services.AddDisplayDriver<CheckoutFlow, MyStepDriver>()`. It renders only while `StepKey` is the current step. Override `EditStepAsync` and `UpdateStepAsync`; on a valid post write `flow.Session.SavedSteps[StepKey] = new JsonObject { ... }`. The controller does not mark a step saved: the engine refuses completion (`Blocked`, `BlockingStepKey`) while a visible `CollectData = true` step has no `SavedSteps` entry, and the one-page layout keeps the payment section hidden. Shapes go in `Content` (and `Aside` on the payment step).
@@ -315,6 +343,8 @@ Coupons are part of the Checkout feature (not Marketing): `Coupon` is in Checkou
 
 Tenders (gift cards, store credit, points, business account terms) pay after tax through `ICheckoutTenderProvider` and `ICheckoutTenderLedger`; they never pay a recurring obligation or an existing balance. A tender that puts the amount on an invoice owed later derives from `DeferredBalanceTenderProviderBase` (Checkout.Core), which opens one outstanding transaction per checkout and obligation. `ICheckoutPaymentGate` runs inside the session lock before a payment begins and can `Refuse` it or flag `InvoiceChanged` so the page reloads with the new total.
 
+Balances (gift cards `GiftCard`, store credit `StoreCredit`) keep their documents small through `IBalanceLedgerArchive` (`BalanceLedgerArchive`, Checkout.Core): the balance store's save keeps the latest `BalanceLedger.RecentEntryCount` (50) changes on the balance and moves older ones to `BalanceLedgerEntryRecord`s indexed by balance kind, balance and reference (`BalanceLedgerEntryIndex`), so finding a change by reference is a keyed lookup.
+
 ```json
 {
   "steps": [
@@ -331,7 +361,7 @@ Tenders (gift cards, store credit, points, business account terms) pay after tax
 
 ## Checkout API
 
-`CrestApps.OrchardCore.Checkout.Api` maps into `api/commerce/v1`: `GET checkout/{id}`, `POST checkout/{id}/codes`, `DELETE checkout/{id}/codes/{code}`, `GET checkout/{id}/payment-methods` (each with the `client` dictionary from `ICheckoutPaymentClientConfigurationProvider`), `POST checkout/{id}/payment`, `POST checkout/{id}/complete`, `DELETE checkout/{id}`, plus staff `coupons` endpoints. A guest's checkout travels in `X-Checkout-Token`. Conventions (auth, idempotency, problem codes) are in `orchardcore-commerce`.
+`CrestApps.OrchardCore.Checkout.Api` maps into `api/commerce/v1`: `GET checkout/{id}`, `POST checkout/{id}/codes`, `DELETE checkout/{id}/codes/{code}`, `GET checkout/{id}/payment-methods` (each with the `client` dictionary from `ICheckoutPaymentClientConfigurationProvider`), `POST checkout/{id}/payment`, `POST checkout/{id}/complete`, `DELETE checkout/{id}`, plus staff `coupons` endpoints. A guest's checkout travels in `X-Checkout-Token`. Conventions (auth, idempotency, problem codes) are in `orchardcore-commerce`. `ApiProblems`, `WithIdempotency`, `IdempotencyPolicy`, `IdempotentOperation` and `MapModuleApi` moved from Commerce.Api.Core to `CrestApps.OrchardCore.Api` (in `CrestApps.OrchardCore.Core`) so every module's API shares them; `MapCommerceApi` now builds on `MapModuleApi`, and commerce conflict codes are in `CommerceProblemCodes`.
 
 ## Report Builder data source
 
@@ -372,6 +402,7 @@ Payments and refunds screens use `ManageRefunds` from Transactions.
 | Session stuck in `PaymentPending` | A completing handler throws; check the log, it is retried every sweep |
 | `ArgumentException` from `StartAsync` | `ReturnUrl` is absolute or protocol-relative |
 | Test method not offered | Not Development and `AllowOutsideDevelopment` is not set; a warning is logged at startup |
+| Agent payment declined with `delegatedCredential` posted from a browser | Expected: server-only keys are dropped from browser and API provider data; only server code (Agentic Commerce) may set them |
 | Begin endpoint returns 403 | Cross-site request (`Origin` host or `Sec-Fetch-Site` mismatch) |
 | Charged twice concern | Begin is idempotent per obligation; a refreshed page resumes the same attempts |
 | `CheckoutRejectedException` from `StartAsync` | A handler called `context.Reject`; show `Errors` to the buyer (for example transactions of different customers or currencies) |

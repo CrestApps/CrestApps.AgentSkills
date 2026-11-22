@@ -15,19 +15,25 @@
 
 `DraftOrderService` prices chosen products as a cart for the buyer's account (so their own prices apply) and keeps a `Draft` with `Order.Invoice` (`OrderInvoice`: `CreatedBy`, `Note`, `DueUtc`, `SentUtc`, `AddsToOrderId`). Admin routes: `Admin/orders/drafts/create` (`OrdersCreate`), `Admin/orders/{orderId}/edit` (`OrdersEdit`), `Admin/orders/{orderId}/send-invoice` (`OrdersSendInvoice`). `IOrderService.ReplaceLinesAsync(order, pricing)` replaces a draft's lines and raises `LinesChangedAsync`. The buyer pays at `orders/view/{token}/pay` (`GuestOrderPay`) or `account/orders/{orderId}/pay`. **Add items** on a paid order starts a new order.
 
+**Another module's documents.** `DraftOrderService.SendAsync` first asks each `IOrderDocumentSender` (Orders.Core) to send the order; the first that returns an `OrderDocumentSendResult` sends it instead of the order's own email, and the order is marked sent with its `Note`. With Invoicing on, its sender issues an invoice from the draft order (or, for a quote with Invoicing Estimates on, an estimate). The order keeps its pay link and checkout either way. `IOrderDocumentSender.GetInvoiceUrlAsync(order, forStaff)` (default `null`; `OrderDocumentLinks.GetInvoiceUrlAsync` asks every sender) lets the order's **Invoice** links (`OrdersInvoice`, `AccountOrderInvoice`, `GuestOrderInvoice`) open that invoice. The result's `Emailed` and `DocumentNumber` are kept as `OrderInvoice.NotEmailed` and `SentAs`; the order page reads *made but not emailed* when email is not set up.
+
 ## Quotes
 
 With `OrderSettings.AllowQuoteRequests`, `QuoteCartActionProvider` adds **Request a quote** (`cart/quote`). `QuoteService.RequestAsync` creates a draft with `Order.Quote` (`OrderQuote`: `RequestedUtc`, `Message`, `Status`, `SentUtc`, `ExpiresUtc`, `RespondedUtc`) and deletes the cart. Staff set `OrderLine.QuotedUnitPrice` (read as invariant text; quoted lines are excluded from discounts) and send it; `QuoteService.CanPay(order, now)` gates payment; `DeclineAsync` cancels as `Declined`. API: `POST me/quotes`, `POST me/orders/{orderId}/decline-quote`.
 
 ## Sales channels
 
-`Order.Channel` (`OrderChannels`): `online`, `pos` (with `LocationId`, `RegisterId`, `ShiftId`, staff), `draft`. `OrderIndex` has `Channel`, `LocationId`, `ShiftId`; the orders list and API filter by them.
+`Order.Channel` (`OrderChannels`): `online`, `pos` (with `LocationId`, `RegisterId`, `ShiftId`, staff), `draft`, `agent` (`OrderChannels.Agent`: an AI agent checked out through Agentic Commerce). `OrderIndex` has `Channel`, `LocationId`, `ShiftId`; the orders list (channel filter *Every channel*, *Online*, *Point of sale*, *Drafts sent by staff*, *AI agents*, followed by the CSV export) and API filter by them.
+
+Point of Sale department lines (`ContentType` `PosDepartment`) have the department id as `ContentItemId` and no content item; order code that loads a line's product must tolerate a missing item.
 
 ## Order bump and offers
 
 `OrderBumpCheckoutFlowDisplayDriver` renders `CheckoutOrderBump` on the payment step for the `OrderSettings.OrderBumpProductId` product; `OrderCheckoutHandler` adds it as a line on completion. The confirmation renders `OrderConfirmationOffers` with cross-sells.
 
 ## Email templates
+
+`CommerceEmail` also carries `Cc` and `Bcc` (blank and repeated addresses dropped), and `CommerceEmailContent.Attachments` (`CommerceEmailAttachment`: `FileName`, a name only, `ContentType`, `OpenAsync` callback opened at send time and disposed afterwards); copies and files are sent whether or not a template of the kind exists. `SendAsync` returns whether it went; `SendWithResultAsync` returns a `CommerceEmailResult` (`Succeeded`, `Error`) saying why not (no email service, no recipient, nothing built, a bad attachment, the provider's error). Neither throws.
 
 `LiquidCommerceEmailTemplates` (Commerce.Core, `ICommerceEmailTemplates`; formerly `LiquidOrderEmailTemplates`) reads `OrderEmailTemplateSettings` (**Settings > Commerce > Emails**, group `order-emails`; the names are kept so existing templates, recipes and plans keep working): a `Layout` with `{{ Content }}` around every email with a kind and an HTML body, and `Templates` by kind (`IsEnabled`, `Subject`, `Body`). The Liquid gets `Content`, `Subject`, `StoreName`, each of the email's `Models` by name (such as `Order`, `Transaction`, `StockItem`), and the email's values (`OrderUrl`, `PayUrl`, `TrackingUrl`, `Carrier`, `ShipmentNumber`, `ReturnNumber`, `ReturnStatus`, `Code`, `Amount`, `RecipientName`, `Message`, `RecoveryUrl`, `ProductUrl`, `Url`). Unparseable Liquid is refused on save; a template that throws falls back to the built email; without the Liquid feature every email goes as built.
 

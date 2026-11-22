@@ -97,7 +97,7 @@ On IIS also set `<requestLimits maxAllowedContentLength="50000000" />` in
 - `MediaImageProcessingMiddleware` validates the request, parses it into `ImageProcessingCommands` (`Width`, `Height`, `ResizeMode`, `Format`, `Quality`, `BackgroundColor`, `FocalPointX/Y`, `AutoOrient`) and calls `IImageProcessingEngine.ProcessAsync`.
 - The default `VipsImageProcessingEngine` outputs `jpg`, `png`, `gif` and `webp`; any other format falls back to JPEG (`bmp` and `tga` are not supported).
 - Native libvips binaries come from `NetVips.Native`. For a runtime it does not cover, add the matching `NetVips.Native.<rid>` package to the web project.
-- Resized images are cached through `IResizedImageCache`; the default writes to `wwwroot/{tenant}/media-cache`. Azure and S3 can hold this cache (`OrchardCore.Media.Azure.ImageCache`, `OrchardCore.Media.AmazonS3.ImageCache`).
+- Resized images are cached through `IResizedImageCache`; the default writes to `<web root>/{tenant}/media-cache`, falling back to `wwwroot` under the content root when the host has no web root (the same fallback applies to the Azure/S3 remote media cache and its cleanup task, the sitemap cache, and the tenant folder removed with a tenant). Cache folders are created on demand. Azure and S3 can hold this cache (`OrchardCore.Media.Azure.ImageCache`, `OrchardCore.Media.AmazonS3.ImageCache`).
 
 ### Custom image processing engine
 

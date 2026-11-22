@@ -154,7 +154,10 @@ public sealed class YourIndexProvider : IndexProvider<YourDocument>
 {
     public override void Describe(DescribeContext<YourDocument> context)
     {
+        // Only YourDocument documents write here, one record each (YesSql 6.3 declarations).
         context.For<YourIndex>()
+            .ExclusiveToDocumentType()
+            .SingleRecordPerDocument()
             .Map(doc => new YourIndex
             {
                 DocumentId = doc.Id,

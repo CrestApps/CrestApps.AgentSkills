@@ -149,7 +149,12 @@ See `crestapps-core-mcp` for the server setup itself.
 
 - **The model says "I will delegate this to..." and stops**: the agent did not reach the request. Check that it has a name and description, that it is linked or `AlwaysAvailable`, and that an `IAIProfileProvider` filtering by chat reads `AIInvocationScope.Current` rather than `IHttpContextAccessor`.
 - **A tool-capable agent answers without using its tools**: it ran without an invocation scope (direct calls outside a chat) or inside another agent.
+- **A tool marked `RequireApproval()` is missing inside an agent**: by design. An agent runs inside a tool call and cannot ask the user, so `AgentProxyTool`'s orchestration context leaves such tools out (`crestapps.core.ai.tool.denied`, `reason=approval`). Let the chat call the tool itself, where an AG-UI run can ask (see `crestapps-core-ag-ui`).
 - **An agent is missing from pickers**: `AlwaysAvailable` and `IsSystem` agents are intentionally hidden from user selection.
+
+## Upgrading Within 2.0 Previews
+
+- Tool-capable agents no longer see tools registered with `RequireApproval()`; before, such tools ran inside an agent without an approval.
 
 ## Upgrading from 1.x
 

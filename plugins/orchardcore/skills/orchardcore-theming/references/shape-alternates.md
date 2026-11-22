@@ -76,6 +76,7 @@ Display mode variants (for parts with display modes):
 - Enable **Settings → Debugging → Write shape debug information**; each shape is wrapped with `<!--shape-start type:... bindings:...-->` comments naming the winning binding.
 - **Liquid**: `{{ Model.Metadata.Alternates | json | console_log }}` to the browser console.
 - **Razor**: temporarily render `Model.Metadata.Alternates` in a `<pre>` tag.
+- With **Shape Tracing** (`OrchardCore.Templates.ShapeTracing`), **Design → Templates → Inspect Content** lists every shape a content item renders with its winning template and all alternates, without editing templates (see `orchardcore-assisted-templates`).
 - Remove debug snippets after verifying.
 
 ## Practical Tips

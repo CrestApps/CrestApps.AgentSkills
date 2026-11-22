@@ -1,5 +1,5 @@
 {
-  "GeneratedUtc": "2026-11-08T18:32:55.972132+00:00",
+  "GeneratedUtc": "2026-11-21T02:16:29.5287557+00:00",
   "RootSchema": "recipe.schema.json",
   "Steps": [
     {
@@ -19,8 +19,16 @@
       "File": "AdminTemplates.schema.json"
     },
     {
+      "Name": "AgentPlatforms",
+      "File": "AgentPlatforms.schema.json"
+    },
+    {
       "Name": "AgentStateReasonCode",
       "File": "AgentStateReasonCode.schema.json"
+    },
+    {
+      "Name": "Agreements",
+      "File": "Agreements.schema.json"
     },
     {
       "Name": "AIDataSource",
@@ -51,6 +59,14 @@
       "File": "AIToolInstances.schema.json"
     },
     {
+      "Name": "ApprovalPolicies",
+      "File": "ApprovalPolicies.schema.json"
+    },
+    {
+      "Name": "ApprovalRequests",
+      "File": "ApprovalRequests.schema.json"
+    },
+    {
       "Name": "Assets",
       "File": "Assets.schema.json"
     },
@@ -75,12 +91,32 @@
       "File": "azureai-index-reset.schema.json"
     },
     {
+      "Name": "BankAccounts",
+      "File": "BankAccounts.schema.json"
+    },
+    {
       "Name": "BookingDates",
       "File": "BookingDates.schema.json"
     },
     {
+      "Name": "BusinessDocumentTemplates",
+      "File": "BusinessDocumentTemplates.schema.json"
+    },
+    {
+      "Name": "BusinessHoursSchedules",
+      "File": "BusinessHoursSchedules.schema.json"
+    },
+    {
       "Name": "Calendars",
       "File": "Calendars.schema.json"
+    },
+    {
+      "Name": "CheckLayouts",
+      "File": "CheckLayouts.schema.json"
+    },
+    {
+      "Name": "CheckRegister",
+      "File": "CheckRegister.schema.json"
     },
     {
       "Name": "command",
@@ -147,6 +183,10 @@
       "File": "CreateOrUpdateRateLimitPolicies.schema.json"
     },
     {
+      "Name": "CreditNotes",
+      "File": "CreditNotes.schema.json"
+    },
+    {
       "Name": "Currencies",
       "File": "Currencies.schema.json"
     },
@@ -187,6 +227,10 @@
       "File": "DigitalFiles.schema.json"
     },
     {
+      "Name": "Disbursements",
+      "File": "Disbursements.schema.json"
+    },
+    {
       "Name": "DynamicDataTranslations",
       "File": "DynamicDataTranslations.schema.json"
     },
@@ -201,6 +245,14 @@
     {
       "Name": "ElasticIndexSettings",
       "File": "ElasticIndexSettings.schema.json"
+    },
+    {
+      "Name": "Estimates",
+      "File": "Estimates.schema.json"
+    },
+    {
+      "Name": "ExchangeRates",
+      "File": "ExchangeRates.schema.json"
     },
     {
       "Name": "ExemptionCertificate",
@@ -235,12 +287,72 @@
       "File": "GitHubAuthenticationSettings.schema.json"
     },
     {
+      "Name": "IncomeTaxRules",
+      "File": "IncomeTaxRules.schema.json"
+    },
+    {
       "Name": "IndexUsers",
       "File": "IndexUsers.schema.json"
     },
     {
+      "Name": "Invoices",
+      "File": "Invoices.schema.json"
+    },
+    {
+      "Name": "KnowledgeBaseZones",
+      "File": "KnowledgeBaseZones.schema.json"
+    },
+    {
+      "Name": "LateFeePolicies",
+      "File": "LateFeePolicies.schema.json"
+    },
+    {
       "Name": "Layers",
       "File": "Layers.schema.json"
+    },
+    {
+      "Name": "LearningAttempts",
+      "File": "LearningAttempts.schema.json"
+    },
+    {
+      "Name": "LearningCertificationPaths",
+      "File": "LearningCertificationPaths.schema.json"
+    },
+    {
+      "Name": "LearningCredentialAwards",
+      "File": "LearningCredentialAwards.schema.json"
+    },
+    {
+      "Name": "LearningCreditTypes",
+      "File": "LearningCreditTypes.schema.json"
+    },
+    {
+      "Name": "LearningEnrollments",
+      "File": "LearningEnrollments.schema.json"
+    },
+    {
+      "Name": "LearningExternalTools",
+      "File": "LearningExternalTools.schema.json"
+    },
+    {
+      "Name": "LearningGradeScales",
+      "File": "LearningGradeScales.schema.json"
+    },
+    {
+      "Name": "LearningPackageRuntimeStates",
+      "File": "LearningPackageRuntimeStates.schema.json"
+    },
+    {
+      "Name": "LearningRequirements",
+      "File": "LearningRequirements.schema.json"
+    },
+    {
+      "Name": "LearningStatements",
+      "File": "LearningStatements.schema.json"
+    },
+    {
+      "Name": "LearningSubmissions",
+      "File": "LearningSubmissions.schema.json"
     },
     {
       "Name": "LocalDncLists",
@@ -371,8 +483,52 @@
       "File": "OpenIdValidationSettings.schema.json"
     },
     {
+      "Name": "PayCodes",
+      "File": "PayCodes.schema.json"
+    },
+    {
+      "Name": "PaymentTerms",
+      "File": "PaymentTerms.schema.json"
+    },
+    {
+      "Name": "PayrollEmployers",
+      "File": "PayrollEmployers.schema.json"
+    },
+    {
+      "Name": "PayrollFilings",
+      "File": "PayrollFilings.schema.json"
+    },
+    {
+      "Name": "PayrollGarnishments",
+      "File": "PayrollGarnishments.schema.json"
+    },
+    {
+      "Name": "PayrollPayHistory",
+      "File": "PayrollPayHistory.schema.json"
+    },
+    {
+      "Name": "PayrollPayItems",
+      "File": "PayrollPayItems.schema.json"
+    },
+    {
+      "Name": "PayrollPayProfiles",
+      "File": "PayrollPayProfiles.schema.json"
+    },
+    {
+      "Name": "PayrollTaxDeposits",
+      "File": "PayrollTaxDeposits.schema.json"
+    },
+    {
+      "Name": "PaySchedules",
+      "File": "PaySchedules.schema.json"
+    },
+    {
       "Name": "Placements",
       "File": "Placements.schema.json"
+    },
+    {
+      "Name": "PosDepartments",
+      "File": "PosDepartments.schema.json"
     },
     {
       "Name": "PriceLists",
@@ -389,6 +545,10 @@
     {
       "Name": "recipes",
       "File": "recipes.schema.json"
+    },
+    {
+      "Name": "RecurringPlans",
+      "File": "RecurringPlans.schema.json"
     },
     {
       "Name": "ReferralProfiles",
@@ -427,6 +587,10 @@
       "File": "Secrets.schema.json"
     },
     {
+      "Name": "ServiceLevelPolicies",
+      "File": "ServiceLevelPolicies.schema.json"
+    },
+    {
       "Name": "settings",
       "File": "settings.schema.json"
     },
@@ -445,6 +609,10 @@
     {
       "Name": "Skills",
       "File": "Skills.schema.json"
+    },
+    {
+      "Name": "Staff",
+      "File": "Staff.schema.json"
     },
     {
       "Name": "Stock",
@@ -511,12 +679,40 @@
       "File": "themes.schema.json"
     },
     {
+      "Name": "TicketBoards",
+      "File": "TicketBoards.schema.json"
+    },
+    {
+      "Name": "TicketDesks",
+      "File": "TicketDesks.schema.json"
+    },
+    {
+      "Name": "TicketPriorities",
+      "File": "TicketPriorities.schema.json"
+    },
+    {
+      "Name": "TicketStatuses",
+      "File": "TicketStatuses.schema.json"
+    },
+    {
+      "Name": "TicketViews",
+      "File": "TicketViews.schema.json"
+    },
+    {
+      "Name": "TimelineEntries",
+      "File": "TimelineEntries.schema.json"
+    },
+    {
       "Name": "TimeTracker",
       "File": "TimeTracker.schema.json"
     },
     {
       "Name": "TimeZoneMaps",
       "File": "TimeZoneMaps.schema.json"
+    },
+    {
+      "Name": "Transactions",
+      "File": "Transactions.schema.json"
     },
     {
       "Name": "Translations",
@@ -529,6 +725,18 @@
     {
       "Name": "UrlRewriting",
       "File": "UrlRewriting.schema.json"
+    },
+    {
+      "Name": "UsageMeters",
+      "File": "UsageMeters.schema.json"
+    },
+    {
+      "Name": "UserAudiences",
+      "File": "UserAudiences.schema.json"
+    },
+    {
+      "Name": "UserCohorts",
+      "File": "UserCohorts.schema.json"
     },
     {
       "Name": "Users",

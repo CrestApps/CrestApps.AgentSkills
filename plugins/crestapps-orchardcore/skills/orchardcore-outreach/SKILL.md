@@ -137,6 +137,10 @@ The queue the batches run on is a platform building block for any durable, multi
 
 Claims are saved with an optimistic concurrency check; a settlement from a claim whose lease expired is refused. A full queue example is in [references/outreach-extensions.md](references/outreach-extensions.md).
 
+## Monitoring
+
+`OutreachBackgroundTask` reports on the shared `crestapps.background_task.*` instruments of the `CrestApps.OrchardCore.Platform` meter: items `batches`, and `budget_exceeded` when a run used all 100 batches. Channel results come from the sending module, such as `crestapps.messaging.broadcast` and `crestapps.messaging.broadcast.recipient` for Messaging broadcasts (see `orchardcore-opentelemetry`).
+
 ## Gotchas
 
 | Symptom | Check |

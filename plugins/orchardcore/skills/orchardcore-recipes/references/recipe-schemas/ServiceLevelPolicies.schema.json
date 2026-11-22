@@ -1,0 +1,93 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "ServiceLevelPolicies",
+      "description": "Recipe step discriminator. Must be \u0027ServiceLevelPolicies\u0027."
+    },
+    "Policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The policy id; omit to match by scope and name."
+          },
+          "Name": {
+            "type": "string",
+            "description": "The policy name, unique within its scope."
+          },
+          "Description": {
+            "type": "string",
+            "description": "A description for administrators."
+          },
+          "Scope": {
+            "type": "string",
+            "examples": [
+              "WorkOrders",
+              "Tickets"
+            ],
+            "description": "The kind of work the policy is for: the name of a registered scope. It names the metrics and priorities."
+          },
+          "HoursScheduleId": {
+            "type": "string",
+            "description": "The business hours schedule the targets are counted in. Empty counts around the clock."
+          },
+          "WarningPercent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "How much of a target, in percent, passes before a warning is raised. 80 when omitted."
+          },
+          "Targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Metric": {
+                  "type": "string",
+                  "examples": [
+                    "FirstResponse",
+                    "NextResponse",
+                    "Resolution"
+                  ],
+                  "description": "The metric."
+                },
+                "Priority": {
+                  "type": "string",
+                  "description": "The priority key the target is for, as the scope keys its priorities. Empty for every priority without a target of its own."
+                },
+                "Minutes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "The time allowed, in minutes of the policy\u0027s hours."
+                }
+              },
+              "required": [
+                "Metric",
+                "Minutes"
+              ]
+            },
+            "description": "The time allowed for each metric at each priority."
+          },
+          "Properties": {
+            "type": "object",
+            "description": "Settings other modules keep on the policy, such as the work order statuses that pause its timers."
+          }
+        },
+        "required": [
+          "Name",
+          "Scope"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The policies to create, or update by id or by scope and name."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

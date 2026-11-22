@@ -99,7 +99,9 @@ There is no separate non-streaming API; collect the updates when you need the fu
 | `IAIToolsService` | Resolve a registered keyed `AITool` by name |
 | `IChatResponseHandlerResolver` | Pick the response handler for a session or interaction |
 
-Tool registry providers: `SystemToolRegistryProvider`, `ProfileToolRegistryProvider`, `AgentToolRegistryProvider`, and `ToolInstanceRegistryProvider` when tool instances are enabled. Built-in orchestration handlers: `CompletionContextOrchestrationHandler`, `PreemptiveRagOrchestrationHandler`, `RealtimeRagGuidanceHandler`, `AIToolExecutionContextOrchestrationHandler`, `SecurityPromptOrchestrationHandler`, plus data source, memory and document handlers from their features.
+Tool registry providers: `SystemToolRegistryProvider`, `ProfileToolRegistryProvider`, `AgentToolRegistryProvider`, `SharedStateToolRegistryProvider` (`update_shared_state` when an AG-UI run shares state), `ClientToolRegistryProvider` (an AG-UI client's frontend tools), and `ToolInstanceRegistryProvider` when tool instances are enabled. Built-in orchestration handlers: `CompletionContextOrchestrationHandler`, `PreemptiveRagOrchestrationHandler`, `RealtimeRagGuidanceHandler`, `AIToolExecutionContextOrchestrationHandler`, `SecurityPromptOrchestrationHandler`, `ClientContextOrchestrationHandler` (AG-UI page context and shared state in the system message, as data), plus data source, memory and document handlers from their features.
+
+`IToolMaterializer` (`DefaultToolMaterializer`) turns registry entries into `AITool` instances with `ToolMaterializationOptions`: `EnforceListableAccess` and `User` for the Chat Interaction access check, and `SupportsToolApproval`, set from `AICompletionContextKeys.ToolApprovalSupported`. With it, entries whose `RequiresApproval` is set are wrapped in `ApprovalRequiredAIFunction`; without it they are left out, so agents (`AgentProxyTool` builds a new context without the key), realtime sessions, the Claude orchestrator and background work never run them unasked. See `crestapps-core-ag-ui`.
 
 Built-in system tools: `GenerateImageTool` and `GenerateChartTool` (purpose `content_generation`) and `CurrentDateTimeTool` (selectable, category Utilities).
 
@@ -205,6 +207,7 @@ The completion context already carries the system message the handlers built, so
 | `OperationCanceledException` | Always rethrown |
 | Provider error after retries | Propagates to the caller |
 | Tool error | Returned to the model as the tool result |
+| Approval-required tool, caller cannot ask | Left out of the request; `crestapps.core.ai.tool.denied` with `reason=approval` |
 
 ## Upgrading Within 2.0 Previews
 
@@ -212,6 +215,8 @@ The completion context already carries the system message the handlers built, so
 - `MaximumIterationsPerRequest` defaults to 30 (was 10) in `DefaultAIOptions`, `GeneralAIOptions` and `GeneralAISettings`.
 - A past-messages count of 1 now keeps one message; it used to send the whole conversation, like a blank count.
 - Turning off site-wide preemptive RAG no longer turns off preemptive memory retrieval.
+- A tool marked `RequireApproval()` is no longer passed unwrapped to requests that cannot ask for approval; it is left out of them.
+- A tool can end the turn after its round of tool calls: when the completion context carries `AICompletionContextKeys.ContinuesOnNextPage`, it sets `AICompletionContextKeys.EndTurnAfterToolCalls` in `AIInvocationScope.Current.Items` and terminates the function invocation loop, as `WebMcpPageToolFunction` does for `page_navigate`. A run that resumes after a tool approval (the history ends with `ToolApprovalResponseContent`) goes to the model as it is.
 
 ## Upgrading from 1.x
 

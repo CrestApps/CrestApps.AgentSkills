@@ -131,7 +131,7 @@ Choosing a geocoding provider wakes requests that waited for one (`IGeocodeQueue
 
 `ITerritoryResolver.ResolveAsync(GeoPoint? point, string postalCode)` (and the pure `TerritoryMatcher.Match`) returns the territory with the smallest shape containing the point, else the one with the postal code (exact before the longest prefix), as a `TerritoryMatch(Territory, MatchedBy)` where `MatchedBy` is `Shape` or `PostalCode`.
 
-Territory members are listed through every `ITerritoryMemberSource` (`Kind`, `DisplayName`, `ListAsync()` of `(Id, Name)`); Dispatch adds `Worker` (Technicians) and `Team` (Teams). Members of a kind no source lists any more are kept.
+Territory members are listed through every `ITerritoryMemberSource` (`Kind`, `DisplayName`, `ListAsync()` of `(Id, Name)`); Dispatch adds `Worker` (**Technicians**: active staff members with a dispatch capability, see `orchardcore-staff`) and `Team` (**Teams**, whose members serve the territory). Members of a kind no source lists any more are kept.
 
 ## Background Geocoding
 
@@ -141,7 +141,7 @@ Territory members are listed through every `ITerritoryMemberSource` (`Kind`, `Di
 - A provider error is retried after 1, 5, 30 and 120 minutes, then given up after five attempts; no match or a missing record is given up at once.
 - With no provider set up, requests wait an hour at a time without counting an attempt.
 
-Built-in targets include Work Orders (`WorkOrderServiceAddress`) and Workforce team locations and worker home bases. A full custom target is in [references/geo-extensions.md](references/geo-extensions.md).
+Built-in targets: Work Orders service addresses (`WorkOrderServiceAddress`), Workforce team locations (`WorkforceTeamLocation`) and Staff home bases (`StaffHomeBase`; requests queued before Staff under `WorkforceWorkerHomeBase` are still applied to the staff member). Dispatch starts a technician's route from the staff member's geocoded `HomeBase`, else their team's location. A full custom target is in [references/geo-extensions.md](references/geo-extensions.md).
 
 `Address` (Addresses module) has optional `Latitude`, `Longitude`, `GeocodedUtc` and `GeocodeSource` (a provider name, or `Manual` when pinned), copied by `Clone`.
 
@@ -207,4 +207,8 @@ The `Geo` step (needs `OrchardCore.Recipes.Core`) creates or updates `Territorie
 | Territory not found for a point | The shape must be valid GeoJSON with longitude first; otherwise the postal code is used. |
 | Map tiles refused | Tiles are requested with the site's origin as referrer; use a tile service whose policy allows your site. |
 
-Related skills: `orchardcore-addresses`, `orchardcore-dispatch`, `orchardcore-work-orders`, `orchardcore-assets`, `orchardcore-workforce`, `orchardcore-crestapps-resources`.
+## Telemetry
+
+The `CrestApps.OrchardCore.Geo` meter counts `crestapps.geo.provider.fallbacks` (failed travel-time and route calls answered with the built-in estimate; tags `provider`, `operation` `matrix`/`route`), `crestapps.geo.matrix.cache.lookups` (tags `provider`, `result` `hit`/`miss`) and `crestapps.geo.geocode.requests` (tag `result`: `done`, `no_match`, `gone`, `no_target`, `no_provider`, `retry`, `failed`). A rising fallback count means the provider key or quota needs attention. See `orchardcore-opentelemetry`.
+
+Related skills: `orchardcore-addresses`, `orchardcore-dispatch`, `orchardcore-work-orders`, `orchardcore-assets`, `orchardcore-staff`, `orchardcore-workforce`, `orchardcore-crestapps-resources`.

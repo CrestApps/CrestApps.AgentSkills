@@ -21,7 +21,7 @@ Number routing order: an entry point whose `AddressIds` include the number (lega
 |---|---|
 | `Channel` | Address capability served, `Phone` for calls (messaging uses the same entry points) |
 | `TargetType` | `Queue`, `Agent` (personal line with `RingTimeoutSeconds`), `AIAgent` (`TargetAIProfileId`) |
-| `BusinessHoursCalendarId`, `ClosedAction`, `OverflowQueueId` | Hours gating; `HoldInQueue`, `Voicemail`, `Overflow`, `Reject` |
+| `BusinessHoursCalendarId`, `ClosedAction`, `OverflowQueueId` | Hours gating by a Business Hours schedule id; `HoldInQueue`, `Voicemail`, `Overflow`, `Reject` |
 | `WelcomeMessage`, `ClosedMessage` | Spoken once per caller before the menu, queue or closed action |
 | `IvrFlow` | Phone menu (`RootNodeId`, `MaxRetries`, `FallbackAction`, `Nodes`) |
 | `VoicemailEnabled`, `VoicemailGreetingText`, `VoicemailRecipientAgentId`, `VoicemailDestination` | Voicemail behavior; `AgentInbox` or `QueueSharedBox` |

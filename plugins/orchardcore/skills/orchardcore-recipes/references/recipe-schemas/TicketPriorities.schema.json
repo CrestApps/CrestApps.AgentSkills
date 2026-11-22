@@ -1,0 +1,71 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "TicketPriorities",
+      "description": "Recipe step discriminator. Must be \u0027TicketPriorities\u0027."
+    },
+    "Priorities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The ticket priority id; omit it to create one."
+          },
+          "Name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The name."
+          },
+          "Rank": {
+            "type": "integer",
+            "description": "Its rank; higher is more urgent."
+          },
+          "Color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The badge color, a CSS color."
+          },
+          "CreatedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it was created, in UTC."
+          },
+          "ModifiedUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time",
+            "description": "When it last changed, in UTC."
+          },
+          "Properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "More values of the ticket priority, by name."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The ticket priorities to create or update by id."
+    }
+  },
+  "required": [
+    "name",
+    "Priorities"
+  ],
+  "additionalProperties": true
+}

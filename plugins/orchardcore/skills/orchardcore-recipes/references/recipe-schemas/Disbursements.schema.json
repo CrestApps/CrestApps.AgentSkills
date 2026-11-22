@@ -1,0 +1,157 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "Disbursements",
+      "description": "Recipe step discriminator. Must be \u0027Disbursements\u0027."
+    },
+    "Disbursements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The disbursement\u0027s id."
+          },
+          "idempotencyKey": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The key that identifies the disbursement; one already on the site is skipped."
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The payee\u0027s name."
+          },
+          "isBusinessPayee": {
+            "type": "boolean",
+            "description": "Whether the payee is a business."
+          },
+          "amount": {
+            "type": "number",
+            "description": "The amount."
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The three-letter currency code."
+          },
+          "method": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How it was sent: Ach, Check, Manual or a provider\u0027s method."
+          },
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The provider that sent it."
+          },
+          "sourceBankAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the business\u0027s bank account it left from."
+          },
+          "destinationBankAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the payee\u0027s bank account."
+          },
+          "sourceKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The kind of record it paid."
+          },
+          "sourceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The id of the record it paid."
+          },
+          "accessScope": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The access scope within the source kind."
+          },
+          "memo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The memo."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Batched",
+              "Submitted",
+              "Settled",
+              "Returned",
+              "Failed",
+              "Canceled",
+              "Reversed"
+            ],
+            "description": "The status."
+          },
+          "effectiveDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The date the money arrived, yyyy-MM-dd."
+          },
+          "traceNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The trace number the bank knew it by."
+          },
+          "createdUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was recorded (UTC)."
+          }
+        },
+        "required": [
+          "idempotencyKey",
+          "method",
+          "currency"
+        ],
+        "additionalProperties": true
+      },
+      "description": "The disbursements to add as history. They are never batched or changed. Account numbers are never part of them."
+    }
+  },
+  "required": [
+    "name",
+    "Disbursements"
+  ],
+  "additionalProperties": true
+}

@@ -252,6 +252,10 @@ To hide or move the whole `WidgetsListPart` editor row in the admin UI:
 
 If the part is attached as a named part, replace `WidgetsListPart` with the part name.
 
+### Widgets in the Admin Zones
+
+On **Design → Widgets**, each widget in a zone renders as `Widget.SummaryAdmin`. Since 4.0 that template renders its `Actions` and `ActionsMenu` zones through `@await DisplayAsync(await Factory.CreateAdminListActionsAsync((IShape)Model))`, so the widget's buttons follow **Settings → Admin → Actions layout** (Buttons, or one ellipsis Menu) like admin list rows. An override of `Widget.SummaryAdmin.cshtml` must render the actions the same way instead of a hand-written `btn-group` with an "Actions" dropdown, and place extra buttons as shapes in `Actions`/`ActionsMenu` (see `orchardcore-admin-lists`).
+
 ### Built-in Widget Content Types
 
 The default recipes (Blog, Agency) create widget types such as:

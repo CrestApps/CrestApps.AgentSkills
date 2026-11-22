@@ -145,6 +145,18 @@ Use `form-check form-switch` for a toggle. A settings editor that has nothing to
 </div>
 ```
 
+When the validation message sits inside the input group (as in the user name and email editors), add `has-validation` to the group so Bootstrap keeps the rounded corners of the last control:
+
+```cshtml
+<div class="input-group has-validation">
+    <span class="input-group-text"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+    <input asp-for="UserName" class="form-control" />
+    <span asp-validation-for="UserName" class="text-danger"></span>
+</div>
+```
+
+Give every control an accessible name: an icon-only button gets `aria-label` (and `title`), and a checkbox whose label is visually empty holds `<span class="visually-hidden">@T["Select {0}", name]</span>`.
+
 ### Limited Width
 
 ```cshtml
@@ -319,9 +331,9 @@ A module's own edit page owns the title, form, summary, and actions:
     </div>
 
     <div class="action-bar-bottom">
-        <button type="submit" class="btn btn-primary save">@T["Save"]</button>
-        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger action-bar-secondary" role="button" data-url-af="UnsafeUrl RemoveUrl">@T["Delete"]</a>
         <a asp-action="Index" class="btn btn-secondary cancel" role="button">@T["Cancel"]</a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger action-bar-secondary" role="button" data-url-af="UnsafeUrl RemoveUrl">@T["Delete"]</a>
+        <button type="submit" class="btn btn-primary save">@T["Save"]</button>
     </div>
 </form>
 ```
@@ -336,9 +348,34 @@ A module's own edit page owns the title, form, summary, and actions:
 Since Orchard Core 4.0 the submit buttons of admin edit pages (**Publish**, **Save**, **Cancel**, ...) render in a bar fixed to the bottom of the viewport, always visible without scrolling. TheAdmin pads the page so the bar never hides the end of the form.
 
 - Wrap the page's buttons in `<div class="action-bar-bottom">`, typically the last child of the `<form>`. Do not wrap them in `ocat-wrapper`/`ocat-end-offset` or the old top `position-sticky action-bar` card.
+- Order the buttons from the least to the most important, the same on every page: **Cancel** (or **Back**) first, a `btn-secondary` link with the `cancel` class; then the secondary actions; and the main action (**Save**, **Create**, **Publish**, or its `btn-group` with a **Save and continue** dropdown) last. Keep this order in the markup, not with CSS, so keyboard focus follows the visual order.
+- Use the same styles everywhere: `btn-secondary` for **Cancel** and alternative actions (**Save & Configure**, **Create & Setup**), `btn-danger` for destructive actions, `btn-primary` for the main action. Only the content item **Publish** button uses `btn-success`, to stand apart from **Save Draft**.
 - Mark every action other than the main ones (for example **Delete**, **Preview**, **Publish Later**, links to sub-pages) with `action-bar-secondary`. A secondary action can be one button or a whole control group (for example a `btn-group` or an input plus a button).
-- When **Configuration → Settings → Admin → Actions layout** (`AdminSettings.ActionsLayout`) resolves to `Menu`, secondary actions move into one ellipsis menu; on small screens they always do.
-- Shape-based editors (parts, fields, settings) never render their own bar: the host page owns it. Site settings get it from the `SiteSettings.SaveButton` shape. Content action shapes placed in the content editor's `Actions` zone render inside `Content.Edit`'s `action-bar-bottom`, so give secondary buttons `action-bar-secondary`.
+- When **Settings → Admin → Actions layout** (`AdminSettings.ActionsLayout`) resolves to `Menu`, secondary actions move into one ellipsis menu at the end of the bar, listing destructive actions (`btn-danger`, `btn-outline-danger`) last below a divider; on small screens they always do.
+- Shape-based editors (parts, fields, settings) never render their own bar: the host page owns it. Site settings get it from the `SiteSettings.SaveButton` shape (optional **Cancel** to `returnUrl`, then **Save**). Content action shapes placed in the content editor's `Actions` zone render inside `Content.Edit`'s `action-bar-bottom`, after its **Cancel** link, so give secondary buttons `action-bar-secondary` and a position that follows the order below.
+- Modal dialog footers (`.modal-footer`, and the dialog opened by TheAdmin's `confirmDialog()`) use the same order: **Cancel** or **Close** first, any secondary action (for example **Reset Anchor**) next, the confirming action (**OK**, **Save**, **Delete**) last.
+
+```html
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@T["Cancel"]</button>
+    <button type="button" class="btn btn-primary" data-my-module-save>@T["OK"]</button>
+</div>
+```
+
+Positions of the built-in content editor action shapes (`Actions` zone of `Content.Edit`):
+
+| Shape | Button | Position |
+|---|---|---|
+| `ContentPreview_Button` | **Preview** | `Actions:5` |
+| `Content_DeleteButton` | **Delete** | `Actions:10` |
+| `Content_UnpublishButton` | **Unpublish** | `Actions:20` |
+| `ArchiveLaterPart_Edit` | **Archive Later** | `Actions:20.5` |
+| `PublishLaterPart_Edit` | **Publish Later** | `Actions:25` |
+| `Content_UserTaskButton` | workflow user task actions | `Actions:28` |
+| `Content_SaveDraftButton` | **Save Draft** | `Actions:30` |
+| `Content_PublishButton` | **Publish** | `Actions:40` |
+
+Before Orchard Core 4.0 final, **Publish** was at `Actions:10`, **Delete** at `Actions:40`, **Preview** at `Actions:after`, **Archive Later** at `Actions:10.5`, **Publish Later** at `Actions:10` and the user task buttons at `Actions:30`; placement rules that position a custom shape relative to these buttons need new positions (for example `Actions:35` to sit between **Save Draft** and **Publish**).
 
 A split button can remember the last action the user chose (for example **Save** vs **Save and continue**). Put these attributes on the `btn-group`, which contains one submit button and one `dropdown-item` submit button, both with an explicit `value`:
 

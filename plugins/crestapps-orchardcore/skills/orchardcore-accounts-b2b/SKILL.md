@@ -1,6 +1,6 @@
 ---
 name: orchardcore-accounts-b2b
-description: Skill for the CrestApps Orchard Core Accounts B2B module (CrestApps.OrchardCore.Accounts.B2B), business selling on an Account content item. Covers B2BAccountPart and B2BAccount, buyers as account members and ship-to addresses as account locations, payment terms with a deposit, net days and credit limit through the account-terms tender, purchase order numbers, quotes, price lists through IBuyerPriceProvider, order limits, approvals and budgets, OCI punchout, the account/business page and API, the PriceLists recipe and deployment steps, the B2BAccounts report source, and the migration from the removed Companies module. Use this skill when requests mention B2B, wholesale or business buyers, net terms, purchase orders, price lists, order approvals or punchout. Strong matches include B2BAccountPart, B2BAccount, AccountBuyer, AccountTerms, AccountTermsTenderProvider, B2BAccountService, IB2BAccountStore, PriceList, B2BPriceProvider, B2BApprovalService, PunchoutService and ManageB2BAccounts.
+description: Skill for the CrestApps Orchard Core Accounts B2B module (CrestApps.OrchardCore.Accounts.B2B), business selling on an Account content item. Covers B2BAccountPart and B2BAccount, buyers as account members and ship-to addresses as account locations, terms (deposit, net days, credit limit) through the account-terms tender billed to the account, the account's billing profile, purchase order numbers, quotes, price lists through IBuyerPriceProvider, order limits, approvals and budgets, OCI punchout, the account/business page and API, the PriceLists recipe and deployment steps, the B2BAccounts report source, and the move from the removed Companies module. Use this skill when requests mention B2B, wholesale or business buyers, net terms, purchase orders, price lists, order approvals or punchout. Strong matches include B2BAccountPart, B2BAccount, AccountTerms, AccountTermsTenderProvider, B2BAccountBillingProfileSource, IB2BAccountStore, PriceList, B2BPriceProvider, B2BApprovalService and ManageB2BAccounts.
 license: Apache-2.0
 metadata:
   author: CrestApps Team
@@ -18,7 +18,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 - Install `CrestApps.OrchardCore.Accounts.B2B` (or the `CrestApps.OrchardCore.Cms.Core.Targets` bundle, which includes it) in the web/startup project.
 - There is no separate Abstractions or Core package: `B2BAccountPart`, `B2BAccount`, `B2BAccountService`, `IB2BAccountStore`, `IPriceListStore` and `AccountTermsService` live in the module (`CrestApps.OrchardCore.Accounts.B2B.Models` and `.Services`). The price seam `IBuyerPriceProvider` is in `CrestApps.OrchardCore.Products.Core`.
 - Add or remove a buyer by adding or removing the account **member**; buyers are read, never stored. Order limits are kept per user id on the part.
-- Checkout steps, tenders and payment gates are covered by `orchardcore-checkout`; orders, quotes and `Order.Approval` by `orchardcore-orders`; terms invoices by `orchardcore-transactions`.
+- Checkout steps, tenders and payment gates are covered by `orchardcore-checkout`; orders, quotes and `Order.Approval` by `orchardcore-orders`; what an account owes on terms by `orchardcore-transactions`. The account page's **Invoices** tab now comes from the Invoicing module, not from this feature.
 - All recipe JSON must be wrapped in `{ "steps": [...] }`.
 - All C# classes must use the `sealed` modifier, except View Models.
 
@@ -30,7 +30,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 | Depends on | `CrestApps.OrchardCore.Accounts`, `CrestApps.OrchardCore.Accounts.Members`, `CrestApps.OrchardCore.Accounts.Locations`, `CrestApps.OrchardCore.Commerce`, `CrestApps.OrchardCore.Orders`, `CrestApps.OrchardCore.Transactions` |
 | Lit up by | `CrestApps.OrchardCore.Shipping` (locations as ship-to), `CrestApps.OrchardCore.Checkout.Api` (API endpoints), `OrchardCore.Recipes.Core`, `OrchardCore.Deployment`, `CrestApps.OrchardCore.Recipes` (schemas), `OrchardCore.DataPipelines.Core` (report source) |
 | Content part | `B2BAccountPart` (added to `Account` at position 10) |
-| YesSql | `B2BAccountIndex` (default collection), `PriceList` in the `PriceLists` collection with `PriceListIndex` |
+| YesSql | `B2BAccountIndex` (default collection), `PriceList` in the `PriceLists` collection with `PriceListIndex`; both providers declare `.ExclusiveToDocumentType().SingleRecordPerDocument()` |
 | Tender key and transaction source | `account-terms` |
 | Permission | `ManageB2BAccounts` (Manage B2B accounts), Administrator |
 
@@ -57,7 +57,7 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 | `B2BAccountPart` | Meaning |
 |---|---|
 | `Enabled` | The account buys as a business; while off, its buyers buy for themselves. |
-| `TaxId`, `BillingEmail` | `TaxId` prints on invoices and makes `B2BCheckoutTaxProfileHandler` tax the buyer as `CustomerTaxType.B2B` (not at a register). |
+| `TaxId`, `BillingEmail` | `TaxId` prints on invoices and makes `B2BCheckoutTaxProfileHandler` tax the buyer as `CustomerTaxType.B2B` (not at a register), setting the number with `CustomerTaxProfile.SetTaxNumber`. Both reach the account's billing profile. |
 | `OrderLimits` | `BuyerOrderLimit` (`UserId`, `Limit` in the store currency). Ignored for users who are no longer members. |
 | `Terms` | `AccountTerms` (`NetDays`, `DepositPercent`, `CreditLimit`, `RequirePurchaseOrder`); `OffersTerms` is true when `NetDays >= 0`. |
 | `PriceListId` | The `PriceList` its buyers pay, or none. |
@@ -72,8 +72,9 @@ You are an Orchard Core expert. Generate accurate setup, recipes and extension g
 ## Checkout, Terms and Purchase Orders
 
 - **Business account step.** `B2BCheckoutHandler` adds a `business` step (order 3, after contact and shipping) to an account buyer's checkout. `B2BCheckoutStepService.SaveAsync(session, purchaseOrderNumber, requestApproval)` requires the PO number when `RequirePurchaseOrder` (64 characters at most) and writes it and `AccountId` on the order. An order that already has a PO number (such as a quote) starts with the step done.
-- **Terms tender.** `AccountTermsTenderProvider` (key `account-terms`) puts `GrandTotal x (100 - DepositPercent) / 100` on terms, capped by the credit left, in the store currency only and never for a register sale. The tender reference is `"{accountId}:{sessionId}"`. The amount becomes a transaction due in `NetDays`, source `account-terms`, owned by the buyer, with parent reference `Account` and the account id.
+- **Terms tender.** `AccountTermsTenderProvider` (key `account-terms`) puts `GrandTotal x (100 - DepositPercent) / 100` on terms, capped by the credit left, in the store currency only and never for a register sale. The tender reference is `"{accountId}:{sessionId}"`. The amount becomes a transaction due in `NetDays`, source `account-terms`, owned by the buyer, with parent reference `Account` and the account id, and the account as payer (`DeferredBalanceDebit.Payer`, `PartyKinds.Account`). The account's `Admin` members see and pay it on **My Transactions**; the buyer sees it as their own.
 - **Owed.** `AccountTermsService.ListInvoicesAsync(account)`, `GetOwedAsync(account)` and `GetAvailableCreditAsync(account)` read by parent reference, so what an account owes does not change when a buyer leaves.
+- **Billing profile.** `B2BAccountBillingProfileSource` (`IPartyBillingProfileSource`, kind `Account`) runs after the Accounts source (name and billing location) and adds `TaxId` (trimmed), `BillingEmail` (as the contact e-mail when there is none, else in `CopyTo`), and, while the account buys as a business, `NetDays` when it offers terms and `CreditLimit`. Invoices billed to the account and the account's tax profile read it.
 - **Ship-to.** With Shipping on, `AccountLocationsShippingAddressSource` offers the account's locations on the Shipping step, labelled with the account name.
 - **Orders.** `Order.AccountId` (`OrderIndex.AccountId`, `OrderQuery.AccountId`) is the account an order was placed for. Quotes are an Orders feature; a buyer's quote carries the PO number and the account.
 
@@ -104,7 +105,7 @@ Admin **Prices by SKU** takes `SKU,price` lines (comma, semicolon or tab), at mo
 | Commerce API (`api/commerce/v1`, needs `CrestApps.OrchardCore.Checkout.Api`) | `GET account/business`, `GET account/business/approvals`, `POST account/business/approvals/{orderId}`, `PUT checkout/{id}/business`, `POST` and `DELETE checkout/{id}/account` | Bearer token, buyer |
 | **Commerce > B2B Accounts** | Content list of account types with the part, `q=b2b:true` | `ManageB2BAccounts` (the list itself needs `ListContent`) |
 | **Commerce > Price lists** | Admin `b2b/price-lists` (`Index`, `Create`, `Edit`, `Delete`) | `ManageB2BAccounts` |
-| Account editor **Business** tab, page **Business** and **Invoices** tabs | `AccountPageTabs.Business`, `AccountPageTabs.Invoices` | `ManageB2BAccounts`; choosing buyers needs `ManageAccountMembers` |
+| Account editor **Business** tab, page **Business buying** tab | `AccountPageTabs.Business` | `ManageB2BAccounts`; choosing buyers needs `ManageAccountMembers` |
 
 The `b2b:` content list term filters any content list to accounts that buy as a business (`b2b:true`) or not (`b2b:false`). `ApiOrder` carries `accountId`, `purchaseOrderNumber`, `quote` and `approval`.
 
@@ -199,6 +200,7 @@ The Orders migration (`UpdateFrom2Async`) adds `OrderIndex.AccountId`; the old c
 | Punchout returns 401 | Wrong key, `HOOK_URL` not https, punchout user not a member or is an Administrator, or the account does not buy as a business. |
 | API routes 404 | `CrestApps.OrchardCore.Checkout.Api` is not enabled; the paths are under `api/commerce/v1`. |
 | User cannot be added as buyer | They are already a member of another account. |
+| Terms invoices no longer on the account page | Accounts B2B dropped its Invoices card; enable Invoicing for the **Invoices** tab, or read `AccountTermsService.ListInvoicesAsync`. |
 | Odd terms after an import | Recipes skip the editor's checks (`NetDays` 0-365, `DepositPercent` 0-100, no negative limits, punchout buyer a non-admin member); keep imported values in range. |
 
 Related skills: `orchardcore-accounts`, `orchardcore-orders`, `orchardcore-checkout`, `orchardcore-transactions`, `orchardcore-customers`, `orchardcore-addresses`, `orchardcore-products`, `orchardcore-report-builder`.

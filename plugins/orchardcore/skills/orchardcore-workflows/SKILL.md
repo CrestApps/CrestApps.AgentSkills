@@ -47,6 +47,7 @@ User tasks (`UserTaskEvent`) are available when Workflows, Contents and Roles ar
 ## The designer
 
 - **Layout.** Activities pane (left, searchable, drag or click to add), canvas (pan, zoom, connect by dragging from an outcome port, click a dangling `+` port to add the next activity already connected), workflow panel (right, tabs **Variables**, **Workflow** settings, **Issues**), activity panel (bottom, opened by double-click, the settings button or Enter; tabs **Settings**, **Outputs**, **Available data**, and **Runs** on instance pages).
+- **Validation in the panel.** An apply rejected by the activity driver shows its validation messages in the **Settings** tab; the next valid apply reloads the form so the stale messages disappear, keeping anything typed while the apply was posted.
 - **Issues.** Unreachable activities, missing start activity, broken connections, unused extra transitions, and activity settings that the activity's driver rejects (for example a required expression left empty). Errors block publishing; warnings are confirmed.
 - **Workflows list.** **Edit** opens the designer; **Clone** (formerly Duplicate), **Export** and **Delete** are in each row's **Actions** menu. The old **Properties** page is gone; settings are edited in the designer's **Workflow** tab as part of the draft. **Create Workflow** only asks for a name.
 - **Instances at a time** replaces the **Single instance** checkbox: **Any number**, **One at a time** (`IsSingleton`), or **One per correlated item** (`IsSingletonPerCorrelation`, an event does not start a new instance while an instance with the same correlation id waits).
@@ -187,6 +188,7 @@ Activity class names (stored in `ActivityRecord.Name`), not UI labels:
 - `UserRegisteredEvent` does not exist; use `UserCreatedEvent` or `RegisterUserTask`.
 - `ForEachTask` over a `null` enumerable follows `Done` (it used to throw).
 - `CreateTenantTask` validates with `ITenantValidator`; invalid input takes `Failed` with the errors as `LastResult`. Always connect `Failed`.
+- The **Create Tenant** and **Setup Tenant** task editors render their expressions as textareas with the Liquid (CodeMirror) editor attached. Before 4.0 final the **Create Tenant** editor saved the Name expression as the description and the Description expression as the tenant name; re-check tasks saved with the old editor.
 - `HttpRequestTask` URL-encodes Liquid values in **Url**, **Headers** and **Content Type** (use `| raw` only for trusted values); **Body** is not encoded.
 - `SmsTask` has an optional **From Phone Number** (`FromNumber`, Liquid). `UserTaskEvent` action names are HTML-encoded on the editor buttons.
 - `RunDataPipelineTask` queues a run of a published pipeline (outcomes `Succeeded`/`Failed` when waiting, else `Queued`/`Failed`, plus `Skipped`); see `orchardcore-data-pipelines`.

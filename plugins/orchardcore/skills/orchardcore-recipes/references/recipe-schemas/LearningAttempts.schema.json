@@ -1,0 +1,144 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "const": "LearningAttempts",
+      "description": "Recipe step discriminator. Must be \u0027LearningAttempts\u0027."
+    },
+    "Attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The attempt id, a generated unique id. An attempt with this id is updated."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The user name of the learner. A row whose user is not on the site is reported and skipped."
+          },
+          "QuizId": {
+            "type": "string",
+            "description": "The content item id of the quiz."
+          },
+          "CourseId": {
+            "type": "string",
+            "description": "The content item id of the course."
+          },
+          "EnrollmentId": {
+            "type": "string",
+            "description": "The enrollment the attempt belongs to."
+          },
+          "Number": {
+            "type": "string",
+            "description": "The attempt number."
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "InProgress",
+              "NeedsGrading",
+              "Graded",
+              "Voided",
+              "Abandoned"
+            ],
+            "description": "The state."
+          },
+          "Items": {
+            "type": "array",
+            "description": "The questions as drawn, with their answers, keys and scores: the attempt is a self-contained record."
+          },
+          "ScoreHistory": {
+            "type": "array",
+            "description": "The score changes: ChangedUtc, Kind, From, To, Actor or ActorUserName, Reason."
+          },
+          "GradedByUserName": {
+            "type": "string",
+            "description": "The user name of the grader."
+          }
+        },
+        "required": [
+          "UserName",
+          "QuizId"
+        ]
+      },
+      "description": "The attempts to create, or update by id."
+    },
+    "Overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "string",
+            "description": "The override id. An override with this id is updated."
+          },
+          "UserName": {
+            "type": "string",
+            "description": "The user name of the learner."
+          },
+          "QuizId": {
+            "type": "string",
+            "description": "The content item id of the quiz."
+          },
+          "ExtraMinutes": {
+            "type": "integer",
+            "description": "Extra minutes on each attempt."
+          },
+          "ExtraAttempts": {
+            "type": "integer",
+            "description": "Extra attempts."
+          },
+          "OpensUtc": {
+            "type": "string",
+            "description": "When the quiz opens for this learner, in UTC."
+          },
+          "ClosesUtc": {
+            "type": "string",
+            "description": "When the quiz closes for this learner, in UTC."
+          },
+          "Reason": {
+            "type": "string",
+            "description": "Why the override was given."
+          },
+          "ActorUserName": {
+            "type": "string",
+            "description": "The user name of the person who gave it."
+          }
+        },
+        "required": [
+          "UserName",
+          "QuizId"
+        ]
+      },
+      "description": "The quiz overrides to create, or update by id."
+    },
+    "AccessCodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "QuizId": {
+            "type": "string",
+            "description": "The content item id of the quiz."
+          },
+          "Hash": {
+            "type": "string",
+            "description": "The salted hash of the access code, as exported. The code itself is never exported."
+          }
+        },
+        "required": [
+          "QuizId",
+          "Hash"
+        ]
+      },
+      "description": "The access codes of quizzes, as hashes."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": true
+}

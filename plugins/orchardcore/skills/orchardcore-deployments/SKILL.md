@@ -140,7 +140,7 @@ Implement all three pieces in the module that owns the data.
 
 Both are never persisted with the plan, always read from the step's type, and translated at display time with `IStringLocalizerFactory.Localize()`. The PO context is the class that declares the source: `msgctxt "OrchardCore.Localization.CommonLocalizationSources"` for shared categories, `msgctxt "MyModule.MyModuleLocalizationSources"` for the module's own sources. `Name` is persisted; its setter only restores the stored name of a step whose type is unavailable (`UnknownDeploymentStep`).
 
-Always repeat `[JsonIgnore]` on the `Category` and `Title` overrides: `System.Text.Json` does not inherit the base property's attribute, and a `LocalizationSource` cannot be serialized, so saving a plan containing the step fails without it.
+Always repeat `[JsonIgnore]` on the `Category` and `Title` overrides: `System.Text.Json` does not inherit the base property's attribute. Since Orchard Core 4.0 `System.Text.Json` writes a `LocalizationSource` as its `Value` string, so a missing `[JsonIgnore]` no longer fails the save; instead the plan silently stores untranslated labels that are never read back, and a source read back loses its `Type` (its PO context). A `LocalizationSource` property must never be serialized: put `[JsonIgnore]` on every one, and persist a plain string key in step settings instead.
 
 Every object added to `DeploymentPlanResult.Steps` is a recipe step consumed on import. Emit an existing recipe step or ship and enable a matching custom `IRecipeStepHandler` on the target tenant. The example emits `MySettings`, so its companion recipe handler must be available there.
 

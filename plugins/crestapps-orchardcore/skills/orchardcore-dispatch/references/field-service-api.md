@@ -18,8 +18,8 @@ The **Field Service API** feature (`CrestApps.OrchardCore.Dispatch.Api`) maps mi
 | `POST work-orders/{id}/signatures` | `ManageWorkOrders` | `{ "name", "imagePath" }` |
 | `POST work-orders/{id}/attachments` | `ManageWorkOrders` | `{ "path" }` (a file already in the media library) |
 | `POST work-orders/{id}/complete` | `ManageWorkOrders` | Completes, or answers with what is missing |
-| `GET agreements` | `ManageServiceAgreements` | `?status=&q=&skip=&take=` (Service Agreements feature on) |
-| `GET agreements/{id}` | `ManageServiceAgreements` | |
+| `GET agreements` | `ViewAgreements` | `?status=&q=&skip=&take=` (Service Agreements feature on; agreements of the Agreements module, with `customerId` and the schedule count from their Work Orders terms) |
+| `GET agreements/{id}` | `ViewAgreements` | |
 
 Create a work order once per key (sending it again returns the first work order):
 
@@ -82,7 +82,7 @@ Mapped only when `CrestApps.OrchardCore.Assets` is on.
 
 ## Technician Mobile at `api/dispatch/v1/mobile`
 
-The Field page (`~/Admin/my-work/field`) calls the same handlers at `my-work/field/api` with its cookie and an antiforgery header from `my-work/field/api/token`; other apps use `api/dispatch/v1/mobile` with the `Api` scheme. The caller needs **Use the My Work portal** and a worker profile.
+The Field page (`~/Admin/my-work/field`) calls the same handlers at `my-work/field/api` with its cookie and an antiforgery header from `my-work/field/api/token`; other apps use `api/dispatch/v1/mobile` with the `Api` scheme. The caller needs **Use the My Work portal** and a staff member linked to their user (see `orchardcore-staff`); the visits are those where that staff member is on the crew.
 
 | Endpoint | Body | Answer |
 |---|---|---|

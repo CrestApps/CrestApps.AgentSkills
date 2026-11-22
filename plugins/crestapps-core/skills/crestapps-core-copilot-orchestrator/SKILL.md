@@ -132,7 +132,7 @@ public sealed class CopilotAuthController : Controller
 }
 ```
 
-`GetAuthorizationUrl` writes a protected, ten-minute state cookie and sends a nonce as `state`; `TryValidateCallbackState` checks it and returns only a local return URL (or `__popup__`). Other members: `GetCredentialAsync`, `GetProtectedCredentialsAsync`, `GetValidAccessTokenAsync` (refreshes when expired), `IsAuthenticatedAsync`, `ListModelsAsync` and `DisconnectAsync`, all keyed by user id.
+`GetAuthorizationUrl` writes a protected, ten-minute state cookie (named `__Host-crestapps-gh-oauth-state` over HTTPS, so a sibling subdomain cannot plant it) and sends a `RandomNumberGenerator` nonce as `state`. The state records the signed-in user, and `TryValidateCallbackState` succeeds only for that same user, deletes the cookie after it validates (one round trip cannot be replayed), and returns only a local return URL (or `__popup__`). Both need an `HttpContext`: `GetAuthorizationUrl` throws `InvalidOperationException` without one, and validation fails. Other members: `GetCredentialAsync`, `GetProtectedCredentialsAsync`, `GetValidAccessTokenAsync` (refreshes when expired), `IsAuthenticatedAsync`, `ListModelsAsync` and `DisconnectAsync`, all keyed by user id.
 
 ## Session Metadata
 
@@ -151,13 +151,17 @@ profile.Put(new CopilotSessionMetadata { CopilotModel = "gpt-4o", ReasoningEffor
 4. BYOK sets the provider type, base URL, key, `WireApi` and Azure API version; OAuth uses `GitHubOAuthService.GetValidAccessTokenAsync`.
 5. MCP connections in the context are only described in the system message under `[Available MCP Servers]`. The current SDK `SessionConfig` has no MCP server support, and MCP tools are excluded from the tool list, so the model cannot call MCP tools through this orchestrator. Use the default orchestrator for profiles that depend on MCP tools.
 
-Tool access follows the profile's configuration, the same boundary as the default orchestrator.
+Tool access follows the profile's configuration, the same boundary as the default orchestrator. The Copilot orchestrator creates tools straight from the registry entries rather than through `IToolMaterializer`, so a tool registered with `RequireApproval()` is not filtered out here the way the default and Claude orchestrators filter it; do not attach approval-required tools to a Copilot profile.
 
 ## Troubleshooting
 
 - **"Copilot is not configured..."**: the mode's required values are missing (see the table), usually because nothing bound `CopilotOptions`.
 - **Build fails downloading the CLI behind a proxy**: set `CopilotNpmRegistryUrl` or `NPM_CONFIG_REGISTRY`, or point `CopilotCliCacheDir` at a pre-seeded cache.
-- **OAuth callback rejected**: the state cookie expired or the callback ran on a different host than the connect request.
+- **OAuth callback rejected**: the state cookie expired, was already used, the callback ran on a different host than the connect request, or a different user (or a signed-out browser) completed the flow.
+
+## Upgrading Within 2.0 Previews
+
+- `GitHubOAuthService` binds the OAuth state to the user who started the flow, deletes the state cookie once it validates, and throws from `GetAuthorizationUrl` without an `HttpContext`.
 
 ## Upgrading from 1.x
 

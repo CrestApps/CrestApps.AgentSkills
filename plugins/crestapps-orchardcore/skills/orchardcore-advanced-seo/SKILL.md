@@ -92,7 +92,9 @@ It builds on Orchard Core's SEO module (`orchardcore-seo` keeps meta tags, Open 
 | `SeoMeta` (500) | Orchard Core SEO | `description`, `image` |
 | `SchemaOrgPart` (1000) | Schema.org part | The mappings and editor values |
 | `EditorJsonLd` (2000) | SEO part's **Google Schema** | Editor JSON-LD (wins over the mappings) |
-| 3000 | Site | Publisher and `WebSite`; `publisher` and `isPartOf` when missing |
+| `Site` (3000) | Site | Publisher and `WebSite`; `publisher` and `isPartOf` when missing |
+
+A provider that refers to the site nodes (for example a course's `provider`) uses an `Order` above `StructuredDataProviderOrder.Site` and links them with `StructuredDataNodeIds.Publisher(baseUrl)` (`{baseUrl}/#publisher`) and `StructuredDataNodeIds.WebSite(baseUrl)` (`{baseUrl}/#website`) from `CrestApps.OrchardCore.Seo.Abstractions`.
 
 Afterwards `IPageStructuredData.MainEntity` is merged in, an untyped node becomes `WebPage` (or `Thing` without a URL), and a node without `@id` gets `{url}#{type}`.
 

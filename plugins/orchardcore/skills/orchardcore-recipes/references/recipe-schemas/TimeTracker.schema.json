@@ -165,7 +165,8 @@
               "ContactCenter",
               "TimeOff",
               "Api",
-              "Import"
+              "Import",
+              "Ticket"
             ],
             "description": "Where the entry came from. Defaults to Import."
           },

@@ -171,7 +171,7 @@ Managed under **Artificial Intelligence → Model Context Protocol → Resources
 
 | Type | Variables | Registered when |
 |---|---|---|
-| `file` | `{providerName}`, `{fileName}` | Always |
+| `file` | `{fileName}`, optional `{providerName}` | Always; reads only the tenant's `McpFiles` folder or a registered provider (see below) |
 | `media` | `{path}` | `OrchardCore.Media` is enabled |
 | `content-item` | `{contentItemId}`, `{contentItemVersionId}` | `OrchardCore.ContentManagement` is enabled |
 | `content-type` | `{contentType}` | `OrchardCore.ContentManagement` is enabled |
@@ -179,6 +179,17 @@ Managed under **Artificial Intelligence → Model Context Protocol → Resources
 | `recipe-step-schema` | `{stepName}` | `CrestApps.OrchardCore.Recipes` is enabled |
 | `recipe` | `{recipeName}` | `CrestApps.OrchardCore.Recipes` is enabled |
 | `ftp`, `sftp` | `{path}` | See `orchardcore-ai-mcp-resources` |
+
+**Where `file` resources read from.** Without `{providerName}`, a `file` resource reads only from the tenant's `App_Data/Sites/{tenant}/McpFiles` folder. Create the folder and put in it only the files to share; until it exists nothing is found. Paths that leave the folder and dot-prefixed, hidden or system files are refused. A `{providerName}` template variable (the client supplies the value) selects a provider registered in code with `McpFileProviderOptions` (`CrestApps.OrchardCore.AI.Mcp.Services`); an unknown name is not found. A literal name in the template, such as `handbook/{fileName}`, does not select a provider: it is only part of the path. Earlier versions read from the web host's content root, so move the shared files into `McpFiles` when upgrading.
+
+```csharp
+services.Configure<McpFileProviderOptions>(options =>
+{
+    options.AddProvider("handbook", sp => new PhysicalFileProvider("/srv/handbook"));
+});
+```
+
+The MCP client picks the file name, so every file a provider can reach is readable by every client allowed to read resources. Never register the content root or the application data folder (they hold `appsettings.json`, connection strings, keys and every tenant's database).
 
 ```json
 {

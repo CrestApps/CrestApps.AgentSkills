@@ -32,3 +32,5 @@ The Companies module no longer exists. Selling to businesses moved to **Accounts
 
 - No migration converts company records into accounts. Recreate each business as an account (for example with the `Accounts` recipe step) and set `Order.AccountId` on orders that must keep their business.
 - The Orders migration adds the order index's account column; the old company column is no longer read.
+- What a business owes on terms is a transaction billed to the account (payer kind `Account`), paid by the account's `Admin` members on **My Transactions**; its invoices are on the account page's **Invoices** tab, from the Invoicing module. The account's tax number, billing e-mail and terms reach invoices through its billing profile (`B2BAccountBillingProfileSource`).
+- The staff who look after a business (owner and account team) are kept with the Account Team feature (`CrestApps.OrchardCore.Accounts.Team`, see `orchardcore-accounts` and `orchardcore-staff`).
